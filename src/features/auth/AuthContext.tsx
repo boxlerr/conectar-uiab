@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import type { User } from "@/types";
-import { mockAdmin } from "@/data/mockDB";
+import { mockAdmin } from "@/features/shared/data/mockDB";
 
 interface AuthContextType {
   currentUser: User | null;

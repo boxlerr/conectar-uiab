@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { mockedProviders, providerSpecialties } from "@/data/mockDB";
-import { ProviderCard } from "@/components/ProviderCard";
+import { mockedProviders, providerSpecialties } from "@/features/shared/data/mockDB";
+import { ProviderCard } from "@/features/providers/components/ProviderCard";
 import { Search, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 

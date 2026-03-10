@@ -1,13 +1,13 @@
 "use client";
 
 import { use } from "react";
-import { mockedCompanies, mockedReviews } from "@/data/mockDB";
+import { mockedCompanies, mockedReviews } from "@/features/shared/data/mockDB";
 import { Building, MapPin, Mail, Phone, Star, ChevronLeft, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/features/auth/AuthContext";
 
 export default function CompanyProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -72,7 +72,7 @@ export default function CompanyProfile({ params }: { params: Promise<{ id: strin
              <Card className="p-6 md:p-8">
                <h2 className="text-xl font-bold text-slate-900 mb-6">Servicios Ofrecidos</h2>
                <div className="flex flex-wrap gap-2">
-                 {company.servicesOffered.map((s, idx) => (
+                 {company.servicesOffered.map((s: string, idx: number) => (
                    <span key={idx} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium">
                      {s}
                    </span>

@@ -1,13 +1,13 @@
 "use client";
 
 import { use } from "react";
-import { mockedProviders, mockedReviews } from "@/data/mockDB";
+import { mockedProviders, mockedReviews } from "@/features/shared/data/mockDB";
 import { User, MapPin, Mail, Phone, Star, ChevronLeft, CheckCircle2, Award, ShieldCheck, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/features/auth/AuthContext";
 
 export default function ProviderProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -104,7 +104,7 @@ export default function ProviderProfile({ params }: { params: Promise<{ id: stri
 
                <h3 className="font-semibold text-slate-900 mb-4">Certificaciones Habilitantes</h3>
                <div className="flex flex-wrap gap-2">
-                 {provider.certifications.map((s, idx) => (
+                 {provider.certifications.map((s: string, idx: number) => (
                    <span key={idx} className="flex items-center gap-2 bg-blue-50 text-blue-800 px-3 py-2 rounded-lg text-sm font-medium border border-blue-100">
                      <ShieldCheck className="w-4 h-4" /> {s}
                    </span>
