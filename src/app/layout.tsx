@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-import { AuthProvider } from "@/features/auth/AuthContext";
-import { AppShell } from "@/components/layout/AppShell";
+import { AuthProvider } from "@/modulos/autenticacion/AuthContext";
+import { AppShell } from "@/components/plantillas/AppShell";
 
 export const metadata: Metadata = {
   title: "Conectar-UIAB | Directorio Industrial",

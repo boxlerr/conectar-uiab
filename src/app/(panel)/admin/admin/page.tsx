@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/features/auth/AuthContext";
-import { mockedCompanies, mockedProviders, mockedReviews } from "@/features/shared/data/mockDB";
+import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { mockedCompanies, mockedProviders, mockedReviews } from "@/modulos/compartido/data/mockDB";
 import { ShieldAlert, Check, X, Building, Wrench, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

@@ -1,8 +1,8 @@
 "use client";
 
-import { useAuth } from "@/features/auth/AuthContext";
-import { Header } from "@/components/layout/Header";
-import { AuthModal } from "@/features/auth/components/AuthModal";
+import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { Header } from "@/components/plantillas/Header";
+import { AuthModal } from "@/modulos/autenticacion/components/AuthModal";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { currentUser, openAuthModal, logout } = useAuth();

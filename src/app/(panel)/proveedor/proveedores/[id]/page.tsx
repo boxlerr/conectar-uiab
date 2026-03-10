@@ -1,13 +1,13 @@
 "use client";
 
 import { use } from "react";
-import { mockedProviders, mockedReviews } from "@/features/shared/data/mockDB";
+import { mockedProviders, mockedReviews } from "@/modulos/compartido/data/mockDB";
 import { User, MapPin, Mail, Phone, Star, ChevronLeft, CheckCircle2, Award, ShieldCheck, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { useAuth } from "@/features/auth/AuthContext";
+import { useAuth } from "@/modulos/autenticacion/AuthContext";
 
 export default function ProviderProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -20,7 +20,7 @@ export default function ProviderProfile({ params }: { params: Promise<{ id: stri
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Proveedor no encontrado</h2>
-        <Link href="/providers">
+        <Link href="/proveedor/proveedores">
           <Button variant="outline">Volver al directorio</Button>
         </Link>
       </div>
@@ -35,7 +35,7 @@ export default function ProviderProfile({ params }: { params: Promise<{ id: stri
       </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative -mt-24 z-10">
-        <Link href="/providers" className="inline-flex items-center text-white/80 hover:text-white mb-6 font-medium text-sm transition-colors">
+        <Link href="/proveedor/proveedores" className="inline-flex items-center text-white/80 hover:text-white mb-6 font-medium text-sm transition-colors">
           <ChevronLeft className="w-4 h-4 mr-1" /> Volver al directorio
         </Link>
         

@@ -2,8 +2,8 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Shield, Building, Wrench } from "lucide-react";
-import { useAuth } from "@/features/auth/AuthContext";
-import { mockAdmin, mockedCompanies, mockedProviders } from "@/features/shared/data/mockDB";
+import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { mockAdmin, mockedCompanies, mockedProviders } from "@/modulos/compartido/data/mockDB";
 import { Button } from "@/components/ui/button";
 
 export function AuthModal() {
