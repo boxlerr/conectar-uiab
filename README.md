@@ -32,10 +32,10 @@ Casi toda la lógica, validaciones, conexiones a base de datos y componentes vis
     *   `AuthContext.tsx` ➔ El "Cerebro" que recuerda en la memoria de la app global si el usuario es Admin, Empresa o Proveedor para así mostrarle ciertas cosas sí y otras no.
 *   `modulos/empresas/` ➔ Todo lo exclusivo de una Empresa Industrial que busca servicios.
     *   `components/CompanyCard.tsx` ➔ La tarjeta visual de una empresa que se usa en el catálogo general.
-    *   `acciones.ts` _(Futuro)_ ➔ Funciones de servidor como `crearPublicacionDeTrabajo()` o `actualizarPerfilEmpresa()`.
+    *   `actions/` ➔ (O `acciones`). Funciones puras de Servidor (Server Actions) que interactúan con la Base de Datos. Ej: `crearPublicacionDeTrabajo()` o `actualizarPerfilEmpresa()`.
 *   `modulos/proveedores/` ➔ Todo lo exclusivo de un Prestador de Servicios/Profesional.
     *   `components/ProviderCard.tsx` ➔ La tarjeta visual de un proveedor para mostrar en listados.
-    *   `acciones.ts` _(Futuro)_ ➔ Funciones como `responderReseña()` o `cargarNuevaCertificacion()`.
+    *   `actions/` ➔ (O `acciones`). Funciones como `responderReseña()` o `cargarNuevaCertificacion()`.
 *   `modulos/facturacion/` _(Futuro)_ ➔ Cuando integres cobros de suscripción mensual vía web, acá vivirán `PricingTable.tsx` y las conexiones directas con Stripe o MP.
 *   `modulos/compartido/` ➔ Componentes que son de lógica de negocio o datos pero que los usan más de 1 módulo y no se pueden guardar en uno solo.
     *   `data/mockDB.ts` ➔ Entorno simulado temporal que emula la Base de Datos para probar la UI sin un backend real conectado.
