@@ -15,6 +15,103 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
+import { ChevronDown, Sparkles } from "lucide-react";
+
+function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType, onLogout: () => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 bg-white/50 backdrop-blur-sm border border-slate-200/50 pl-2 pr-3 py-1.5 rounded-full shadow-sm hover:shadow-md hover:bg-white transition-all group"
+      >
+        <div className="relative">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-100 to-indigo-100 flex items-center justify-center text-primary-700 font-bold shadow-inner uppercase">
+            {currentUser.name.charAt(0)}
+          </div>
+          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></div>
+        </div>
+        <span className="text-sm font-semibold text-slate-800 max-w-[120px] truncate">
+          {currentUser.name.split(' ')[0]}
+        </span>
+        <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", isOpen && "rotate-180")} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 origin-top-right"
+          >
+            <div className="p-3 bg-slate-50/50 border-b border-slate-100">
+               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Conectado como</p>
+               <p className="text-sm font-bold text-slate-900 truncate">{currentUser.name}</p>
+               <p className="text-xs text-slate-500 capitalize flex items-center gap-1 mt-0.5">
+                 <Sparkles className="w-3 h-3 text-emerald-500" />
+                 {currentUser.role === 'company' ? 'Empresa' : currentUser.role === 'provider' ? 'Proveedor' : 'Admin'}
+               </p>
+            </div>
+            
+            <div className="p-1">
+              {currentUser.role !== 'admin' && (
+                <Link 
+                  href="/perfil" 
+                  onClick={() => setIsOpen(false)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-700 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  Mi Perfil / Panel
+                </Link>
+              )}
+              {currentUser.role === 'admin' && (
+                <Link 
+                  href="/admin" 
+                  onClick={() => setIsOpen(false)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-700 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-colors"
+                >
+                  <Shield className="w-4 h-4" />
+                  Panel Admin
+                </Link>
+              )}
+              <button 
+                onClick={() => {
+                  setIsOpen(false);
+                  onLogout();
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors mt-1"
+              >
+                <LogOut className="w-4 h-4" />
+                Cerrar sesión
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function Header({ currentUser, onLoginClick, onLogout }: HeaderProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -181,28 +278,9 @@ export function Header({ currentUser, onLoginClick, onLogout }: HeaderProps) {
               className="hidden md:flex items-center gap-4"
             >
               {currentUser ? (
-                <div className="flex items-center gap-4 bg-white/50 backdrop-blur-sm border border-slate-200/50 pl-2 pr-2 py-1.5 rounded-full shadow-sm">
-                  <div className="flex items-center gap-2.5 px-2">
-                    <div className="relative">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-100 to-indigo-100 flex items-center justify-center text-primary-700 font-bold shadow-inner uppercase">
-                        {currentUser.name.charAt(0)}
-                      </div>
-                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></div>
-                    </div>
-                    <span className="text-sm font-semibold text-slate-800 max-w-[120px] truncate">
-                      {currentUser.name.split(' ')[0]}
-                    </span>
-                  </div>
-                  <div className="w-px h-6 bg-slate-200 mx-1"></div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={onLogout}
-                    className="h-8 w-8 rounded-full text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                    title="Cerrar sesión"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </Button>
+                <div className="relative" onMouseLeave={() => setHoveredPath(null)}> 
+                  {/* Keep the generic onMouseLeave to close custom menus if needed, or use a specific state */}
+                  <ProfileDropdownMenu currentUser={currentUser} onLogout={onLogout} />
                 </div>
               ) : (
                 <Button 
