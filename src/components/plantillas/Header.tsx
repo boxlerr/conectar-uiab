@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { User, Shield, Building, Wrench, Menu, X } from "lucide-react";
+import { User, Shield, Building, Wrench, Menu, X, Mail, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { User as UserType } from "@/types";
 
@@ -20,8 +20,10 @@ export function Header({ currentUser, onLoginClick, onLogout }: HeaderProps) {
 
   const navigation = [
     { name: "Inicio", href: "/", icon: null },
-    { name: "Empresas", href: "/companies", icon: Building },
-    { name: "Proveedores", href: "/providers", icon: Wrench },
+    { name: "Nosotros", href: "https://www.uiab.org", icon: Info, external: true },
+    { name: "Empresas", href: "/empresas", icon: Building },
+    { name: "Proveedores", href: "/proveedores", icon: Wrench },
+    { name: "Contacto", href: "/contacto", icon: Mail },
   ];
 
   if (currentUser?.role === "admin") {
@@ -51,6 +53,8 @@ export function Header({ currentUser, onLoginClick, onLogout }: HeaderProps) {
                 <Link
                   key={item.name}
                   href={item.href}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
                   className={cn(
                     "text-sm font-medium transition-colors flex items-center gap-1.5",
                     isActive
@@ -111,6 +115,8 @@ export function Header({ currentUser, onLoginClick, onLogout }: HeaderProps) {
                 <Link
                   key={item.name}
                   href={item.href}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
                   className={cn(
                     "block rounded-md px-3 py-2 text-base font-medium flex items-center gap-2",
                     isActive
