@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { User, Shield, Building, Wrench, Menu, X, Mail, Info } from "lucide-react";
+import { User, Shield, Building, Wrench, Menu, X, Mail, Info, ChevronRight, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { User as UserType } from "@/types";
 
@@ -17,137 +18,329 @@ interface HeaderProps {
 export function Header({ currentUser, onLoginClick, onLogout }: HeaderProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [hoveredPath, setHoveredPath] = useState<string | null>(null);
+
+  // Handle scroll effect for glassmorphism
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Prevent scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isMobileMenuOpen]);
 
   const navigation = [
     { name: "Inicio", href: "/", icon: null },
-    { name: "Nosotros", href: "https://www.uiab.org", icon: Info, external: true },
     { name: "Empresas", href: "/empresas", icon: Building },
     { name: "Proveedores", href: "/proveedores", icon: Wrench },
-    { name: "Contacto", href: "/contacto", icon: Mail },
+    { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
+    { name: "Contacto", href: "/contacto", icon: null },
   ];
 
   if (currentUser?.role === "admin") {
     navigation.push({ name: "Panel Admin", href: "/admin", icon: Shield });
   }
 
+  const navContainerRef = useRef<HTMLDivElement>(null);
+  const [activePill, setActivePill] = useState({ left: 0, width: 0, opacity: 0 });
+  const [hoverPill, setHoverPill] = useState({ left: 0, width: 0, opacity: 0 });
+
+  // Update active pill position when pathname changes
+  useEffect(() => {
+    if (!navContainerRef.current) return;
+    // Small timeout to ensure DOM is painted, though usually not needed
+    const timeout = setTimeout(() => {
+      if (!navContainerRef.current) return;
+      const activeEl = navContainerRef.current.querySelector('[data-active="true"]') as HTMLElement;
+      if (activeEl) {
+        setActivePill({ left: activeEl.offsetLeft, width: activeEl.offsetWidth, opacity: 1 });
+      } else {
+        setActivePill(prev => ({ ...prev, opacity: 0 }));
+      }
+    }, 50);
+    return () => clearTimeout(timeout);
+  }, [pathname]);
+
+  const handleHover = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
+    setHoveredPath(path);
+    setHoverPill({ left: e.currentTarget.offsetLeft, width: e.currentTarget.offsetWidth, opacity: 1 });
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredPath(null);
+    setHoverPill(prev => ({ ...prev, opacity: 0 }));
+  };
+
+  const activeIndex = navigation.findIndex(n => n.href === pathname);
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <div className="flex-shrink-0 flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-xl">UIAB</span>
-            </div>
-            <Link href="/" className="font-bold text-xl text-slate-900 tracking-tight hidden sm:block">
-              Conectar<span className="text-primary-600">UIAB</span>
-            </Link>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex gap-6 items-center">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  target={item.external ? "_blank" : undefined}
-                  rel={item.external ? "noopener noreferrer" : undefined}
-                  className={cn(
-                    "text-sm font-medium transition-colors flex items-center gap-1.5",
-                    isActive
-                      ? "text-primary-600"
-                      : "text-slate-600 hover:text-slate-900"
-                  )}
-                >
-                  {Icon && <Icon className="w-4 h-4" />}
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Actions */}
-          <div className="hidden md:flex items-center gap-4">
-            {currentUser ? (
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold">
-                    {currentUser.name.charAt(0)}
-                  </div>
-                  <span className="font-medium">{currentUser.name}</span>
-                </div>
-                <Button variant="outline" size="sm" onClick={onLogout}>
-                  Salir
-                </Button>
-              </div>
-            ) : (
-              <Button onClick={onLoginClick} className="gap-2">
-                <User className="w-4 h-4" />
-                Ingresar
-              </Button>
-            )}
-          </div>
-
-          {/* Mobile menu button */}
-          <div className="flex items-center md:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+    <>
+      <header 
+        className={cn(
+          "fixed top-0 inset-x-0 z-50 transition-all duration-300 border-b",
+          scrolled 
+            ? "bg-white/85 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)] border-slate-200/50" 
+            : "bg-white/50 backdrop-blur-sm border-transparent"
+        )}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 sm:h-20 items-center justify-between">
+            {/* Logo */}
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex-shrink-0 flex items-center gap-2.5"
             >
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </Button>
-          </div>
-        </div>
-      </div>
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20">
+                <span className="text-white font-bold text-lg sm:text-xl tracking-wide">UIAB</span>
+              </div>
+              <Link href="/" className="font-bold text-xl sm:text-2xl text-slate-900 tracking-tight hidden sm:flex items-center gap-1 group">
+                Conectar
+                <span className="text-primary-600 group-hover:text-primary-700 transition-colors">UIAB</span>
+              </Link>
+            </motion.div>
 
-      {/* Mobile menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white">
-          <div className="space-y-1 px-4 pb-3 pt-2">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  target={item.external ? "_blank" : undefined}
-                  rel={item.external ? "noopener noreferrer" : undefined}
-                  className={cn(
-                    "block rounded-md px-3 py-2 text-base font-medium flex items-center gap-2",
-                    isActive
-                      ? "bg-primary-50 text-primary-600"
-                      : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                  )}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {Icon && <Icon className="w-5 h-5" />}
-                  {item.name}
-                </Link>
-              );
-            })}
-            
-            <div className="mt-4 pt-4 border-t border-slate-100">
+            {/* Desktop Navigation */}
+            <nav 
+              className="hidden md:flex relative items-center justify-center"
+              onMouseLeave={handleMouseLeave}
+            >
+              <div ref={navContainerRef} className="flex relative bg-slate-100/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/50">
+                
+                {/* Active Pill (Animated by state to avoid layoutId bugs on scroll) */}
+                <motion.div
+                  initial={false}
+                  animate={{ 
+                    left: activePill.left, 
+                    width: activePill.width, 
+                    opacity: activePill.opacity 
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  className="absolute top-1.5 bottom-1.5 bg-white rounded-xl shadow-sm border border-slate-200/50"
+                  style={{ zIndex: 0 }}
+                />
+
+                {/* Hover Pill */}
+                <motion.div
+                  initial={false}
+                  animate={{ 
+                    left: hoverPill.left, 
+                    width: hoverPill.width, 
+                    opacity: hoveredPath && hoveredPath !== pathname ? hoverPill.opacity : 0 
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  className="absolute top-1.5 bottom-1.5 bg-slate-200/50 rounded-xl"
+                  style={{ zIndex: 1 }}
+                />
+
+                {navigation.map((item) => {
+                  const isActive = pathname === item.href;
+                  const Icon = item.icon;
+                  
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      data-active={isActive}
+                      target={item.external ? "_blank" : undefined}
+                      rel={item.external ? "noopener noreferrer" : undefined}
+                      className={cn(
+                        "relative px-4 py-2 text-sm font-semibold transition-colors duration-300 rounded-xl flex items-center gap-2",
+                        isActive ? "text-primary-700" : "text-slate-600 hover:text-slate-900"
+                      )}
+                      style={{ zIndex: 10 }}
+                      onMouseEnter={(e) => handleHover(e, item.href)}
+                    >
+                      {Icon && (
+                        <Icon className={cn(
+                          "w-4 h-4 transition-transform duration-300",
+                          isActive ? "text-primary-600 scale-110" : "text-slate-400 opacity-70"
+                        )} />
+                      )}
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </nav>
+
+            {/* Desktop Actions */}
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="hidden md:flex items-center gap-4"
+            >
               {currentUser ? (
-                <div className="flex items-center justify-between px-3">
-                  <span className="text-sm font-medium text-slate-900">{currentUser.name}</span>
-                  <Button variant="outline" size="sm" onClick={() => { onLogout(); setIsMobileMenuOpen(false); }}>
-                    Salir
+                <div className="flex items-center gap-4 bg-white/50 backdrop-blur-sm border border-slate-200/50 pl-2 pr-2 py-1.5 rounded-full shadow-sm">
+                  <div className="flex items-center gap-2.5 px-2">
+                    <div className="relative">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-100 to-indigo-100 flex items-center justify-center text-primary-700 font-bold shadow-inner uppercase">
+                        {currentUser.name.charAt(0)}
+                      </div>
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></div>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-800 max-w-[120px] truncate">
+                      {currentUser.name.split(' ')[0]}
+                    </span>
+                  </div>
+                  <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={onLogout}
+                    className="h-8 w-8 rounded-full text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                    title="Cerrar sesión"
+                  >
+                    <LogOut className="w-4 h-4" />
                   </Button>
                 </div>
               ) : (
-                <Button className="w-full justify-center" onClick={() => { onLoginClick(); setIsMobileMenuOpen(false); }}>
+                <Button 
+                  onClick={onLoginClick} 
+                  className="gap-2 h-10 px-6 rounded-xl font-semibold bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5"
+                >
+                  <User className="w-4 h-4" />
                   Ingresar
                 </Button>
               )}
+            </motion.div>
+
+            {/* Mobile menu button */}
+            <div className="flex items-center md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="relative z-50 h-10 w-10 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-700"
+              >
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
             </div>
           </div>
         </div>
-      )}
-    </header>
+      </header>
+
+      {/* spacer to prevent content from going under the fixed header */}
+      <div className="h-16 sm:h-20 w-full" />
+
+      {/* Mobile menu overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
+            />
+            
+            {/* Menu Panel */}
+            <motion.div
+              initial={{ x: "100%", opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 right-0 z-40 w-full max-w-sm bg-white shadow-2xl md:hidden overflow-y-auto"
+            >
+              <div className="flex flex-col h-full pt-20 px-6 pb-6">
+                
+                {/* Mobile User Profile or Login */}
+                <div className="mb-8">
+                  {currentUser ? (
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary-100 to-indigo-100 flex items-center justify-center text-primary-700 font-bold shadow-inner text-lg uppercase">
+                          {currentUser.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900">{currentUser.name}</p>
+                          <p className="text-xs font-medium text-slate-500 capitalize">{currentUser.role}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-6 rounded-2xl bg-gradient-to-br from-primary-50 to-indigo-50 border border-primary-100/50 text-center space-y-3">
+                      <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center mx-auto shadow-sm text-primary-600">
+                        <User className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900">Bienvenido</h3>
+                        <p className="text-sm text-slate-500 mb-4">Ingresa a tu cuenta industrial</p>
+                      </div>
+                      <Button 
+                        className="w-full font-semibold shadow-md" 
+                        onClick={() => { onLoginClick(); setIsMobileMenuOpen(false); }}
+                      >
+                        Iniciar Sesión
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Navegación</h4>
+                  {navigation.map((item, i) => {
+                    const isActive = pathname === item.href;
+                    const Icon = item.icon;
+                    return (
+                      <motion.div
+                        key={item.name}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                      >
+                        <Link
+                          href={item.href}
+                          target={item.external ? "_blank" : undefined}
+                          rel={item.external ? "noopener noreferrer" : undefined}
+                          className={cn(
+                            "flex items-center justify-between px-4 py-3.5 rounded-xl text-base font-semibold transition-colors",
+                            isActive
+                              ? "bg-primary-50 text-primary-700"
+                              : "text-slate-700 hover:bg-slate-50 active:bg-slate-100"
+                          )}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <div className="flex items-center gap-3">
+                            {Icon && <Icon className={cn("w-5 h-5", isActive ? "text-primary-600" : "text-slate-400")} />}
+                            {item.name}
+                          </div>
+                          {!isActive && <ChevronRight className="w-4 h-4 text-slate-300" />}
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+                
+                {currentUser && (
+                  <div className="mt-auto pt-8">
+                     <Button 
+                        variant="outline"
+                        className="w-full text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 h-12 font-semibold" 
+                        onClick={() => { onLogout(); setIsMobileMenuOpen(false); }}
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Cerrar Sesión
+                      </Button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
