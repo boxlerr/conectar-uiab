@@ -60,18 +60,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 2. Authorization Check (RBAC for /admin)
-  if (user && pathname.startsWith('/admin')) {
-    const role = user.user_metadata?.role || user.app_metadata?.role;
-    if (role !== 'admin') {
-      if (isApiRoute) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-      const url = request.nextUrl.clone()
-      url.pathname = '/403'
-      return NextResponse.redirect(url)
-    }
-  }
+  // Check for admin routes explicitly handled by Next Layer Guards now.
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
   // If you're creating a new response object with NextResponse.next() make sure to:

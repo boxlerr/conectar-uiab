@@ -17,6 +17,7 @@ const openSans = Open_Sans({
 import { AuthProvider } from "@/modulos/autenticacion/AuthContext";
 import { AppShell } from "@/components/plantillas/AppShell";
 import { cn } from "@/lib/utils";
+import { Toaster } from "@/components/ui/sonner";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -38,6 +39,7 @@ export default function RootLayout({
         <AuthProvider>
           <AppShell>{children}</AppShell>
         </AuthProvider>
+        <Toaster />
       </body>
     </html>
   );
