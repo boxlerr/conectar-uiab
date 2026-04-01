@@ -3,31 +3,119 @@
 import { useAuth } from "@/modulos/autenticacion/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FileText, UploadCloud, AlertCircle, FileCheck2, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { FileText, UploadCloud, AlertCircle, FileCheck2, Trash2, X, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 export default function MiPerfilDocumentosPage() {
   const { currentUser } = useAuth();
+  const supabase = createClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [files, setFiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    async function fetchFiles() {
+      if (!currentUser?.entityId) {
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase.storage
+        .from("documentos")
+        .list(currentUser.entityId, {
+          limit: 100,
+          offset: 0,
+          sortBy: { column: "created_at", order: "desc" },
+        });
+
+      if (data) {
+        // Filter out empty folder placeholders or invalid objects
+        const validFiles = data.filter((f) => f.name !== ".emptyFolderPlaceholder" && f.metadata);
+        setFiles(
+          validFiles.map((f) => ({
+            id: f.id || f.name,
+            name: f.name,
+            size: f.metadata?.size ? (f.metadata.size / 1024 / 1024).toFixed(2) + " MB" : "Desconocido",
+            status: "verifying", // or any custom logic you prefer
+            date: new Date(f.created_at || Date.now()).toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" }),
+            path: `${currentUser.entityId}/${f.name}`,
+          }))
+        );
+      }
+      setLoading(false);
+    }
+    fetchFiles();
+  }, [currentUser, supabase]);
   
   if (!currentUser) return null;
 
-  const [files, setFiles] = useState([
-    { id: 1, name: "Constancia_AFIP_2026.pdf", size: "1.2 MB", status: "verified", date: "10 Mar 2026" },
-  ]);
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      </div>
+    );
+  }
 
-  const [isUploading, setIsUploading] = useState(false);
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentUser.entityId) return;
 
-  // Simulates a file upload drop handler
-  const handleSimulateUpload = () => {
-    setIsUploading(true);
-    setTimeout(() => {
-      setFiles([
-        ...files,
-        { id: Date.now(), name: "Matricula_Habilitante.pdf", size: "2.4 MB", status: "pending", date: "Hoy" }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Archivo demasiado pesado", { description: "El tamaño máximo permitido es 10MB." });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const filePath = `${currentUser.entityId}/${file.name}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('documentos')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      toast.success("Documento cargado", { description: "El archivo ha sido transferido satisfactoriamente a tu expediente." });
+      
+      // Manually push to state to instantly show
+      setFiles((prev) => [
+         {
+           id: Date.now().toString(),
+           name: file.name,
+           size: (file.size / 1024 / 1024).toFixed(2) + " MB",
+           status: "verifying",
+           date: new Date().toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" }),
+           path: filePath
+         },
+         ...prev.filter(f => f.name !== file.name)
       ]);
+      
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Fallo al subir documento", { description: err.message });
+    } finally {
       setIsUploading(false);
-    }, 1500);
+      // Reset input
+      if (fileInputRef.current) {
+         fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDelete = async (filePath: string, fileId: string) => {
+    try {
+       const { error } = await supabase.storage.from('documentos').remove([filePath]);
+       if (error) throw error;
+       toast.success("Archivo eliminado");
+       setFiles(files.filter(f => f.id !== fileId));
+    } catch (err: any) {
+       toast.error("Error al borrar", { description: err.message });
+    }
   };
 
   return (
@@ -36,6 +124,20 @@ export default function MiPerfilDocumentosPage() {
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Legajo y Matrículas</h1>
         <p className="text-slate-500 mt-1">Sube la documentación necesaria para validar y verificar tu perfil en el directorio.</p>
       </div>
+
+      {!currentUser.entityId && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm mb-6">
+          <div className="bg-amber-100 p-3 rounded-full text-amber-600 flex-shrink-0">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="font-bold text-amber-900 mb-1">Perfil Incompleto</h3>
+            <p className="text-sm text-amber-700/80">
+              No puedes cargar documentos formales porque aún no has completado los datos base de tu perfil.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 flex gap-4">
         <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
@@ -50,12 +152,23 @@ export default function MiPerfilDocumentosPage() {
       </div>
 
       {/* Upload Zone */}
+      <input 
+        type="file" 
+        className="hidden" 
+        ref={fileInputRef} 
+        onChange={handleFileUpload}
+        accept="application/pdf, image/jpeg, image/png, image/webp"
+      />
       <Card 
-        className="p-8 border-2 border-dashed border-slate-300 bg-slate-50/50 hover:bg-primary-50 hover:border-primary-400 transition-all cursor-pointer group flex flex-col items-center justify-center text-center relative overflow-hidden"
-        onClick={handleSimulateUpload}
+        className={`p-8 border-2 border-dashed bg-slate-50/50 transition-all text-center relative overflow-hidden flex flex-col items-center justify-center ${
+          currentUser.entityId 
+            ? 'border-slate-300 hover:bg-primary-50 hover:border-primary-400 cursor-pointer group' 
+            : 'border-slate-200 opacity-50 cursor-not-allowed hidden'
+        }`}
+        onClick={() => currentUser.entityId && fileInputRef.current?.click()}
       >
         {isUploading && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
             <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-3"></div>
             <p className="text-sm font-semibold text-primary-700">Subiendo documento...</p>
           </div>
@@ -91,7 +204,7 @@ export default function MiPerfilDocumentosPage() {
                   ) : 'En revisión'}
                 </Badge>
                 
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 -ml-2 sm:ml-0" onClick={() => setFiles(files.filter(f => f.id !== file.id))}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 -ml-2 sm:ml-0" onClick={() => handleDelete(file.path, file.id)}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>

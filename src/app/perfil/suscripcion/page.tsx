@@ -3,13 +3,50 @@
 import { useAuth } from "@/modulos/autenticacion/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CreditCard, CheckCircle2, History, Banknote, ShieldCheck } from "lucide-react";
+import { CreditCard, CheckCircle2, History, Banknote, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function MiPerfilSuscripcionPage() {
   const { currentUser } = useAuth();
+  const supabase = createClient();
+
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadPayments() {
+      if (!currentUser?.entityId) {
+        setLoading(false);
+        return;
+      }
+      
+      const columnFk = currentUser.role === 'company' ? 'empresa_id' : 'proveedor_id';
+      
+      const { data, error } = await supabase
+        .from('pagos_suscripciones')
+        .select('*')
+        .eq(columnFk, currentUser.entityId)
+        .order('pagado_en', { ascending: false });
+
+      if (data) {
+        setPayments(data);
+      }
+      setLoading(false);
+    }
+    loadPayments();
+  }, [currentUser, supabase]);
   
   if (!currentUser) return null;
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -17,6 +54,20 @@ export default function MiPerfilSuscripcionPage() {
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Plan y Suscripción</h1>
         <p className="text-slate-500 mt-1">Gestiona tus pagos y tu membresía activa en Conectar-UIAB.</p>
       </div>
+
+      {!currentUser.entityId && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm mb-6">
+          <div className="bg-amber-100 p-3 rounded-full text-amber-600 flex-shrink-0">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="font-bold text-amber-900 mb-1">Perfil Incompleto</h3>
+            <p className="text-sm text-amber-700/80">
+              No puedes manejar suscripciones aún porque te falta cargar tus Datos de Contacto básicos.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -111,26 +162,40 @@ export default function MiPerfilSuscripcionPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
-                <tr className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">01 Mar 2026</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">$5.000 ARS</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant="outline" className="text-emerald-700 bg-emerald-50 border-emerald-200">Aprobado</Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <Button variant="link" size="sm" className="text-primary-600">Descargar PDF</Button>
-                  </td>
-                </tr>
-                <tr className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">01 Feb 2026</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">$5.000 ARS</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant="outline" className="text-emerald-700 bg-emerald-50 border-emerald-200">Aprobado</Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                     <Button variant="link" size="sm" className="text-primary-600">Descargar PDF</Button>
-                  </td>
-                </tr>
+                {payments.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500">
+                      No tienes historial de pagos registrado aún.
+                    </td>
+                  </tr>
+                ) : (
+                  payments.map((p) => {
+                    const dateObj = new Date(p.pagado_en || p.creado_en);
+                    const formattedDate = dateObj.toLocaleDateString("es-AR", { year: 'numeric', month: 'short', day: 'numeric' });
+                    const amnt = p.monto ? parseFloat(p.monto).toLocaleString('es-AR') : '0';
+                    
+                    return (
+                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{formattedDate}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${amnt} {p.moneda || 'ARS'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge variant="outline" className={
+                            p.estado === 'aprobado' || p.estado === 'approved' 
+                              ? "text-emerald-700 bg-emerald-50 border-emerald-200" 
+                              : "text-amber-700 bg-amber-50 border-amber-200"
+                          }>
+                            {p.estado || 'Pendiente'}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <Button variant="link" size="sm" className="text-primary-600 disabled:opacity-50" disabled={!p.external_reference}>
+                            {p.external_reference ? "Descargar PDF" : "N/A"}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
