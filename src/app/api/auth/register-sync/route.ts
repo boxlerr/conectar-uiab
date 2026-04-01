@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Automatically instantiate "Empresa" or "Proveedor" based on selection (B2B SaaS Best Practice)
-    if (role === 'empresa') {
+    if (role === 'company') {
       const { data: emp, error: empError } = await supabaseAdmin
         .from('empresas')
         .insert({
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
           es_principal: true
         })
       }
-    } else if (role === 'proveedor') {
+    } else if (role === 'provider') {
       const { data: prov, error: provError } = await supabaseAdmin
         .from('proveedores')
         .insert({

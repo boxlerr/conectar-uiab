@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-export type UserRole = 'admin' | 'empresa' | 'proveedor' | 'guest'
+export type UserRole = 'admin' | 'company' | 'provider' | 'guest'
 
 /**
  * Helper on the server to retrieve the user's role from the `perfiles` table

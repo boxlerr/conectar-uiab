@@ -25,7 +25,7 @@ const registerSchema = z.object({
   nombre: z.string().min(3, { message: 'Mínimo 3 caracteres requeridos' }),
   email: z.string().email({ message: 'Email inválido' }),
   password: z.string().min(8, { message: 'La contraseña debe tener al menos 8 caracteres' }),
-  role: z.enum(['empresa', 'proveedor'], {
+  role: z.enum(['company', 'provider'], {
     message: 'Debes seleccionar un tipo de cuenta'
   }),
 })
@@ -103,7 +103,7 @@ export default function RegisterPage() {
       
       // Auto redirect after a short celebration
       setTimeout(() => {
-        router.push(values.role === 'empresa' ? '/directorio' : '/proveedor/proveedores')
+        router.push(values.role === 'company' ? '/directorio' : '/proveedor/proveedores')
         router.refresh()
       }, 2000)
 
@@ -145,7 +145,6 @@ export default function RegisterPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             
-            {/* Custom Role Selector */}
             <FormField
               control={form.control}
               name="role"
@@ -155,25 +154,25 @@ export default function RegisterPage() {
                   <FormControl>
                     <div className="grid grid-cols-2 gap-4">
                       <div 
-                        onClick={() => field.onChange('empresa')}
+                        onClick={() => field.onChange('company')}
                         className={`cursor-pointer rounded-lg border-2 p-4 text-center transition-all ${
-                          field.value === 'empresa' 
+                          field.value === 'company' 
                             ? 'border-primary-600 bg-primary-50 text-primary-900' 
                             : 'border-slate-100 bg-white hover:border-slate-200 text-slate-500'
                         }`}
                       >
-                        <Building className={`mx-auto h-6 w-6 mb-2 ${field.value === 'empresa' ? 'text-primary-600' : 'text-slate-400'}`} />
+                        <Building className={`mx-auto h-6 w-6 mb-2 ${field.value === 'company' ? 'text-primary-600' : 'text-slate-400'}`} />
                         <span className="block text-sm font-semibold">Soy Empresa</span>
                       </div>
                       <div 
-                        onClick={() => field.onChange('proveedor')}
+                        onClick={() => field.onChange('provider')}
                         className={`cursor-pointer rounded-lg border-2 p-4 text-center transition-all ${
-                          field.value === 'proveedor' 
+                          field.value === 'provider' 
                             ? 'border-primary-600 bg-primary-50 text-primary-900' 
                             : 'border-slate-100 bg-white hover:border-slate-200 text-slate-500'
                         }`}
                       >
-                        <Truck className={`mx-auto h-6 w-6 mb-2 ${field.value === 'proveedor' ? 'text-primary-600' : 'text-slate-400'}`} />
+                        <Truck className={`mx-auto h-6 w-6 mb-2 ${field.value === 'provider' ? 'text-primary-600' : 'text-slate-400'}`} />
                         <span className="block text-sm font-semibold">Soy Proveedor</span>
                       </div>
                     </div>

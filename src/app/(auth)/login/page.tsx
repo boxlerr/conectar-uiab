@@ -83,14 +83,16 @@ function LoginContent() {
       } else {
         const rol = profile?.rol_sistema
         if (rol === 'admin') router.push('/admin')
-        else if (rol === 'empresa') router.push('/directorio') // UX requirement for companies
-        else if (rol === 'proveedor') router.push('/empresa/empresas') // Fallback example
-        else router.push('/perfil')
+        else if (rol === 'company') router.push('/directorio') // UX requirement for companies
+        else router.push('/directorio') // Default path for others (providers, etc)
       }
       
       router.refresh()
-    } catch (err) {
-      toast.error('Error de sistema', { description: 'Contacte al soporte técnico.' })
+    } catch (err: any) {
+      toast.error('Error al iniciar sesión', {
+        description: err.message || 'Credenciales inválidas.',
+      })
+    } finally {
       setIsLoading(false)
     }
   }

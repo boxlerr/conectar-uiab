@@ -13,8 +13,8 @@ const SUBSCRIPTION_PRICE = 5000; // Example price per month in ARS
 
 const createMockSubscriptions = () => {
   const allEntities = [
-    ...mockedCompanies.filter(c => c.status === "approved").map(c => ({ ...c, type: 'empresa' })),
-    ...mockedProviders.filter(p => p.status === "approved").map(p => ({ ...p, type: 'proveedor' }))
+    ...mockedCompanies.filter(c => c.status === "approved").map(c => ({ ...c, type: 'company' })),
+    ...mockedProviders.filter(p => p.status === "approved").map(p => ({ ...p, type: 'provider' }))
   ];
 
   return allEntities.map((entity, index) => ({
@@ -46,7 +46,7 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function AdminSuscripcionesPage() {
-  const [filter, setFilter] = useState<"all" | "empresa" | "proveedor">("all");
+  const [filter, setFilter] = useState<"all" | "company" | "provider">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredSubscriptions = subscriptions.filter(s => {
@@ -163,14 +163,14 @@ export default function AdminSuscripcionesPage() {
             Todas
           </button>
           <button 
-            onClick={() => setFilter("empresa")}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "empresa" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            onClick={() => setFilter("company")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "company" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
             Empresas
           </button>
           <button 
-            onClick={() => setFilter("proveedor")}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "proveedor" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            onClick={() => setFilter("provider")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "provider" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
             Proveedores
           </button>
@@ -203,9 +203,9 @@ export default function AdminSuscripcionesPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                          sub.entityType === 'empresa' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
+                          sub.entityType === 'company' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
                         }`}>
-                          {sub.entityType === 'empresa' ? <Building className="w-4 h-4" /> : <Wrench className="w-4 h-4" />}
+                          {sub.entityType === 'company' ? <Building className="w-4 h-4" /> : <Wrench className="w-4 h-4" />}
                         </div>
                         <div>
                           <div className="font-semibold text-slate-900">{sub.entityName}</div>
