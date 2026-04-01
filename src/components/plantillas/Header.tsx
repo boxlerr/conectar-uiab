@@ -11,7 +11,6 @@ import type { User as UserType } from "@/types";
 
 interface HeaderProps {
   currentUser: UserType | null;
-  onLoginClick: () => void;
   onLogout: () => void;
 }
 
@@ -112,7 +111,7 @@ function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType,
   );
 }
 
-export function Header({ currentUser, onLoginClick, onLogout }: HeaderProps) {
+export function Header({ currentUser, onLogout }: HeaderProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -284,13 +283,13 @@ export function Header({ currentUser, onLoginClick, onLogout }: HeaderProps) {
                   <ProfileDropdownMenu currentUser={currentUser} onLogout={onLogout} />
                 </div>
               ) : (
-                <Button 
-                  onClick={onLoginClick} 
-                  className="gap-2 h-10 px-6 rounded-xl font-semibold bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5"
+                <Link 
+                  href="/login"
+                  className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-xl font-semibold bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5 text-white"
                 >
                   <User className="w-4 h-4" />
                   Ingresar
-                </Button>
+                </Link>
               )}
             </motion.div>
 
@@ -358,12 +357,13 @@ export function Header({ currentUser, onLoginClick, onLogout }: HeaderProps) {
                         <h3 className="font-bold text-slate-900">Bienvenido</h3>
                         <p className="text-sm text-slate-500 mb-4">Ingresa a tu cuenta industrial</p>
                       </div>
-                      <Button 
-                        className="w-full font-semibold shadow-md" 
-                        onClick={() => { onLoginClick(); setIsMobileMenuOpen(false); }}
+                      <Link 
+                        href="/login"
+                        className="inline-flex items-center justify-center w-full font-semibold shadow-md bg-primary-600 hover:bg-primary-700 text-white rounded-lg py-2 px-4 transition-colors" 
+                        onClick={() => setIsMobileMenuOpen(false)}
                       >
                         Iniciar Sesión
-                      </Button>
+                      </Link>
                     </div>
                   )}
                 </div>

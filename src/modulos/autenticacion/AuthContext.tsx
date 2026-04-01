@@ -7,11 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
-  login: (user: User) => void;
   logout: () => void;
-  isAuthModalOpen: boolean;
-  openAuthModal: () => void;
-  closeAuthModal: () => void;
   refreshUser: () => Promise<void>;
 }
 
@@ -20,7 +16,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const supabase = createClient();
 
   const fetchProfile = useCallback(async (userId: string, email: string) => {
@@ -37,12 +32,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data) {
+        let entityId = null;
+
+        // Fetch Business Layer ID mapping
+        if (data.rol_sistema === 'company') {
+          const { data: memberData } = await supabase
+            .from('miembros_empresa')
+            .select('empresa_id')
+            .eq('perfil_id', userId)
+            .single();
+          entityId = memberData?.empresa_id;
+        } else if (data.rol_sistema === 'provider') {
+          const { data: memberData } = await supabase
+            .from('miembros_proveedor')
+            .select('proveedor_id')
+            .eq('perfil_id', userId)
+            .single();
+          entityId = memberData?.proveedor_id;
+        }
+
         return {
           id: data.id,
           name: data.nombre_completo || email.split('@')[0],
           email: email,
           role: data.rol_sistema as any,
           isMember: data.activo || false,
+          entityId: entityId,
         };
       }
     } catch (err) {
@@ -90,29 +105,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [supabase, fetchProfile, refreshUser]);
 
-  const login = (user: User) => {
-    setCurrentUser(user);
-    setIsAuthModalOpen(false);
-  };
-
   const logout = async () => {
     await supabase.auth.signOut();
     setCurrentUser(null);
   };
-
-  const openAuthModal = () => setIsAuthModalOpen(true);
-  const closeAuthModal = () => setIsAuthModalOpen(false);
 
   return (
     <AuthContext.Provider
       value={{
         currentUser,
         loading,
-        login,
         logout,
-        isAuthModalOpen,
-        openAuthModal,
-        closeAuthModal,
         refreshUser,
       }}
     >

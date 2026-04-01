@@ -7,6 +7,7 @@ export interface User {
   email: string;
   role: UserRole;
   isMember: boolean; // Relevant if they are part of UIAB
+  entityId?: string | null; // ID in 'empresas' or 'proveedores' table
 }
 
 export interface Review {
