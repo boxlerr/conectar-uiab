@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { User, Shield, Building, Wrench, Menu, X, Mail, Info, ChevronRight, LogOut } from "lucide-react";
+import { User, Shield, Building, Wrench, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { User as UserType } from "@/types";
 
@@ -140,6 +140,7 @@ export function Header({ currentUser, onLoginClick, onLogout }: HeaderProps) {
     { name: "Inicio", href: "/", icon: null },
     { name: "Empresas", href: "/empresas", icon: Building },
     { name: "Proveedores", href: "/proveedores", icon: Wrench },
+    { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
     { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
     { name: "Contacto", href: "/contacto", icon: null },
   ];
