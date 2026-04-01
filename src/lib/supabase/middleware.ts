@@ -35,18 +35,42 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: If you remove getClaims() and you use server-side rendering
   // with the Supabase client, your users may be randomly logged out.
-  const { data } = await supabase.auth.getClaims()
-  const user = data?.claims
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth')
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  const pathname = request.nextUrl.pathname;
+
+  const isApiRoute = pathname.startsWith('/api/');
+  const isProtectedRoute = 
+    pathname.startsWith('/admin') || 
+    pathname.startsWith('/directorio') || 
+    pathname.startsWith('/empresas') || 
+    pathname.startsWith('/empresa') || 
+    pathname.startsWith('/perfil') || 
+    pathname.startsWith('/proveedores') || 
+    pathname.startsWith('/proveedor');
+
+  // 1. Authentication Check (Require JWT)
+  if (isProtectedRoute && (!user || userError)) {
+    if (isApiRoute) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
+    url.pathname = '/login'
+    url.searchParams.set('redirect', pathname)
     return NextResponse.redirect(url)
+  }
+
+  // 2. Authorization Check (RBAC for /admin)
+  if (user && pathname.startsWith('/admin')) {
+    const role = user.user_metadata?.role || user.app_metadata?.role;
+    if (role !== 'admin') {
+      if (isApiRoute) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      const url = request.nextUrl.clone()
+      url.pathname = '/403'
+      return NextResponse.redirect(url)
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
