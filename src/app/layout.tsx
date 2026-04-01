@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins, Open_Sans } from "next/font/google";
+import { Poppins, Open_Sans, Geist } from "next/font/google";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -16,6 +16,9 @@ const openSans = Open_Sans({
 
 import { AuthProvider } from "@/modulos/autenticacion/AuthContext";
 import { AppShell } from "@/components/plantillas/AppShell";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "Conectar-UIAB | Directorio Industrial",
@@ -28,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body
         className={`${openSans.variable} ${poppins.variable} font-sans antialiased min-h-screen bg-slate-50`}
       >
