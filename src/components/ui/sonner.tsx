@@ -26,6 +26,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         ),
         loading: (
           <Loader2Icon className="size-4 animate-spin" />
+        ),
       }}
       style={
         {
