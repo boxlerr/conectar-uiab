@@ -9,15 +9,15 @@ import { Badge } from "@/components/ui/badge";
 // Mock Data for Users
 const mockUsers = [
   { id: "1", name: "Admin Principal", email: "admin@uiab.org", role: "admin", status: "activo", lastLogin: "Hoy, 09:30" },
-  { id: "2", name: "Carlos López", email: "clopez@alimentosbrown.com", role: "empresa", status: "activo", lastLogin: "Ayer, 15:45" },
-  { id: "3", name: "María Gómez", email: "mgomez@mecatronicasrl.com", role: "proveedor", status: "activo", lastLogin: "Hoy, 11:20" },
-  { id: "4", name: "Juan Pérez", email: "jperez@logisticasur.com.ar", role: "empresa", status: "inactivo", lastLogin: "Hace 1 semana" },
-  { id: "5", name: "Ana Martínez", email: "amartinez@serviciosindustriales.net", role: "proveedor", status: "pendiente", lastLogin: "Nunca" },
+  { id: "2", name: "Carlos López", email: "clopez@alimentosbrown.com", role: "company", status: "activo", lastLogin: "Ayer, 15:45" },
+  { id: "3", name: "María Gómez", email: "mgomez@mecatronicasrl.com", role: "provider", status: "activo", lastLogin: "Hoy, 11:20" },
+  { id: "4", name: "Juan Pérez", email: "jperez@logisticasur.com.ar", role: "company", status: "inactivo", lastLogin: "Hace 1 semana" },
+  { id: "5", name: "Ana Martínez", email: "amartinez@serviciosindustriales.net", role: "provider", status: "pendiente", lastLogin: "Nunca" },
 ];
 
 export default function AdminUsuariosPage() {
   const [users, setUsers] = useState(mockUsers);
-  const [filter, setFilter] = useState<"all" | "admin" | "empresa" | "proveedor">("all");
+  const [filter, setFilter] = useState<"all" | "admin" | "company" | "provider">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredUsers = users.filter(u => {
@@ -30,8 +30,8 @@ export default function AdminUsuariosPage() {
   const getRoleIcon = (role: string) => {
     switch(role) {
       case "admin": return <Shield className="w-5 h-5 text-slate-700" />;
-      case "empresa": return <Building className="w-5 h-5 text-blue-600" />;
-      case "proveedor": return <Wrench className="w-5 h-5 text-emerald-600" />;
+      case "company": return <Building className="w-5 h-5 text-blue-600" />;
+      case "provider": return <Wrench className="w-5 h-5 text-emerald-600" />;
       default: return <Users className="w-5 h-5 text-slate-400" />;
     }
   };
@@ -39,8 +39,8 @@ export default function AdminUsuariosPage() {
   const getRoleBadge = (role: string) => {
     switch(role) {
       case "admin": return <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-200">Administrador</Badge>;
-      case "empresa": return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200">Empresa</Badge>;
-      case "proveedor": return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Proveedor</Badge>;
+      case "company": return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200">Empresa</Badge>;
+      case "provider": return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Proveedor</Badge>;
       default: return null;
     }
   };
@@ -94,14 +94,14 @@ export default function AdminUsuariosPage() {
             Administradores
           </button>
           <button 
-            onClick={() => setFilter("empresa")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "empresa" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            onClick={() => setFilter("company")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "company" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
             Empresas
           </button>
           <button 
-            onClick={() => setFilter("proveedor")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "proveedor" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            onClick={() => setFilter("provider")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "provider" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
             Proveedores
           </button>
@@ -134,7 +134,7 @@ export default function AdminUsuariosPage() {
                       <div className="flex items-center gap-4">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                           user.role === 'admin' ? 'bg-slate-100' :
-                          user.role === 'empresa' ? 'bg-blue-50' :
+                          user.role === 'company' ? 'bg-blue-50' :
                           'bg-emerald-50'
                         }`}>
                           {getRoleIcon(user.role)}

@@ -35,7 +35,7 @@ export default function MiPerfilSuscripcionPage() {
                   <Badge variant="outline" className="border-slate-700 bg-slate-800 text-slate-300">Renueva 01 Abr</Badge>
                 </div>
                 
-                <h2 className="text-3xl font-bold text-white mb-2">Plan {currentUser.role === 'empresa' ? 'Empresarial' : 'Profesional'} Pro</h2>
+                <h2 className="text-3xl font-bold text-white mb-2">Plan {currentUser.role === 'company' ? 'Empresarial' : 'Profesional'} Pro</h2>
                 <div className="flex items-baseline gap-1 text-white mb-6">
                   <span className="text-4xl font-black">$5.000</span>
                   <span className="text-slate-400 font-medium">/mes (ARS)</span>

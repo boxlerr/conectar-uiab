@@ -40,7 +40,7 @@ export default function MiPerfilDatosPage() {
           
           <div className="flex items-center gap-6 pb-6 border-b border-slate-100">
             <div className="w-24 h-24 rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:border-primary-400 hover:text-primary-500 hover:bg-primary-50 transition-all cursor-pointer">
-              {currentUser.role === 'empresa' ? <Building className="w-8 h-8 mb-1" /> : <User className="w-8 h-8 mb-1" />}
+              {currentUser.role === 'company' ? <Building className="w-8 h-8 mb-1" /> : <User className="w-8 h-8 mb-1" />}
               <span className="text-[10px] font-semibold tracking-wider uppercase">Subir Logo</span>
             </div>
             <div>
@@ -81,7 +81,7 @@ export default function MiPerfilDatosPage() {
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><MapPin className="w-4 h-4 text-slate-400" /> {currentUser.role === 'empresa' ? 'Dirección' : 'Zona de Trabajo'}</label>
+              <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><MapPin className="w-4 h-4 text-slate-400" /> {currentUser.role === 'company' ? 'Dirección' : 'Zona de Trabajo'}</label>
               <input 
                 type="text" 
                 value={formData.address}

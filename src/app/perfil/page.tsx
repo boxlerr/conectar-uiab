@@ -17,7 +17,7 @@ export default function MiPerfilPage() {
     ? mockedCompanies[0] 
     : mockedProviders[0];
 
-  const isComplete = profileDetails.status === "active";
+  const isComplete = profileDetails.status === "approved";
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -58,7 +58,7 @@ export default function MiPerfilPage() {
         {/* Info Card */}
         <Card className="p-6 border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-[0.08] transition-opacity">
-            {currentUser.role === 'empresa' ? <Building className="w-24 h-24" /> : <Wrench className="w-24 h-24" />}
+            {currentUser.role === 'company' ? <Building className="w-24 h-24" /> : <Wrench className="w-24 h-24" />}
           </div>
           <div className="flex items-center gap-3 mb-6 relative z-10">
             <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100">
@@ -90,16 +90,16 @@ export default function MiPerfilPage() {
               </div>
               <h2 className="text-lg font-bold text-slate-900">Mis Servicios</h2>
             </div>
-            <Badge variant="outline" className="bg-slate-50">{currentUser.role === 'empresa' ? 'Servicios' : 'Especialidad'}</Badge>
+            <Badge variant="outline" className="bg-slate-50">{currentUser.role === 'company' ? 'Servicios' : 'Especialidad'}</Badge>
           </div>
           <div className="space-y-3 mb-6">
-            {currentUser.role === 'empresa' ? (
+            {currentUser.role === 'company' ? (
               <div className="flex flex-wrap gap-2">
-                {profileDetails.servicesOffered?.slice(0, 3).map((s, i) => (
+                {(profileDetails as any).servicesOffered?.slice(0, 3).map((s: string, i: number) => (
                   <span key={i} className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs rounded-md border border-slate-200">{s}</span>
                 ))}
-                {(profileDetails.servicesOffered?.length || 0) > 3 && (
-                  <span className="px-2.5 py-1 bg-slate-50 text-slate-500 text-xs rounded-md">+{profileDetails.servicesOffered!.length - 3} más</span>
+                {((profileDetails as any).servicesOffered?.length || 0) > 3 && (
+                  <span className="px-2.5 py-1 bg-slate-50 text-slate-500 text-xs rounded-md">+{(profileDetails as any).servicesOffered!.length - 3} más</span>
                 )}
               </div>
             ) : (

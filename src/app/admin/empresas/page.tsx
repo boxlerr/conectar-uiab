@@ -9,14 +9,14 @@ import { Badge } from "@/components/ui/badge";
 
 export default function AdminEmpresasPage() {
   const [companies, setCompanies] = useState(mockedCompanies);
-  const [filter, setFilter] = useState<"all" | "pending" | "active">("pending");
+  const [filter, setFilter] = useState<"all" | "pending" | "approved">("pending");
   const [selectedCompany, setSelectedCompany] = useState<typeof mockedCompanies[0] | null>(null);
 
   const handleApprove = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setCompanies(prev => prev.map(c => c.id === id ? { ...c, status: "active" as const } : c));
+    setCompanies(prev => prev.map(c => c.id === id ? { ...c, status: "approved" as const } : c));
     if (selectedCompany?.id === id) {
-      setSelectedCompany(prev => prev ? { ...prev, status: "active" as const } : null);
+      setSelectedCompany(prev => prev ? { ...prev, status: "approved" as const } : null);
     }
   };
 
@@ -63,8 +63,8 @@ export default function AdminEmpresasPage() {
             Pendientes
           </button>
           <button 
-            onClick={() => setFilter("active")}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "active" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            onClick={() => setFilter("approved")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "approved" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
             Activas
           </button>
@@ -97,8 +97,8 @@ export default function AdminEmpresasPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
                   <h3 className="font-bold text-lg text-slate-900 group-hover:text-primary-600 transition-colors">{comp.name}</h3>
-                  <Badge variant={comp.status === "active" ? "default" : "secondary"} className={comp.status === "active" ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-amber-100 text-amber-700 hover:bg-amber-200"}>
-                    {comp.status === "active" ? "Activa" : "Pendiente de Legajo"}
+                  <Badge variant={comp.status === "approved" ? "default" : "secondary"} className={comp.status === "approved" ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-amber-100 text-amber-700 hover:bg-amber-200"}>
+                    {comp.status === "approved" ? "Activa" : "Pendiente de Legajo"}
                   </Badge>
                 </div>
                 <p className="text-sm text-slate-500 mb-3">{comp.category} • {comp.contactEmail} • {comp.phone}</p>
@@ -242,8 +242,8 @@ export default function AdminEmpresasPage() {
 
                <div className="pt-6 border-t border-slate-100 flex items-center justify-between sticky bottom-0 bg-white/90 backdrop-blur-sm -m-6 p-6 mt-0">
                   <div className="flex items-center gap-3">
-                    <Badge variant={selectedCompany.status === "active" ? "default" : "secondary"} className={selectedCompany.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700 max-w-fit"}>
-                      Estado Actual: {selectedCompany.status === "active" ? "Activa/Verificada" : "Legajo Pendiente"}
+                    <Badge variant={selectedCompany.status === "approved" ? "default" : "secondary"} className={selectedCompany.status === "approved" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700 max-w-fit"}>
+                      Estado Actual: {selectedCompany.status === "approved" ? "Activa/Verificada" : "Legajo Pendiente"}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
@@ -257,7 +257,7 @@ export default function AdminEmpresasPage() {
                         </Button>
                       </>
                     )}
-                    {selectedCompany.status === "active" && (
+                    {selectedCompany.status === "approved" && (
                        <Button onClick={() => setSelectedCompany(null)} className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm">
                          Cerrar Perfil
                        </Button>

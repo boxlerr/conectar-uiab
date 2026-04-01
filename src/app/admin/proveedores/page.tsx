@@ -9,14 +9,14 @@ import { Badge } from "@/components/ui/badge";
 
 export default function AdminProveedoresPage() {
   const [providers, setProviders] = useState(mockedProviders);
-  const [filter, setFilter] = useState<"all" | "pending" | "active">("all"); // Default to all
+  const [filter, setFilter] = useState<"all" | "pending" | "approved">("all"); // Default to all
   const [selectedProvider, setSelectedProvider] = useState<typeof mockedProviders[0] | null>(null);
 
   const handleApprove = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setProviders(prev => prev.map(p => p.id === id ? { ...p, status: "active" as const } : p));
+    setProviders(prev => prev.map(p => p.id === id ? { ...p, status: "approved" as const } : p));
     if (selectedProvider?.id === id) {
-      setSelectedProvider(prev => prev ? { ...prev, status: "active" as const } : null);
+      setSelectedProvider(prev => prev ? { ...prev, status: "approved" as const } : null);
     }
   };
 
@@ -63,8 +63,8 @@ export default function AdminProveedoresPage() {
             Pendientes
           </button>
           <button 
-            onClick={() => setFilter("active")}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "active" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            onClick={() => setFilter("approved")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filter === "approved" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
             Activos
           </button>
@@ -88,8 +88,8 @@ export default function AdminProveedoresPage() {
               onClick={() => setSelectedProvider(prov)}
             >
               <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
-                {prov.logoUrl ? (
-                  <img src={prov.logoUrl} alt={prov.name} className="w-full h-full object-cover" />
+                {prov.avatarUrl ? (
+                  <img src={prov.avatarUrl} alt={prov.name} className="w-full h-full object-cover" />
                 ) : (
                   <Wrench className="w-8 h-8 text-slate-300" />
                 )}
@@ -97,8 +97,8 @@ export default function AdminProveedoresPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
                   <h3 className="font-bold text-lg text-slate-900 group-hover:text-primary-600 transition-colors">{prov.name}</h3>
-                  <Badge variant={prov.status === "active" ? "default" : "secondary"} className={prov.status === "active" ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-amber-100 text-amber-700 hover:bg-amber-200"}>
-                    {prov.status === "active" ? "Activo" : "Pendiente de Matricula"}
+                  <Badge variant={prov.status === "approved" ? "default" : "secondary"} className={prov.status === "approved" ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-amber-100 text-amber-700 hover:bg-amber-200"}>
+                    {prov.status === "approved" ? "Activo" : "Pendiente de Matricula"}
                   </Badge>
                 </div>
                 <p className="text-sm text-slate-500 mb-3">{prov.specialty} • {prov.contactEmail} • {prov.phone}</p>
@@ -237,8 +237,8 @@ export default function AdminProveedoresPage() {
 
                <div className="pt-6 border-t border-slate-100 flex items-center justify-between sticky bottom-0 bg-white/90 backdrop-blur-sm -m-6 p-6 mt-0">
                   <div className="flex items-center gap-3">
-                    <Badge variant={selectedProvider.status === "active" ? "default" : "secondary"} className={selectedProvider.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700 max-w-fit"}>
-                      Estado Actual: {selectedProvider.status === "active" ? "Verificado" : "Pendiente"}
+                    <Badge variant={selectedProvider.status === "approved" ? "default" : "secondary"} className={selectedProvider.status === "approved" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700 max-w-fit"}>
+                      Estado Actual: {selectedProvider.status === "approved" ? "Verificado" : "Pendiente"}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
@@ -252,7 +252,7 @@ export default function AdminProveedoresPage() {
                         </Button>
                       </>
                     )}
-                    {selectedProvider.status === "active" && (
+                    {selectedProvider.status === "approved" && (
                        <Button onClick={() => setSelectedProvider(null)} className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm">
                          Cerrar Perfil
                        </Button>

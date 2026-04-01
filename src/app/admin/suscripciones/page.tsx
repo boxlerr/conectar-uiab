@@ -13,8 +13,8 @@ const SUBSCRIPTION_PRICE = 5000; // Example price per month in ARS
 
 const createMockSubscriptions = () => {
   const allEntities = [
-    ...mockedCompanies.filter(c => c.status === "active").map(c => ({ ...c, type: 'empresa' })),
-    ...mockedProviders.filter(p => p.status === "active").map(p => ({ ...p, type: 'proveedor' }))
+    ...mockedCompanies.filter(c => c.status === "approved").map(c => ({ ...c, type: 'empresa' })),
+    ...mockedProviders.filter(p => p.status === "approved").map(p => ({ ...p, type: 'proveedor' }))
   ];
 
   return allEntities.map((entity, index) => ({

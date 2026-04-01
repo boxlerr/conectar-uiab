@@ -42,7 +42,7 @@ export default function MiPerfilDocumentosPage() {
         <div>
           <h4 className="font-semibold text-blue-900 text-sm mb-1">Documentación Requerida</h4>
           <p className="text-sm text-blue-800/80 leading-relaxed">
-            {currentUser.role === 'empresa' 
+            {currentUser?.role === 'company' 
               ? 'Por favor subir: 1. Constancia inscripción AFIP (CUIT). 2. Constancia de Ingresos Brutos (ARBA). 3. Estatuto Social (Para S.A o S.R.L).'
               : 'Por favor subir: 1. Frente y dorso DNI o credencial. 2. Matrícula profesional vigente.'}
           </p>
