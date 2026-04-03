@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Shield, Building, Wrench, Mail, Lock, User as UserIcon, ArrowRight } from "lucide-react";
+import { X, Shield, Building, Wrench, Mail, Lock, User as UserIcon, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { createBrowserClient } from "@supabase/ssr";
+import Image from "next/image";
+import { toast } from "sonner";
 import { useAuth } from "@/modulos/autenticacion/AuthContext";
-import { mockAdmin, mockedCompanies, mockedProviders } from "@/modulos/compartido/data/mockDB";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -13,22 +16,31 @@ const FormInput = ({
   icon: Icon, 
   label, 
   type = "text", 
-  placeholder 
+  placeholder,
+  value,
+  onChange,
+  required = true
 }: { 
   icon: React.ElementType, 
   label: string, 
   type?: string, 
-  placeholder?: string 
+  placeholder?: string,
+  value: string,
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+  required?: boolean
 }) => (
-  <div className="space-y-1.5">
-    <label className="text-sm font-medium text-slate-700">{label}</label>
+  <div className="space-y-1.5 text-left">
+    <label className="text-sm font-semibold text-slate-700 ml-1">{label}</label>
     <div className="relative">
       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
         <Icon className="h-4 w-4" />
       </div>
       <input
         type={type}
-        className="flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 pl-10 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-sm"
+        required={required}
+        value={value}
+        onChange={onChange}
+        className="flex h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 pl-10 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-sm focus:bg-white"
         placeholder={placeholder}
       />
     </div>
@@ -36,44 +48,109 @@ const FormInput = ({
 );
 
 export function AuthModal() {
-  const { isAuthModalOpen, closeAuthModal, login } = useAuth();
+  const router = useRouter();
+  const { isAuthModalOpen, closeAuthModal, refreshUser } = useAuth();
+  
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  
+  // Form State
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [nombre, setNombre] = useState("");
   const [selectedRole, setSelectedRole] = useState<"company" | "provider">("company");
+
+  // Supabase Browser Client
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  );
 
   if (!isAuthModalOpen) return null;
 
-  const handleLoginAdmin = () => login(mockAdmin);
-  const handleLoginCompany = () => login({
-    id: mockedCompanies[0].id,
-    name: mockedCompanies[0].name,
-    email: mockedCompanies[0].contactEmail,
-    role: "company",
-    isMember: true,
-  });
-  const handleLoginProvider = () => login({
-    id: mockedProviders[0].id,
-    name: mockedProviders[0].name,
-    email: mockedProviders[0].contactEmail,
-    role: "provider",
-    isMember: false,
-  });
-
-  const handleDemoSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate login for real form by just logging in as company for now
-    handleLoginCompany();
+    setIsLoading(true);
+
+    try {
+      if (isLogin) {
+        // --- REAL LOGIN LOGIC ---
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          toast.error("Error de acceso", { description: error.message });
+          setIsLoading(false);
+          return;
+        }
+
+        toast.success("Bienvenido de nuevo");
+        await refreshUser();
+        closeAuthModal();
+        router.push("/dashboard");
+        router.refresh();
+      } else {
+        // --- REAL REGISTER LOGIC ---
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { nombre_completo: nombre }
+          }
+        });
+
+        if (authError || !authData.user) {
+          toast.error("Error de registro", { description: authError?.message || "Algo salió mal." });
+          setIsLoading(false);
+          return;
+        }
+
+        // Sync with public profile API
+        const res = await fetch("/api/auth/register-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instanceId: authData.user.id,
+            email,
+            role: selectedRole,
+            nombre,
+          }),
+        });
+
+        if (!res.ok) {
+           toast.error("Advertencia", { description: "Cuenta creada pero hubo un problema al configurar el perfil. Contacte a soporte." });
+        }
+
+        setIsSuccess(true);
+        toast.success("Registro completado");
+        
+        setTimeout(async () => {
+          await refreshUser();
+          closeAuthModal();
+          router.push("/dashboard");
+          router.refresh();
+        }, 2000);
+      }
+    } catch (err: any) {
+      toast.error("Error del sistema", { description: err.message || "Contacte a soporte." });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-        {/* Backdrop */}
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+        {/* Backdrop (Tonal Layering strategy) */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={closeAuthModal}
-          className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+          onClick={isLoading ? undefined : closeAuthModal}
+          className="absolute inset-0 bg-[#00213f]/40 backdrop-blur-md"
         />
 
         {/* Modal Content */}
@@ -81,161 +158,150 @@ export function AuthModal() {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative bg-white w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl overflow-hidden scrollbar-hide"
+          className="relative bg-white w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl overflow-hidden border border-[#d8dadc]/50"
         >
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">
-              {isLogin ? "Iniciar Sesión" : "Crear Cuenta"}
-            </h2>
-            <Button variant="ghost" size="icon" onClick={closeAuthModal} className="h-8 w-8 rounded-full">
+          <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-sm px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 flex items-center justify-center">
+                <Image 
+                  src="/logo-prueba.png" 
+                  alt="UIAB Logo" 
+                  width={34} 
+                  height={34}
+                  className="object-contain"
+                />
+              </div>
+              <h2 className="text-lg font-bold text-[#00213f] tracking-tight">
+                {isLogin ? "Acceso Industrial" : "Nueva Cuenta"}
+              </h2>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={closeAuthModal} 
+              disabled={isLoading}
+              className="h-8 w-8 rounded-full hover:bg-slate-100"
+            >
               <X className="h-4 w-4 text-slate-500" />
             </Button>
           </div>
 
-          <div className="p-6">
-            {/* Logo / Brand area (optional, keep it clean) */}
-            <div className="flex justify-center mb-6">
-              <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20">
-                <span className="text-white font-bold text-xl">UIAB</span>
-              </div>
-            </div>
-
-            {/* Forms with Animation */}
+          <div className="p-8">
             <AnimatePresence mode="wait">
-              <motion.div
-                key={isLogin ? 'login' : 'register'}
-                initial={{ opacity: 0, x: isLogin ? -20 : 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: isLogin ? 20 : -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <form onSubmit={handleDemoSubmit} className="space-y-4">
-                  {!isLogin && (
-                    <FormInput icon={UserIcon} label="Nombre completo / Empresa" placeholder="Juan Pérez" />
-                  )}
-                  
-                  <FormInput icon={Mail} label="Correo Electrónico" type="email" placeholder="correo@ejemplo.com" />
-                  <FormInput icon={Lock} label="Contraseña" type="password" placeholder="••••••••" />
-                  
-                  {!isLogin && (
-                    <div className="space-y-2 pt-1">
-                      <label className="text-sm font-medium text-slate-700">Tipo de Cuenta</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedRole("company")}
-                          className={cn(
-                            "flex flex-col items-center justify-center p-3 border rounded-xl transition-all duration-200",
-                            selectedRole === "company" 
-                              ? "border-primary-600 bg-primary-50 text-primary-700 ring-1 ring-primary-600" 
-                              : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                          )}
-                        >
-                          <Building className={cn("w-5 h-5 mb-1", selectedRole === "company" ? "text-primary-600" : "text-slate-400")} />
-                          <span className="text-xs font-semibold">Empresa Socia</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedRole("provider")}
-                          className={cn(
-                            "flex flex-col items-center justify-center p-3 border rounded-xl transition-all duration-200",
-                            selectedRole === "provider" 
-                              ? "border-primary-600 bg-primary-50 text-primary-700 ring-1 ring-primary-600" 
-                              : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                          )}
-                        >
-                          <Wrench className={cn("w-5 h-5 mb-1", selectedRole === "provider" ? "text-primary-600" : "text-slate-400")} />
-                          <span className="text-xs font-semibold">Proveedor</span>
-                        </button>
+              {isSuccess ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="py-12 text-center space-y-4"
+                >
+                  <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto" />
+                  <h3 className="text-2xl font-bold text-[#00213f]">¡Todo listo!</h3>
+                  <p className="text-slate-500">Estamos preparando tu nueva red de conectividad.</p>
+                  <Loader2 className="w-6 h-6 text-slate-300 animate-spin mx-auto mt-4" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={isLogin ? 'login' : 'register'}
+                  initial={{ opacity: 0, x: isLogin ? -10 : 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: isLogin ? 10 : -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    {!isLogin && (
+                      <FormInput 
+                        icon={UserIcon} 
+                        label="Nombre completo / Razón Social" 
+                        placeholder="Juan Pérez o Industrias SA"
+                        value={nombre}
+                        onChange={(e) => setNombre(e.target.value)}
+                      />
+                    )}
+                    
+                    <FormInput 
+                      icon={Mail} 
+                      label="Correo Electrónico" 
+                      type="email" 
+                      placeholder="correo@industria.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    
+                    <FormInput 
+                      icon={Lock} 
+                      label="Contraseña" 
+                      type="password" 
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    
+                    {!isLogin && (
+                      <div className="space-y-2 pt-1">
+                        <label className="text-sm font-semibold text-slate-700 ml-1">Tipo de Cuenta</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRole("company")}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-3 border rounded-xl transition-all duration-200",
+                              selectedRole === "company" 
+                                ? "border-primary-600 bg-primary-50 text-primary-700" 
+                                : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                            )}
+                          >
+                            <Building className={cn("w-5 h-5 mb-1", selectedRole === "company" ? "text-primary-600" : "text-slate-400")} />
+                            <span className="text-xs font-bold uppercase tracking-wider">Empresa</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRole("provider")}
+                            className={cn(
+                              "flex flex-col items-center justify-center p-3 border rounded-xl transition-all duration-200",
+                              selectedRole === "provider" 
+                                ? "border-primary-600 bg-primary-50 text-primary-700" 
+                                : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                            )}
+                          >
+                            <Wrench className={cn("w-5 h-5 mb-1", selectedRole === "provider" ? "text-primary-600" : "text-slate-400")} />
+                            <span className="text-xs font-bold uppercase tracking-wider">Proveedor</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {isLogin && (
-                    <div className="flex justify-end">
-                      <button type="button" className="text-xs text-primary-600 font-medium hover:text-primary-700 hover:underline">
-                        ¿Olvidaste tu contraseña?
-                      </button>
-                    </div>
-                  )}
+                    <Button 
+                      type="submit" 
+                      className="w-full h-11 text-base font-bold bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 active:scale-[0.98] transition-all"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          {isLogin ? "Entrar al Portal" : "Crear mi Cuenta"}
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </>
+                      )}
+                    </Button>
+                  </form>
 
-                  <Button type="submit" className="w-full h-11 text-base font-medium mt-2 shadow-md">
-                    {isLogin ? "Ingresar a mi cuenta" : "Registrarme"}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </form>
-              </motion.div>
+                  {/* Toggle Login/Register */}
+                  <div className="mt-8 text-center text-sm text-slate-500">
+                    {isLogin ? "¿Es tu primera vez en UIAB?" : "¿Ya tienes acceso?"}{" "}
+                    <button
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() => setIsLogin(!isLogin)}
+                      className="font-bold text-primary-600 hover:text-primary-700 hover:underline transition-colors cursor-pointer"
+                    >
+                      {isLogin ? "Registra tu industria" : "Inicia sesión"}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
             </AnimatePresence>
-
-            {/* Toggle Login/Register */}
-            <div className="mt-6 text-center text-sm text-slate-600">
-              {isLogin ? "¿No tienes una cuenta aún?" : "¿Ya tienes una cuenta?"}{" "}
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors focus:outline-none"
-              >
-                {isLogin ? "Regístrate aquí" : "Inicia sesión"}
-              </button>
-            </div>
-
-            {/* Divider */}
-            <div className="relative mt-8 mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-3 text-slate-500 bg-slate-50 rounded-full border border-slate-100 py-1">
-                  Cuentas de prueba (Demo)
-                </span>
-              </div>
-            </div>
-
-            {/* Demo Buttons */}
-            <div className="space-y-2.5">
-              <button
-                type="button"
-                onClick={handleLoginCompany}
-                className="w-full group flex items-center p-3 rounded-xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50/50 transition-all text-left"
-              >
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
-                  <Building className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-slate-900 group-hover:text-blue-900">Empresa Socia</div>
-                  <div className="text-xs text-slate-500 line-clamp-1">Acceso para buscar y reseñar proveedores</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLoginProvider}
-                className="w-full group flex items-center p-3 rounded-xl border border-slate-200 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all text-left"
-              >
-                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
-                  <Wrench className="h-5 w-5 text-emerald-600" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-slate-900 group-hover:text-emerald-900">Proveedor de Servicio</div>
-                  <div className="text-xs text-slate-500 line-clamp-1">Maneja tu perfil público y solicitudes</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLoginAdmin}
-                className="w-full group flex items-center p-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-left"
-              >
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform text-slate-700">
-                  <Shield className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-slate-900">Administrador UIAB</div>
-                  <div className="text-xs text-slate-500 line-clamp-1">Acceso total para moderar la plataforma</div>
-                </div>
-              </button>
-            </div>
           </div>
         </motion.div>
       </div>

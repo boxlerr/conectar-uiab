@@ -83,8 +83,8 @@ function LoginContent() {
       } else {
         const rol = profile?.rol_sistema
         if (rol === 'admin') router.push('/admin')
-        else if (rol === 'company') router.push('/directorio') // UX requirement for companies
-        else router.push('/directorio') // Default path for others (providers, etc)
+        else if (rol === 'company') router.push('/dashboard') // UX requirement for companies
+        else router.push('/dashboard') // Default path for others (providers, etc)
       }
       
       router.refresh()

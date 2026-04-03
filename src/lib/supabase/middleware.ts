@@ -43,11 +43,10 @@ export async function updateSession(request: NextRequest) {
   const isProtectedRoute = 
     pathname.startsWith('/admin') || 
     pathname.startsWith('/directorio') || 
-    pathname.startsWith('/empresas') || 
-    pathname.startsWith('/empresa') || 
+    pathname.startsWith('/empresa/') || 
     pathname.startsWith('/perfil') || 
-    pathname.startsWith('/proveedores') || 
-    pathname.startsWith('/proveedor');
+    pathname.startsWith('/proveedor/') ||
+    pathname.startsWith('/dashboard');
 
   // 1. Authentication Check (Require JWT)
   if (isProtectedRoute && (!user || userError)) {
@@ -57,6 +56,13 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(url)
+  }
+
+  // 2. Redirect logged in users away from auth pages and root landing to dashboard
+  if (user && !userError && (pathname === '/' || pathname === '/login' || pathname === '/register')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 

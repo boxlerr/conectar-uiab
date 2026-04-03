@@ -4,9 +4,12 @@ import { useState, useMemo } from "react";
 import { getProveedores, getCategorias } from "@/lib/data/directorio";
 import { FilterSidebar } from "@/components/ui/directorio/FilterSidebar";
 import { ProfileCard } from "@/components/ui/directorio/ProfileCard";
+import { PublicProveedoresLanding } from "@/components/ui/directorio/PublicProveedoresLanding";
 import { Wrench } from "lucide-react";
+import { useAuth } from "@/modulos/autenticacion/AuthContext";
 
 export default function ProveedoresPage() {
+  const { currentUser, loading } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
 
@@ -26,6 +29,21 @@ export default function ProveedoresPage() {
     });
   }, [proveedores, categoriaSeleccionada, searchTerm]);
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 pt-24 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Public landing for unauthenticated users
+  if (!currentUser) {
+    return <PublicProveedoresLanding />;
+  }
+
+  // Authenticated directory view
   return (
     <div className="min-h-screen bg-slate-50 pt-24 pb-16">
       <div className="bg-primary-900 text-white py-16 mb-12 -mt-24 pt-32">

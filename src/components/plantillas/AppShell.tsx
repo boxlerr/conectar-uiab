@@ -3,6 +3,7 @@
 import { useAuth } from "@/modulos/autenticacion/AuthContext";
 import { Header } from "@/components/plantillas/Header";
 import { Footer } from "@/components/plantillas/Footer";
+import { AuthModal } from "@/modulos/autenticacion/components/AuthModal";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { currentUser, logout } = useAuth();
@@ -17,6 +18,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <Footer />
+      <AuthModal />
     </div>
   );
 }

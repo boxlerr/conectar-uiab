@@ -4,9 +4,12 @@ import { useState, useMemo } from "react";
 import { getEmpresas, getCategorias } from "@/lib/data/directorio";
 import { FilterSidebar } from "@/components/ui/directorio/FilterSidebar";
 import { ProfileCard } from "@/components/ui/directorio/ProfileCard";
+import { PublicEmpresasLanding } from "@/components/ui/directorio/PublicEmpresasLanding";
 import { Building2 } from "lucide-react";
+import { useAuth } from "@/modulos/autenticacion/AuthContext";
 
 export default function EmpresasPage() {
+  const { currentUser, loading } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
 
@@ -26,6 +29,21 @@ export default function EmpresasPage() {
     });
   }, [empresas, categoriaSeleccionada, searchTerm]);
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 pt-24 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Public landing for unauthenticated users
+  if (!currentUser) {
+    return <PublicEmpresasLanding />;
+  }
+
+  // Authenticated directory view
   return (
     <div className="min-h-screen bg-slate-50 pt-24 pb-16">
       <div className="bg-primary-900 text-white py-16 mb-12 -mt-24 pt-32">

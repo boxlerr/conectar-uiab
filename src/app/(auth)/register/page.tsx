@@ -103,7 +103,7 @@ export default function RegisterPage() {
       
       // Auto redirect after a short celebration
       setTimeout(() => {
-        router.push(values.role === 'company' ? '/directorio' : '/proveedor/proveedores')
+        router.push('/dashboard')
         router.refresh()
       }, 2000)
 

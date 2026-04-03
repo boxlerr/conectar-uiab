@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { User, Shield, Building, Wrench, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/modulos/autenticacion/AuthContext";
 import type { User as UserType } from "@/types";
 
 interface HeaderProps {
@@ -136,7 +138,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
   }, [isMobileMenuOpen]);
 
   const navigation = [
-    { name: "Inicio", href: "/", icon: null },
+    { name: "Inicio", href: currentUser ? "/dashboard" : "/", icon: null },
     { name: "Empresas", href: "/empresas", icon: Building },
     { name: "Proveedores", href: "/proveedores", icon: Wrench },
     { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
@@ -180,6 +182,8 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
 
   const activeIndex = navigation.findIndex(n => n.href === pathname);
 
+  const { openAuthModal } = useAuth();
+
   return (
     <>
       <header 
@@ -198,12 +202,21 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
               animate={{ opacity: 1, x: 0 }}
               className="flex-shrink-0 flex items-center gap-2.5"
             >
-              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20">
-                <span className="text-white font-bold text-lg sm:text-xl tracking-wide">UIAB</span>
-              </div>
-              <Link href="/" className="font-bold text-xl sm:text-2xl text-slate-900 tracking-tight hidden sm:flex items-center gap-1 group">
-                Conectar
-                <span className="text-primary-600 group-hover:text-primary-700 transition-colors">UIAB</span>
+              <Link href="/" className="flex items-center gap-2.5 group">
+                <div className="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                  <Image 
+                    src="/logo-prueba.png" 
+                    alt="UIAB Logo" 
+                    width={44} 
+                    height={44}
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+                <div className="font-bold text-xl sm:text-2xl text-slate-900 tracking-tight hidden sm:flex items-center gap-1">
+                  Conectar
+                  <span className="text-primary-600">UIAB</span>
+                </div>
               </Link>
             </motion.div>
 
@@ -283,13 +296,13 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                   <ProfileDropdownMenu currentUser={currentUser} onLogout={onLogout} />
                 </div>
               ) : (
-                <Link 
-                  href="/login"
+                <Button 
+                  onClick={openAuthModal}
                   className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-xl font-semibold bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5 text-white"
                 >
                   <User className="w-4 h-4" />
                   Ingresar
-                </Link>
+                </Button>
               )}
             </motion.div>
 
