@@ -3,6 +3,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Building2,
   Shield,
@@ -640,12 +641,14 @@ export function PublicEmpresasLanding() {
 
               <motion.div variants={fadeUp} custom={3}>
                 <Button
-                  onClick={openAuthModal}
+                  asChild
                   variant="outline"
                   className="h-11 px-6 rounded-sm font-semibold text-[13px] border-primary-200 text-primary-700 hover:bg-primary-50 transition-all"
                 >
-                  <Lock className="w-3.5 h-3.5 mr-2" />
-                  Ver directorio completo
+                  <Link href="/register">
+                    <Lock className="w-3.5 h-3.5 mr-2" />
+                    Ver directorio completo
+                  </Link>
                 </Button>
               </motion.div>
             </div>

@@ -3,13 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Shield, Building, Wrench, Mail, Lock, User as UserIcon, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { X, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import Image from "next/image";
 import { toast } from "sonner";
 import { useAuth } from "@/modulos/autenticacion/AuthContext";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 // Reusable Input Component for the form
 const FormInput = ({ 
@@ -51,15 +50,11 @@ export function AuthModal() {
   const router = useRouter();
   const { isAuthModalOpen, closeAuthModal, refreshUser } = useAuth();
   
-  const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   
   // Form State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [nombre, setNombre] = useState("");
-  const [selectedRole, setSelectedRole] = useState<"company" | "provider">("company");
 
   // Supabase Browser Client
   const supabase = createBrowserClient(
@@ -74,66 +69,22 @@ export function AuthModal() {
     setIsLoading(true);
 
     try {
-      if (isLogin) {
-        // --- REAL LOGIN LOGIC ---
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) {
-          toast.error("Error de acceso", { description: error.message });
-          setIsLoading(false);
-          return;
-        }
-
-        toast.success("Bienvenido de nuevo");
-        await refreshUser();
-        closeAuthModal();
-        router.push("/dashboard");
-        router.refresh();
-      } else {
-        // --- REAL REGISTER LOGIC ---
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { nombre_completo: nombre }
-          }
-        });
-
-        if (authError || !authData.user) {
-          toast.error("Error de registro", { description: authError?.message || "Algo salió mal." });
-          setIsLoading(false);
-          return;
-        }
-
-        // Sync with public profile API
-        const res = await fetch("/api/auth/register-sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            instanceId: authData.user.id,
-            email,
-            role: selectedRole,
-            nombre,
-          }),
-        });
-
-        if (!res.ok) {
-           toast.error("Advertencia", { description: "Cuenta creada pero hubo un problema al configurar el perfil. Contacte a soporte." });
-        }
-
-        setIsSuccess(true);
-        toast.success("Registro completado");
-        
-        setTimeout(async () => {
-          await refreshUser();
-          closeAuthModal();
-          router.push("/dashboard");
-          router.refresh();
-        }, 2000);
+      if (error) {
+        toast.error("Error de acceso", { description: error.message });
+        setIsLoading(false);
+        return;
       }
+
+      toast.success("Bienvenido de nuevo");
+      await refreshUser();
+      closeAuthModal();
+      router.push("/dashboard");
+      router.refresh();
     } catch (err: any) {
       toast.error("Error del sistema", { description: err.message || "Contacte a soporte." });
     } finally {
@@ -141,10 +92,15 @@ export function AuthModal() {
     }
   };
 
+  const handleGoToRegister = () => {
+    closeAuthModal();
+    router.push("/register");
+  };
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
-        {/* Backdrop (Tonal Layering strategy) */}
+        {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -172,9 +128,7 @@ export function AuthModal() {
                   className="object-contain"
                 />
               </div>
-              <h2 className="text-lg font-bold text-[#00213f] tracking-tight">
-                {isLogin ? "Acceso Industrial" : "Nueva Cuenta"}
-              </h2>
+              <h2 className="text-lg font-bold text-[#00213f] tracking-tight">Acceso Industrial</h2>
             </div>
             <Button 
               variant="ghost" 
@@ -188,120 +142,53 @@ export function AuthModal() {
           </div>
 
           <div className="p-8">
-            <AnimatePresence mode="wait">
-              {isSuccess ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="py-12 text-center space-y-4"
-                >
-                  <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto" />
-                  <h3 className="text-2xl font-bold text-[#00213f]">¡Todo listo!</h3>
-                  <p className="text-slate-500">Estamos preparando tu nueva red de conectividad.</p>
-                  <Loader2 className="w-6 h-6 text-slate-300 animate-spin mx-auto mt-4" />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key={isLogin ? 'login' : 'register'}
-                  initial={{ opacity: 0, x: isLogin ? -10 : 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: isLogin ? 10 : -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    {!isLogin && (
-                      <FormInput 
-                        icon={UserIcon} 
-                        label="Nombre completo / Razón Social" 
-                        placeholder="Juan Pérez o Industrias SA"
-                        value={nombre}
-                        onChange={(e) => setNombre(e.target.value)}
-                      />
-                    )}
-                    
-                    <FormInput 
-                      icon={Mail} 
-                      label="Correo Electrónico" 
-                      type="email" 
-                      placeholder="correo@industria.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                    
-                    <FormInput 
-                      icon={Lock} 
-                      label="Contraseña" 
-                      type="password" 
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    
-                    {!isLogin && (
-                      <div className="space-y-2 pt-1">
-                        <label className="text-sm font-semibold text-slate-700 ml-1">Tipo de Cuenta</label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedRole("company")}
-                            className={cn(
-                              "flex flex-col items-center justify-center p-3 border rounded-xl transition-all duration-200",
-                              selectedRole === "company" 
-                                ? "border-primary-600 bg-primary-50 text-primary-700" 
-                                : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                            )}
-                          >
-                            <Building className={cn("w-5 h-5 mb-1", selectedRole === "company" ? "text-primary-600" : "text-slate-400")} />
-                            <span className="text-xs font-bold uppercase tracking-wider">Empresa</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedRole("provider")}
-                            className={cn(
-                              "flex flex-col items-center justify-center p-3 border rounded-xl transition-all duration-200",
-                              selectedRole === "provider" 
-                                ? "border-primary-600 bg-primary-50 text-primary-700" 
-                                : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                            )}
-                          >
-                            <Wrench className={cn("w-5 h-5 mb-1", selectedRole === "provider" ? "text-primary-600" : "text-slate-400")} />
-                            <span className="text-xs font-bold uppercase tracking-wider">Proveedor</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <FormInput 
+                icon={Mail} 
+                label="Correo Electrónico" 
+                type="email" 
+                placeholder="correo@industria.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              
+              <FormInput 
+                icon={Lock} 
+                label="Contraseña" 
+                type="password" 
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              
+              <Button 
+                type="submit" 
+                className="w-full h-11 text-base font-bold bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 active:scale-[0.98] transition-all"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    Entrar al Portal
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </form>
 
-                    <Button 
-                      type="submit" 
-                      className="w-full h-11 text-base font-bold bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 active:scale-[0.98] transition-all"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <>
-                          {isLogin ? "Entrar al Portal" : "Crear mi Cuenta"}
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </>
-                      )}
-                    </Button>
-                  </form>
-
-                  {/* Toggle Login/Register */}
-                  <div className="mt-8 text-center text-sm text-slate-500">
-                    {isLogin ? "¿Es tu primera vez en UIAB?" : "¿Ya tienes acceso?"}{" "}
-                    <button
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() => setIsLogin(!isLogin)}
-                      className="font-bold text-primary-600 hover:text-primary-700 hover:underline transition-colors cursor-pointer"
-                    >
-                      {isLogin ? "Registra tu industria" : "Inicia sesión"}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Link to /register */}
+            <div className="mt-8 text-center text-sm text-slate-500">
+              ¿Es tu primera vez en UIAB?{" "}
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={handleGoToRegister}
+                className="font-bold text-primary-600 hover:text-primary-700 hover:underline transition-colors cursor-pointer"
+              >
+                Registra tu industria
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>

@@ -497,13 +497,13 @@ export default function Home() {
               Únase a la red industrial más importante de Almirante Brown y potencie el crecimiento de su empresa con beneficios exclusivos.
             </motion.p>
             <motion.div variants={fadeUp} custom={2} className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button
-                onClick={openAuthModal}
+              <Link
+                href="/register"
                 className="h-12 px-8 rounded-sm font-bold text-[14px] bg-white text-[#00213f] hover:bg-primary-50 shadow-xl shadow-black/10 active:scale-[0.98] transition-all inline-flex items-center justify-center"
               >
                 Asociarse Ahora
                 <ArrowRight className="w-4 h-4 ml-2" />
-              </button>
+              </Link>
               <Link
                 href="/contacto"
                 className="h-12 px-7 rounded-sm font-semibold text-[14px] text-white/50 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/[0.05] transition-all inline-flex items-center justify-center"
