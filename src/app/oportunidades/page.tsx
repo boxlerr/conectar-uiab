@@ -66,7 +66,7 @@ export default function OportunidadesPage() {
               </div>
               <h1 className="font-manrope text-4xl md:text-5xl font-bold mb-4 tracking-tighter">Oportunidades de Trabajo</h1>
               <p className="text-slate-400 text-lg font-inter">
-                Conectamos la demanda de las empresas del parque con la oferta de servicios profesionales y técnicos especializados.
+                Conectamos la demanda de las empresas del partido con la oferta de servicios profesionales y especialistas.
               </p>
             </div>
             

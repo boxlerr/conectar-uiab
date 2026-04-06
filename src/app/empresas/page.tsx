@@ -53,7 +53,7 @@ export default function EmpresasPage() {
           </div>
           <h1 className="font-poppins text-4xl md:text-5xl font-bold mb-4">Directorio de Empresas</h1>
           <p className="text-primary-200 text-lg max-w-2xl mx-auto">
-            Explora las empresas radicadas en el parque industrial. Conecta con líderes del sector manufacturero y de producción.
+            Explora las empresas y comercios del partido. Conecta con líderes corporativos, productores y profesionales locales.
           </p>
         </div>
       </div>

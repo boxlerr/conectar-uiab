@@ -68,7 +68,7 @@ export default function AdminConfiguracionPage() {
                 <label className="text-sm font-medium text-slate-700">Descripción del Sitio (SEO)</label>
                 <textarea 
                   rows={3}
-                  defaultValue="Red Industrial de Confianza para la Unión Industrial de Almirante Brown"
+                  defaultValue="Directorio Comercial de la Unión Industrial de Almirante Brown"
                   className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
                 />
               </div>

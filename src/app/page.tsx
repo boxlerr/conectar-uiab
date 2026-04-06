@@ -105,7 +105,7 @@ export default function Home() {
               >
                 <ShieldCheck className="w-4 h-4 text-primary-300" />
                 <span className="text-[12px] font-semibold text-white/60 tracking-[0.08em] uppercase">
-                  Red Industrial de Confianza
+                  Directorio Comercial
                 </span>
               </motion.div>
 
@@ -135,7 +135,7 @@ export default function Home() {
                 className="text-[16px] text-white/60 max-w-md mb-9 leading-relaxed"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
               >
-                La plataforma de la UIAB que une a las empresas del Parque Industrial de Almirante Brown con proveedores verificados. Directorio, oportunidades y networking en un solo lugar.
+                La plataforma de la UIAB que une a las empresas y comercios de Almirante Brown con proveedores verificados. Directorio, oportunidades y networking en un solo lugar.
               </motion.p>
 
               {/* CTAs */}
@@ -205,7 +205,7 @@ export default function Home() {
                     </div>
                     <div>
                       <p className="text-[13px] font-bold text-white">100+ Empresas</p>
-                      <p className="text-[10px] text-white/40">Parque Industrial</p>
+                      <p className="text-[10px] text-white/40">Alte. Brown</p>
                     </div>
                   </div>
                 </motion.div>
@@ -337,7 +337,7 @@ export default function Home() {
                 {[
                   {
                     icon: Briefcase,
-                    title: "Empresas del Parque Industrial",
+                    title: "Empresas del Partido",
                     desc: "Más de 100 empresas radicadas publican su perfil, buscan proveedores y acceden a oportunidades de negocio exclusivas.",
                     link: "/empresas",
                     linkLabel: "Ver directorio de empresas",
@@ -352,7 +352,7 @@ export default function Home() {
                   {
                     icon: Wrench,
                     title: "Proveedores profesionales",
-                    desc: "Electricistas, gasistas, plomeros, techistas y más profesionales verificados ofrecen sus servicios a las empresas del parque.",
+                    desc: "Electricistas, gasistas, plomeros, techistas y profesionales verificados ofrecen sus servicios a empresas y particulares de todo el partido.",
                     link: "/proveedores",
                     linkLabel: "Ver proveedores",
                   },
@@ -494,7 +494,7 @@ export default function Home() {
               de la Unión?
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-primary-200/50 text-[16px] mb-10 max-w-2xl mx-auto leading-relaxed">
-              Únase a la red industrial más importante de Almirante Brown y potencie el crecimiento de su empresa con beneficios exclusivos.
+              Únase al directorio comercial más importante de Almirante Brown y potencie el crecimiento de su empresa con beneficios exclusivos.
             </motion.p>
             <motion.div variants={fadeUp} custom={2} className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link

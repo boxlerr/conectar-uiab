@@ -84,7 +84,7 @@ const valueProps = [
   {
     icon: BarChart3,
     title: "Panel de Gestión Inteligente",
-    description: "Métricas de actividad, historial de interacciones y dashboard personalizado. Entienda cómo se mueve su empresa dentro de la red industrial.",
+    description: "Métricas de actividad, historial de interacciones y dashboard personalizado. Entienda cómo se mueve su empresa dentro del directorio comercial.",
   },
 ];
 
@@ -92,7 +92,7 @@ const journey = [
   {
     step: "01",
     title: "Registro y Verificación",
-    description: "Complete el formulario con los datos de su empresa y sector. Nuestro equipo valida la radicación en el parque industrial y la documentación.",
+    description: "Complete el formulario con los datos de su empresa y sector. Nuestro equipo valida la información y la documentación.",
     icon: FileText,
     detail: "Proceso 100% digital • Respuesta en 48hs",
   },
@@ -137,7 +137,7 @@ export function PublicEmpresasLanding() {
         <motion.div className="absolute inset-0 z-0" style={{ y: heroImageY }}>
           <Image
             src="/landing/hero-industrial.png"
-            alt="Vista aérea del Parque Industrial de Almirante Brown"
+            alt="Vista del Distrito de Almirante Brown"
             fill
             className="object-cover object-center"
             priority
@@ -183,7 +183,7 @@ export function PublicEmpresasLanding() {
             </motion.h1>
 
             <motion.p variants={fadeUp} custom={2} className="text-lg lg:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed" style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}>
-              Más de 100 empresas radicadas en el Parque Industrial de Almirante Brown. Directorio verificado. Oportunidades exclusivas. Red B2B activa.
+              Cientos de empresas y comercios del Partido de Almirante Brown. Directorio verificado. Oportunidades exclusivas. Red B2B activa.
             </motion.p>
 
             <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4">
@@ -257,7 +257,7 @@ export function PublicEmpresasLanding() {
               para crecer dentro de la red
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-lg text-slate-500 leading-relaxed">
-              UIAB Conecta no es un simple listado. Es una plataforma de gestión B2B diseñada para que las empresas del parque industrial generen negocios reales.
+              UIAB Conecta no es un simple listado. Es una plataforma de gestión B2B diseñada para que las empresas y comercios de Almirante Brown generen negocios reales.
             </motion.p>
           </motion.div>
 
@@ -349,7 +349,7 @@ export function PublicEmpresasLanding() {
               </motion.h2>
             </div>
             <motion.p variants={fadeUp} custom={2} className="text-[14px] text-slate-500 max-w-sm">
-              Desde metalúrgica hasta alimentaria, el parque industrial reúne la diversidad productiva más completa de la zona sur.
+              Desde metalúrgica hasta servicios profesionales, el directorio reúne la diversidad productiva de toda la zona sur.
             </motion.p>
           </motion.div>
 
@@ -391,7 +391,7 @@ export function PublicEmpresasLanding() {
           <div className="relative h-[300px] lg:h-auto">
             <Image
               src="/landing/business-partnership.png"
-              alt="Colaboración empresarial en el parque industrial"
+              alt="Colaboración empresarial y comercial"
               fill
               className="object-cover"
               sizes="50vw"
@@ -721,7 +721,7 @@ export function PublicEmpresasLanding() {
             >
               Empiece a generar negocios
               <br className="hidden md:block" />
-              dentro de la red industrial
+              dentro del directorio comercial
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-lg text-primary-200/60 mb-10 max-w-2xl mx-auto leading-relaxed">
               Únase a las más de 100 empresas radicadas que ya operan dentro de UIAB Conecta. Visibilidad, oportunidades y una comunidad industrial activa.

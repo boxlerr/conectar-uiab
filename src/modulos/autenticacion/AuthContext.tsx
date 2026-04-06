@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import type { User } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const supabase = createClient();
+  const router = useRouter();
 
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => setIsAuthModalOpen(false);
@@ -113,8 +115,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase, fetchProfile, refreshUser]);
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setCurrentUser(null);
+    try {
+      await supabase.auth.signOut();
+      setCurrentUser(null);
+      router.push('/');
+      router.refresh();
+    } catch (err) {
+      console.error("Logout error", err);
+      setCurrentUser(null);
+      router.push('/');
+    }
   };
 
   return (

@@ -144,7 +144,7 @@ export default function OportunidadDetail({ params }: { params: Promise<{ id: st
                     </div>
                     <div>
                       <p className="text-[#00213f] font-manrope font-bold text-lg leading-none">{op.localidad}</p>
-                      <p className="text-slate-400 text-xs font-inter mt-1 leading-none">Parque Industrial Burzaco</p>
+                      <p className="text-slate-400 text-xs font-inter mt-1 leading-none">Burzaco, Almirante Brown</p>
                     </div>
                   </div>
                 </div>

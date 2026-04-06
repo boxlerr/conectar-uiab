@@ -205,7 +205,7 @@ export default async function DashboardPage() {
             </div>
             <div>
                <h3 className="font-poppins text-lg font-bold text-[#00213f] mb-2">Monitor B2B</h3>
-               <p className="text-sm text-slate-500 mb-6">Accede a requerimientos y cotizaciones activas de otras empresas del parque.</p>
+               <p className="text-sm text-slate-500 mb-6">Accede a requerimientos y cotizaciones activas de otras empresas y comercios de la región.</p>
                <span className="text-sm font-semibold text-primary-600 group-hover:text-primary-700">Ver Oportunidades &rarr;</span>
             </div>
           </Link>

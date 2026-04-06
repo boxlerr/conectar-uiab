@@ -37,14 +37,14 @@ const generateCompanies = (count: number): Company[] => {
     companies.push({
       id: `comp-${i}`,
       name: `Empresa Industrial ${i} S.A.`,
-      description: `Somos una empresa líder en el sector ${categories[i % categories.length].toLowerCase()} con más de 10 años de experiencia brindando soluciones integrales en el Parque Industrial de Almirante Brown.`,
+      description: `Somos una empresa líder en el sector ${categories[i % categories.length].toLowerCase()} con más de 10 años de experiencia brindando soluciones integrales en el Partido de Almirante Brown.`,
       category: categories[i % categories.length],
       rating: parseFloat(rating),
       reviewCount: Math.floor(Math.random() * 50) + 1,
       status: isApproved ? 'approved' : 'pending',
       contactEmail: `contacto@empresa${i}.com.ar`,
       phone: `+54 11 4000-${1000 + i}`,
-      address: `Parque Industrial Almirante Brown, Lote ${i}`,
+      address: `Almirante Brown, Calle ${i}`,
       servicesOffered: ['Servicio A', 'Soporte Técnico', 'Consultoría'],
     });
   }

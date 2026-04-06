@@ -22,11 +22,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         onLogout={logout}
       />
       
-      <main className="flex-grow">
+      <main className="flex-grow flex flex-col min-h-0">
         {children}
       </main>
 
-      <Footer />
+      {!isAuthRoute && <Footer />}
       <AuthModal />
     </div>
   );

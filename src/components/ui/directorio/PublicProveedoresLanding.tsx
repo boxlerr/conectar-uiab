@@ -85,7 +85,7 @@ const pasos = [
   {
     numero: "03",
     titulo: "Empezá a recibir trabajos",
-    descripcion: "Las empresas del parque industrial te contactan cuando necesitan tu servicio. Vos cotizás, ellos contratan. Sin intermediarios.",
+    descripcion: "Las empresas y particulares del partido te contactan cuando necesitan tu servicio. Vos cotizás, ellos contratan. Sin intermediarios.",
     detalle: "Contacto directo",
   },
 ];
@@ -94,7 +94,7 @@ const historias = [
   {
     nombre: "Carlos M.",
     oficio: "Electricista Industrial",
-    texto: "Antes dependía del boca a boca. Ahora las empresas del parque me llaman directo cuando necesitan un electricista. Tengo trabajo fijo todas las semanas.",
+    texto: "Antes dependía del boca a boca. Ahora las empresas me llaman directo cuando necesitan un electricista. Tengo trabajo fijo todas las semanas.",
     metric: "4 clientes fijos",
   },
   {
@@ -168,7 +168,7 @@ export function PublicProveedoresLanding() {
 
               <motion.p variants={fadeUp} custom={2} className="text-[16px] text-white/70 max-w-md mb-8 leading-relaxed" style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}>
                 Electricistas, gasistas, plomeros, techistas y más.
-                Registrá tu servicio y empezá a recibir trabajos de las empresas del Parque Industrial de Almirante Brown.
+                Registrá tu servicio y empezá a recibir trabajos de empresas y clientes de Almirante Brown.
               </motion.p>
 
               <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-3 mb-10">
@@ -250,7 +250,7 @@ export function PublicProveedoresLanding() {
           >
             {[
               { val: "50+", label: "Profesionales Verificados" },
-              { val: "100+", label: "Empresas del Parque" },
+              { val: "500+", label: "Empresas en la Red" },
               { val: "24h", label: "Tiempo de Contacto" },
               { val: "10", label: "Oficios Disponibles" },
             ].map((s, i) => (
@@ -352,8 +352,8 @@ export function PublicProveedoresLanding() {
               {
                 num: "100+",
                 label: "Empresas industriales",
-                heading: "Un parque industrial entero necesita tu servicio",
-                body: "Más de 100 empresas radicadas en el Parque Industrial de Almirante Brown necesitan electricistas, gasistas, plomeros y techistas todas las semanas. Cada fábrica, cada nave, cada oficina es un potencial cliente recurrente para vos.",
+                heading: "Empresas y comercios de todo el partido necesitan tu servicio",
+                body: "Cientos de empresas y emprendimientos en Almirante Brown necesitan profesionales, técnicos y oficios particulares todas las semanas. Cada fábrica, cada negocio y particular del partido es un cliente potencial para vos.",
                 icon: Users,
               },
               {
@@ -485,7 +485,7 @@ export function PublicProveedoresLanding() {
               ¿Cómo funciona?
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-[15px] text-[#191c1e]/60 leading-relaxed">
-              Tres pasos para empezar a recibir trabajos del parque industrial.
+              Tres pasos para conectar y recibir trabajos formales en el partido.
             </motion.p>
           </motion.div>
 
