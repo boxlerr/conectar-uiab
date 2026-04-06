@@ -245,7 +245,7 @@ export function PublicEmpresasLanding() {
             className="mb-20 lg:mb-28 max-w-2xl"
           >
             <motion.span variants={fadeUp} custom={0} className="text-[11px] font-semibold text-primary-600 tracking-[0.14em] uppercase block mb-4">
-              Plataforma Conectar UIAB
+              Plataforma UIAB Conecta
             </motion.span>
             <motion.h2
               variants={fadeUp}
@@ -257,7 +257,7 @@ export function PublicEmpresasLanding() {
               para crecer dentro de la red
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-lg text-slate-500 leading-relaxed">
-              Conectar UIAB no es un simple listado. Es una plataforma de gestión B2B diseñada para que las empresas del parque industrial generen negocios reales.
+              UIAB Conecta no es un simple listado. Es una plataforma de gestión B2B diseñada para que las empresas del parque industrial generen negocios reales.
             </motion.p>
           </motion.div>
 
@@ -274,7 +274,7 @@ export function PublicEmpresasLanding() {
               <div className="relative rounded-sm overflow-hidden shadow-2xl shadow-primary-900/10">
                 <Image
                   src="/landing/platform-preview.png"
-                  alt="Vista previa de la plataforma Conectar UIAB"
+                  alt="Vista previa de la plataforma UIAB Conecta"
                   width={640}
                   height={480}
                   className="w-full h-auto"
@@ -527,7 +527,7 @@ export function PublicEmpresasLanding() {
             className="text-center max-w-3xl mx-auto mb-20"
           >
             <motion.span variants={fadeUp} custom={0} className="text-[11px] font-semibold text-primary-600 tracking-[0.14em] uppercase block mb-4">
-              Membresía Conectar UIAB
+              Membresía UIAB Conecta
             </motion.span>
             <motion.h2
               variants={fadeUp}
@@ -723,8 +723,8 @@ export function PublicEmpresasLanding() {
               <br className="hidden md:block" />
               dentro de la red industrial
             </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="text-primary-200/60 text-lg mb-10 max-w-2xl mx-auto leading-relaxed">
-              Únase a las más de 100 empresas radicadas que ya operan dentro de Conectar UIAB. Visibilidad, oportunidades y una comunidad industrial activa.
+            <motion.p variants={fadeUp} custom={2} className="text-lg text-primary-200/60 mb-10 max-w-2xl mx-auto leading-relaxed">
+              Únase a las más de 100 empresas radicadas que ya operan dentro de UIAB Conecta. Visibilidad, oportunidades y una comunidad industrial activa.
             </motion.p>
             <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

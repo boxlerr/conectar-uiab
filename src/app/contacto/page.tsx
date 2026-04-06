@@ -2,7 +2,7 @@ import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Contacto | Conectar UIAB",
+  title: "Contacto | UIAB Conecta",
   description: "Ponte en contacto con la Unión Industrial de Almirante Brown",
 };
 

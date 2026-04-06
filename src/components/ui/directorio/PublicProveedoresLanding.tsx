@@ -558,7 +558,7 @@ export function PublicProveedoresLanding() {
               </motion.h2>
             </div>
             <motion.p variants={fadeUp} custom={2} className="text-[13px] text-[#191c1e]/60 max-w-sm">
-              Cada historia es de un profesional independiente que hoy tiene clientes industriales fijos gracias a Conectar UIAB.
+              Cada historia es de un profesional independiente que hoy tiene clientes industriales fijos gracias a UIAB Conecta.
             </motion.p>
           </motion.div>
 

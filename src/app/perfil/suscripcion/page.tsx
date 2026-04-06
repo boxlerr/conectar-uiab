@@ -52,7 +52,7 @@ export default function MiPerfilSuscripcionPage() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Plan y Suscripción</h1>
-        <p className="text-slate-500 mt-1">Gestiona tus pagos y tu membresía activa en Conectar-UIAB.</p>
+        <p className="text-slate-500 mt-1">Gestiona tus pagos y tu membresía activa en UIAB Conecta.</p>
       </div>
 
       {!currentUser.entityId && (

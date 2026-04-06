@@ -1,4 +1,4 @@
-# Estructura de Base de Datos - Conectar UIAB
+# Estructura de Base de Datos - UIAB Conecta
 
 A continuación se detalla el esquema de tablas y columnas extraído de la base de datos de Supabase:
 

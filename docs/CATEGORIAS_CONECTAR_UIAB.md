@@ -1,4 +1,4 @@
-# Taxonomía de Categorías — Conectar UIAB
+# Taxonomía de Categorías — UIAB Conecta
 **Versión:** 1.0 | **Fecha:** 02-04-2026 | **Equipo:** Vaxler Software
 
 > **Lógica de diseño:**

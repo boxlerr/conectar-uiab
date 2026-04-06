@@ -60,7 +60,7 @@ export function Footer() {
               </div>
               <div>
                 <span className="font-bold text-xl text-white tracking-tight">
-                  Conectar<span className="text-primary-400">UIAB</span>
+                  UIAB<span className="text-primary-400">Conecta</span>
                 </span>
                 <p className="text-[11px] text-slate-500 tracking-[0.08em] uppercase leading-none mt-0.5">
                   Red Industrial de Confianza

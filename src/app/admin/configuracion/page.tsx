@@ -52,7 +52,7 @@ export default function AdminConfiguracionPage() {
                 <label className="text-sm font-medium text-slate-700">Nombre de la Plataforma</label>
                 <input 
                   type="text" 
-                  defaultValue="Conectar-UIAB"
+                  defaultValue="UIAB Conecta"
                   className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
                 />
               </div>
