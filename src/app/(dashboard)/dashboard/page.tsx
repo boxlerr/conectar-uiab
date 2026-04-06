@@ -11,8 +11,14 @@ import {
   Activity, 
   Briefcase, 
   FileCheck2,
-  Bell
+  Bell,
+  Sparkles,
+  TrendingUp,
+  MapPin,
+  ChevronRight
 } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();
@@ -47,6 +53,66 @@ export default async function DashboardPage() {
   const isCompany = profile?.rol_sistema === 'company';
   const isProvider = profile?.rol_sistema === 'provider';
   const isAdmin = profile?.rol_sistema === 'admin';
+
+  // --- NEW: Fetch Real Matches for Dashboard ---
+  let entityId = null;
+  let dashboardMatches: any[] = [];
+  
+  if (isCompany) {
+    const { data: memberData } = await supabase
+      .from('miembros_empresa')
+      .select('empresa_id')
+      .eq('perfil_id', user.id)
+      .single();
+    entityId = memberData?.empresa_id;
+    
+    // For Companies: Fetch matches for their LATEST open opportunity
+    if (entityId) {
+      const { data: latestOp } = await supabase
+        .from('oportunidades')
+        .select('id')
+        .eq('empresa_solicitante_id', entityId)
+        .eq('estado', 'abierta')
+        .order('creado_en', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (latestOp) {
+        const { data: matches } = await supabase
+          .from('oportunidades_matches')
+          .select(`
+            *,
+            proveedor:proveedores(nombre_comercial, nombre)
+          `)
+          .eq('oportunidad_id', latestOp.id)
+          .order('puntaje', { ascending: false })
+          .limit(3);
+        dashboardMatches = matches || [];
+      }
+    }
+  } else if (isProvider) {
+    const { data: memberData } = await supabase
+      .from('miembros_proveedor')
+      .select('proveedor_id')
+      .eq('perfil_id', user.id)
+      .single();
+    entityId = memberData?.proveedor_id;
+
+    // For Providers: Fetch top matches for them
+    if (entityId) {
+      const { data: matches } = await supabase
+        .from('oportunidades_matches')
+        .select(`
+          *,
+          oportunidad:oportunidades(titulo, localidad)
+        `)
+        .eq('proveedor_candidato_id', entityId)
+        .order('puntaje', { ascending: false })
+        .limit(3);
+      dashboardMatches = matches || [];
+    }
+  }
+
 
   return (
     <main className="min-h-screen bg-[#f7f9fb] font-sans selection:bg-primary-200 py-12 px-4 sm:px-6 lg:px-8">
@@ -155,8 +221,72 @@ export default async function DashboardPage() {
                <span className="text-sm font-semibold text-primary-600 group-hover:text-primary-700">Cargar Archivos &rarr;</span>
             </div>
           </Link>
-
         </section>
+
+        {/* --- DYNAMIC MATCHES SECTION (Power Anchor from DESIGN.MD) --- */}
+        {(isCompany || isProvider) && (
+          <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+            <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-sm bg-[#00213f] flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-manrope text-xl font-bold text-[#00213f]">Conexiones Inteligentes</h3>
+                  <p className="text-xs text-slate-400 font-inter font-medium uppercase tracking-widest mt-0.5">Basado en el algoritmo de matching UIAB</p>
+                </div>
+              </div>
+              <Link href="/oportunidades" className="text-sm font-bold text-primary-600 flex items-center gap-1 hover:gap-2 transition-all">
+                Ver todo <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {dashboardMatches.length > 0 ? (
+                dashboardMatches.map((match) => (
+                  <Link key={match.id} href={`/oportunidades/${match.oportunidad_id}`}>
+                    <Card className="group border-none bg-white p-6 rounded-sm shadow-sm hover:shadow-xl transition-all border-l-4 border-l-primary-500 overflow-hidden relative h-full flex flex-col">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-sm uppercase tracking-wider">
+                          <TrendingUp className="w-3 h-3" />
+                          {Math.round(match.puntaje)}% Coincidencia
+                        </div>
+                      </div>
+                      
+                      <h4 className="font-manrope font-bold text-lg text-[#00213f] mb-2 group-hover:text-primary-600 transition-colors leading-snug">
+                        {isProvider ? match.oportunidad?.titulo : match.proveedor?.nombre_comercial || match.proveedor?.nombre}
+                      </h4>
+                      
+                      {isProvider && (
+                        <p className="text-xs text-slate-400 font-inter flex items-center gap-1.5 mb-4">
+                          <MapPin className="w-3.5 h-3.5 opacity-50" />
+                          {match.oportunidad?.localidad}
+                        </p>
+                      )}
+
+                      <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          {isProvider ? 'Oportunidad Abierta' : 'Proveedor Recomendado'}
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </Card>
+                  </Link>
+                ))
+              ) : (
+                <div className="col-span-full bg-white rounded-sm border-none shadow-sm p-12 text-center">
+                  <div className="max-w-xs mx-auto">
+                    <Activity className="w-10 h-10 text-slate-200 mx-auto mb-4" />
+                    <p className="text-slate-400 font-inter font-medium leading-relaxed">
+                      Estamos procesando las mejores coincidencias para tu perfil. Revisa tus datos institucionales para mejorar tus resultados.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
 
         {/* --- RECENT ACTIVITY OR QUICK NOTIFICATIONS --- */}
         <section className="bg-white rounded-2xl border border-[#d8dadc] overflow-hidden shadow-sm">
