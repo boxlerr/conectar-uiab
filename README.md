@@ -1,4 +1,4 @@
-# Conectar UIAB - Directorio Industrial y Servicios SaaS
+# UIAB Conecta - Directorio Industrial y Servicios SaaS
 
 Plataforma escalable construida sobre **Next.js 14+ (App Router)** utilizando la arquitectura de software **Feature-Sliced Design (Diseño Orientado a Módulos/Características)** para mantener el código organizado, predecible y altamente mantenible a medida que el sistema escala (suscripciones, pasarelas de pago, perfiles de proveedor, paneles de administrador, etc).
 

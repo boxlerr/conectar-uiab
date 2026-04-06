@@ -182,7 +182,7 @@ export default function Home() {
                 <div className="relative z-10">
                   <Image
                     src="/landing/hero-dashboard.png"
-                    alt="Plataforma Conectar UIAB — Directorio industrial"
+                    alt="Plataforma UIAB Conecta — Directorio industrial"
                     width={800}
                     height={560}
                     className="w-full h-auto rounded-lg shadow-2xl shadow-black/40"

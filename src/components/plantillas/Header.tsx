@@ -214,8 +214,8 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                   />
                 </div>
                 <div className="font-bold text-xl sm:text-2xl text-slate-900 tracking-tight hidden sm:flex items-center gap-1">
-                  Conectar
-                  <span className="text-primary-600">UIAB</span>
+                  UIAB
+                  <span className="text-primary-600">Conecta</span>
                 </div>
               </Link>
             </motion.div>

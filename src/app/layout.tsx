@@ -22,7 +22,7 @@ import { Toaster } from "@/components/ui/sonner";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "Conectar-UIAB | Directorio Industrial",
+  title: "UIAB Conecta | Directorio Industrial",
   description: "Red Industrial de Confianza para la Unión Industrial de Almirante Brown",
 };
 

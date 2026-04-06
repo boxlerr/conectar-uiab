@@ -27,7 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <ShieldAlert className="w-16 h-16 text-rose-500 mb-4" />
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Acceso Restringido</h2>
         <p className="text-slate-500 text-center max-w-md">
-          Esta página es exclusiva para administradores de la red Conectar-UIAB. Por favor, ingresa con las credenciales adecuadas.
+          Esta página es exclusiva para administradores de la red UIAB Conecta. Por favor, ingresa con las credenciales adecuadas.
         </p>
       </div>
     );
