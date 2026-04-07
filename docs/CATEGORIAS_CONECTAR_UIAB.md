@@ -1,5 +1,5 @@
 # Taxonomía de Categorías — UIAB Conecta
-**Versión:** 1.0 | **Fecha:** 02-04-2026 | **Equipo:** Vaxler Software
+**Versión:** 2.0 | **Fecha:** 07-04-2026 | **Equipo:** Vaxler Software
 
 > **Lógica de diseño:**
 > - **2 niveles:** Rubro Principal (padre) → Especialidad (hijo). Sin tercer nivel para mantener la UX simple.
@@ -168,7 +168,7 @@
 | `ceramicas-revestimientos` | Cerámicas, Porcellanatos y Revestimientos | baldosas, porcelanato, azulejos, revestimiento |
 | `carpinteria-aberturas` | Carpintería y Aberturas | puertas, ventanas, aberturas de madera/aluminio/PVC |
 | `impermeabilizacion-aislacion` | Impermeabilización y Aislación | membranas, poliuretano, lana de vidrio, aislación térmica |
-| D| `construccion-civil-industrial` | Construcción Civil e Industrial | obras civiles, galpones, depósitos, edificios industriales |
+| `construccion-civil-industrial` | Construcción Civil e Industrial | obras civiles, galpones, depósitos, edificios industriales |
 | `demolicion-movimiento-tierras` | Demolición y Movimiento de Tierras | demolición, excavación, nivelación, relleno, vialidad |
 | `pinturas-construccion` | Pinturas y Revestimientos para la Construcción | pintura látex, esmalte, impermeabilizante, microcemento |
 | `sanitaria-plomeria` | Instalaciones Sanitarias y Plomería | cañerías, plomería, sanitarios, desagüe, agua caliente |
@@ -495,7 +495,7 @@
 | D-F02 | Director técnico farmacéutico matriculado | Todas |
 | D-F03 | Registro de producto ante ANMAT | Por producto |
 
----
+--- 
 
 ## 🖨️ SECTOR 20 — GRÁFICA, SEÑALÉTICA Y PUBLICIDAD INDUSTRIAL
 
@@ -512,31 +512,187 @@
 
 ---
 
+## 🍴 SECTOR 21 — GASTRONOMÍA Y ALIMENTOS
+
+**Descripción:** Establecimientos de elaboración, venta y distribución de alimentos y bebidas para consumo directo.
+**Slug padre:** `gastronomia-alimentos`
+**Aliases padre:** gastronomia, restaurant, panaderia, cafeteria, rotiseria, comidas, catering, bar
+
+### Subcategorías
+
+| Slug | Nombre visible | Aliases de búsqueda |
+|------|---------------|-------------------|
+| `panaderia-pasteleria` | Panaderia y Pasteleria | panaderia, facturas, medialunas, confiteria |
+| `restaurant-rotiseria` | Restaurant y Rotiseria | restaurant, comidas, rotiseria, minutas, delivery |
+| `cafeteria-bar` | Cafeteria y Bar | cafe, bar, cafeteria, infusiones |
+| `catering-eventos` | Catering y Eventos | catering, eventos, banquetes, viandas empresariales |
+| `elaboracion-alimentos` | Elaboración de Alimentos | elaboracion propia, fabrica de pastas, reposteria |
+| `distribuidora-alimentos` | Distribuidora de Alimentos | mayorista alimentos, distribucion, almacen |
+
+### Documentación específica requerida
+
+| Código | Documento | Aplica a |
+|--------|-----------|----------|
+| D-GA01 | Habilitación municipal | Todas |
+| D-GA02 | Carnet manipulador de alimentos | Todas |
+| D-GA03 | Habilitación ANMAT (si comercializa productos envasados) | Condicional |
+
+---
+
+## 🩺 SECTOR 22 — SALUD, ESTÉTICA Y BIENESTAR
+
+**Descripción:** Prestadores de servicios de salud, estética, deporte y bienestar personal.
+**Slug padre:** `salud-estetica-bienestar`
+**Aliases padre:** salud, medico, clinica, estetica, belleza, gym, bienestar, farmacia
+
+### Subcategorías
+
+| Slug | Nombre visible | Aliases de búsqueda |
+|------|---------------|-------------------|
+| `clinica-consultorio` | Clínica y Consultorio | medico, clinica, consultorio, pediatra, odontologo, psicologo |
+| `veterinaria` | Veterinaria | veterinario, animales, mascotas, clinica veterinaria |
+| `farmacia-optica` | Farmacia y Optica | farmacia, optica, ortopedia, medicamentos |
+| `estetica-belleza` | Estetica y Belleza | peluqueria, estetica, salon de belleza, manicuria, barber |
+| `gimnasio-deporte` | Gimnasio y Deporte | gym, gimnasio, pilates, crossfit, deporte |
+
+### Documentación específica requerida
+
+| Código | Documento | Aplica a |
+|--------|-----------|----------|
+| D-SA01 | Matricula profesional (según especialidad) | `clinica-consultorio`, `veterinaria` |
+| D-SA02 | Habilitación municipal del establecimiento | Todas |
+| D-SA03 | Habilitación ANMAT | `farmacia-optica` |
+
+---
+
+## 🛍️ SECTOR 23 — COMERCIO MINORISTA Y MAYORISTA
+
+**Descripción:** Comercios de venta al público o a empresas de productos de cualquier rubro.
+**Slug padre:** `comercio-minorista-mayorista`
+**Aliases padre:** comercio, negocio, tienda, local, mayorista, minorista, venta
+
+### Subcategorías
+
+| Slug | Nombre visible | Aliases de búsqueda |
+|------|---------------|-------------------|
+| `electrodomesticos-electronica` | Electrodomésticos y Electrónica | electrodomesticos, tecnologia, celulares, computadoras |
+| `ferreteria-corralon` | Ferreteria y Corralón | ferreteria, corralon, materiales de construccion, herramientas |
+| `indumentaria-calzado-retail` | Indumentaria y Calzado | ropa, calzado, accesorios, moda |
+| `librerias-papeleria` | Librerías y Papelería | libreria, papeleria, utiles, imprenta |
+| `mayorista-distribucion` | Mayorista y Distribución | mayorista, distribucion, repositor, proveedor de comercios |
+
+### Documentación específica requerida
+
+| Código | Documento | Aplica a |
+|--------|-----------|----------|
+| D-CM01 | Habilitación municipal | Todas |
+| D-CM02 | Carnet manipulador de alimentos | Todas |
+
+---
+
+## 🎓 SECTOR 24 — EDUCACIÓN Y CAPACITACIÓN
+
+**Descripción:** Instituciones educativas, centros de capacitación, tutores y formación profesional.
+**Slug padre:** `educacion-capacitacion`
+**Aliases padre:** educacion, capacitacion, cursos, escuela, instituto, formacion, tutoria
+
+### Subcategorías
+
+| Slug | Nombre visible | Aliases de búsqueda |
+|------|---------------|-------------------|
+| `instituto-educativo` | Instituto Educativo | colegio, escuela, jardin, instituto terciario |
+| `capacitacion-laboral` | Capacitación Laboral | cursos, certificaciones, formacion profesional |
+| `tutoria-apoyo-escolar` | Tutoría y Apoyo Escolar | tutor, apoyo escolar, refuerzo, clases particulares |
+| `idiomas` | Idiomas | ingles, portugues, idiomas, clases de idioma |
+
+### Documentación específica requerida
+
+| Código | Documento | Aplica a |
+|--------|-----------|----------|
+| D-ED01 | Habilitación provincial | `instituto-educativo` |
+| D-ED02 | Matricula docente (según nivel) | Condicional |
+
+---
+
+## 🏠 SECTOR 25 — INMOBILIARIO Y ALQUILERES
+
+**Descripción:** Inmobiliarias, desarrolladores, alquiler de espacios y propiedades.
+**Slug padre:** `inmobiliario-alquileres`
+**Aliases padre:** inmobiliaria, alquiler, venta de propiedades, real estate, local comercial
+
+### Subcategorías
+
+| Slug | Nombre visible | Aliases de búsqueda |
+|------|---------------|-------------------|
+| `inmobiliaria-venta-alquiler` | Inmobiliaria (Venta y Alquiler) | inmobiliaria, propiedades, venta, alquiler |
+| `alquiler-espacios-comerciales` | Alquiler de Espacios Comerciales | local comercial, galpon, oficina, coworking |
+| `desarrolladora-constructora` | Desarrolladora y Constructora | developer, loteo, barrios, desarrollo inmobiliario |
+
+### Documentación específica requerida
+
+| Código | Documento | Aplica a |
+|--------|-----------|----------|
+| D-IN01 | Matricula de corredor inmobiliario | `inmobiliaria-venta-alquiler` |
+| D-IN02 | Habilitación municipal | Todas |
+
+---
+
+## 🚘 SECTOR 26 — AUTOMOTRIZ Y SERVICIOS VEHICULARES (COMERCIALES)
+
+**Descripción:** Concesionarias, talleres, lavaderos, gomería y servicios para vehículos de uso particular y comercial.
+**Slug padre:** `automotriz-servicios-vehiculares`
+**Aliases padre:** taller, gomeria, lavadero, auto, moto, vehiculo, mecanica civil
+
+### Subcategorías
+
+| Slug | Nombre visible | Aliases de búsqueda |
+|------|---------------|-------------------|
+| `taller-mecanico-civil` | Taller Mecánico Civil | mecanica, taller, reparacion de autos, service |
+| `gomeria` | Gomeria | gomeria, neumaticos, cubiertas, alineacion, balanceo |
+| `lavadero-estetica` | Lavadero y Estética | lavadero, pulido, detailing, estetica del auto |
+| `concesionaria-usados` | Concesionaria y Usados | concesionaria, usados, compra-venta autos |
+| `moto-bicicleta` | Motos y Bicicletas | taller motos, bicicletas, electricas |
+
+### Documentación específica requerida
+
+| Código | Documento | Aplica a |
+|--------|-----------|----------|
+| D-AV01 | Habilitación municipal del taller | Todas |
+| D-AV02 | ART | Todas |
+
+---
+
 ## 🔄 RESUMEN ESTADÍSTICO
 
-| Sector | N° Subcategorías |
-|--------|:----------------:|
-| 01 - Metalmecánica | 10 |
-| 02 - Química | 8 |
-| 03 - Alimentaria | 11 |
-| 04 - Textil | 6 |
-| 05 - Construcción | 8 |
-| 06 - Plásticos | 5 |
-| 07 - Madera y Papel | 5 |
-| 08 - Electrónica | 7 |
-| 09 - Automotriz | 5 |
-| 10 - Logística | 6 |
-| 11 - Mantenimiento | 8 |
-| 12 - Energía | 5 |
-| 13 - Servicios Generales | 6 |
-| 14 - Insumos y Herramientas | 6 |
-| 15 - Salud Ocupacional | 4 |
-| 16 - Servicios Profesionales | 8 |
-| 17 - Agropecuario | 4 |
-| 18 - Minerales y Cerámica | 3 |
-| 19 - Farmacéutica | 3 |
-| 20 - Gráfica | 3 |
-| **TOTAL** | **126 subcategorías** |
+| Sector | Nombre | N° Subcategorías |
+|--------|:-------|:----------------:|
+| 01 | Metalmecanica y Metalurgia | 10 |
+| 02 | Quimica y Petroquimica | 8 |
+| 03 | Alimentaria y Agroindustria | 11 |
+| 04 | Textil, Indumentaria y Calzado | 6 |
+| 05 | Construccion, Materiales y Afines | 8 |
+| 06 | Plasticos, Caucho y Envases | 5 |
+| 07 | Madera, Muebles y Papel | 5 |
+| 08 | Electronica, Tecnologia y Telecomunicaciones | 7 |
+| 09 | Automotriz y Autopartes | 5 |
+| 10 | Logistica, Transporte y Deposito | 6 |
+| 11 | Mantenimiento Industrial (Servicios) | 8 |
+| 12 | Energia, Gas y Utilities | 5 |
+| 13 | Servicios Generales y Facilities | 6 |
+| 14 | Insumos, Herramientas y Equipos | 6 |
+| 15 | Salud Ocupacional y Seguridad e Higiene | 4 |
+| 16 | Servicios Profesionales y Consultoria | 8 |
+| 17 | Agropecuario y Maquinaria Agricola | 4 |
+| 18 | Minerales No Metalicos y Ceramica Industrial | 3 |
+| 19 | Farmaceutica, Cosmetica y Articulos Medicos | 3 |
+| 20 | Grafica, Senaletica y Publicidad Industrial | 3 |
+| 21 | Gastronomía y Alimentos | 6 |
+| 22 | Salud, Estética y Bienestar | 5 |
+| 23 | Comercio Minorista y Mayorista | 5 |
+| 24 | Educación y Capacitación | 4 |
+| 25 | Inmobiliario y Alquileres | 3 |
+| 26 | Automotriz y Servicios Vehiculares | 5 |
+| **TOTAL** | | **153** |
 
 ---
 
@@ -564,18 +720,3 @@ VALUES (
 INSERT INTO alias_categorias (id, categoria_id, alias)
 SELECT gen_random_uuid(), id, unnest(ARRAY['metalurgia','metal','acero','hierro','chapa','soldadura','fundición'])
 FROM categorias WHERE slug = 'metalmecanica-metalurgia';
-```
-
----
-
-## 📝 NOTAS DE IMPLEMENTACIÓN
-
-1. **Buscador:** La tabla `alias_categorias` es crítica. Cada subcategoría debe tener al menos 5-8 aliases para cubrir jerga industrial argentina (ej: "tornero" = tornería, "vulcanizado" = caucho).
-
-2. **Documentación dinámica:** Se recomienda modelar los requisitos documentales en una tabla `requisitos_documentales` vinculada a `categorias`, con campos: `nombre_doc`, `obligatorio` (bool), `descripcion`. Así el Admin puede configurarlos desde el panel sin cambiar código.
-
-3. **Applies_to:** Considerar un flag `aplica_empresa` / `aplica_proveedor` en la tabla de categorías para filtrar el catálogo según el tipo de entidad que se registra.
-
-4. **Categorías de Mantenimiento:** El Sector 11 es especialmente relevante para los **Proveedores** (no empresas del parque). En la UI, al registrarse como Proveedor, mostrar este sector como primero.
-
-5. **Revisión con UIAB:** Antes de hacer el seed definitivo, validar con la administración de UIAB qué rubros ya existen en sus planillas actuales para hacer el match y no duplicar.
