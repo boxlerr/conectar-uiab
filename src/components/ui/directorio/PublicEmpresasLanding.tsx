@@ -25,6 +25,9 @@ import {
   BadgeCheck,
   ShieldCheck,
   Eye,
+  Megaphone,
+  Monitor,
+  LayoutGrid,
 } from "lucide-react";
 import { ProfileCard } from "@/components/ui/directorio/ProfileCard";
 import { getEmpresas } from "@/lib/data/directorio";
@@ -81,7 +84,7 @@ const valueProps = [
   {
     icon: Bell,
     title: "Oportunidades en Tiempo Real",
-    description: "Reciba notificaciones de pedidos de cotización y proyectos antes que nadie. Acceso exclusivo a oportunidades que circulan dentro de la red comercial del partido.",
+    description: "Acceda a pedidos de cotización y proyectos de forma directa. Acceso exclusivo a oportunidades que circulan dentro de la red comercial del partido.",
   },
   {
     icon: Handshake,
@@ -115,7 +118,7 @@ const journey = [
     title: "Conexión con la Red",
     description: "Comience a recibir oportunidades, conecte con otras empresas y proveedores. Acceda al ecosistema completo de herramientas B2B.",
     icon: Users,
-    detail: "Red activa • +100 empresas",
+    detail: "Red activa • +60 empresas",
   },
 ];
 
@@ -130,7 +133,7 @@ export function PublicEmpresasLanding() {
     target: heroRef,
     offset: ["start start", "end start"],
   });
-  const heroImageY = useTransform(heroProgress, [0, 1], ["0%", "30%"]);
+  const heroImageY = useTransform(heroProgress, [0, 1], ["0%", "15%"]);
   const heroOverlayOpacity = useTransform(heroProgress, [0, 0.5], [0.75, 0.9]);
 
   return (
@@ -141,12 +144,13 @@ export function PublicEmpresasLanding() {
       ═══════════════════════════════════════════ */}
       <section ref={heroRef} className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-16 sm:-mt-20">
         {/* Background Image w/ Parallax */}
-        <motion.div className="absolute inset-0 z-0" style={{ y: heroImageY }}>
+        <motion.div className="absolute inset-0 z-0 overflow-hidden">
           <Image
             src="/landing/hero-industrial.png"
             alt="Vista del Distrito de Almirante Brown"
             fill
-            className="object-cover object-center"
+            quality={100}
+            className="object-cover object-left scale-[1.1]"
             priority
             sizes="100vw"
           />
@@ -191,7 +195,7 @@ export function PublicEmpresasLanding() {
             </motion.h1>
 
             <motion.p variants={fadeUp} custom={2} className="text-[15px] lg:text-[17px] text-white/90 max-w-lg mb-8 leading-relaxed font-medium" style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}>
-              Fábricas, comercios, panaderías, clínicas, inmobiliarias y más. Todo el ecosistema empresarial de Almirante Brown en un solo lugar. Directorio verificado por la UIAB.
+              Metalúrgicas, químicas, alimentos, constructoras, servicios de salud, inmobiliarias y más. Todo el ecosistema empresarial de Almirante Brown en un solo lugar. Directorio verificado por la UIAB.
             </motion.p>
 
             <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-3">
@@ -222,25 +226,25 @@ export function PublicEmpresasLanding() {
             className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
           >
             {[
-              { val: "100+", label: "Empresas Registradas" },
+              { val: "+60", label: "Empresas Registradas" },
               { val: "50+", label: "Proveedores Activos" },
               { val: "26", label: "Sectores Comerciales" },
-              { val: "500+", label: "Conexiones B2B" },
+              { val: "+600", label: "Conexiones B2B" },
             ].map((s, i) => (
               <motion.div
                 key={s.label}
                 variants={fadeUp}
                 custom={i}
-                className="bg-white/10 backdrop-blur-md rounded-xl px-5 py-5 border border-white/20 shadow-2xl shadow-black/10 hover:bg-white/15 transition-all duration-300 group"
+                className="bg-white/20 backdrop-blur-md rounded-xl px-5 py-5 border border-white/30 shadow-2xl shadow-black/10 hover:bg-white/25 transition-all duration-300 group"
               >
                 <div className="text-xl lg:text-3xl font-bold text-white mb-0.5 tracking-tight group-hover:text-primary-200 transition-colors uppercase">{s.val}</div>
-                <div className="text-[10px] lg:text-[11px] text-white/60 font-bold tracking-wider uppercase">{s.label}</div>
+                <div className="text-[10px] lg:text-[11px] text-white font-bold tracking-wider uppercase">{s.label}</div>
               </motion.div>
             ))}
           </motion.div>
         </div>
       </section>
-      
+
 
 
       {/* ═══════════════════════════════════════════
@@ -301,11 +305,11 @@ export function PublicEmpresasLanding() {
                     <div className="flex -space-x-2">
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="w-7 h-7 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center overflow-hidden">
-                           <Users className="w-3.5 h-3.5 text-slate-400" />
+                          <Users className="w-3.5 h-3.5 text-slate-400" />
                         </div>
                       ))}
                     </div>
-                    <span className="text-[11px] font-bold text-[#191c1e]/40 uppercase tracking-widest">+100 EMPRESAS</span>
+                    <span className="text-[11px] font-bold text-[#191c1e] uppercase tracking-widest">+60 EMPRESAS</span>
                   </div>
                 </div>
               </div>
@@ -525,20 +529,24 @@ export function PublicEmpresasLanding() {
                   key={step.step}
                   initial="hidden"
                   whileInView="visible"
+                  whileHover="hover"
                   viewport={{ once: true, margin: "-60px" }}
                   variants={fadeUp}
                   custom={0}
-                  className="relative"
+                  className="relative group px-6 -mx-6 rounded-2xl transition-all duration-300"
                 >
                   <div className={`grid lg:grid-cols-12 gap-8 items-center py-12 lg:py-16 ${i < journey.length - 1 ? "border-b border-[#e2e5e8]/60" : ""}`}>
                     {/* Step Number */}
                     <div className="lg:col-span-2">
-                      <span
-                        className="text-[4rem] lg:text-[5rem] font-bold text-primary-100 leading-none tracking-tighter"
+                      <motion.span
+                        variants={{
+                          hover: { scale: 1.1, color: "#2563eb", opacity: 0.8 }
+                        }}
+                        className="text-[4rem] lg:text-[5rem] font-bold text-primary-100 leading-none tracking-tighter block transition-all duration-300"
                         style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
                       >
                         {step.step}
-                      </span>
+                      </motion.span>
                     </div>
 
                     {/* Content */}
@@ -572,28 +580,86 @@ export function PublicEmpresasLanding() {
       ═══════════════════════════════════════════ */}
       <section className="py-24 lg:py-36 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={stagger}
-            className="text-center max-w-3xl mx-auto mb-20"
-          >
-            <motion.span variants={fadeUp} custom={0} className="text-[11px] font-semibold text-primary-600 tracking-[0.14em] uppercase block mb-4">
-              Membresía UIAB Conecta
-            </motion.span>
-            <motion.h2
-              variants={fadeUp}
-              custom={1}
-              className="text-3xl lg:text-4xl font-bold text-[#191c1e] tracking-tight mb-5"
-              style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+          <div className="grid lg:grid-cols-12 gap-12 lg:gap-20 items-center mb-24 lg:mb-32">
+            {/* Left Column: Text Content */}
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={stagger}
+              className="lg:col-span-7"
             >
-              ¿Qué incluye su suscripción?
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="text-lg text-slate-500 leading-relaxed">
-              Cada empresa suscripta accede a herramientas exclusivas que potencian su operación y visibilidad dentro del directorio de Almirante Brown.
-            </motion.p>
-          </motion.div>
+              <motion.div variants={fadeUp} custom={0} className="flex items-center gap-4 mb-4">
+                <div className="relative w-8 h-8 flex-shrink-0">
+                  <Image 
+                    src="/logo-prueba.png" 
+                    alt="UIAB" 
+                    width={32} 
+                    height={32} 
+                    className="object-contain opacity-80"
+                  />
+                </div>
+                <div className="h-[1px] w-6 bg-primary-600/30" />
+                <span className="text-[10px] font-bold text-primary-600 tracking-[0.25em] uppercase">
+                  Membresía Corporativa
+                </span>
+              </motion.div>
+              
+              <motion.h2
+                variants={fadeUp}
+                custom={1}
+                className="text-4xl lg:text-7xl font-extrabold text-[#00213f] tracking-tight mb-8 leading-[1.1]"
+                style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+              >
+                Beneficios <br /> suscripción <span className="text-primary-600">UIAB</span>
+              </motion.h2>
+              
+              <motion.p variants={fadeUp} custom={2} className="text-lg text-slate-500 leading-relaxed max-w-xl">
+                Herramientas de visibilidad y gestión diseñadas para el ecosistema industrial de Almirante Brown. Acceso directo a contactos y oportunidades de la red.
+              </motion.p>
+            </motion.div>
+
+            {/* Right Column: Visual Anchor */}
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={fadeUp}
+              custom={3}
+              className="lg:col-span-5 relative"
+            >
+              <div className="relative aspect-[4/3] rounded-sm overflow-hidden shadow-2xl shadow-primary-900/10 border border-slate-200/50">
+                <Image
+                  src="/industrial-b2b-header.png"
+                  alt="Industrial Infrastructure"
+                  fill
+                  className="object-cover transition-transform duration-700 hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#00213f]/20 to-transparent" />
+              </div>
+              
+              {/* Technical Detail Anchor */}
+              <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#f8fafc] border border-slate-200 p-4 hidden lg:flex flex-col items-center justify-between rounded-sm shadow-xl">
+                <div className="w-full flex justify-start">
+                  <div className="w-6 h-[1px] bg-primary-600/30" />
+                </div>
+                
+                <div className="relative w-12 h-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                  <Image 
+                    src="/logo-prueba.png" 
+                    alt="UIAB" 
+                    width={48} 
+                    height={48} 
+                    className="object-contain"
+                  />
+                </div>
+
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none text-center">
+                  Sector <br /> Industrial
+                </span>
+              </div>
+            </motion.div>
+          </div>
 
           {/* Feature Grid — Bento-style */}
           <motion.div
@@ -601,61 +667,69 @@ export function PublicEmpresasLanding() {
             whileInView="visible"
             viewport={{ once: true, margin: "-60px" }}
             variants={stagger}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {/* Card 1 — Large */}
-            <motion.div variants={fadeUp} custom={0} className="md:col-span-2 bg-gradient-to-br from-[#00213f] to-[#10375c] rounded-sm p-8 lg:p-10 text-white relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-sm bg-white/10 flex items-center justify-center mb-6">
+            {/* Card 1 — Directory */}
+            <motion.div variants={fadeUp} custom={0} className="md:col-span-2 bg-[#00213f] rounded-md p-8 lg:p-12 text-white relative overflow-hidden group shadow-lg">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-primary-400/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="w-12 h-12 rounded-sm bg-white/10 flex items-center justify-center mb-10 border border-white/5 group-hover:bg-primary-500/20 transition-colors">
                   <Search className="w-6 h-6 text-primary-200" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Directorio Completo</h3>
-                <p className="text-primary-200/70 text-[15px] leading-relaxed max-w-lg mb-6">
-                  Acceso ilimitado a todas las empresas, comercios y proveedores verificados del partido. Filtros por sector, localidad, servicios y certificaciones. Contacto directo sin intermediarios.
+                <h3 className="text-2xl lg:text-3xl font-bold mb-4" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Directorio Industrial Completo</h3>
+                <p className="text-primary-100/70 text-base lg:text-lg leading-relaxed max-w-xl mb-10">
+                  Acceso a la base de datos de +60 empresas e industrias verificadas del partido. Busque proveedores por sector o servicio y contacte de forma directa.
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {["Búsqueda avanzada", "Filtros inteligentes", "Contacto directo", "Perfiles completos"].map((tag) => (
-                    <span key={tag} className="text-[11px] font-medium text-white/60 bg-white/[0.08] rounded-sm px-3 py-1.5">{tag}</span>
+                <div className="flex flex-wrap gap-2 mt-auto">
+                  {["Base de Datos +60", "Filtros Técnicos", "Contacto Sin Intermediarios"].map((tag) => (
+                    <span key={tag} className="text-[11px] font-bold text-white/50 bg-white/[0.04] border border-white/5 rounded-sm px-3 py-1.5 uppercase tracking-wider">{tag}</span>
                   ))}
                 </div>
               </div>
             </motion.div>
 
-            {/* Card 2 */}
-            <motion.div variants={fadeUp} custom={1} className="bg-[#f7f9fb] rounded-sm p-7 group hover:shadow-lg transition-all duration-400" style={{ boxShadow: "0 1px 2px rgba(0,33,63,0.04)" }}>
-              <div className="w-11 h-11 rounded-sm bg-white flex items-center justify-center mb-5 shadow-sm">
-                <Bell className="w-5 h-5 text-primary-600" />
+            {/* Card 2 — Oportunidades */}
+            <motion.div variants={fadeUp} custom={1} className="bg-white rounded-md p-8 group hover:bg-[#f8fafc] transition-all duration-300 border border-slate-200 shadow-sm relative overflow-hidden">
+              <div className="w-12 h-12 rounded-sm bg-primary-50 flex items-center justify-center mb-6 border border-primary-100/50">
+                <Megaphone className="w-6 h-6 text-primary-600" />
               </div>
-              <h3 className="text-[16px] font-bold text-[#191c1e] mb-2">Oportunidades</h3>
-              <p className="text-[13px] text-slate-500 leading-relaxed">Notificaciones de pedidos de cotización y licitaciones internas del parque.</p>
+              <h3 className="text-lg font-bold text-[#00213f] mb-3" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Cartelera de Oportunidades</h3>
+              <p className="text-[14px] text-slate-500 leading-relaxed">
+                Publique sus necesidades de contratación y acceda a la lista de búsquedas de suministros y servicios vigentes subidas por otras empresas de la red.
+              </p>
             </motion.div>
 
-            {/* Card 3 */}
-            <motion.div variants={fadeUp} custom={2} className="bg-[#f7f9fb] rounded-sm p-7 group hover:shadow-lg transition-all duration-400" style={{ boxShadow: "0 1px 2px rgba(0,33,63,0.04)" }}>
-              <div className="w-11 h-11 rounded-sm bg-white flex items-center justify-center mb-5 shadow-sm">
-                <BarChart3 className="w-5 h-5 text-primary-600" />
+            {/* Card 3 — Dashboard */}
+            <motion.div variants={fadeUp} custom={2} className="bg-white rounded-md p-8 group hover:bg-[#f8fafc] transition-all duration-300 border border-slate-200 shadow-sm">
+              <div className="w-12 h-12 rounded-sm bg-primary-50 flex items-center justify-center mb-6 border border-primary-100/50">
+                <Monitor className="w-6 h-6 text-primary-600" />
               </div>
-              <h3 className="text-[16px] font-bold text-[#191c1e] mb-2">Dashboard B2B</h3>
-              <p className="text-[13px] text-slate-500 leading-relaxed">Panel personalizado con métricas de actividad, interacciones y seguimiento.</p>
+              <h3 className="text-lg font-bold text-[#00213f] mb-3" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Métricas de Visibilidad</h3>
+              <p className="text-[14px] text-slate-500 leading-relaxed">
+                Monitoree el alcance de su perfil corporativo con datos reales: visualizaciones recibidas y clics realizados en sus métodos de contacto.
+              </p>
             </motion.div>
 
-            {/* Card 4 */}
-            <motion.div variants={fadeUp} custom={3} className="bg-[#f7f9fb] rounded-sm p-7 group hover:shadow-lg transition-all duration-400" style={{ boxShadow: "0 1px 2px rgba(0,33,63,0.04)" }}>
-              <div className="w-11 h-11 rounded-sm bg-white flex items-center justify-center mb-5 shadow-sm">
-                <Shield className="w-5 h-5 text-primary-600" />
+            {/* Card 4 — Sello */}
+            <motion.div variants={fadeUp} custom={3} className="bg-[#f8fafc] rounded-md p-8 group transition-all duration-300 border border-primary-200/60 shadow-md shadow-primary-900/5">
+              <div className="w-12 h-12 rounded-sm bg-primary-600 flex items-center justify-center mb-6 shadow-sm">
+                <BadgeCheck className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-[16px] font-bold text-[#191c1e] mb-2">Sello de Verificación</h3>
-              <p className="text-[13px] text-slate-500 leading-relaxed">Perfil verificado por la UIAB. Credibilidad y confianza ante toda la red.</p>
+              <h3 className="text-lg font-bold text-[#00213f] mb-3" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Empresa Verificada UIAB</h3>
+              <p className="text-[14px] text-slate-500 leading-relaxed">
+                Obtenga la validación oficial de la Unión Industrial de Almirante Brown. Mejore su posicionamiento y aparezca con prioridad en los resultados de búsqueda.
+              </p>
             </motion.div>
 
-            {/* Card 5 */}
-            <motion.div variants={fadeUp} custom={4} className="bg-[#f7f9fb] rounded-sm p-7 group hover:shadow-lg transition-all duration-400" style={{ boxShadow: "0 1px 2px rgba(0,33,63,0.04)" }}>
-              <div className="w-11 h-11 rounded-sm bg-white flex items-center justify-center mb-5 shadow-sm">
-                <FileText className="w-5 h-5 text-primary-600" />
+            {/* Card 5 — Documental */}
+            <motion.div variants={fadeUp} custom={4} className="bg-white rounded-md p-8 group hover:bg-[#f8fafc] transition-all duration-300 border border-slate-200 shadow-sm">
+              <div className="w-12 h-12 rounded-sm bg-primary-50 flex items-center justify-center mb-6 border border-primary-100/50">
+                <FileText className="w-6 h-6 text-primary-600" />
               </div>
-              <h3 className="text-[16px] font-bold text-[#191c1e] mb-2">Gestión Documental</h3>
-              <p className="text-[13px] text-slate-500 leading-relaxed">Suba habilitaciones, certificaciones y documentos para compartir con la red.</p>
+              <h3 className="text-lg font-bold text-[#00213f] mb-3" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Gestor de Credenciales</h3>
+              <p className="text-[14px] text-slate-500 leading-relaxed">
+                Repositorio centralizado para cargar habilitaciones, seguros y certificaciones. Facilite y agilice su proceso de alta como proveedor para la red.
+              </p>
             </motion.div>
           </motion.div>
         </div>
@@ -688,7 +762,7 @@ export function PublicEmpresasLanding() {
                   Conozca algunas de nuestras empresas
                 </motion.h2>
                 <motion.p variants={fadeUp} custom={2} className="text-[15px] text-slate-500 leading-relaxed">
-                  Esta es solo una muestra. El directorio completo incluye +100 empresas radicadas con perfiles verificados.
+                  Esta es solo una muestra. El directorio completo incluye +60 empresas radicadas con perfiles verificados.
                 </motion.p>
               </div>
 
@@ -776,8 +850,8 @@ export function PublicEmpresasLanding() {
               <br className="hidden md:block" />
               dentro del directorio comercial
             </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="text-lg text-primary-200/60 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Únase a las más de 100 empresas y comercios que ya operan dentro de UIAB Conecta. Visibilidad, oportunidades y una comunidad comercial activa en Almirante Brown.
+            <motion.p variants={fadeUp} custom={2} className="text-lg text-primary-200/80 mb-10 max-w-2xl mx-auto leading-relaxed">
+              Únase a las más de 60 empresas y comercios que ya operan dentro de UIAB Conecta. Visibilidad, oportunidades y una comunidad comercial activa en Almirante Brown.
             </motion.p>
             <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

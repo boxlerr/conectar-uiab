@@ -157,15 +157,15 @@ export default function Home() {
               </motion.div>
 
               {/* Trust signals */}
-              <motion.div variants={fadeUp} custom={4} className="flex items-center gap-6 text-[12px] text-white/30">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-primary-300/50" /> 100+ empresas
+              <motion.div variants={fadeUp} custom={4} className="flex items-center gap-6 text-[12px] text-white/90">
+                <span className="flex items-center gap-1.5 font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> +60 empresas
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-primary-300/50" /> 50+ proveedores
+                <span className="flex items-center gap-1.5 font-bold">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" /> 50+ proveedores
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-primary-300/50" /> 100% verificado
+                <span className="flex items-center gap-1.5 font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> 100% verificado
                 </span>
               </motion.div>
             </motion.div>
@@ -175,21 +175,19 @@ export default function Home() {
               initial="hidden"
               animate="visible"
               variants={slideInRight}
-              className="lg:col-span-7 xl:col-span-7 relative hidden lg:block"
+              className="lg:col-span-5 xl:col-span-7 relative hidden lg:block"
             >
-              <motion.div style={{ y: dashY }} className="relative">
-                {/* Dashboard mockup */}
-                <div className="relative z-10">
+              <motion.div style={{ y: dashY }} className="relative max-w-2xl ml-auto">
+                {/* Main Industrial Illustration */}
+                <div className="relative z-10 w-full aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
                   <Image
-                    src="/landing/hero-dashboard.png"
-                    alt="Plataforma UIAB Conecta — Directorio industrial"
-                    width={800}
-                    height={560}
-                    className="w-full h-auto rounded-lg shadow-2xl shadow-black/40"
+                    src="/landing/hero-industrial.png"
+                    alt="Ecosistema Industrial Conectado"
+                    fill
+                    className="object-cover"
                     priority
                   />
-                  {/* Overlay glow */}
-                  <div className="absolute inset-0 rounded-lg bg-gradient-to-t from-[#00213f]/30 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#00213f]/60 via-transparent to-transparent" />
                 </div>
 
                 {/* Floating card — Empresas */}
@@ -204,8 +202,8 @@ export default function Home() {
                       <Factory className="w-4.5 h-4.5 text-primary-200" />
                     </div>
                     <div>
-                      <p className="text-[13px] font-bold text-white">100+ Empresas</p>
-                      <p className="text-[10px] text-white/40">Alte. Brown</p>
+                      <p className="text-[18px] font-bold text-white">+60 Empresas</p>
+                      <p className="text-[11px] text-white/50">registradas en el partido</p>
                     </div>
                   </div>
                 </motion.div>
@@ -215,7 +213,7 @@ export default function Home() {
                   variants={float}
                   initial="initial"
                   animate="animate"
-                  className="absolute -right-4 bottom-1/4 bg-white/[0.08] backdrop-blur-xl rounded-sm px-4 py-3 border border-white/[0.08] shadow-2xl shadow-black/20 z-20"
+                  className="absolute -right-4 top-[15%] bg-white/[0.08] backdrop-blur-xl rounded-sm px-4 py-3 border border-white/[0.08] shadow-2xl shadow-black/20 z-20"
                   style={{ animationDelay: "1.5s" }}
                 >
                   <div className="flex items-center gap-2.5">
@@ -229,20 +227,59 @@ export default function Home() {
                   </div>
                 </motion.div>
 
-                {/* Connection graphic — bottom overlay */}
+                {/* Floating card — UIAB Logo */}
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1, duration: 0.8 }}
-                  className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-[280px] z-20"
+                  variants={float}
+                  initial="initial"
+                  animate="animate"
+                  className="absolute -left-10 bottom-[15%] bg-white/[0.12] backdrop-blur-2xl rounded-sm px-5 py-4 border border-white/[0.15] shadow-2xl shadow-black/30 z-20"
+                  style={{ animationDelay: "0.5s" }}
                 >
-                  <Image
-                    src="/landing/hero-connection.png"
-                    alt="Conexión empresas ↔ UIAB ↔ proveedores"
-                    width={280}
-                    height={180}
-                    className="w-full h-auto drop-shadow-2xl"
-                  />
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-11 h-11 flex items-center justify-center bg-white/10 rounded-sm p-1.5">
+                       <Image 
+                         src="/logo-prueba.png" 
+                         alt="UIAB Logo" 
+                         width={44} 
+                         height={44}
+                         className="object-contain brightness-110 contrast-125"
+                       />
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-0.5">Aval Institucional</p>
+                       <p className="text-[14px] font-black text-white leading-tight">Red Privada<br/>UIAB Conecta</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Floating card — Testimonial/Review */}
+                <motion.div
+                  variants={float}
+                  initial="initial"
+                  animate="animate"
+                  className="absolute -right-10 bottom-[10%] bg-white/[0.12] backdrop-blur-2xl rounded-sm px-5 py-5 border border-white/[0.15] shadow-2xl shadow-black/30 z-20 max-w-[260px]"
+                  style={{ animationDelay: "2s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(i => <Star key={i} className="w-2.5 h-2.5 fill-emerald-400 text-emerald-400" />)}
+                    </div>
+                    <span className="text-[9px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Servicio Eléctrico
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-white font-medium italic leading-relaxed mb-4">
+                    "Ricardo es un excelente profesional. Resolvió la instalación técnica de nuestro depósito en Almirante Brown sin demoras."
+                  </p>
+                  <div className="flex items-center gap-3 pt-3 border-t border-white/10">
+                    <div className="w-8 h-8 rounded-full bg-primary-500/30 flex items-center justify-center text-[10px] font-bold text-white shadow-inner">
+                      RM
+                    </div>
+                    <div>
+                       <p className="text-[11px] font-bold text-white">Roberto M.</p>
+                       <p className="text-[9px] text-white/50 uppercase tracking-wider font-bold">Director en Logística Brown</p>
+                    </div>
+                  </div>
                 </motion.div>
               </motion.div>
             </motion.div>
@@ -253,48 +290,7 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#f7f9fb] to-transparent z-10" />
       </section>
 
-      {/* ═══════════════════════════════════════════
-          STATS BAR — Floating cards that bridge hero → content
-      ═══════════════════════════════════════════ */}
-      <section className="relative z-20 -mt-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-40px" }}
-          variants={stagger}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-        >
-          {[
-            { icon: Factory, value: "100+", label: "Empresas Registradas", desc: "Red sólida en el parque" },
-            { icon: Zap, value: "50+", label: "Proveedores Activos", desc: "Servicios especializados" },
-            { icon: Users, value: "500+", label: "Conexiones B2B", desc: "Negocios concretados" },
-            { icon: Star, value: "4.8", label: "Calificación Promedio", desc: "Satisfacción garantizada" },
-          ].map((stat, i) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={i}
-                variants={fadeUp}
-                custom={i}
-                className="bg-white rounded-sm p-6 group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
-                style={{ boxShadow: "0 2px 8px rgba(0,33,63,0.06)" }}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-sm bg-primary-50 flex items-center justify-center group-hover:bg-[#00213f] transition-colors duration-300">
-                    <Icon className="w-5 h-5 text-primary-600 group-hover:text-white transition-colors duration-300" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-[#191c1e] tracking-tight" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>
-                      {stat.value}
-                    </div>
-                    <div className="text-[12px] font-semibold text-[#191c1e]/50">{stat.label}</div>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      </section>
+
 
       {/* ═══════════════════════════════════════════
           HOW IT WORKS — 3 step visual with isometric connection
@@ -338,7 +334,7 @@ export default function Home() {
                   {
                     icon: Briefcase,
                     title: "Empresas del Partido",
-                    desc: "Más de 100 empresas radicadas publican su perfil, buscan proveedores y acceden a oportunidades de negocio exclusivas.",
+                    desc: "Más de 60 empresas radicadas publican su perfil, buscan proveedores y acceden a oportunidades de negocio exclusivas.",
                     link: "/empresas",
                     linkLabel: "Ver directorio de empresas",
                   },
@@ -352,7 +348,7 @@ export default function Home() {
                   {
                     icon: Wrench,
                     title: "Proveedores profesionales",
-                    desc: "Electricistas, gasistas, plomeros, techistas y profesionales verificados ofrecen sus servicios a empresas y particulares de todo el partido.",
+                    desc: "Ingeniería, sistemas, contabilidad, mantenimiento técnico y profesionales verificados de todo el partido.",
                     link: "/proveedores",
                     linkLabel: "Ver proveedores",
                   },

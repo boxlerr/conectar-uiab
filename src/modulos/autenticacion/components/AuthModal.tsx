@@ -40,7 +40,11 @@ export function AuthModal() {
       });
 
       if (error) {
-        toast.error("Error de acceso", { description: error.message });
+        const translatedMessage = error.message === "Invalid login credentials" 
+          ? "El correo electrónico o la contraseña son incorrectos." 
+          : error.message;
+          
+        toast.error("Error de acceso", { description: translatedMessage });
         setIsLoading(false);
         return;
       }
@@ -140,12 +144,15 @@ export function AuthModal() {
 
           {/* ── FORM CONTENT — surface_container_lowest (#ffffff) ── */}
           <div className="bg-white px-8 py-7">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form 
+              onSubmit={handleSubmit} 
+              className="space-y-5"
+            >
               
               {/* Email Input — DESIGN.md: Large padding, surface_container_low bg, ghost border on focus */}
               <div className="space-y-2 text-left">
                 <label 
-                  className="text-[11px] font-bold text-[#191c1e]/50 tracking-[0.08em] uppercase ml-0.5"
+                  className="text-[11px] font-bold text-[#191c1e]/80 tracking-[0.08em] uppercase ml-0.5"
                   style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
                 >
                   Correo Electrónico
@@ -178,12 +185,21 @@ export function AuthModal() {
 
               {/* Password Input */}
               <div className="space-y-2 text-left">
-                <label 
-                  className="text-[11px] font-bold text-[#191c1e]/50 tracking-[0.08em] uppercase ml-0.5"
-                  style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
-                >
-                  Contraseña
-                </label>
+                <div className="flex items-center justify-between ml-0.5">
+                  <label 
+                    className="text-[11px] font-bold text-[#191c1e]/80 tracking-[0.08em] uppercase"
+                    style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+                  >
+                    Contraseña
+                  </label>
+                  <a 
+                    href="/recovery" 
+                    className="text-[10px] font-bold text-[#00213f]/60 hover:text-[#00213f] transition-colors uppercase tracking-wider"
+                    style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </a>
+                </div>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#191c1e]/30 group-focus-within:text-[#00213f] transition-colors">
                     <Lock className="h-[18px] w-[18px]" />

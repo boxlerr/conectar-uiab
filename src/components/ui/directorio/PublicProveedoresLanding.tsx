@@ -29,7 +29,8 @@ import {
   Phone,
   Calendar,
   TrendingUp,
-  MapPin,
+  Globe,
+  FileText,
 } from "lucide-react";
 import { ProfileCard } from "@/components/ui/directorio/ProfileCard";
 import { getProveedores } from "@/lib/data/directorio";
@@ -58,23 +59,23 @@ const slideInRight = {
 
 /* ─── Oficios & Categories ─── */
 const oficios = [
-  { nombre: "Electricista", icon: Zap, trabajos: "+120 trabajos/mes" },
-  { nombre: "Gasista Matriculado", icon: Flame, trabajos: "+85 trabajos/mes" },
-  { nombre: "Plomero", icon: Droplets, trabajos: "+95 trabajos/mes" },
-  { nombre: "Techista", icon: HardHat, trabajos: "+60 trabajos/mes" },
-  { nombre: "Soldador", icon: Cable, trabajos: "+70 trabajos/mes" },
-  { nombre: "Refrigeración", icon: Thermometer, trabajos: "+55 trabajos/mes" },
-  { nombre: "Pintor Industrial", icon: PaintBucket, trabajos: "+45 trabajos/mes" },
-  { nombre: "Cerrajero", icon: Cog, trabajos: "+50 trabajos/mes" },
-  { nombre: "Albañil", icon: Hammer, trabajos: "+80 trabajos/mes" },
-  { nombre: "Transporte", icon: Truck, trabajos: "+40 trabajos/mes" },
+  { nombre: "Ingeniería y Consultoría", icon: Cog, trabajos: "+45 proyectos/mes" },
+  { nombre: "Informática y Sistemas", icon: Zap, trabajos: "+80 servicios/mes" },
+  { nombre: "Contabilidad y Auditoría", icon: FileText, trabajos: "+65 consultas/mes" },
+  { nombre: "Mantenimiento Eléctrico", icon: HardHat, trabajos: "+30 proyectos/mes" },
+  { nombre: "Marketing y Comunicación", icon: Globe, trabajos: "+50 servicios/mes" },
+  { nombre: "Refrigeración (HVAC)", icon: Thermometer, trabajos: "+95 trabajos/mes" },
+  { nombre: "Transporte y Logística", icon: Truck, trabajos: "+120 servicios/mes" },
+  { nombre: "Gestión Ambiental", icon: Droplets, trabajos: "+25 auditorías/mes" },
+  { nombre: "Clínica y Consultorio", icon: ShieldCheck, trabajos: "+110 turnos/mes" },
+  { nombre: "Seguridad e Higiene", icon: BadgeCheck, trabajos: "+40 inspecciones/mes" },
 ];
 
 const pasos = [
   {
     numero: "01",
     titulo: "Cree su perfil profesional",
-    descripcion: "Indicá tu oficio, zona de cobertura, matrícula habilitante y fotos de trabajos realizados. Toma solo 5 minutos.",
+    descripcion: "Indicá tu especialidad (Ingeniería, Sistemas, Mantenimiento, etc.), matrícula habilitante y fotos de trabajos realizados.",
     detalle: "5 min",
   },
   {
@@ -86,29 +87,29 @@ const pasos = [
   {
     numero: "03",
     titulo: "Empezá a recibir trabajos",
-    descripcion: "Las empresas y particulares del partido te contactan cuando necesitan tu servicio. Vos cotizás, ellos contratan. Sin intermediarios.",
+    descripcion: "Las empresas te contactan cuando necesitan tu servicio, o vos podés ver las búsquedas activas y contactarlos directamente. Sin intermediarios.",
     detalle: "Contacto directo",
   },
 ];
 
 const historias = [
   {
-    nombre: "Carlos M.",
-    oficio: "Electricista Industrial",
-    texto: "Antes dependía del boca a boca. Ahora las empresas me llaman directo cuando necesitan un electricista. Tengo trabajo fijo todas las semanas.",
-    metric: "4 clientes fijos",
+    nombre: "Javier S.",
+    oficio: "Ingeniería y Consultoría Técnica",
+    texto: "Como consultor independiente, UIAB Conecta me permitió llegar a las naves industriales más grandes del partido. Mi red de clientes creció de forma sostenida.",
+    metric: "4 naves activas",
   },
   {
-    nombre: "Laura P.",
-    oficio: "Gasista Matriculada",
-    texto: "El sello UIAB me dio credibilidad instantánea. Las empresas confían porque saben que mi matrícula está verificada. Tripliqué mis ingresos.",
-    metric: "3x ingresos",
+    nombre: "Elena F.",
+    oficio: "Contabilidad, Impuestos y Auditoría",
+    texto: "El sello de profesional verificado me dio la confianza que las PyMEs comerciales de Almirante Brown necesitan. Hoy asesoro a más de 12 comercios locales.",
+    metric: "12 clientes fijos",
   },
   {
-    nombre: "Martín R.",
-    oficio: "Techista y Canaletas",
-    texto: "Recibo solicitudes de cotización cada semana. Las empresas y comercios del partido siempre necesitan mantenimiento de techos y trabajos civiles. Es un flujo constante.",
-    metric: "6 cotiz./semana",
+    nombre: "Marcos L.",
+    oficio: "Informática, Sistemas y Soporte IT",
+    texto: "Increíble la cantidad de empresas que buscan digitalizarse. A través del directorio, encontré proyectos de automatización y trazabilidad en tiempo récord.",
+    metric: "8 proyectos IT",
   },
 ];
 
@@ -168,7 +169,7 @@ export function PublicProveedoresLanding() {
               </motion.h1>
 
               <motion.p variants={fadeUp} custom={2} className="text-[14px] text-white/70 max-w-md mb-8 leading-relaxed" style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}>
-                Electricistas, gasistas, plomeros, techistas y más.
+                Ingenieros, técnicos matriculados, asesores contables, diseñadores, programadores y más.
                 Registrá tu servicio y empezá a recibir trabajos de empresas y clientes de Almirante Brown.
               </motion.p>
 
@@ -190,10 +191,10 @@ export function PublicProveedoresLanding() {
               </motion.div>
 
               {/* Trust signals */}
-              <motion.div variants={fadeUp} custom={4} className="flex items-center gap-6 text-[12px] text-white/35">
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary-300/60" /> Perfil profesional</span>
-                <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-primary-300/60" /> Matrícula verificada</span>
-                <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-primary-300/60" /> En 48hs activo</span>
+              <motion.div variants={fadeUp} custom={4} className="flex items-center gap-6 text-[12px] text-white/90">
+                <span className="flex items-center gap-1.5 font-bold"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Perfil profesional</span>
+                <span className="flex items-center gap-1.5 font-bold"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Matrícula verificada</span>
+                <span className="flex items-center gap-1.5 font-bold"><Clock className="w-4 h-4 text-emerald-400" /> En 48hs activo</span>
               </motion.div>
             </motion.div>
 
@@ -254,9 +255,9 @@ export function PublicProveedoresLanding() {
         >
           {[
             { val: "50+", label: "Profesionales Verificados" },
-            { val: "500+", label: "Empresas en la Red" },
+            { val: "+60", label: "Empresas en la Red" },
             { val: "24h", label: "Tiempo de Contacto" },
-            { val: "10", label: "Oficios Disponibles" },
+            { val: "10+", label: "Oficios Disponibles" },
           ].map((s, i) => (
             <motion.div
               key={s.label}
@@ -353,7 +354,7 @@ export function PublicProveedoresLanding() {
           <div className="space-y-0">
             {[
               {
-                num: "100+",
+                num: "+60",
                 label: "Empresas industriales",
                 heading: "Empresas y comercios de todo el partido necesitan tu servicio",
                 body: "Cientos de empresas y emprendimientos en Almirante Brown necesitan profesionales, técnicos y oficios particulares todas las semanas. Cada fábrica, cada negocio y particular del partido es un cliente potencial para vos.",
@@ -362,8 +363,8 @@ export function PublicProveedoresLanding() {
               {
                 num: "24h",
                 label: "Tiempo promedio de contacto",
-                heading: "Recibí solicitudes de trabajo en tu celular",
-                body: "Cuando una empresa del parque necesita tu oficio, te llega una notificación. Vos cotizás, ellos te contratan. Sin plataformas que se queden con un porcentaje, sin intermediarios. El contacto es directo entre vos y la empresa.",
+                heading: "Contactos directos vía email o teléfono",
+                body: "Cuando una empresa necesita tu oficio te contactará directamente, o podés ser vos quien los contacte al ver sus oportunidades publicadas. Sin plataformas que se queden con un porcentaje, sin intermediarios.",
                 icon: Phone,
               },
               {
@@ -378,37 +379,56 @@ export function PublicProveedoresLanding() {
                 key={block.num}
                 initial="hidden"
                 whileInView="visible"
-                viewport={{ once: true, margin: "-60px" }}
-                variants={stagger}
-                className={`grid lg:grid-cols-12 gap-8 lg:gap-16 items-center py-16 lg:py-20 ${
+                whileHover="hover"
+                viewport={{ once: true, margin: "-100px" }}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { 
+                    opacity: 1, 
+                    y: 0, 
+                    transition: { duration: 0.6, staggerChildren: 0.1 } 
+                  }
+                }}
+                className={`grid lg:grid-cols-12 gap-8 lg:gap-16 items-center py-16 lg:py-20 px-6 -mx-6 group ${
                   i < 2 ? "border-b border-[#e2e5e8]/40" : ""
                 }`}
               >
                 {/* Large metric */}
-                <motion.div variants={fadeUp} custom={0} className={`lg:col-span-3 ${i % 2 === 1 ? "lg:order-2" : ""}`}>
-                  <span
-                    className="text-[4.5rem] lg:text-[6rem] font-bold text-[#00213f]/15 leading-none tracking-tighter block"
+                <motion.div 
+                  className={`lg:col-span-3 ${i % 2 === 1 ? "lg:order-2" : ""}`}
+                >
+                  <motion.span
+                    variants={{
+                      hidden: { opacity: 0, scale: 0.9 },
+                      visible: { opacity: 1, scale: 1 },
+                      hover: { scale: 1.05, color: "#2563eb", opacity: 0.9 }
+                    }}
+                    className="text-[4.5rem] lg:text-[6rem] font-bold text-[#00213f]/15 leading-none tracking-tighter block cursor-default transition-all duration-300"
                     style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
                   >
                     {block.num}
+                  </motion.span>
+                  <span className="text-[12px] font-bold text-[#00213f]/40 tracking-[0.04em] uppercase block">
+                    {block.label}
                   </span>
-                  <span className="text-[12px] font-bold text-[#00213f]/40 tracking-[0.04em] uppercase">{block.label}</span>
                 </motion.div>
 
                 {/* Content */}
-                <motion.div variants={fadeUp} custom={1} className={`lg:col-span-9 ${i % 2 === 1 ? "lg:order-1" : ""}`}>
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-10 h-10 rounded-sm bg-primary-50 flex items-center justify-center flex-shrink-0">
-                      <block.icon className="w-5 h-5 text-primary-600" />
+                <motion.div className={`lg:col-span-9 ${i % 2 === 1 ? "lg:order-1" : ""}`}>
+                  <div className="flex items-start gap-5 mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <block.icon className="w-6 h-6 text-primary-600" />
                     </div>
-                    <h3
-                      className="text-xl lg:text-2xl font-bold text-[#191c1e] leading-snug"
-                      style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
-                    >
-                      {block.heading}
-                    </h3>
+                    <div className="flex-1">
+                      <h3
+                        className="text-2xl lg:text-3xl font-bold text-[#191c1e] leading-snug cursor-default"
+                        style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                      >
+                        {block.heading}
+                      </h3>
+                    </div>
                   </div>
-                  <p className="text-[15px] text-[#191c1e]/50 leading-relaxed max-w-2xl lg:ml-14">
+                  <p className="text-[16px] text-[#191c1e]/50 leading-relaxed max-w-2xl lg:ml-16">
                     {block.body}
                   </p>
                 </motion.div>
@@ -419,19 +439,34 @@ export function PublicProveedoresLanding() {
       </section>
 
       {/* ═══════════════════════════════════════════
-          SECTION 4: TRADES COLLAGE — FULL-BLEED IMAGE
+          SECTION 4: TRADES COLLAGE — 4-PANEL MOSAIC
       ═══════════════════════════════════════════ */}
-      <section className="relative h-[420px] lg:h-[520px] overflow-hidden">
-        <Image
-          src="/landing/trades-collage.png"
-          alt="Profesionales de diferentes oficios trabajando"
-          fill
-          className="object-cover"
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#00213f]/90 via-[#00213f]/60 to-transparent" />
+      <section className="relative min-h-[420px] lg:h-[580px] overflow-hidden flex items-center">
+        {/* Background Grid Mosaic */}
+        <div className="absolute inset-0 z-0 grid grid-cols-2 lg:grid-cols-4">
+          {[
+            { src: "/landing/gasista_industrial.png", alt: "Gasista Industrial" },
+            { src: "/landing/electricista_industrial.png", alt: "Electricista Industrial" },
+            { src: "/landing/contador_profesional.png", alt: "Contador Profesional" },
+            { src: "/landing/disenador_ingeniero.png", alt: "Diseñador / Ingeniero" }
+          ].map((panel, idx) => (
+            <div key={idx} className="relative w-full h-full overflow-hidden group border-r border-white/5 last:border-0">
+              <Image
+                src={panel.src}
+                alt={panel.alt}
+                fill
+                className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                sizes="(max-width: 1024px) 50vw, 25vw"
+              />
+            </div>
+          ))}
+        </div>
 
-        <div className="relative z-10 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
+        {/* Strong Institutional Overlay for Readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#00213f]/95 via-[#00213f]/75 to-transparent z-[1]" />
+        <div className="absolute inset-0 bg-[#00182e]/40 z-[1] lg:hidden" />
+
+        <div className="relative z-10 w-full h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -442,19 +477,19 @@ export function PublicProveedoresLanding() {
             <motion.blockquote
               variants={fadeUp}
               custom={0}
-              className="text-2xl lg:text-3xl text-white font-bold leading-snug tracking-tight mb-5"
+              className="text-2xl lg:text-3xl text-white font-bold leading-[1.15] tracking-tight mb-5"
               style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
             >
               &ldquo;Gasistas, electricistas, contadores y diseñadores.
               Cada servicio tiene su lugar en Almirante Brown.&rdquo;
             </motion.blockquote>
-            <motion.p variants={fadeUp} custom={1} className="text-primary-200/50 text-[13px] mb-7">
+            <motion.p variants={fadeUp} custom={1} className="text-primary-200/60 text-[13px] font-semibold tracking-wider uppercase mb-8">
               — Red de Proveedores UIAB Conecta
             </motion.p>
             <motion.div variants={fadeUp} custom={2}>
               <Button
                 asChild
-                className="h-11 px-6 rounded-sm font-bold text-[13px] bg-white text-[#00213f] hover:bg-primary-50 active:scale-[0.98] transition-all shadow-lg"
+                className="h-12 px-8 rounded-sm font-bold text-[14px] bg-white text-[#00213f] hover:bg-primary-50 active:scale-[0.98] transition-all shadow-xl shadow-black/20"
               >
                 <Link href="/register?role=provider">
                   Quiero registrarme
@@ -506,15 +541,19 @@ export function PublicProveedoresLanding() {
                 key={paso.numero}
                 variants={fadeUp}
                 custom={i}
+                whileHover="hover"
                 className="bg-white rounded-sm p-8 relative group hover:shadow-md transition-all duration-300"
                 style={{ boxShadow: "0 1px 2px rgba(0,33,63,0.03)" }}
               >
-                <span
-                  className="absolute top-4 right-5 text-[5rem] font-bold text-[#00213f]/5 leading-none select-none group-hover:text-[#00213f]/10 transition-colors"
+                <motion.span
+                  variants={{
+                    hover: { scale: 1.1, color: "#2563eb", opacity: 1 }
+                  }}
+                  className="absolute top-4 right-5 text-[5rem] font-bold text-[#00213f]/5 leading-none select-none transition-all duration-300"
                   style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
                 >
                   {paso.numero}
-                </span>
+                </motion.span>
 
                 <div className="relative z-10">
                   <div className="w-10 h-10 rounded-sm bg-primary-50 flex items-center justify-center mb-5">

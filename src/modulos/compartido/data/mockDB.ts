@@ -11,23 +11,24 @@ export const mockAdmin: User = {
 
 // Categories
 export const companyCategories: Category[] = [
-  { id: 'metal', name: 'Metalúrgica', count: 35 },
-  { id: 'chem', name: 'Química', count: 20 },
-  { id: 'logistics', name: 'Logística y Transporte', count: 15 },
-  { id: 'tech', name: 'Tecnología e IT', count: 12 },
-  { id: 'food', name: 'Alimenticia', count: 18 },
+  { id: 'metalmecanica-metalurgia', name: 'Metalmecánica y Metalurgia', count: 35 },
+  { id: 'quimica-petroquimica', name: 'Química y Petroquímica', count: 20 },
+  { id: 'alimentaria-agroindustria', name: 'Alimentaria y Agroindustria', count: 15 },
+  { id: 'logistica-transporte-deposito', name: 'Logística, Transporte y Depósito', count: 12 },
+  { id: 'servicios-profesionales', name: 'Servicios Profesionales y Consultoría', count: 18 },
 ];
 
 export const providerSpecialties: Category[] = [
-  { id: 'elec', name: 'Electricista Industrial', count: 40 },
-  { id: 'gas', name: 'Gasista Matriculado', count: 25 },
-  { id: 'roof', name: 'Techista / Herrero', count: 20 },
-  { id: 'plumb', name: 'Plomero Industrial', count: 15 },
+  { id: 'ingenieria-consultora', name: 'Ingeniería y Consultoría Técnica', count: 32 },
+  { id: 'contabilidad-impuestos', name: 'Contabilidad, Impuestos y Auditoría', count: 28 },
+  { id: 'informatica-sistemas', name: 'Informática, Sistemas y Soporte IT', count: 24 },
+  { id: 'mantenimiento-electrico', name: 'Mantenimiento Eléctrico e Instrumental', count: 45 },
+  { id: 'refrigeracion', name: 'Refrigeración y Aire Acondicionado', count: 19 },
 ];
 
 // Helper to generate a large amount of companies
 const generateCompanies = (count: number): Company[] => {
-  const categories = ['Metalúrgica', 'Química', 'Logística y Transporte', 'Tecnología e IT', 'Alimenticia'];
+  const categories = ['Metalmecánica y Metalurgia', 'Química y Petroquímica', 'Alimentaria y Agroindustria', 'Logística, Transporte y Depósito', 'Servicios Profesionales y Consultoría'];
   const companies: Company[] = [];
   
   for (let i = 1; i <= count; i++) {
@@ -53,7 +54,7 @@ const generateCompanies = (count: number): Company[] => {
 
 // Helper to generate providers
 const generateProviders = (count: number): Provider[] => {
-  const specialties = ['Electricista Industrial', 'Gasista Matriculado', 'Techista / Herrero', 'Plomero Industrial'];
+  const specialties = ['Ingeniería y Consultoría Técnica', 'Contabilidad, Impuestos y Auditoría', 'Informática, Sistemas y Soporte IT', 'Mantenimiento Eléctrico e Instrumental', 'Refrigeración y Aire Acondicionado'];
   const providers: Provider[] = [];
   
   for (let i = 1; i <= count; i++) {

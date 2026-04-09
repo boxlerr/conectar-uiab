@@ -124,7 +124,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                 className="text-base lg:text-lg text-white/70 max-w-xl mb-8 leading-relaxed"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
               >
-                Accedé a la cartelera privada donde las industrias de Almirante Brown publican sus necesidades de servicios y contrataciones. Tu próximo gran contrato está a un clic.
+                Accedé a la cartelera privada donde las industrias de Almirante Brown publican sus necesidades de servicios y contrataciones. Contactá directamente a las empresas y hacé crecer tu negocio.
               </motion.p>
 
               <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -310,7 +310,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                 <div className="space-y-8">
                   {[
                     { step: "01", icon: Factory, title: "Publicación Verificada", desc: "Las industrias, parques industriales y comercios adheridos publican requerimientos concretos de servicios u obras." },
-                    { step: "02", icon: Bell, title: "Notificación Directa", desc: "Si tu perfil, especialidad y zona matchean con la oportunidad, recibís una alerta inmediatamente a tu correo." },
+                    { step: "02", icon: Bell, title: "Aviso vía Email", desc: "Si tu perfil y especialidad coinciden con la oportunidad, recibirás un aviso en tu correo para que puedas contactar a la empresa." },
                     { step: "03", icon: ShieldCheck, title: "Envío de Cotización", desc: "Contactás a la empresa de forma directa. Ellos reciben tu oferta validada con el sello de la UIAB, lo que te da prioridad y suma confianza." }
                   ].map((item, i) => (
                     <motion.div key={i} variants={fadeUp} custom={i} className="flex gap-6">
@@ -454,7 +454,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                     className="text-3xl font-black text-[#00213f] mb-4"
                     style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
                   >
-                     Desbloqueá {totalCount > 3 ? totalCount - 3 : '+100'} Licitaciones Más
+                     Desbloqueá {totalCount > 3 ? totalCount - 3 : '+60'} Licitaciones Más
                   </h3>
                   <p 
                     className="text-slate-500 mb-8 text-[15px] leading-relaxed max-w-md mx-auto"
