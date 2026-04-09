@@ -3,6 +3,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Wrench,
   ArrowRight,
@@ -73,8 +74,8 @@ const pasos = [
   {
     numero: "01",
     titulo: "Cree su perfil profesional",
-    descripcion: "Indicá tu oficio, zona de cobertura, matrícula habilitante y fotos de trabajos realizados. Es gratis y toma 5 minutos.",
-    detalle: "5 min • Gratis",
+    descripcion: "Indicá tu oficio, zona de cobertura, matrícula habilitante y fotos de trabajos realizados. Toma solo 5 minutos.",
+    detalle: "5 min",
   },
   {
     numero: "02",
@@ -106,7 +107,7 @@ const historias = [
   {
     nombre: "Martín R.",
     oficio: "Techista y Canaletas",
-    texto: "Recibo solicitudes de cotización cada semana. Las fábricas del parque siempre necesitan mantenimiento de techos. Es un flujo constante.",
+    texto: "Recibo solicitudes de cotización cada semana. Las empresas y comercios del partido siempre necesitan mantenimiento de techos y trabajos civiles. Es un flujo constante.",
     metric: "6 cotiz./semana",
   },
 ];
@@ -130,7 +131,7 @@ export function PublicProveedoresLanding() {
           SECTION 1: HERO — SPLIT LAYOUT
           Left: Copy. Right: Portrait photo.
       ═══════════════════════════════════════════ */}
-      <section ref={heroRef} className="relative min-h-[90vh] overflow-hidden">
+      <section ref={heroRef} className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-16 sm:-mt-20">
         {/* UIAB Primary background — FIXED gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#00213f] via-[#10375c] to-[#0c2d4a]" />
         <div className="absolute inset-0 opacity-[0.02]" style={{
@@ -138,7 +139,7 @@ export function PublicProveedoresLanding() {
           backgroundSize: "32px 32px",
         }} />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 lg:py-0 lg:min-h-[90vh] flex items-center">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex items-center pt-24 pb-16">
           <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-center w-full">
 
             {/* Left Column — Copy */}
@@ -148,15 +149,15 @@ export function PublicProveedoresLanding() {
               variants={stagger}
               className="lg:col-span-6 xl:col-span-5"
             >
-              <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 bg-white/[0.06] backdrop-blur-md rounded-sm px-3.5 py-2 mb-7">
+              <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 bg-white/[0.06] backdrop-blur-md rounded-sm px-3.5 py-2 mb-5">
                 <Wrench className="w-3.5 h-3.5 text-primary-200" />
-                <span className="text-[12px] font-semibold text-white/70 tracking-[0.08em] uppercase">Para profesionales independientes</span>
+                <span className="text-[12px] font-semibold text-white/70 tracking-[0.08em] uppercase">Para proveedores y profesionales</span>
               </motion.div>
 
               <motion.h1
                 variants={fadeUp}
                 custom={1}
-                className="text-[2.5rem] sm:text-[3rem] lg:text-[3.5rem] font-bold text-white leading-[1.06] tracking-[-0.02em] mb-6"
+                className="text-[1.8rem] sm:text-[2.2rem] lg:text-[2.6rem] font-bold text-white leading-[1.06] tracking-[-0.02em] mb-3"
                 style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
               >
                 Tu oficio,
@@ -166,12 +167,12 @@ export function PublicProveedoresLanding() {
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-200 to-blue-300">de clientes</span>
               </motion.h1>
 
-              <motion.p variants={fadeUp} custom={2} className="text-[16px] text-white/70 max-w-md mb-8 leading-relaxed" style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}>
+              <motion.p variants={fadeUp} custom={2} className="text-[14px] text-white/70 max-w-md mb-8 leading-relaxed" style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}>
                 Electricistas, gasistas, plomeros, techistas y más.
                 Registrá tu servicio y empezá a recibir trabajos de empresas y clientes de Almirante Brown.
               </motion.p>
 
-              <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-3 mb-10">
+              <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-3 mb-6">
                 <Button
                   onClick={openAuthModal}
                   className="h-12 px-7 rounded-sm font-bold text-[14px] bg-white text-[#00213f] hover:bg-primary-50 shadow-xl shadow-black/15 active:scale-[0.98] transition-all"
@@ -190,7 +191,7 @@ export function PublicProveedoresLanding() {
 
               {/* Trust signals */}
               <motion.div variants={fadeUp} custom={4} className="flex items-center gap-6 text-[12px] text-white/35">
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary-300/60" /> Registro gratuito</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary-300/60" /> Perfil profesional</span>
                 <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-primary-300/60" /> Matrícula verificada</span>
                 <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-primary-300/60" /> En 48hs activo</span>
               </motion.div>
@@ -204,69 +205,71 @@ export function PublicProveedoresLanding() {
               className="lg:col-span-6 xl:col-span-7 relative hidden lg:block"
             >
               <div className="relative">
-                <motion.div style={{ y: heroY }}>
+                <motion.div style={{ y: heroY }} className="relative">
                   <Image
-                    src="/landing/pro-tradesperson.png"
-                    alt="Profesional independiente verificado"
+                    src="/landing/provider-hero-v3.png"
+                    alt="Profesional verificado UIAB Conecta"
                     width={700}
                     height={700}
                     className="w-full h-auto rounded-sm object-cover"
                     priority
                   />
-                </motion.div>
-                {/* Gradient fade on edges to blend */}
-                <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#10375c] to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0c2d4a] to-transparent" />
+                  {/* Gradient fade on edges to blend - MOVED INSIDE to stay with image */}
+                  <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#10375c] to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0c2d4a] to-transparent" />
 
-                {/* Floating stat card */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute bottom-8 left-8 bg-white/[0.08] backdrop-blur-xl rounded-sm px-5 py-4 border border-white/[0.06]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-sm bg-primary-200/10 flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-primary-200" />
+                  {/* Floating stat card - MOVED INSIDE to stay with image */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.8, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute bottom-8 left-8 bg-white/[0.08] backdrop-blur-xl rounded-sm px-5 py-4 border border-white/[0.06]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-sm bg-primary-200/10 flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-primary-200" />
+                      </div>
+                      <div>
+                        <p className="text-[18px] font-bold text-white">+50 profesionales</p>
+                        <p className="text-[11px] text-white/40">verificados en la red</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[18px] font-bold text-white">+50 profesionales</p>
-                      <p className="text-[11px] text-white/40">verificados en la red</p>
-                    </div>
-                  </div>
+                  </motion.div>
                 </motion.div>
               </div>
             </motion.div>
           </div>
         </div>
 
-        {/* Stats bar at the bottom of the hero (mobile visible too) */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={stagger}
-            className="grid grid-cols-2 md:grid-cols-4 gap-3"
-          >
-            {[
-              { val: "50+", label: "Profesionales Verificados" },
-              { val: "500+", label: "Empresas en la Red" },
-              { val: "24h", label: "Tiempo de Contacto" },
-              { val: "10", label: "Oficios Disponibles" },
-            ].map((s, i) => (
-              <motion.div
-                key={s.label}
-                variants={fadeUp}
-                custom={i + 5}
-                className="bg-white/[0.06] backdrop-blur-md rounded-sm px-5 py-4 border border-white/[0.06]"
-              >
-                <div className="text-2xl font-bold text-white mb-0.5 tracking-tight">{s.val}</div>
-                <div className="text-[11px] text-white/40 font-medium">{s.label}</div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
       </section>
+      
+      {/* Floating stats row */}
+      <div className="relative z-20 -mt-10 lg:-mt-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
+        >
+          {[
+            { val: "50+", label: "Profesionales Verificados" },
+            { val: "500+", label: "Empresas en la Red" },
+            { val: "24h", label: "Tiempo de Contacto" },
+            { val: "10", label: "Oficios Disponibles" },
+          ].map((s, i) => (
+            <motion.div
+              key={s.label}
+              variants={fadeUp}
+              custom={i}
+              className="bg-[#00182e]/60 backdrop-blur-xl rounded-xl px-5 py-4 border border-white/10 shadow-2xl shadow-black/20 hover:bg-[#00182e]/80 transition-all duration-300 group"
+            >
+              <div className="text-xl lg:text-3xl font-bold text-white mb-0.5 tracking-tight">{s.val}</div>
+              <div className="text-[11px] text-white/50 font-semibold tracking-wide uppercase">{s.label}</div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
 
       {/* ═══════════════════════════════════════════
           SECTION 2: OFICIOS GRID
@@ -442,19 +445,21 @@ export function PublicProveedoresLanding() {
               className="text-2xl lg:text-3xl text-white font-bold leading-snug tracking-tight mb-5"
               style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
             >
-              &ldquo;Plomeros, electricistas, gasistas y techistas.
-              Cada oficio tiene su lugar en la industria.&rdquo;
+              &ldquo;Gasistas, electricistas, contadores y diseñadores.
+              Cada servicio tiene su lugar en Almirante Brown.&rdquo;
             </motion.blockquote>
             <motion.p variants={fadeUp} custom={1} className="text-primary-200/50 text-[13px] mb-7">
-              — Red de Proveedores UIAB
+              — Red de Proveedores UIAB Conecta
             </motion.p>
             <motion.div variants={fadeUp} custom={2}>
               <Button
-                onClick={openAuthModal}
+                asChild
                 className="h-11 px-6 rounded-sm font-bold text-[13px] bg-white text-[#00213f] hover:bg-primary-50 active:scale-[0.98] transition-all shadow-lg"
               >
-                Quiero registrarme
-                <ArrowRight className="w-4 h-4 ml-2" />
+                <Link href="/register?role=provider">
+                  Quiero registrarme
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
               </Button>
             </motion.div>
           </motion.div>
@@ -713,10 +718,10 @@ export function PublicProveedoresLanding() {
             >
               Tu oficio merece
               <br />
-              clientes industriales
+              clientes en Almirante Brown
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-primary-200/40 text-[15px] mb-9 max-w-xl mx-auto leading-relaxed">
-              Registrá tu servicio, verificá tu matrícula y empezá a recibir trabajos de las empresas más importantes de la zona sur.
+              Registrá tu servicio, verificá tu matrícula y empezá a recibir trabajos de empresas, comercios y particulares de la zona sur de Buenos Aires.
             </motion.p>
             <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button

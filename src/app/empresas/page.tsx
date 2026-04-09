@@ -46,7 +46,7 @@ export default function EmpresasPage() {
   // Authenticated directory view
   return (
     <div className="min-h-screen bg-slate-50 pt-24 pb-16">
-      <div className="bg-primary-900 text-white py-16 mb-12 -mt-24 pt-32">
+      <div className="bg-primary-900 text-white py-16 mb-12 -mt-24 pt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-800 mb-6 shadow-lg shadow-primary-900/50">
             <Building2 className="w-8 h-8 text-primary-200" />

@@ -46,7 +46,7 @@ export default function ProveedoresPage() {
   // Authenticated directory view
   return (
     <div className="min-h-screen bg-slate-50 pt-24 pb-16">
-      <div className="bg-primary-900 text-white py-16 mb-12 -mt-24 pt-32">
+      <div className="bg-primary-900 text-white py-16 mb-12 -mt-24 pt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-500 mb-6 shadow-lg shadow-accent-500/30">
             <Wrench className="w-8 h-8 text-white" />

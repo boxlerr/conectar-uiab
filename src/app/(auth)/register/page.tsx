@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useMemo, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -153,8 +153,9 @@ const getStrengthColor = (strength: number) => {
 
 // ─── COMPONENT ───
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -171,6 +172,14 @@ export default function RegisterPage() {
       email: '', password: '', confirmPassword: '', plan: 'basic'
     },
   })
+
+  // Pre-select role from URL
+  useEffect(() => {
+    const roleParam = searchParams.get('role')
+    if (roleParam === 'provider' || roleParam === 'company') {
+      form.setValue('role', roleParam)
+    }
+  }, [searchParams, form])
 
   const selectedRole = form.watch('role')
   const password = form.watch('password')
@@ -344,7 +353,7 @@ export default function RegisterPage() {
             <motion.div key={selectedRole || 'intro'} initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 0.25, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 1 }} className="absolute inset-0 z-0">
               {(!selectedRole) && <Image src="/landing/hero-industrial.png" alt="Industrial" fill className="object-cover grayscale" priority />}
               {(selectedRole === 'company') && <Image src="/landing/hero-dashboard.png" alt="Analítica" fill className="object-cover" priority />}
-              {(selectedRole === 'provider') && <Image src="/landing/pro-tradesperson.png" alt="Oficios" fill className="object-cover grayscale" priority />}
+              {(selectedRole === 'provider') && <Image src="/landing/provider-hero-v2.png" alt="Oficios" fill className="object-cover grayscale" priority />}
             </motion.div>
           </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-[#00213f] via-[#00213f]/60 to-transparent z-0" />
@@ -483,9 +492,9 @@ export default function RegisterPage() {
                             </p>
                          </div>
 
-                        <div className="relative aspect-[16/10] sm:aspect-[2/1] lg:aspect-[2.3/1] rounded-xl lg:rounded-2xl overflow-hidden shadow-xl border border-slate-200 group">
-                           <Image src={selectedRole === 'company' ? "/landing/platform-preview.png" : "/landing/pro-tradesperson.png"} alt="Contexto" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
-                           <div className="absolute inset-0 bg-gradient-to-t from-[#00213f]/80 via-transparent to-transparent flex items-end p-4 lg:p-5">
+                         <div className="relative aspect-[16/10] sm:aspect-[2/1] lg:aspect-[2.3/1] rounded-xl lg:rounded-2xl overflow-hidden shadow-xl border border-slate-200 group">
+                            <Image src={selectedRole === 'company' ? "/landing/platform-preview.png" : "/landing/register-provider.png"} alt="Contexto" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#00213f]/80 via-transparent to-transparent flex items-end p-4 lg:p-5">
                               <Badge className="bg-primary-600 border-none font-bold text-[10px] sm:text-xs shadow-lg tracking-widest uppercase">UIAB Conecta</Badge>
                            </div>
                         </div>
@@ -857,7 +866,7 @@ export default function RegisterPage() {
                         <FormField control={form.control} name="plan" render={({ field }) => (
                           <div className="grid gap-4">
                             {[
-                              { id: 'basic', label: 'Estándar', price: 'Gratuito', desc: 'Presencia base y recepción pasiva de cotizaciones.' },
+                              { id: 'basic', label: 'Estándar', price: 'Consultar', desc: 'Presencia base y recepción pasiva de cotizaciones.' },
                               { id: 'premium', label: 'Premium 2026', price: '$25.000 / mes', desc: 'Posicionamiento superior, sello validado y alertas proactivas.', featured: true }
                             ].map(p => (
                               <div key={p.id} onClick={() => field.onChange(p.id)} className={cn("p-4 sm:p-6 rounded-2xl border-2 transition-all cursor-pointer relative overflow-hidden flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3", field.value === p.id ? "bg-primary-50 border-primary-600 shadow-2xl ring-2 ring-primary-100" : "bg-white border-slate-200 hover:border-slate-300")}>
@@ -897,5 +906,13 @@ export default function RegisterPage() {
       </div>
     </div>
   </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-bold text-[#00213f] animate-pulse">Cargando...</div>}>
+      <RegisterContent />
+    </Suspense>
   )
 }

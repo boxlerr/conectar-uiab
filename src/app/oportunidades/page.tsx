@@ -10,12 +10,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Input } from "@/components/ui/input";
 import { oportunidadesService, Oportunidad, Match } from "@/modulos/oportunidades/oportunidadesService";
 
-
+import { PublicOportunidadesLanding } from "./PublicOportunidadesLanding";
 // Remove MOCK_OPORTUNIDADES
 
 
 export default function OportunidadesPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const [oportunidades, setOportunidades] = useState<Oportunidad[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +53,9 @@ export default function OportunidadesPage() {
 
   const recommendedIds = useMemo(() => new Set(matches.map(m => m.oportunidad_id)), [matches]);
 
+  if (!currentUser && !authLoading) {
+    return <PublicOportunidadesLanding oportunidades={oportunidades} loading={loading} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pt-24 pb-16">

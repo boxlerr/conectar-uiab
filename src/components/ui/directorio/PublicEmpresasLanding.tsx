@@ -23,6 +23,7 @@ import {
   Handshake,
   Factory,
   BadgeCheck,
+  ShieldCheck,
   Eye,
 } from "lucide-react";
 import { ProfileCard } from "@/components/ui/directorio/ProfileCard";
@@ -63,28 +64,34 @@ const sectores = [
   { nombre: "Alimentaria", total: 14, icon: Globe },
   { nombre: "Electrónica", total: 10, icon: BarChart3 },
   { nombre: "Textil", total: 8, icon: FileText },
+  { nombre: "Gastronomía", total: 22, icon: Users },
+  { nombre: "Logística", total: 9, icon: TrendingUp },
+  { nombre: "Salud", total: 11, icon: Shield },
+  { nombre: "Comercio", total: 31, icon: Building2 },
+  { nombre: "Construcción", total: 16, icon: Factory },
+  { nombre: "Servicios Prof.", total: 20, icon: BadgeCheck },
 ];
 
 const valueProps = [
   {
     icon: Eye,
     title: "Visibilidad Permanente",
-    description: "Su perfil corporativo activo las 24hs en el ecosistema industrial más importante de la zona sur. Cada empresa del parque y cada proveedor verificado puede encontrarlo.",
+    description: "Su perfil corporativo activo las 24hs en el directorio más completo de Almirante Brown. Empresas, comercios y profesionales de la zona encuentran lo que buscan.",
   },
   {
     icon: Bell,
     title: "Oportunidades en Tiempo Real",
-    description: "Reciba notificaciones de pedidos de cotización, licitaciones y proyectos antes que nadie. Acceso exclusivo a oportunidades que circulan solo dentro de la red.",
+    description: "Reciba notificaciones de pedidos de cotización y proyectos antes que nadie. Acceso exclusivo a oportunidades que circulan dentro de la red comercial del partido.",
   },
   {
     icon: Handshake,
     title: "Conexiones B2B Directas",
-    description: "Sin intermediarios. Conecte directamente con compradores, proveedores y decisores verificados. Cada contacto es real, verificado y relevante para su sector.",
+    description: "Sin intermediarios. Conecte directamente con compradores, proveedores y clientes verificados. Cada contacto es real y relevante para su sector y localidad.",
   },
   {
     icon: BarChart3,
     title: "Panel de Gestión Inteligente",
-    description: "Métricas de actividad, historial de interacciones y dashboard personalizado. Entienda cómo se mueve su empresa dentro del directorio comercial.",
+    description: "Métricas de actividad, historial de interacciones y dashboard personalizado. Entienda cómo crece su empresa dentro del directorio comercial de todo el partido.",
   },
 ];
 
@@ -123,8 +130,8 @@ export function PublicEmpresasLanding() {
     target: heroRef,
     offset: ["start start", "end start"],
   });
-  const heroImageY = useTransform(heroProgress, [0, 1], ["0%", "20%"]);
-  const heroOverlayOpacity = useTransform(heroProgress, [0, 0.5], [0.55, 0.8]);
+  const heroImageY = useTransform(heroProgress, [0, 1], ["0%", "30%"]);
+  const heroOverlayOpacity = useTransform(heroProgress, [0, 0.5], [0.75, 0.9]);
 
   return (
     <div className="bg-[#f7f9fb] overflow-x-hidden">
@@ -132,7 +139,7 @@ export function PublicEmpresasLanding() {
       {/* ═══════════════════════════════════════════
           SECTION 1: CINEMATIC HERO
       ═══════════════════════════════════════════ */}
-      <section ref={heroRef} className="relative min-h-[92vh] flex items-end overflow-hidden">
+      <section ref={heroRef} className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-16 sm:-mt-20">
         {/* Background Image w/ Parallax */}
         <motion.div className="absolute inset-0 z-0" style={{ y: heroImageY }}>
           <Image
@@ -145,11 +152,12 @@ export function PublicEmpresasLanding() {
           />
         </motion.div>
 
-        {/* Dark Gradient Overlay */}
+        {/* Dark Gradient Overlays for Readability */}
         <motion.div
-          className="absolute inset-0 z-[1] bg-gradient-to-t from-[#00213f] via-[#00213f]/70 to-transparent"
+          className="absolute inset-0 z-[1] bg-gradient-to-tr from-[#00182e] via-[#00213f]/80 to-transparent"
           style={{ opacity: heroOverlayOpacity }}
         />
+        <div className="absolute inset-0 z-[1] bg-gradient-to-r from-[#00182e]/90 via-[#00182e]/40 to-transparent" />
 
         {/* Subtle Pattern */}
         <div className="absolute inset-0 z-[2] opacity-[0.02]" style={{
@@ -157,36 +165,36 @@ export function PublicEmpresasLanding() {
         }} />
 
         {/* Content */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 lg:pb-24 pt-32">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex items-center pt-24 pb-20">
           <motion.div
             initial="hidden"
             animate="visible"
             variants={stagger}
-            className="max-w-3xl"
+            className="max-w-xl"
           >
-            <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2.5 bg-white/[0.08] backdrop-blur-xl rounded-sm px-4 py-2 mb-8 border border-white/[0.06]">
+            <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2.5 bg-white/10 backdrop-blur-md rounded-sm px-4 py-1.5 mb-4 border border-white/20 shadow-xl shadow-black/10">
               <Building2 className="w-4 h-4 text-primary-200" />
-              <span className="text-[13px] font-medium text-white/80 tracking-[0.06em] uppercase">Directorio Industrial Verificado</span>
+              <span className="text-[12px] font-medium text-white tracking-[0.06em] uppercase">Directorio Comercial Verificado</span>
             </motion.div>
 
             <motion.h1
               variants={fadeUp}
               custom={1}
-              className="text-4xl sm:text-5xl lg:text-[3.8rem] font-bold text-white leading-[1.08] tracking-[-0.02em] mb-7"
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-[1.05] tracking-[-0.03em] mb-4"
               style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
             >
-              El ecosistema de empresas
+              El directorio de empresas
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-primary-200 to-blue-300">
-                que mueve la industria
+                de Almirante Brown
               </span>
             </motion.h1>
 
-            <motion.p variants={fadeUp} custom={2} className="text-lg lg:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed" style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}>
-              Cientos de empresas y comercios del Partido de Almirante Brown. Directorio verificado. Oportunidades exclusivas. Red B2B activa.
+            <motion.p variants={fadeUp} custom={2} className="text-[15px] lg:text-[17px] text-white/90 max-w-lg mb-8 leading-relaxed font-medium" style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}>
+              Fábricas, comercios, panaderías, clínicas, inmobiliarias y más. Todo el ecosistema empresarial de Almirante Brown en un solo lugar. Directorio verificado por la UIAB.
             </motion.p>
 
-            <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4">
+            <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={openAuthModal}
                 className="h-13 px-8 rounded-sm font-bold text-[15px] bg-white text-[#00213f] hover:bg-primary-50 shadow-2xl shadow-black/20 active:scale-[0.98] transition-all"
@@ -196,70 +204,113 @@ export function PublicEmpresasLanding() {
               </Button>
               <a
                 href="#que-encontraras"
-                className="h-13 px-8 rounded-sm font-semibold text-[15px] border border-white/15 text-white/90 hover:bg-white/10 transition-all inline-flex items-center justify-center backdrop-blur-sm"
+                className="h-13 px-8 rounded-sm font-semibold text-[15px] border border-white/20 text-white hover:bg-white/10 transition-all inline-flex items-center justify-center backdrop-blur-md shadow-lg shadow-black/10"
               >
                 Descubrir más
                 <ChevronRight className="w-4 h-4 ml-1.5" />
               </a>
             </motion.div>
           </motion.div>
+        </div>
 
-          {/* Floating Stats Row */}
+        {/* Integrated Stats Bar */}
+        <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 lg:pb-16">
           <motion.div
             initial="hidden"
             animate="visible"
             variants={stagger}
-            className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4"
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
           >
             {[
-              { val: "100+", label: "Empresas Radicadas" },
+              { val: "100+", label: "Empresas Registradas" },
               { val: "50+", label: "Proveedores Activos" },
-              { val: "15", label: "Sectores Industriales" },
+              { val: "26", label: "Sectores Comerciales" },
               { val: "500+", label: "Conexiones B2B" },
             ].map((s, i) => (
               <motion.div
                 key={s.label}
                 variants={fadeUp}
-                custom={i + 4}
-                className="bg-white/[0.06] backdrop-blur-md rounded-sm px-5 py-4 border border-white/[0.06] group hover:bg-white/[0.1] transition-all duration-300"
+                custom={i}
+                className="bg-white/10 backdrop-blur-md rounded-xl px-5 py-5 border border-white/20 shadow-2xl shadow-black/10 hover:bg-white/15 transition-all duration-300 group"
               >
-                <div className="text-2xl lg:text-3xl font-bold text-white mb-0.5 tracking-tight">{s.val}</div>
-                <div className="text-[12px] text-white/50 font-medium tracking-[0.02em]">{s.label}</div>
+                <div className="text-xl lg:text-3xl font-bold text-white mb-0.5 tracking-tight group-hover:text-primary-200 transition-colors uppercase">{s.val}</div>
+                <div className="text-[10px] lg:text-[11px] text-white/60 font-bold tracking-wider uppercase">{s.label}</div>
               </motion.div>
             ))}
           </motion.div>
         </div>
       </section>
+      
+
 
       {/* ═══════════════════════════════════════════
           SECTION 2: "¿QUÉ ENCONTRARÁS?" — EDITORIAL NARRATIVE
       ═══════════════════════════════════════════ */}
       <section id="que-encontraras" className="py-24 lg:py-36 scroll-mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Section Header — Asymmetric */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={stagger}
-            className="mb-20 lg:mb-28 max-w-2xl"
-          >
-            <motion.span variants={fadeUp} custom={0} className="text-[11px] font-semibold text-primary-600 tracking-[0.14em] uppercase block mb-4">
-              Plataforma UIAB Conecta
-            </motion.span>
-            <motion.h2
-              variants={fadeUp}
-              custom={1}
-              className="text-3xl lg:text-[2.75rem] font-bold text-[#191c1e] leading-[1.15] tracking-[-0.01em] mb-6"
-              style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+          {/* Section Header — Balanced Layout */}
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-20 lg:mb-28">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={stagger}
+              className="max-w-2xl"
             >
-              Todo lo que su empresa necesita
-              para crecer dentro de la red
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="text-lg text-slate-500 leading-relaxed">
-              UIAB Conecta no es un simple listado. Es una plataforma de gestión B2B diseñada para que las empresas y comercios de Almirante Brown generen negocios reales.
-            </motion.p>
-          </motion.div>
+              <motion.span variants={fadeUp} custom={0} className="text-[11px] font-semibold text-primary-600 tracking-[0.14em] uppercase block mb-4">
+                Plataforma UIAB Conecta
+              </motion.span>
+              <motion.h2
+                variants={fadeUp}
+                custom={1}
+                className="text-3xl lg:text-[2.75rem] font-bold text-[#191c1e] leading-[1.15] tracking-[-0.01em] mb-6"
+                style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+              >
+                Todo lo que su empresa necesita
+                para crecer dentro de la red
+              </motion.h2>
+              <motion.p variants={fadeUp} custom={2} className="text-lg text-slate-500 leading-relaxed">
+                UIAB Conecta no es un simple listado. Es una plataforma de gestión B2B diseñada para que las empresas y comercios de Almirante Brown generen negocios reales.
+              </motion.p>
+            </motion.div>
+
+            {/* Right Column: Trust Badge / Highlights */}
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={fadeUp}
+              custom={3}
+              className="hidden lg:flex justify-end"
+            >
+              <div className="relative group">
+                <div className="absolute -inset-4 bg-primary-100/50 rounded-2xl blur-2xl group-hover:bg-primary-200/50 transition-all duration-500" />
+                <div className="relative bg-white border border-slate-100 p-8 rounded-2xl shadow-xl shadow-primary-900/5 max-w-sm">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center">
+                      <ShieldCheck className="w-6 h-6 text-primary-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-[#191c1e] leading-tight">Directorio<br />Verificado</h4>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-500 font-inter leading-relaxed">
+                    Cada perfil es validado manualmente por la administración de la <span className="text-[#191c1e] font-semibold">Unión Industrial</span> para garantizar conexiones seguras.
+                  </p>
+                  <div className="mt-6 flex items-center gap-2">
+                    <div className="flex -space-x-2">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="w-7 h-7 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center overflow-hidden">
+                           <Users className="w-3.5 h-3.5 text-slate-400" />
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-[11px] font-bold text-[#191c1e]/40 uppercase tracking-widest">+100 EMPRESAS</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
 
           {/* Value Props — Editorial 2-column with image */}
           <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center mb-28">
@@ -345,11 +396,11 @@ export function PublicEmpresasLanding() {
                 className="text-3xl lg:text-4xl font-bold text-[#191c1e] tracking-tight"
                 style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
               >
-                15 sectores industriales en un solo ecosistema
+                26 sectores comerciales e industriales
               </motion.h2>
             </div>
             <motion.p variants={fadeUp} custom={2} className="text-[14px] text-slate-500 max-w-sm">
-              Desde metalúrgica hasta servicios profesionales, el directorio reúne la diversidad productiva de toda la zona sur.
+              Desde fábricas industriales hasta comercios, gastronomía y servicios profesionales. El directorio completo del Partido de Almirante Brown.
             </motion.p>
           </motion.div>
 
@@ -358,7 +409,7 @@ export function PublicEmpresasLanding() {
             whileInView="visible"
             viewport={{ once: true, margin: "-40px" }}
             variants={stagger}
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
           >
             {sectores.map((sector, i) => {
               const Icon = sector.icon;
@@ -423,11 +474,13 @@ export function PublicEmpresasLanding() {
               </motion.p>
               <motion.div variants={fadeUp} custom={3}>
                 <Button
-                  onClick={openAuthModal}
+                  asChild
                   className="h-12 px-7 rounded-sm font-bold text-[14px] bg-white text-[#00213f] hover:bg-primary-50 active:scale-[0.98] transition-all"
                 >
-                  Solicitar ingreso a la red
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <Link href="/register?role=company">
+                    Solicitar ingreso a la red
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
                 </Button>
               </motion.div>
             </motion.div>
@@ -538,7 +591,7 @@ export function PublicEmpresasLanding() {
               ¿Qué incluye su suscripción?
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-lg text-slate-500 leading-relaxed">
-              Cada empresa suscripta accede a herramientas exclusivas que potencian su operación y visibilidad dentro del parque.
+              Cada empresa suscripta accede a herramientas exclusivas que potencian su operación y visibilidad dentro del directorio de Almirante Brown.
             </motion.p>
           </motion.div>
 
@@ -559,7 +612,7 @@ export function PublicEmpresasLanding() {
                 </div>
                 <h3 className="text-xl font-bold mb-3">Directorio Completo</h3>
                 <p className="text-primary-200/70 text-[15px] leading-relaxed max-w-lg mb-6">
-                  Acceso ilimitado al listado de todas las empresas radicadas y proveedores verificados. Filtros por sector, ubicación, servicios y certificaciones. Contacto directo sin intermediarios.
+                  Acceso ilimitado a todas las empresas, comercios y proveedores verificados del partido. Filtros por sector, localidad, servicios y certificaciones. Contacto directo sin intermediarios.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {["Búsqueda avanzada", "Filtros inteligentes", "Contacto directo", "Perfiles completos"].map((tag) => (
@@ -724,7 +777,7 @@ export function PublicEmpresasLanding() {
               dentro del directorio comercial
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-lg text-primary-200/60 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Únase a las más de 100 empresas radicadas que ya operan dentro de UIAB Conecta. Visibilidad, oportunidades y una comunidad industrial activa.
+              Únase a las más de 100 empresas y comercios que ya operan dentro de UIAB Conecta. Visibilidad, oportunidades y una comunidad comercial activa en Almirante Brown.
             </motion.p>
             <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

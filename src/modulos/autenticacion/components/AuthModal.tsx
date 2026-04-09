@@ -3,54 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { X, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import Image from "next/image";
 import { toast } from "sonner";
 import { useAuth } from "@/modulos/autenticacion/AuthContext";
 import { Button } from "@/components/ui/button";
 
-// Reusable Input Component for the form
-const FormInput = ({ 
-  icon: Icon, 
-  label, 
-  type = "text", 
-  placeholder,
-  value,
-  onChange,
-  required = true
-}: { 
-  icon: React.ElementType, 
-  label: string, 
-  type?: string, 
-  placeholder?: string,
-  value: string,
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
-  required?: boolean
-}) => (
-  <div className="space-y-1.5 text-left">
-    <label className="text-sm font-semibold text-slate-700 ml-1">{label}</label>
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-        <Icon className="h-4 w-4" />
-      </div>
-      <input
-        type={type}
-        required={required}
-        value={value}
-        onChange={onChange}
-        className="flex h-11 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 pl-10 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-sm focus:bg-white"
-        placeholder={placeholder}
-      />
-    </div>
-  </div>
-);
-
 export function AuthModal() {
   const router = useRouter();
   const { isAuthModalOpen, closeAuthModal, refreshUser } = useAuth();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   // Form State
   const [email, setEmail] = useState("");
@@ -100,93 +65,201 @@ export function AuthModal() {
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
-        {/* Backdrop */}
+        {/* Backdrop — tinted shadow per DESIGN.md */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={isLoading ? undefined : closeAuthModal}
-          className="absolute inset-0 bg-[#00213f]/40 backdrop-blur-md"
+          className="absolute inset-0 bg-[#191c1e]/40 backdrop-blur-md"
         />
 
-        {/* Modal Content */}
+        {/* Modal — Ambient shadow: on_surface 6% opacity, blur 32px, Y-offset 16px */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.97, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative bg-white w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl overflow-hidden border border-[#d8dadc]/50"
+          exit={{ opacity: 0, scale: 0.97, y: 16 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="relative w-full max-w-[440px] max-h-[90vh] overflow-y-auto overflow-hidden"
+          style={{ 
+            borderRadius: "0.25rem",
+            boxShadow: "0 16px 32px rgba(25, 28, 30, 0.06)",
+          }}
         >
-          {/* Header */}
-          <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-sm px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 flex items-center justify-center">
+          {/* ── HEADER — Gradient primary → primary_container at 135° ── */}
+          <div 
+            className="relative px-8 pt-7 pb-6 overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #00213f 0%, #10375c 100%)" }}
+          >
+            {/* Dot grid texture — matching hero */}
+            <div className="absolute inset-0 opacity-[0.03]" style={{
+              backgroundImage: "radial-gradient(circle at 1px 1px, white 0.5px, transparent 0)",
+              backgroundSize: "32px 32px",
+            }} />
+            {/* Ambient glow */}
+            <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-primary-400/[0.06] blur-[80px]" />
+
+            {/* Close — Tertiary/Ghost: No background, primary text, no borders */}
+            <button 
+              onClick={closeAuthModal} 
+              disabled={isLoading}
+              className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors z-10 cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="relative z-10 flex items-center gap-3">
+              <div 
+                className="w-10 h-10 bg-white/[0.08] backdrop-blur-xl flex items-center justify-center"
+                style={{ borderRadius: "0.25rem" }}
+              >
                 <Image 
                   src="/logo-prueba.png" 
                   alt="UIAB Logo" 
-                  width={34} 
-                  height={34}
-                  className="object-contain"
+                  width={26} 
+                  height={26}
+                  className="object-contain brightness-0 invert"
                 />
               </div>
-              <h2 className="text-lg font-bold text-[#00213f] tracking-tight">Acceso Industrial</h2>
+              <div>
+                <span 
+                  className="text-[10px] font-bold text-white/40 tracking-[0.14em] uppercase block"
+                  style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+                >
+                  UIAB Conecta
+                </span>
+                <h2 
+                  className="text-xl font-bold text-white tracking-tight leading-none mt-0.5"
+                  style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                >
+                  Iniciar Sesión
+                </h2>
+              </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={closeAuthModal} 
-              disabled={isLoading}
-              className="h-8 w-8 rounded-full hover:bg-slate-100"
-            >
-              <X className="h-4 w-4 text-slate-500" />
-            </Button>
           </div>
 
-          <div className="p-8">
+          {/* ── FORM CONTENT — surface_container_lowest (#ffffff) ── */}
+          <div className="bg-white px-8 py-7">
             <form onSubmit={handleSubmit} className="space-y-5">
-              <FormInput 
-                icon={Mail} 
-                label="Correo Electrónico" 
-                type="email" 
-                placeholder="correo@industria.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
               
-              <FormInput 
-                icon={Lock} 
-                label="Contraseña" 
-                type="password" 
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              {/* Email Input — DESIGN.md: Large padding, surface_container_low bg, ghost border on focus */}
+              <div className="space-y-2 text-left">
+                <label 
+                  className="text-[11px] font-bold text-[#191c1e]/50 tracking-[0.08em] uppercase ml-0.5"
+                  style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+                >
+                  Correo Electrónico
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#191c1e]/30 group-focus-within:text-[#00213f] transition-colors">
+                    <Mail className="h-[18px] w-[18px]" />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex h-12 w-full bg-[#f2f4f6] px-4 py-3 pl-12 text-[15px] font-semibold text-[#191c1e] placeholder:text-[#191c1e]/30 placeholder:font-normal focus:bg-white focus:outline-none transition-all"
+                    style={{ 
+                      borderRadius: "0.25rem",
+                      boxShadow: "none",
+                      border: "1.5px solid transparent",
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.border = "1.5px solid rgba(0,33,63,0.12)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.border = "1.5px solid transparent";
+                    }}
+                    placeholder="correo@empresa.com"
+                  />
+                </div>
+              </div>
+
+              {/* Password Input */}
+              <div className="space-y-2 text-left">
+                <label 
+                  className="text-[11px] font-bold text-[#191c1e]/50 tracking-[0.08em] uppercase ml-0.5"
+                  style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+                >
+                  Contraseña
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#191c1e]/30 group-focus-within:text-[#00213f] transition-colors">
+                    <Lock className="h-[18px] w-[18px]" />
+                  </div>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="flex h-12 w-full bg-[#f2f4f6] px-4 py-3 pl-12 pr-12 text-[15px] font-semibold text-[#191c1e] placeholder:text-[#191c1e]/30 placeholder:font-normal focus:bg-white focus:outline-none transition-all tracking-wider"
+                    style={{ 
+                      borderRadius: "0.25rem",
+                      boxShadow: "none",
+                      border: "1.5px solid transparent",
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.border = "1.5px solid rgba(0,33,63,0.12)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.border = "1.5px solid transparent";
+                    }}
+                    placeholder="••••••••"
+                  />
+                  {/* Show/hide — Tertiary/Ghost: no bg, no border */}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#191c1e]/25 hover:text-[#191c1e]/60 transition-colors cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
               
+              {/* Primary CTA — DESIGN.md: solid primary bg, on_primary text, DEFAULT roundedness */}
               <Button 
                 type="submit" 
-                className="w-full h-11 text-base font-bold bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 active:scale-[0.98] transition-all"
+                className="w-full h-12 text-[14px] font-bold bg-[#00213f] hover:bg-[#10375c] text-white active:scale-[0.98] transition-all cursor-pointer"
+                style={{ borderRadius: "0.25rem" }}
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Entrar al Portal
+                    Ingresar al Portal
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 )}
               </Button>
             </form>
 
-            {/* Link to /register */}
-            <div className="mt-8 text-center text-sm text-slate-500">
-              ¿Es tu primera vez en UIAB?{" "}
+            {/* ── REGISTER SECTION — separated by background shift, no 1px borders ── */}
+            <div 
+              className="mt-6 -mx-8 -mb-7 px-8 py-6 bg-[#f7f9fb]"
+            >
+              <p 
+                className="text-[13px] text-[#191c1e]/50 text-center mb-3 leading-relaxed"
+                style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+              >
+                ¿Es tu primera vez en{" "}
+                <span className="font-bold text-[#191c1e]">UIAB Conecta</span>?
+              </p>
               <button
                 type="button"
                 disabled={isLoading}
                 onClick={handleGoToRegister}
-                className="font-bold text-primary-600 hover:text-primary-700 hover:underline transition-colors cursor-pointer"
+                className="w-full h-11 bg-white hover:bg-[#00213f] text-[#00213f] hover:text-white text-[13px] font-bold transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98] group"
+                style={{ 
+                  borderRadius: "0.25rem",
+                  boxShadow: "0 1px 3px rgba(0,33,63,0.04)",
+                }}
               >
-                Registra tu industria
+                <ShieldCheck className="w-4 h-4 text-primary-600 group-hover:text-white transition-colors" />
+                Registrate como Proveedor o Empresa
               </button>
             </div>
           </div>
