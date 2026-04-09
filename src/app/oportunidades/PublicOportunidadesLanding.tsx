@@ -85,7 +85,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
       {/* ═══════════════════════════════════════════
           SECTION 1: HERO (DARK MULTIMEDIA B2B)
       ═══════════════════════════════════════════ */}
-      <section ref={heroRef} className="relative overflow-hidden w-full lg:min-h-[90svh] flex flex-col bg-[#00213f] pt-24 lg:pt-32 pb-16">
+      <section ref={heroRef} className="relative overflow-hidden w-full lg:min-h-[90svh] flex flex-col bg-[#00213f] pt-12 lg:pt-16 pb-24">
         <div className="absolute inset-0 bg-gradient-to-br from-[#00213f] via-[#10375c] to-[#0c2d4a]" />
         <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: "radial-gradient(circle at 1px 1px, white 0.5px, transparent 0)",
@@ -102,7 +102,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
               variants={stagger}
               className="lg:col-span-6 xl:col-span-5"
             >
-              <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2.5 bg-white/[0.06] backdrop-blur-md rounded-sm px-4 py-1.5 mb-6 border border-white/[0.08]">
+              <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2.5 bg-white/[0.06] backdrop-blur-md rounded-sm px-4 py-1.5 mb-4 border border-white/[0.08]">
                 <Briefcase className="w-4 h-4 text-emerald-400" />
                 <span className="text-[12px] font-bold text-white/80 tracking-[0.06em] uppercase">Cartelera de Licitaciones B2B</span>
               </motion.div>
@@ -110,7 +110,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
               <motion.h1
                 variants={fadeUp}
                 custom={1}
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.05] tracking-tight mb-6"
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.05] tracking-tight mb-4"
                 style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
               >
                 Conseguí grandes
@@ -121,13 +121,13 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
               <motion.p 
                 variants={fadeUp} 
                 custom={2} 
-                className="text-base lg:text-lg text-white/70 max-w-xl mb-8 leading-relaxed"
+                className="text-base lg:text-lg text-white/70 max-w-xl mb-6 leading-relaxed"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
               >
                 Accedé a la cartelera privada donde las industrias de Almirante Brown publican sus necesidades de servicios y contrataciones. Contactá directamente a las empresas y hacé crecer tu negocio.
               </motion.p>
 
-              <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 mb-8">
+              <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 mb-6">
                 <Button
                   onClick={openAuthModal}
                   className="h-14 px-8 rounded-sm font-bold text-[15px] bg-white text-[#00213f] hover:bg-emerald-50 shadow-xl shadow-black/15 active:scale-[0.98] transition-all"

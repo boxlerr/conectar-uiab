@@ -135,7 +135,7 @@ export default function OportunidadDetail({ params }: { params: Promise<{ id: st
 
         {/* Footer info adicional (Opcional, no estaba en la imagen pero aporta valor) */}
         <div className="mt-12 text-center text-slate-400 text-sm font-medium">
-          <p>© 2026 Red Comercial Industrial UIAB — Todos los derechos reservados</p>
+          <p>© {new Date().getFullYear()} Red Comercial Industrial UIAB — Todos los derechos reservados</p>
         </div>
       </div>
     </div>

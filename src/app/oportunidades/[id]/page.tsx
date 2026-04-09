@@ -239,7 +239,7 @@ export default function OportunidadDetail({ params }: { params: Promise<{ id: st
 
         {/* Footer info adicional */}
         <div className="mt-20 text-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.3em] pb-12">
-          <p>© 2026 Conectar UIAB — Gestión de Oportunidades Industriales</p>
+          <p>© {new Date().getFullYear()} Conectar UIAB — Gestión de Oportunidades Industriales</p>
         </div>
       </div>
     </div>
