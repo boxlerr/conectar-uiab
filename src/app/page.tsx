@@ -213,7 +213,7 @@ export default function Home() {
                   variants={float}
                   initial="initial"
                   animate="animate"
-                  className="absolute -right-4 top-[-15%] bg-white/[0.25] backdrop-blur-3xl rounded-sm px-4 py-3 border border-white/[0.2] shadow-2xl shadow-black/40 z-20"
+                  className="absolute -right-4 top-[0%] bg-white/[0.08] backdrop-blur-xl rounded-sm px-4 py-3 border border-white/[0.08] shadow-2xl shadow-black/20 z-20"
                   style={{ animationDelay: "1.5s" }}
                 >
                   <div className="flex items-center gap-2.5">
