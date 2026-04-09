@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function ContactoPage() {
   return (
-    <div className="min-h-screen bg-[#f7f9fb] pt-[60px] lg:pt-[64px] pb-10 sm:pb-16">
+    <div className="min-h-screen bg-[#f7f9fb] pt-4 lg:pt-6 pb-10 sm:pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto">
           <h1 
