@@ -32,7 +32,7 @@ import {
   Globe,
   FileText,
 } from "lucide-react";
-import { ProfileCard } from "@/components/ui/directorio/ProfileCard";
+import { LandingProfileCard } from "@/components/ui/directorio/LandingProfileCard";
 import { getProveedores } from "@/lib/data/directorio";
 import { useAuth } from "@/modulos/autenticacion/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -707,7 +707,7 @@ export function PublicProveedoresLanding() {
                     className={i === 1 ? "pointer-events-none select-none" : ""}
                     style={i === 1 ? { filter: "blur(6px)", opacity: 0.4 } : undefined}
                   >
-                    <ProfileCard entidad={prov} basePath="/proveedores" />
+                    <LandingProfileCard entidad={prov} basePath="/proveedores" />
                   </div>
                 </motion.div>
               ))}

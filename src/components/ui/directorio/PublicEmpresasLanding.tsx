@@ -29,7 +29,7 @@ import {
   Monitor,
   LayoutGrid,
 } from "lucide-react";
-import { ProfileCard } from "@/components/ui/directorio/ProfileCard";
+import { LandingProfileCard } from "@/components/ui/directorio/LandingProfileCard";
 import { getEmpresas } from "@/lib/data/directorio";
 import { useAuth } from "@/modulos/autenticacion/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -796,7 +796,7 @@ export function PublicEmpresasLanding() {
                     className={i === 2 ? "pointer-events-none select-none" : ""}
                     style={i === 2 ? { filter: "blur(6px)", opacity: 0.45 } : undefined}
                   >
-                    <ProfileCard entidad={empresa} basePath="/empresas" />
+                    <LandingProfileCard entidad={empresa} basePath="/empresas" />
                   </div>
                 </motion.div>
               ))}
