@@ -1,10 +1,10 @@
 "use client";
 
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { ShieldAlert, LayoutDashboard, Building, Wrench, MessageSquare, Users, Settings, DollarSign } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilidades";
 
 const adminNav = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },

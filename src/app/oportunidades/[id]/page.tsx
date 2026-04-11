@@ -3,11 +3,11 @@
 import { useEffect, useState, use } from "react";
 import { ArrowLeft, MapPin, Building2, Briefcase, Calendar, Clock, Share2, MoreVertical, CheckCircle2, User, Sparkles, TrendingUp, Info } from "lucide-react";
 import Link from "next/link";
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { oportunidadesService, Oportunidad, Match } from "@/modulos/oportunidades/oportunidadesService";
+import { oportunidadesService, Oportunidad, Match } from "@/modulos/oportunidades/servicio-oportunidades";
 
 
 // Remove MOCK_OPORTUNIDADES

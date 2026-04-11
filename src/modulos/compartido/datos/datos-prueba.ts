@@ -1,4 +1,4 @@
-import { Company, Provider, Review, User, Category } from '@/types';
+import { Company, Provider, Review, User, Category } from '@/tipos';
 
 // Admin User
 export const mockAdmin: User = {

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { mockedProviders, providerSpecialties } from "@/modulos/compartido/data/mockDB";
-import { ProviderCard } from "@/modulos/proveedores/components/ProviderCard";
+import { mockedProviders, providerSpecialties } from "@/modulos/compartido/datos/datos-prueba";
+import { ProviderCard } from "@/modulos/proveedores/componentes/tarjeta-proveedor";
 import { Search, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 

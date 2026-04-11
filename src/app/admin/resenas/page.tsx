@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { mockedReviews } from "@/modulos/compartido/data/mockDB";
+import { mockedReviews } from "@/modulos/compartido/datos/datos-prueba";
 import { Check, X, MessageSquare, Star, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

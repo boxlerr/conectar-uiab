@@ -3,14 +3,14 @@
 import { useEffect, useState, useMemo } from "react";
 import { Briefcase, MapPin, Calendar, Clock, Filter, Search, PlusCircle, ArrowRight, Building2, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { oportunidadesService, Oportunidad, Match } from "@/modulos/oportunidades/oportunidadesService";
+import { oportunidadesService, Oportunidad, Match } from "@/modulos/oportunidades/servicio-oportunidades";
 
-import { PublicOportunidadesLanding } from "./PublicOportunidadesLanding";
+import { PublicOportunidadesLanding } from "./landing-oportunidades-publica";
 // Remove MOCK_OPORTUNIDADES
 
 

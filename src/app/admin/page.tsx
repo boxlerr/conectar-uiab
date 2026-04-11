@@ -1,6 +1,6 @@
 "use client";
 
-import { mockedCompanies, mockedProviders, mockedReviews } from "@/modulos/compartido/data/mockDB";
+import { mockedCompanies, mockedProviders, mockedReviews } from "@/modulos/compartido/datos/datos-prueba";
 import { Building, Wrench, MessageSquare, Users, TrendingUp, AlertCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 

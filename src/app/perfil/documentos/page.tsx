@@ -1,12 +1,12 @@
 "use client";
 
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FileText, UploadCloud, AlertCircle, FileCheck2, Trash2, X, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/cliente";
 import { toast } from "sonner";
 
 export default function MiPerfilDocumentosPage() {

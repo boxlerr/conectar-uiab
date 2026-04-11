@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import type { User } from "@/types";
-import { createClient } from "@/lib/supabase/client";
+import type { User } from "@/tipos";
+import { createClient } from "@/lib/supabase/cliente";
 
 interface AuthContextType {
   currentUser: User | null;

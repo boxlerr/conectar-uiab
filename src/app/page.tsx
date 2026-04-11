@@ -19,9 +19,9 @@ import {
   Briefcase,
   CheckCircle2,
 } from "lucide-react";
-import { SectoresGrid } from "@/components/ui/directorio/SectoresGrid";
-import { EmpresasDestacadas } from "@/components/ui/directorio/EmpresasDestacadas";
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { SectoresGrid } from "@/components/ui/directorio/grilla-sectores";
+import { EmpresasDestacadas } from "@/components/ui/directorio/empresas-destacadas";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 
 /* ─── Animations ─── */
 const fadeUp = {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, MapPin } from "lucide-react";
-import { Entidad } from "@/lib/data/directorio";
+import { Entidad } from "@/lib/datos/directorio";
 
 interface ProfileCardProps {
   entidad: Entidad;

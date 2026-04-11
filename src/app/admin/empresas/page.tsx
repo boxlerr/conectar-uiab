@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { mockedCompanies } from "@/modulos/compartido/data/mockDB";
+import { mockedCompanies } from "@/modulos/compartido/datos/datos-prueba";
 import { Check, X, Building, Search, Eye, FileText, Phone, Mail, MapPin, Briefcase, ListTodo } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

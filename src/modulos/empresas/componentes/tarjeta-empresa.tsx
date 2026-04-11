@@ -1,5 +1,5 @@
 import { Building, MapPin, Star, Mail, Phone, ChevronRight } from "lucide-react";
-import { Company } from "@/types";
+import { Company } from "@/tipos";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

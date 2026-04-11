@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, MapPin, Building2 } from "lucide-react";
-import { Entidad } from "@/lib/data/directorio";
+import { Entidad } from "@/lib/datos/directorio";
 
 interface LandingProfileCardProps {
   entidad: Entidad;

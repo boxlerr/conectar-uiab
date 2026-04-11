@@ -1,13 +1,13 @@
 "use client";
 
 import { use } from "react";
-import { mockedProviders, mockedReviews } from "@/modulos/compartido/data/mockDB";
+import { mockedProviders, mockedReviews } from "@/modulos/compartido/datos/datos-prueba";
 import { User, MapPin, Mail, Phone, Star, ChevronLeft, CheckCircle2, Award, ShieldCheck, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 
 export default function ProviderProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

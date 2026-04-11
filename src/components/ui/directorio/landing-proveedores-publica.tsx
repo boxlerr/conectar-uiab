@@ -32,9 +32,9 @@ import {
   Globe,
   FileText,
 } from "lucide-react";
-import { LandingProfileCard } from "@/components/ui/directorio/LandingProfileCard";
-import { getProveedores } from "@/lib/data/directorio";
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { LandingProfileCard } from "@/components/ui/directorio/tarjeta-perfil-landing";
+import { getProveedores } from "@/lib/datos/directorio";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 
 /* ─── Animations ─── */

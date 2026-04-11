@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { mockedCompanies, companyCategories } from "@/modulos/compartido/data/mockDB";
-import { CompanyCard } from "@/modulos/empresas/components/CompanyCard";
+import { mockedCompanies, companyCategories } from "@/modulos/compartido/datos/datos-prueba";
+import { CompanyCard } from "@/modulos/empresas/componentes/tarjeta-empresa";
 import { Building, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 

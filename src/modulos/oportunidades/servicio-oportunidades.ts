@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/cliente';
 
 export interface Oportunidad {
   id: string;

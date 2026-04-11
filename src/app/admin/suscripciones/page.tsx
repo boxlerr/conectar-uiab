@@ -5,7 +5,7 @@ import { DollarSign, TrendingUp, CreditCard, Building, Wrench, Receipt, ArrowUpR
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockedCompanies, mockedProviders } from "@/modulos/compartido/data/mockDB";
+import { mockedCompanies, mockedProviders } from "@/modulos/compartido/datos/datos-prueba";
 
 // Simulated Subscription Data
 // Note: In a real app, this would be computed from a database of actual active subscriptions

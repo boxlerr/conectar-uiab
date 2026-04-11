@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { getProveedores, getCategorias } from "@/lib/data/directorio";
-import { FilterSidebar } from "@/components/ui/directorio/FilterSidebar";
-import { DirectoryProfileCard } from "@/components/ui/directorio/DirectoryProfileCard";
-import { PublicProveedoresLanding } from "@/components/ui/directorio/PublicProveedoresLanding";
+import { getProveedores, getCategorias } from "@/lib/datos/directorio";
+import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
+import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
+import { PublicProveedoresLanding } from "@/components/ui/directorio/landing-proveedores-publica";
 import { Wrench, LayoutGrid, List } from "lucide-react";
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 
 export default function ProveedoresPage() {
   const { currentUser, loading } = useAuth();

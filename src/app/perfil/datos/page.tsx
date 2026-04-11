@@ -1,12 +1,12 @@
 "use client";
 
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Save, User, Building, MapPin, Phone, Mail, Globe, MessageCircle, FileText, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { updateCompanyOrProvider } from "../actions";
+import { createClient } from "@/lib/supabase/cliente";
+import { updateCompanyOrProvider } from "../acciones";
 import { toast } from "sonner";
 import Image from "next/image";
 

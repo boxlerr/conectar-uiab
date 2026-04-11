@@ -1,12 +1,12 @@
 "use client";
 
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CreditCard, CheckCircle2, History, Banknote, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/cliente";
 
 export default function MiPerfilSuscripcionPage() {
   const { currentUser } = useAuth();

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Building, Zap, ArrowRight, ChevronRight } from "lucide-react";
-import { CategoryModal } from "./CategoryModal";
+import { CategoryModal } from "./modal-categorias";
 
 const EMPRESAS_CATEGORIES = [
   "Metalmecánica", "Química y Plásticos", "Textil e Indumentaria", "Alimenticia", "Tecnología", "Construcción"

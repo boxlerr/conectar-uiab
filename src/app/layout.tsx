@@ -14,12 +14,12 @@ const openSans = Open_Sans({
   weight: ["300", "400", "500", "600", "700"],
 });
 
-import { AuthProvider } from "@/modulos/autenticacion/AuthContext";
-import { AppShell } from "@/components/plantillas/AppShell";
-import { cn } from "@/lib/utils";
+import { AuthProvider } from "@/modulos/autenticacion/contexto-autenticacion";
+import { AppShell } from "@/components/plantillas/app-shell";
+import { cn } from "@/lib/utilidades";
 import { Toaster } from "@/components/ui/sonner";
-import { createClient } from "@/lib/supabase/server";
-import type { User } from "@/types";
+import { createClient } from "@/lib/supabase/servidor";
+import type { User } from "@/tipos";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 

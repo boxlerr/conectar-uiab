@@ -7,9 +7,9 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { User, Shield, Building, Wrench, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
-import type { User as UserType } from "@/types";
+import { cn } from "@/lib/utilidades";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import type { User as UserType } from "@/tipos";
 
 interface HeaderProps {
   currentUser: UserType | null;

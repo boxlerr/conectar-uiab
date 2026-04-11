@@ -1,10 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
-import { Header } from "@/components/plantillas/Header";
-import { Footer } from "@/components/plantillas/Footer";
-import { AuthModal } from "@/modulos/autenticacion/components/AuthModal";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { Header } from "@/components/plantillas/encabezado";
+import { Footer } from "@/components/plantillas/pie-pagina";
+import { AuthModal } from "@/modulos/autenticacion/componentes/modal-autenticacion";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { currentUser, logout } = useAuth();

@@ -29,9 +29,9 @@ import {
   Monitor,
   LayoutGrid,
 } from "lucide-react";
-import { LandingProfileCard } from "@/components/ui/directorio/LandingProfileCard";
-import { getEmpresas } from "@/lib/data/directorio";
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { LandingProfileCard } from "@/components/ui/directorio/tarjeta-perfil-landing";
+import { getEmpresas } from "@/lib/datos/directorio";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 
 /* ─── Animation Variants ─── */

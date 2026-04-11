@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { getEmpresas, getCategorias } from "@/lib/data/directorio";
-import { FilterSidebar } from "@/components/ui/directorio/FilterSidebar";
-import { DirectoryProfileCard } from "@/components/ui/directorio/DirectoryProfileCard";
-import { PublicEmpresasLanding } from "@/components/ui/directorio/PublicEmpresasLanding";
+import { getEmpresas, getCategorias } from "@/lib/datos/directorio";
+import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
+import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
+import { PublicEmpresasLanding } from "@/components/ui/directorio/landing-empresas-publica";
 import { Building2, LayoutGrid, List } from "lucide-react";
-import { useAuth } from "@/modulos/autenticacion/AuthContext";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 
 export default function EmpresasPage() {
   const { currentUser, loading } = useAuth();

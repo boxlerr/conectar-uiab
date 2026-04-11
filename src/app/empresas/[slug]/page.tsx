@@ -1,4 +1,4 @@
-import { getEntidadBySlug } from "@/lib/data/directorio";
+import { getEntidadBySlug } from "@/lib/datos/directorio";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2 } from "lucide-react";

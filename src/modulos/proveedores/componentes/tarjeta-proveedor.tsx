@@ -1,5 +1,5 @@
 import { User, MapPin, Star, Wrench, ShieldCheck, Award, ChevronRight } from "lucide-react";
-import { Provider } from "@/types";
+import { Provider } from "@/tipos";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

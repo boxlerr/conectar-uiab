@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { mockedProviders } from "@/modulos/compartido/data/mockDB";
+import { mockedProviders } from "@/modulos/compartido/datos/datos-prueba";
 import { Check, X, Wrench, Search, Eye, FileText, Phone, Mail, MapPin, Award, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

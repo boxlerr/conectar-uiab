@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ShieldCheck, Star, MapPin, MessageCircle, Mail, Phone, Settings, FlaskConical, Factory, Cookie, Car } from "lucide-react";
-import { getEntidadesDestacadas, Entidad } from "@/lib/data/directorio";
+import { getEntidadesDestacadas, Entidad } from "@/lib/datos/directorio";
 
 // Map specific categories to light background colors for the badge, to mimic the Figma design.
 const categoryStyleMap: Record<string, { bg: string, text: string, icon: any }> = {

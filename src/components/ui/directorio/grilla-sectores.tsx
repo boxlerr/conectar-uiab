@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Zap, Shield, Factory, FlaskConical, Cpu, Shirt, Cookie, Package, Truck, LucideIcon } from "lucide-react";
-import { getSectoresConRecuento } from "@/lib/data/directorio";
+import { getSectoresConRecuento } from "@/lib/datos/directorio";
 
 // Map sector names to specific icons for better visual distinction, falling back to Zap.
 const iconMap: Record<string, LucideIcon> = {
