@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import { toast } from "sonner";
 import { useAuth } from "@/modulos/autenticacion/AuthContext";
@@ -13,19 +13,16 @@ import { Button } from "@/components/ui/button";
 export function AuthModal() {
   const router = useRouter();
   const { isAuthModalOpen, closeAuthModal, refreshUser } = useAuth();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   // Form State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Supabase Browser Client
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-  );
+  // Shared Supabase Browser Client
+  const supabase = createClient();
 
   if (!isAuthModalOpen) return null;
 

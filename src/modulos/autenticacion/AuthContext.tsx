@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@/types";
 import { createClient } from "@/lib/supabase/client";
@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isAuthModalOpen: boolean;
   openAuthModal: () => void;
@@ -17,17 +17,26 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+interface AuthProviderProps {
+  children: ReactNode;
+  /** Initial user resolved on the server — avoids loading flash on first render */
+  initialUser?: User | null;
+}
+
+export function AuthProvider({ children, initialUser = null }: AuthProviderProps) {
+  // When initialUser is provided from the server, we skip the loading state entirely
+  const [currentUser, setCurrentUser] = useState<User | null>(initialUser);
+  const [loading, setLoading] = useState(!initialUser);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const supabase = createClient();
   const router = useRouter();
+  // Guard against running the initial fetch if we already have a server user
+  const initialFetchDone = useRef(!!initialUser);
 
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => setIsAuthModalOpen(false);
 
-  const fetchProfile = useCallback(async (userId: string, email: string) => {
+  const fetchProfile = useCallback(async (userId: string, email: string): Promise<User | null> => {
     try {
       const { data, error } = await supabase
         .from('perfiles')
@@ -75,38 +84,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   }, [supabase]);
 
+  // Uses getUser() which validates the JWT server-side (NOT getSession() which only reads localStorage)
   const refreshUser = useCallback(async () => {
     setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.user) {
-      const profile = await fetchProfile(session.user.id, session.user.email!);
-      if (profile) {
-        setCurrentUser(profile);
-      } else {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+
+      if (error || !user) {
         setCurrentUser(null);
+      } else {
+        const profile = await fetchProfile(user.id, user.email!);
+        setCurrentUser(profile);
       }
-    } else {
+    } catch {
       setCurrentUser(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [supabase, fetchProfile]);
 
   useEffect(() => {
-    // Initial session check
-    refreshUser();
+    // Only fetch on mount if we didn't receive initialUser from the server
+    if (!initialFetchDone.current) {
+      initialFetchDone.current = true;
+      refreshUser();
+    }
 
-    // Listen for auth changes
+    // Listen for auth state changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user) {
           const profile = await fetchProfile(session.user.id, session.user.email!);
           setCurrentUser(profile);
         }
+        setLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
+        setLoading(false);
       }
-      setLoading(false);
+      // Ignore INITIAL_SESSION — we handle it ourselves via initialUser or refreshUser
     });
 
     return () => {
@@ -114,7 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [supabase, fetchProfile, refreshUser]);
 
+  const isLoggingOut = useRef(false);
+
   const logout = async () => {
+    if (isLoggingOut.current) return;
+    isLoggingOut.current = true;
     try {
       await supabase.auth.signOut();
       setCurrentUser(null);
@@ -124,6 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Logout error", err);
       setCurrentUser(null);
       router.push('/');
+    } finally {
+      isLoggingOut.current = false;
     }
   };
 

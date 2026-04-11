@@ -13,13 +13,14 @@ import type { User as UserType } from "@/types";
 
 interface HeaderProps {
   currentUser: UserType | null;
-  onLogout: () => void;
+  onLogout: () => Promise<void>;
 }
 
-import { ChevronDown, Sparkles } from "lucide-react";
+import { ChevronDown, Sparkles, Loader2 } from "lucide-react";
 
-function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType, onLogout: () => void }) {
+function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType, onLogout: () => Promise<void> }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,15 +96,22 @@ function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType,
                   Panel Admin
                 </Link>
               )}
-              <button 
-                onClick={() => {
+              <button
+                disabled={isLoggingOut}
+                onClick={async () => {
+                  if (isLoggingOut) return;
+                  setIsLoggingOut(true);
                   setIsOpen(false);
-                  onLogout();
+                  await onLogout();
+                  setIsLoggingOut(false);
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors mt-1"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <LogOut className="w-4 h-4" />
-                Cerrar sesión
+                {isLoggingOut
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <LogOut className="w-4 h-4" />
+                }
+                {isLoggingOut ? 'Saliendo...' : 'Cerrar sesión'}
               </button>
             </div>
           </motion.div>
@@ -418,10 +426,13 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                 
                 {currentUser && (
                   <div className="mt-auto pt-8">
-                     <Button 
+                     <Button
                         variant="outline"
-                        className="w-full text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 h-12 font-semibold" 
-                        onClick={() => { onLogout(); setIsMobileMenuOpen(false); }}
+                        className="w-full text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 h-12 font-semibold"
+                        onClick={async () => {
+                          setIsMobileMenuOpen(false);
+                          await onLogout();
+                        }}
                       >
                         <LogOut className="w-4 h-4 mr-2" />
                         Cerrar Sesión

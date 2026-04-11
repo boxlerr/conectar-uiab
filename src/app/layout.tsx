@@ -18,6 +18,8 @@ import { AuthProvider } from "@/modulos/autenticacion/AuthContext";
 import { AppShell } from "@/components/plantillas/AppShell";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
+import { createClient } from "@/lib/supabase/server";
+import type { User } from "@/types";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -26,17 +28,69 @@ export const metadata: Metadata = {
   description: "Directorio Comercial de la Unión Industrial de Almirante Brown",
 };
 
-export default function RootLayout({
+/**
+ * Resolves the current user on the server using getUser() (JWT-validated).
+ * Returns null if no session or on error — never throws.
+ */
+async function getServerUser(): Promise<User | null> {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error || !user) return null;
+
+    const { data: profile } = await supabase
+      .from('perfiles')
+      .select('id, nombre_completo, rol_sistema, activo')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) return null;
+
+    let entityId: string | null = null;
+
+    if (profile.rol_sistema === 'company') {
+      const { data: memberData } = await supabase
+        .from('miembros_empresa')
+        .select('empresa_id')
+        .eq('perfil_id', user.id)
+        .single();
+      entityId = memberData?.empresa_id ?? null;
+    } else if (profile.rol_sistema === 'provider') {
+      const { data: memberData } = await supabase
+        .from('miembros_proveedor')
+        .select('proveedor_id')
+        .eq('perfil_id', user.id)
+        .single();
+      entityId = memberData?.proveedor_id ?? null;
+    }
+
+    return {
+      id: profile.id,
+      name: profile.nombre_completo || user.email!.split('@')[0],
+      email: user.email!,
+      role: profile.rol_sistema as User['role'],
+      isMember: profile.activo || false,
+      entityId,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialUser = await getServerUser();
+
   return (
     <html lang="es" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body
         className={`${openSans.variable} ${poppins.variable} font-sans antialiased min-h-screen bg-slate-50`}
       >
-        <AuthProvider>
+        <AuthProvider initialUser={initialUser}>
           <AppShell>{children}</AppShell>
         </AuthProvider>
         <Toaster />
