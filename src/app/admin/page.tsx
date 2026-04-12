@@ -1,167 +1,165 @@
-"use client";
-
-import { mockedCompanies, mockedProviders, mockedReviews } from "@/modulos/compartido/datos/datos-prueba";
-import { Building, Wrench, MessageSquare, Users, TrendingUp, AlertCircle, ArrowRight } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
+import { Building, Wrench, MessageSquare, Users, TrendingUp, AlertCircle, ArrowRight, Briefcase } from "lucide-react";
 import Link from "next/link";
 
-export default function AdminDashboardPage() {
-  const pendingCompanies = mockedCompanies.filter((c) => c.status === "pending").length;
-  const pendingProviders = mockedProviders.filter((p) => p.status === "pending").length;
-  const pendingReviews = mockedReviews.filter((r) => r.status === "pending").length;
+async function getDashboardData() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const [
+    { count: totalEmpresas },
+    { count: totalProveedores },
+    { count: totalUsuarios },
+    { count: oportunidadesAbiertas },
+    { count: empresasPendientes },
+    { count: proveedoresPendientes },
+    { count: resenasPendientes },
+    { data: ultimasOportunidades },
+  ] = await Promise.all([
+    supabase.from("empresas").select("*", { count: "exact", head: true }),
+    supabase.from("proveedores").select("*", { count: "exact", head: true }),
+    supabase.from("perfiles").select("*", { count: "exact", head: true }),
+    supabase.from("oportunidades").select("*", { count: "exact", head: true }).eq("estado", "abierta"),
+    supabase.from("empresas").select("*", { count: "exact", head: true }).eq("estado", "pendiente_revision"),
+    supabase.from("proveedores").select("*", { count: "exact", head: true }).eq("estado", "pendiente_revision"),
+    supabase.from("resenas").select("*", { count: "exact", head: true }).eq("estado", "pendiente_revision"),
+    supabase.from("oportunidades")
+      .select("id, titulo, estado, creado_en, empresa:empresas(razon_social)")
+      .order("creado_en", { ascending: false })
+      .limit(5),
+  ]);
+
+  return {
+    totalEmpresas: totalEmpresas ?? 0,
+    totalProveedores: totalProveedores ?? 0,
+    totalUsuarios: totalUsuarios ?? 0,
+    oportunidadesAbiertas: oportunidadesAbiertas ?? 0,
+    empresasPendientes: empresasPendientes ?? 0,
+    proveedoresPendientes: proveedoresPendientes ?? 0,
+    resenasPendientes: resenasPendientes ?? 0,
+    ultimasOportunidades: ultimasOportunidades ?? [],
+  };
+}
+
+export default async function AdminDashboardPage() {
+  const data = await getDashboardData();
 
   const stats = [
-    { name: "Total Empresas", value: mockedCompanies.length.toString(), icon: Building, color: "text-blue-600", bg: "bg-blue-100" },
-    { name: "Total Proveedores", value: mockedProviders.length.toString(), icon: Wrench, color: "text-emerald-600", bg: "bg-emerald-100" },
-    { name: "Usuarios Activos", value: "24", icon: Users, color: "text-violet-600", bg: "bg-violet-100" },
-    { name: "Reseñas Generadas", value: mockedReviews.length.toString(), icon: MessageSquare, color: "text-amber-600", bg: "bg-amber-100" },
+    { nombre: "Total Empresas", valor: data.totalEmpresas, icon: Building, color: "text-blue-600", bg: "bg-blue-50", href: "/admin/empresas" },
+    { nombre: "Total Proveedores", valor: data.totalProveedores, icon: Wrench, color: "text-emerald-600", bg: "bg-emerald-50", href: "/admin/proveedores" },
+    { nombre: "Usuarios Registrados", valor: data.totalUsuarios, icon: Users, color: "text-violet-600", bg: "bg-violet-50", href: "/admin/usuarios" },
+    { nombre: "Oportunidades Abiertas", valor: data.oportunidadesAbiertas, icon: Briefcase, color: "text-amber-600", bg: "bg-amber-50", href: "/admin/oportunidades" },
+  ];
+
+  const pendientes = [
+    { label: "Empresas nuevas", count: data.empresasPendientes, icon: Building, color: "bg-blue-100 text-blue-600", href: "/admin/empresas" },
+    { label: "Proveedores nuevos", count: data.proveedoresPendientes, icon: Wrench, color: "bg-emerald-100 text-emerald-600", href: "/admin/proveedores" },
+    { label: "Reseñas pendientes", count: data.resenasPendientes, icon: MessageSquare, color: "bg-amber-100 text-amber-600", href: "/admin/resenas" },
   ];
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard General</h1>
-          <p className="text-slate-500 mt-1">Resumen de la plataforma y métricas principales.</p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
+        <p className="text-slate-500 mt-1">Resumen en tiempo real de la plataforma UIAB Conecta.</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.name} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+            <Link key={stat.nombre} href={stat.href}
+              className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all group">
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bg} ${stat.color}`}>
-                  <Icon className="w-6 h-6 outline-none" />
+                  <Icon className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-500">{stat.name}</p>
-                  <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                  <p className="text-sm font-medium text-slate-500">{stat.nombre}</p>
+                  <p className="text-3xl font-bold text-slate-900">{stat.valor}</p>
                 </div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Pending Actions */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col">
+        {/* Acciones Pendientes */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
           <div className="p-6 border-b border-slate-100">
-            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-rose-500" />
               Acciones Pendientes
             </h2>
-            <p className="text-sm text-slate-500 mt-1">Elementos que requieren tu atención.</p>
+            <p className="text-sm text-slate-500 mt-0.5">Elementos que requieren revisión.</p>
           </div>
-          <div className="p-6 flex-1 space-y-4">
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                  <Building className="w-5 h-5" />
+          <div className="p-4 space-y-3">
+            {pendientes.map((p) => {
+              const Icon = p.icon;
+              return (
+                <div key={p.label} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${p.color}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900 text-sm">{p.label}</p>
+                      <p className="text-xs text-slate-500">{p.count} pendiente{p.count !== 1 ? "s" : ""} de revisión</p>
+                    </div>
+                  </div>
+                  <Link href={p.href}
+                    className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1 bg-primary-50 px-3 py-1.5 rounded-lg">
+                    Revisar <ArrowRight className="w-3 h-3" />
+                  </Link>
                 </div>
-                <div>
-                  <p className="font-semibold text-slate-900">Empresas Nuevas</p>
-                  <p className="text-sm text-slate-500">{pendingCompanies} pendientes de revisión</p>
-                </div>
-              </div>
-              <Link href="/admin/empresas" className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1">
-                Ver
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                  <Wrench className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900">Proveedores Nuevos</p>
-                  <p className="text-sm text-slate-500">{pendingProviders} pendientes de revisión</p>
-                </div>
-              </div>
-              <Link href="/admin/proveedores" className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1">
-                Ver
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900">Reseñas Reportadas / Pendientes</p>
-                  <p className="text-sm text-slate-500">{pendingReviews} revisiones necesarias</p>
-                </div>
-              </div>
-              <Link href="/admin/resenas" className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1">
-                Ver
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col">
+        {/* Últimas Oportunidades */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
           <div className="p-6 border-b border-slate-100">
-            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-primary-500" />
-              Actividad Reciente
+              Últimas Oportunidades
             </h2>
-            <p className="text-sm text-slate-500 mt-1">Últimos movimientos en la plataforma.</p>
+            <p className="text-sm text-slate-500 mt-0.5">Oportunidades publicadas recientemente.</p>
           </div>
-          <div className="p-6 flex-1">
-            <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
-              {/* Dummy Activity 1 */}
-              <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-emerald-100 text-emerald-600 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10">
-                  <Wrench className="w-4 h-4" />
-                </div>
-                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm">
-                  <div className="flex items-center justify-between space-x-2 mb-1">
-                    <div className="font-bold text-slate-900 text-sm">Nuevo Proveedor</div>
-                    <time className="text-xs font-medium text-slate-500">Hace 2 horas</time>
+          <div className="divide-y divide-slate-100">
+            {data.ultimasOportunidades.length === 0 ? (
+              <p className="p-6 text-sm text-slate-500 text-center">No hay oportunidades registradas.</p>
+            ) : (
+              data.ultimasOportunidades.map((op: any) => (
+                <div key={op.id} className="px-6 py-4 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{op.titulo}</p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {(op.empresa as any)?.razon_social ?? "Sin empresa"} · {new Date(op.creado_en).toLocaleDateString("es-AR")}
+                    </p>
                   </div>
-                  <div className="text-sm text-slate-600">Mecatrónica SRL se ha unido a ConectarUIAB.</div>
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${
+                    op.estado === "abierta" ? "bg-emerald-100 text-emerald-700" :
+                    op.estado === "cerrada" ? "bg-slate-100 text-slate-600" :
+                    "bg-amber-100 text-amber-700"
+                  }`}>
+                    {op.estado}
+                  </span>
                 </div>
-              </div>
-
-               {/* Dummy Activity 2 */}
-               <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active mt-6">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-blue-100 text-blue-600 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10">
-                  <Building className="w-4 h-4" />
-                </div>
-                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm">
-                  <div className="flex items-center justify-between space-x-2 mb-1">
-                    <div className="font-bold text-slate-900 text-sm">Empresa Verificada</div>
-                    <time className="text-xs font-medium text-slate-500">Ayer</time>
-                  </div>
-                  <div className="text-sm text-slate-600">Alimentos Brown completó su verificación.</div>
-                </div>
-              </div>
-
-               {/* Dummy Activity 3 */}
-               <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active mt-6">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-amber-100 text-amber-600 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10">
-                  <MessageSquare className="w-4 h-4" />
-                </div>
-                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm">
-                  <div className="flex items-center justify-between space-x-2 mb-1">
-                    <div className="font-bold text-slate-900 text-sm">Nueva Reseña</div>
-                    <time className="text-xs font-medium text-slate-500">Hace 2 días</time>
-                  </div>
-                  <div className="text-sm text-slate-600">5 estrellas para Soluciones Industriales SA.</div>
-                </div>
-              </div>
-            </div>
+              ))
+            )}
+          </div>
+          <div className="p-4 border-t border-slate-100">
+            <Link href="/admin/oportunidades"
+              className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1 justify-center">
+              Ver todas <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
         </div>
-
       </div>
     </div>
   );

@@ -53,7 +53,7 @@ export default function ProviderProfile({ params }: { params: Promise<{ id: stri
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
               {provider.name}
-              {provider.status === "approved" && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
+              {provider.status === "aprobado" && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
             </h1>
             <div className="flex flex-wrap items-center gap-4 mt-2 mb-4">
               <Badge variant="success" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200">

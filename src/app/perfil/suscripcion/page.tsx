@@ -180,7 +180,7 @@ export default function MiPerfilSuscripcionPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${amnt} {p.moneda || 'ARS'}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge variant="outline" className={
-                            p.estado === 'aprobado' || p.estado === 'approved' 
+                            p.estado === 'aprobado' || p.estado === 'aprobada'
                               ? "text-emerald-700 bg-emerald-50 border-emerald-200" 
                               : "text-amber-700 bg-amber-50 border-amber-200"
                           }>

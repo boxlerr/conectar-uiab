@@ -1,5 +1,8 @@
 export type UserRole = 'admin' | 'company' | 'provider' | 'guest';
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+export type EstadoEmpresa = 'borrador' | 'pendiente_revision' | 'aprobada' | 'rechazada' | 'pausada' | 'oculta';
+export type EstadoProveedor = 'borrador' | 'pendiente_revision' | 'aprobado' | 'rechazado' | 'pausado' | 'oculto';
+export type EstadoResena = 'pendiente_revision' | 'aprobada' | 'rechazada' | 'oculta';
+export type NivelTarifa = 1 | 2 | 3;
 
 export interface User {
   id: string;
@@ -18,7 +21,7 @@ export interface Review {
   rating: number;
   comment: string;
   date: string;
-  status: ApprovalStatus;
+  status: string;
 }
 
 export interface Company {
@@ -28,13 +31,14 @@ export interface Company {
   category: string; // e.g. Metalúrgica, Química, Logística
   rating: number;
   reviewCount: number;
-  status: ApprovalStatus;
+  status: string;
   contactEmail: string;
   phone: string;
   address: string;
   website?: string;
   logoUrl?: string;
   servicesOffered: string[];
+  tarifa?: NivelTarifa;
 }
 
 export interface Provider {
@@ -44,7 +48,7 @@ export interface Provider {
   description: string;
   rating: number;
   reviewCount: number;
-  status: ApprovalStatus;
+  status: string;
   contactEmail: string;
   phone: string;
   zone: string; // Areas they cover

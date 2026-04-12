@@ -14,7 +14,7 @@ export default function CompanyProfile({ params }: { params: Promise<{ id: strin
   const { currentUser } = useAuth();
   
   const company = mockedCompanies.find(c => c.id === id);
-  const companyReviews = mockedReviews.filter(r => r.targetId === id && r.status === "approved");
+  const companyReviews = mockedReviews.filter(r => r.targetId === id && r.status === "aprobada");
 
   if (!company) {
     return (
@@ -53,7 +53,7 @@ export default function CompanyProfile({ params }: { params: Promise<{ id: strin
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
               {company.name}
-              {company.status === "approved" && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
+              {company.status === "aprobada" && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
             </h1>
             <div className="flex flex-wrap items-center gap-4 mt-2 mb-4">
               <Badge variant="secondary" className="bg-primary-50 text-primary-700">{company.category}</Badge>

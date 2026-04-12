@@ -42,7 +42,7 @@ const generateCompanies = (count: number): Company[] => {
       category: categories[i % categories.length],
       rating: parseFloat(rating),
       reviewCount: Math.floor(Math.random() * 50) + 1,
-      status: isApproved ? 'approved' : 'pending',
+      status: isApproved ? 'aprobada' : 'pendiente_revision',
       contactEmail: `contacto@empresa${i}.com.ar`,
       phone: `+54 11 4000-${1000 + i}`,
       address: `Almirante Brown, Calle ${i}`,
@@ -68,7 +68,7 @@ const generateProviders = (count: number): Provider[] => {
       description: `Especialista matriculado con amplia experiencia en mantenimiento e instalaciones para el sector industrial. Compromiso y garantía en cada trabajo.`,
       rating: parseFloat(rating),
       reviewCount: Math.floor(Math.random() * 30) + 1,
-      status: isApproved ? 'approved' : 'pending',
+      status: isApproved ? 'aprobada' : 'pendiente_revision',
       contactEmail: `proveedor${i}@gmail.com`,
       phone: `+54 11 5000-${2000 + i}`,
       zone: 'Zona Sur / Almirante Brown',
@@ -91,7 +91,7 @@ export const mockedReviews: Review[] = [
     rating: 5,
     comment: 'Excelente servicio, solucionó el problema eléctrico de la nave de producción muy rápido.',
     date: '2026-03-01',
-    status: 'approved'
+    status: 'aprobada'
   },
   {
     id: 'rev-2',
@@ -101,6 +101,6 @@ export const mockedReviews: Review[] = [
     rating: 4,
     comment: 'Muy buenos proveedores de materia prima química, excelente calidad aunque la entrega demoró un día.',
     date: '2026-03-05',
-    status: 'pending'
+    status: 'pendiente_revision'
   }
 ];

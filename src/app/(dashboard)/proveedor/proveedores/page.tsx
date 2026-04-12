@@ -11,7 +11,7 @@ export default function ProvidersDirectory() {
   const [selectedSpecialty, setSelectedSpecialty] = useState("all");
 
   const filteredProviders = mockedProviders.filter((provider) => {
-    if (provider.status !== "approved") return false;
+    if (provider.status !== "aprobado") return false;
     
     const matchesSearch = provider.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           provider.description.toLowerCase().includes(searchTerm.toLowerCase()) ||

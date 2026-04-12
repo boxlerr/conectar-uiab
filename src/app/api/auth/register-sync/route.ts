@@ -49,7 +49,7 @@ export async function POST(request: Request) {
           razon_social: razonSocial,
           nombre_fantasia: nombreFantasia || null,
           cuit: cuit,
-          estado: 'pending', // Requerirá aprobación desde panel de administración
+          estado: 'pendiente_revision', // Requerirá aprobación desde panel de administración
           email: email,
           telefono: telefono,
           sitio_web: sitioWeb || null,
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
           razon_social: razonSocial || null, // Optional for independent pros
           nombre_comercial: nombreComercial || null,
           cuit: cuit,
-          estado: 'pending', // Requerirá aprobación
+          estado: 'pendiente_revision', // Requerirá aprobación
           email: email,
           telefono: telefono,
           sitio_web: sitioWeb || null,

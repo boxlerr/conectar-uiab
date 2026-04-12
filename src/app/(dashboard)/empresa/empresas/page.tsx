@@ -11,7 +11,7 @@ export default function CompaniesDirectory() {
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const filteredCompanies = mockedCompanies.filter((company) => {
-    if (company.status !== "approved") return false;
+    if (company.status !== "aprobada") return false;
     
     const matchesSearch = company.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           company.description.toLowerCase().includes(searchTerm.toLowerCase());
