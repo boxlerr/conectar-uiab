@@ -320,6 +320,36 @@ A continuación se detalla el esquema de tablas y columnas extraído de la base 
     "data_type": "uuid"
   },
   {
+    "table_name": "empresas",
+    "column_name": "tarifa",
+    "data_type": "smallint"
+  },
+  {
+    "table_name": "empresas",
+    "column_name": "n_socio",
+    "data_type": "text"
+  },
+  {
+    "table_name": "empresas",
+    "column_name": "codigo_postal",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "empresas",
+    "column_name": "actividad",
+    "data_type": "text"
+  },
+  {
+    "table_name": "empresas",
+    "column_name": "referente",
+    "data_type": "text"
+  },
+  {
+    "table_name": "empresas",
+    "column_name": "email_referente",
+    "data_type": "text"
+  },
+  {
     "table_name": "empresas_categorias",
     "column_name": "id",
     "data_type": "uuid"
@@ -1318,5 +1348,75 @@ A continuación se detalla el esquema de tablas y columnas extraído de la base 
     "table_name": "tags",
     "column_name": "creado_en",
     "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "tarifas",
+    "column_name": "nivel",
+    "data_type": "smallint"
+  },
+  {
+    "table_name": "tarifas",
+    "column_name": "nombre",
+    "data_type": "text"
+  },
+  {
+    "table_name": "tarifas",
+    "column_name": "precio_anual",
+    "data_type": "numeric"
+  },
+  {
+    "table_name": "tarifas",
+    "column_name": "descripcion",
+    "data_type": "text"
+  },
+  {
+    "table_name": "tarifas",
+    "column_name": "actualizado_en",
+    "data_type": "timestamp with time zone"
   }
 ]
+
+---
+
+## Cambios introducidos por migración `20260412_seed_socios_uiab.sql`
+
+### Tabla nueva: `tarifas`
+
+| Columna | Tipo | Descripción |
+|---------|------|-------------|
+| `nivel` | smallint (PK) | Identificador numérico del nivel (1, 2, 3) |
+| `nombre` | text | Nombre visible del plan |
+| `precio_anual` | numeric | Precio en ARS por año |
+| `descripcion` | text | Descripción del segmento objetivo |
+| `actualizado_en` | timestamptz | Última actualización de precio |
+
+`empresas.tarifa` es FK → `tarifas(nivel)`.
+
+### Columnas nuevas en `empresas`
+
+| Columna | Tipo | Descripción |
+|---------|------|-------------|
+| `tarifa` | smallint | FK → `tarifas(nivel)`. Nivel de membresía asignado |
+| `n_socio` | text | Número de socio del padrón UIAB (ej: "0074") |
+| `codigo_postal` | integer | Código postal del domicilio fiscal |
+| `actividad` | text | Actividad económica principal (ej: "FUNDICION DE HIERRO") |
+| `referente` | text | Nombre de la persona de contacto |
+| `email_referente` | text | Email del referente de la empresa |
+
+### Índices únicos creados
+
+| Índice | Tabla | Columna(s) |
+|--------|-------|------------|
+| `categorias_slug_unique` | `categorias` | `slug` |
+| `empresas_cuit_unique` | `empresas` | `cuit` |
+| `empresas_categorias_unique` | `empresas_categorias` | `(empresa_id, categoria_id)` |
+
+### CHECK constraints de estado
+
+| Tabla | Campo | Valores permitidos |
+|-------|-------|-------------------|
+| `empresas` | `estado` | `borrador`, `pendiente_revision`, `aprobada`, `rechazada`, `pausada`, `oculta` |
+| `proveedores` | `estado` | `borrador`, `pendiente_revision`, `aprobado`, `rechazado`, `pausado`, `oculto` |
+| `resenas` | `estado` | `pendiente_revision`, `aprobada`, `rechazada`, `oculta` |
+
+> Empresas y reseñas usan género femenino; proveedores usan género masculino.

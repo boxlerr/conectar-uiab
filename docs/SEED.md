@@ -14,7 +14,7 @@ Fuente de datos: Padrón oficial de socios UIAB (`Info Socios VAXLER.xlsx`).
 | 2 | Agrega columnas faltantes a `empresas`: `tarifa` (FK), `n_socio`, `codigo_postal`, `actividad`, `referente`, `email_referente` |
 | 3 | Crea índices únicos en `categorias(slug)`, `empresas(cuit)`, `empresas_categorias(empresa_id, categoria_id)` |
 | 4 | Inserta 22 categorías basadas en los rubros del padrón |
-| 5 | Inserta 51 empresas socias con estado `approved` (upsert por CUIT) |
+| 5 | Inserta 51 empresas socias con estado `aprobada` (upsert por CUIT) |
 | 6 | Vincula cada empresa con su categoría en `empresas_categorias` |
 
 ---
@@ -128,3 +128,26 @@ El matching (`docs/sql/matching_algorithm.sql`) usa 3 dimensiones:
 | BURZACO | 47 |
 | LONGCHAMPS | 3 |
 | ADROGUE | 1 |
+
+---
+
+## CHECK constraints de estado (valores válidos en DB)
+
+Los campos `estado` tienen CHECK constraints estrictos. Usar cualquier otro valor genera un error de violación.
+
+### `empresas.estado`
+```
+borrador | pendiente_revision | aprobada | rechazada | pausada | oculta
+```
+
+### `proveedores.estado`
+```
+borrador | pendiente_revision | aprobado | rechazado | pausado | oculto
+```
+
+### `resenas.estado`
+```
+pendiente_revision | aprobada | rechazada | oculta
+```
+
+> **Nota de género:** empresas y reseñas usan forma femenina (`aprobada`, `rechazada`). Proveedores usan forma masculina (`aprobado`, `rechazado`). No existe `borrador` para reseñas.
