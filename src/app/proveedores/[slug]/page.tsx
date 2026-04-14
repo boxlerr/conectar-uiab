@@ -118,7 +118,7 @@ export default async function ProveedorProfilePage({
                   <Globe className="w-5 h-5 mr-4 text-slate-400 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-slate-500 mb-1">Sitio Web</p>
-                    <a href={proveedor.contacto.sitioWeb} target="_blank" rel="noopener noreferrer" className="text-primary-600 font-medium hover:text-primary-700 transition-colors break-all">
+                    <a href={proveedor.contacto.sitioWeb.match(/^https?:\/\//) ? proveedor.contacto.sitioWeb : `https://${proveedor.contacto.sitioWeb}`} target="_blank" rel="noopener noreferrer" className="text-primary-600 font-medium hover:text-primary-700 transition-colors break-all">
                       {proveedor.contacto.sitioWeb.replace(/^https?:\/\//, '')}
                     </a>
                   </div>

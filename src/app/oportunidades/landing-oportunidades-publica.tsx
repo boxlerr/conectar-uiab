@@ -135,13 +135,14 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                   Ver Oportunidades
                   <ArrowRight className="w-5 h-5 ml-2 text-primary-600" />
                 </Button>
-                <Button
-                  onClick={openAuthModal}
-                  variant="outline"
-                  className="h-14 px-8 rounded-sm font-bold text-[15px] border-white/20 text-white hover:bg-white/10 transition-all bg-transparent"
-                >
-                  Soy Empresa (Publicar)
-                </Button>
+                <Link href="/oportunidades/nueva">
+                  <Button
+                    variant="outline"
+                    className="h-14 px-8 rounded-sm font-bold text-[15px] border-white/20 text-white hover:bg-white/10 transition-all bg-transparent"
+                  >
+                    Soy Empresa (Publicar)
+                  </Button>
+                </Link>
               </motion.div>
               
               {/* Trust signals */}

@@ -107,18 +107,24 @@ export default function MiPerfilDatosPage() {
     if (!currentUser.id) return;
 
     setLoading(true);
-    const result = await updateCompanyOrProvider(currentUser.role as any, currentUser.entityId, currentUser.id, formData);
-    
-    if (result.error) {
-      toast.error("Error al guardar", { description: result.error });
-    } else {
-      if (result.newEntityId) {
-         // It was a creation, we need AuthContext to reconsider the user
-         await refreshUser();
+    try {
+      const result = await updateCompanyOrProvider(currentUser.role as any, currentUser.entityId, currentUser.id, formData);
+      
+      if (result.error) {
+        toast.error("Error al guardar", { description: result.error });
+      } else {
+        if (result.newEntityId) {
+           // It was a creation, we need AuthContext to reconsider the user
+           await refreshUser();
+        }
+        toast.success("Perfil actualizado", { description: "Tus datos corporativos se han guardado con éxito." });
       }
-      toast.success("Perfil actualizado", { description: "Tus datos corporativos se han guardado con éxito." });
+    } catch (error: any) {
+      console.error(error);
+      toast.error("Error inesperado", { description: error.message || "No se pudo comunicar con el servidor." });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -243,7 +249,7 @@ export default function MiPerfilDatosPage() {
 
             {/* Ubicación Agrupada */}
             <div className="md:col-span-2 pt-4 border-t border-slate-100">
-               <h4 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2"><MapPin className="w-5 h-5 text-primary-600" /> Sede Principal</h4>
+               <h4 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2"><MapPin className="w-5 h-5 text-primary-600" /> Sede Principal <span className="text-sm font-normal text-slate-400 ml-2">(Opcional)</span></h4>
                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600">Localidad</label>

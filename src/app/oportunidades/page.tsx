@@ -74,10 +74,12 @@ export default function OportunidadesPage() {
             </div>
             
             {isEmpresa && (
-              <Button size="lg" className="bg-[#00213f] hover:bg-[#10375c] h-14 px-8 rounded-sm font-bold transition-all hover:-translate-y-0.5 shadow-xl shadow-black/20 border-none">
-                <PlusCircle className="mr-2 h-5 w-5" />
-                Publicar Oportunidad
-              </Button>
+              <Link href="/oportunidades/nueva">
+                <Button size="lg" className="bg-[#00213f] hover:bg-[#10375c] h-14 px-8 rounded-sm font-bold transition-all hover:-translate-y-0.5 shadow-xl shadow-black/20 border-none">
+                  <PlusCircle className="mr-2 h-5 w-5" />
+                  Publicar Oportunidad
+                </Button>
+              </Link>
             )}
           </div>
         </div>
@@ -212,9 +214,11 @@ export default function OportunidadesPage() {
                 </ul>
               </CardContent>
               <CardFooter className="p-8 pt-0">
-                <Button className="w-full bg-white text-[#00213f] hover:bg-slate-100 font-bold border-none h-12 rounded-sm shadow-lg">
-                  Publicar ahora
-                </Button>
+                <Link href="/oportunidades/nueva" className="w-full">
+                  <Button className="w-full bg-white text-[#00213f] hover:bg-slate-100 font-bold border-none h-12 rounded-sm shadow-lg">
+                    Publicar ahora
+                  </Button>
+                </Link>
               </CardFooter>
             </Card>
 

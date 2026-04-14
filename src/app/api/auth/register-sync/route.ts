@@ -62,57 +62,57 @@ export async function POST(request: Request) {
         .select()
         .single()
         
-      if (!empError && emp?.id) {
-        entityId = emp.id;
-        await supabaseAdmin.from('miembros_empresa').insert({
-          empresa_id: emp.id,
-          perfil_id: instanceId,
-          rol: 'admin',
-          es_principal: true
-        })
-
-        // Save categories optionally via mapping table
-        if (sectorId) {
-          await supabaseAdmin.from('empresas_categorias').insert({
+        if (!empError && emp?.id) {
+          entityId = emp.id;
+          await supabaseAdmin.from('miembros_empresa').insert({
             empresa_id: emp.id,
-            categoria_id: sectorId // Assuming sectorId maps roughly if they exist, or they handles it later
+            perfil_id: instanceId,
+            rol: 'gestor',
+            es_principal: true
           })
+  
+          // Save categories optionally via mapping table
+          if (sectorId) {
+            await supabaseAdmin.from('empresas_categorias').insert({
+              empresa_id: emp.id,
+              categoria_id: sectorId // Assuming sectorId maps roughly if they exist, or they handles it later
+            })
+          }
+        } else {
+          console.error("Error creating company:", empError)
+          return NextResponse.json({ error: 'Error al registrar la entidad.' }, { status: 500 })
         }
-      } else {
-        console.error("Error creating company:", empError)
-        return NextResponse.json({ error: 'Error al registrar la entidad.' }, { status: 500 })
-      }
-
-    } else if (role === 'provider') {
-      const { data: prov, error: provError } = await supabaseAdmin
-        .from('proveedores')
-        .insert({
-          nombre: nombre,
-          apellido: apellido,
-          razon_social: razonSocial || null, // Optional for independent pros
-          nombre_comercial: nombreComercial || null,
-          cuit: cuit,
-          estado: 'pendiente_revision', // Requerirá aprobación
-          email: email,
-          telefono: telefono,
-          sitio_web: sitioWeb || null,
-          pais: pais || 'Argentina',
-          provincia: provincia,
-          localidad: localidad,
-          direccion: direccion,
-          descripcion: descripcion,
-        })
-        .select()
-        .single()
-        
-      if (!provError && prov?.id) {
-        entityId = prov.id;
-        await supabaseAdmin.from('miembros_proveedor').insert({
-          proveedor_id: prov.id,
-          perfil_id: instanceId,
-          rol: 'admin',
-          es_principal: true
-        })
+  
+      } else if (role === 'provider') {
+        const { data: prov, error: provError } = await supabaseAdmin
+          .from('proveedores')
+          .insert({
+            nombre: nombre,
+            apellido: apellido,
+            razon_social: razonSocial || null, // Optional for independent pros
+            nombre_comercial: nombreComercial || null,
+            cuit: cuit,
+            estado: 'pendiente_revision', // Requerirá aprobación
+            email: email,
+            telefono: telefono,
+            sitio_web: sitioWeb || null,
+            pais: pais || 'Argentina',
+            provincia: provincia,
+            localidad: localidad,
+            direccion: direccion,
+            descripcion: descripcion,
+          })
+          .select()
+          .single()
+          
+        if (!provError && prov?.id) {
+          entityId = prov.id;
+          await supabaseAdmin.from('miembros_proveedor').insert({
+            proveedor_id: prov.id,
+            perfil_id: instanceId,
+            rol: 'gestor',
+            es_principal: true
+          })
 
         if (sectorId) {
           await supabaseAdmin.from('proveedores_categorias').insert({

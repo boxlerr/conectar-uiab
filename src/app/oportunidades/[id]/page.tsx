@@ -26,28 +26,53 @@ export default function OportunidadDetail({ params }: { params: Promise<{ id: st
   const isOwner = op?.empresa_solicitante_id === currentUser?.entityId;
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchData = async () => {
+      console.log("[OportunidadDetail] Starting fetch for ID:", id);
       try {
+        console.log("[OportunidadDetail] Fetching opportunity data...");
         const data = await oportunidadesService.getOportunidadById(id);
-        setOp(data);
+        console.log("[OportunidadDetail] Opportunity data received:", data?.id);
+        
+        if (isMounted) setOp(data);
 
-        if (data.empresa_solicitante_id === currentUser?.entityId) {
+        if (data?.empresa_solicitante_id === currentUser?.entityId) {
+          console.log("[OportunidadDetail] Fetching candidates for owner...");
           const m = await oportunidadesService.getMatchesForOportunidad(id);
-          setCandidates(m);
+          if (isMounted) setCandidates(m);
         }
 
         if (isProveedor && currentUser?.entityId) {
+          console.log("[OportunidadDetail] Fetching user matches...");
           const allMatches = await oportunidadesService.getMatchesForUser(currentUser.entityId, 'provider');
           const found = allMatches.find(m => m.oportunidad_id === id);
-          if (found) setMyMatch(found);
+          if (found && isMounted) setMyMatch(found);
         }
       } catch (error) {
-        console.error("Error fetching detail:", error);
+        console.error("[OportunidadDetail] Error fetching detail:", error);
       } finally {
-        setLoading(false);
+        console.log("[OportunidadDetail] Finalizing fetch, setting loading to false.");
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
+
     fetchData();
+
+    // Safety timeout to prevent infinite loading if promises hang silently
+    const timeoutId = setTimeout(() => {
+      if (isMounted && loading) {
+        console.warn("[OportunidadDetail] Safety timeout triggered! Forcing loading to false.");
+        setLoading(false);
+      }
+    }, 4000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [id, currentUser?.entityId, isProveedor]);
 
   if (loading) return (
