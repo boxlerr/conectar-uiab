@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { User, Shield, Building, Wrench, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase, BookOpen, GraduationCap, Landmark, Package, Users } from "lucide-react";
@@ -123,6 +123,19 @@ function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType,
 
 export function Header({ currentUser, onLogout }: HeaderProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentCategoria = searchParams.get("categoria");
+
+  // Compara un href (ej. "/empresas?categoria=educativas") contra
+  // pathname+query actuales para decidir si está activo.
+  const hrefEsActivo = (href: string) => {
+    const [hrefPath, hrefQuery] = href.split("?");
+    if (pathname !== hrefPath) return false;
+    if (!hrefQuery) return !currentCategoria;
+    const hrefParams = new URLSearchParams(hrefQuery);
+    const hrefCategoria = hrefParams.get("categoria");
+    return hrefCategoria === currentCategoria;
+  };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [hoveredPath, setHoveredPath] = useState<string | null>(null);
@@ -343,7 +356,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                 {navigation.map((item) => {
                   const allChildren = item.groups?.flatMap(g => g.items) ?? item.children ?? [];
                   const isActive = allChildren.length > 0
-                    ? allChildren.some(c => pathname === c.href.split("?")[0]) || pathname === item.href
+                    ? allChildren.some(c => hrefEsActivo(c.href))
                     : pathname === item.href;
                   const Icon = item.icon;
 
@@ -408,7 +421,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                                         <div className="mt-1 space-y-0.5">
                                           {group.items.map((child) => {
                                             const ChildIcon = child.icon;
-                                            const childActive = pathname === child.href.split("?")[0];
+                                            const childActive = hrefEsActivo(child.href);
                                             return (
                                               <Link
                                                 key={child.name}
@@ -626,7 +639,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                                     <div className="space-y-1">
                                       {group.items.map((child) => {
                                         const ChildIcon = child.icon;
-                                        const childActive = pathname === child.href.split("?")[0];
+                                        const childActive = hrefEsActivo(child.href);
                                         return (
                                           <Link
                                             key={child.name}

@@ -113,6 +113,7 @@ export default function EmpresasPage() {
 
     if (!loading && currentUser) {
       setCargandoDatos(true);
+      setEmpresas([]);
       fetchEmpresas();
     }
   }, [currentUser, loading, categoriaSocio]);
@@ -158,8 +159,8 @@ export default function EmpresasPage() {
             className="object-cover object-center"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/80 to-[#10375c]/60 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#00213f] to-transparent opacity-90" />
+          <div className={`absolute inset-0 bg-gradient-to-t ${metaSocio?.heroGradient ?? "from-[#00182e] via-[#00213f]/80 to-[#10375c]/60"} mix-blend-multiply`} />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent opacity-90" />
         </motion.div>
 
         <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pb-12 mt-8">
@@ -169,22 +170,26 @@ export default function EmpresasPage() {
             transition={{ duration: 0.6 }}
             className="max-w-3xl"
           >
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md rounded border border-white/20 px-3 py-1.5 mb-6 shadow-xl">
-              <LockOpen className="w-4 h-4 text-blue-300" />
-              <span className="text-xs font-bold text-white tracking-widest uppercase">
-                Acceso B2B Premium
+            <div className={`inline-flex items-center gap-2 backdrop-blur-md rounded border px-3 py-1.5 mb-6 shadow-xl ${metaSocio?.accentBadge ?? "bg-white/10 border-white/20 text-white"}`}>
+              <LockOpen className="w-4 h-4" />
+              <span className="text-xs font-bold tracking-widest uppercase">
+                {metaSocio?.eyebrow ?? "Acceso B2B Premium"}
               </span>
             </div>
-            
-            <h1 className="font-manrope text-5xl md:text-6xl font-black text-white leading-tight tracking-tight mb-4 drop-shadow-xl">
+
+            <h1 className="font-manrope text-4xl sm:text-5xl md:text-[3.5rem] font-black text-white leading-[1.05] tracking-tight mb-5 drop-shadow-xl">
               {metaSocio ? (
-                <>Socios UIAB <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">
+                <>
+                  <span className="block text-white/90 text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2">
+                    Socios UIAB
+                  </span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/70">
                     {metaSocio.nombre}
                   </span>
                 </>
               ) : (
-                <>Ecosistema Industrial <br />
+                <>
+                  Ecosistema Industrial <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">
                     Verificado UIAB
                   </span>
@@ -192,7 +197,7 @@ export default function EmpresasPage() {
               )}
             </h1>
 
-            <p className="text-blue-100/80 text-lg md:text-xl font-medium max-w-2xl leading-relaxed">
+            <p className="text-white/75 text-base md:text-lg font-medium max-w-2xl leading-relaxed">
               {metaSocio
                 ? metaSocio.descripcion
                 : "Explora el directorio completo. Como usuario validado, tenes acceso a los datos de contacto y expedientes técnicos de toda la red."}
@@ -217,8 +222,14 @@ export default function EmpresasPage() {
                <Building2 className="w-7 h-7" />
             </div>
             <div>
-              <h2 className="font-manrope text-xl font-bold text-slate-800">Directorio Activo</h2>
-              <p className="text-sm font-medium text-slate-500">Conectando {empresas.length} empresas en la zona</p>
+              <h2 className="font-manrope text-xl font-bold text-slate-800">
+                {metaSocio ? `Socios UIAB · ${metaSocio.nombreCorto}` : "Directorio Activo"}
+              </h2>
+              <p className="text-sm font-medium text-slate-500">
+                {cargandoDatos
+                  ? "Cargando..."
+                  : `Conectando ${empresas.length} ${metaSocio?.sustantivoPlural ?? "empresas"} en la zona`}
+              </p>
             </div>
           </div>
 
@@ -254,7 +265,9 @@ export default function EmpresasPage() {
             <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
               <div>
                 <h3 className="font-manrope text-lg font-bold text-slate-800">
-                  {empresasFiltradas.length} resultados encontados
+                  {cargandoDatos
+                    ? "Buscando..."
+                    : `${empresasFiltradas.length} resultados encontrados`}
                 </h3>
               </div>
               
