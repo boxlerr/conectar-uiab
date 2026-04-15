@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { NivelTarifa } from "@/tipos";
+import { crearSlug } from "@/lib/utilidades";
 
 function adminClient() {
   return createClient(
@@ -138,5 +139,38 @@ export async function cambiarRolUsuario(perfilId: string, nuevoRol: string) {
     .eq("id", perfilId);
   if (error) return { error: error.message };
   revalidatePath("/admin/usuarios");
+  return { success: true };
+}
+
+// ─── Servicios (Categorías) ──────────────────────────────────────────────────
+
+export async function crearCategoria(nombre: string, descripcion: string) {
+  const slug = crearSlug(nombre);
+  const { error } = await adminClient()
+    .from("categorias")
+    .insert({ nombre, slug, descripcion, activa: true });
+  if (error) return { error: error.message };
+  revalidatePath("/admin/servicios");
+  return { success: true };
+}
+
+export async function editarCategoria(id: string, nombre: string, descripcion: string) {
+  const slug = crearSlug(nombre);
+  const { error } = await adminClient()
+    .from("categorias")
+    .update({ nombre, slug, descripcion })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/servicios");
+  return { success: true };
+}
+
+export async function toggleActivarCategoria(id: string, activa: boolean) {
+  const { error } = await adminClient()
+    .from("categorias")
+    .update({ activa })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/servicios");
   return { success: true };
 }

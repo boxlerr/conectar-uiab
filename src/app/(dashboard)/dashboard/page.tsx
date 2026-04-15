@@ -85,7 +85,7 @@ const TARIFA_BADGE: Record<number, { label: string; style: string }> = {
 
 const ESTADO_OP: Record<string, { label: string; style: string }> = {
   abierta: { label: 'Abierta', style: 'bg-emerald-50/80 text-emerald-700' },
-  cerrada: { label: 'Cerrada', style: 'bg-[#f2f4f6] text-[#10375c]/60' },
+  cerrada: { label: 'Cerrada', style: 'bg-[#f2f4f6] text-slate-600' },
   cancelada: { label: 'Cancelada', style: 'bg-red-50/80 text-red-600' },
 };
 
@@ -256,7 +256,7 @@ export default async function DashboardPage() {
   const quickActions = isAdmin
     ? [
         { href: '/admin', icon: ShieldCheck, label: 'Panel Admin', sub: 'Gestión completa' },
-        { href: '/admin/empresas', icon: Building, label: 'Empresas', sub: `${pendingEmpresas} pendientes` },
+        { href: '/admin/empresas', icon: Building, label: 'Socios UIAB', sub: `${pendingEmpresas} pendientes` },
         { href: '/admin/proveedores', icon: Users, label: 'Proveedores', sub: `${pendingProveedores} pendientes` },
       ]
     : isCompany
@@ -268,7 +268,7 @@ export default async function DashboardPage() {
         ]
       : [
           { href: '/oportunidades', icon: Briefcase, label: 'Oportunidades', sub: 'Requerimientos abiertos' },
-          { href: '/empresas', icon: Building, label: 'Explorar Empresas', sub: 'Directorio industrial' },
+          { href: '/empresas', icon: Building, label: 'Explorar Socios UIAB', sub: 'Directorio industrial' },
           { href: '/perfil/datos', icon: Settings, label: 'Editar Perfil', sub: 'Datos profesionales' },
           { href: '/perfil/documentos', icon: FileCheck2, label: 'Certificaciones', sub: 'Habilitaciones' },
         ];
@@ -284,35 +284,68 @@ export default async function DashboardPage() {
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-28 space-y-10">
 
         {/* ──────────────────────────────
-            HEADER
+            HEADER — hero editorial
         ────────────────────────────── */}
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-          <div className="flex items-center gap-5">
-            {/* Avatar / Logo */}
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-md bg-[#f2f4f6] flex items-center justify-center overflow-hidden flex-shrink-0 shadow-[0_4px_16px_-4px_rgba(0,33,63,0.06)]">
-              {logoUrl ? (
-                <Image src={logoUrl} alt="" width={64} height={64} className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-7 h-7 text-[#10375c]/30" />
+        <header className="relative overflow-hidden rounded-2xl bg-[#021326] shadow-[0_24px_60px_-24px_rgba(0,33,63,0.45)]">
+          {/* Base Gradiente Arquitectónico */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#001c38] via-[#052b50] to-[#0a355f] opacity-90" />
+          
+          {/* Slashes y Topografía Minimalista */}
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `
+                radial-gradient(circle at 0% 0%, rgba(255,255,255,0.05) 0, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(56,189,248,0.05) 0, transparent 50%),
+                linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.04) 20.2%, transparent 20.4%), 
+                linear-gradient(105deg, transparent 45%, rgba(255,255,255,0.03) 45.1%, transparent 45.2%),
+                linear-gradient(105deg, transparent 80%, rgba(255,255,255,0.06) 80.3%, transparent 80.5%)
+              `,
+            }}
+          />
+          
+          {/* Acentos de Luz de profundidad */}
+          <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] bg-sky-500/15 rounded-full blur-[100px] opacity-80" />
+          <div className="absolute -bottom-1/2 -left-1/4 w-[600px] h-[600px] bg-cyan-400/10 rounded-full blur-[90px] opacity-70" />
+
+          <div className="relative flex flex-col md:flex-row justify-between items-start md:items-end gap-6 px-7 sm:px-10 py-9">
+            <div className="flex items-center gap-5 min-w-0">
+              {/* Avatar / Logo — ring luminoso */}
+              <div className="w-16 h-16 sm:w-[76px] sm:h-[76px] rounded-xl bg-white/95 flex items-center justify-center overflow-hidden flex-shrink-0 ring-1 ring-white/30 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.4)]">
+                {logoUrl ? (
+                  <Image src={logoUrl} alt="" width={76} height={76} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-manrope font-black text-2xl sm:text-3xl text-[#00213f] tracking-tight">
+                    {firstName.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] text-blue-200/80 font-semibold capitalize tracking-wider">
+                  {formattedDate}
+                </p>
+                <h1 className="font-poppins text-3xl sm:text-[38px] font-extrabold text-white tracking-tight leading-[1.05] mt-1">
+                  Hola, <span className="text-blue-200">{firstName}</span>
+                </h1>
+                {entityData?.razon_social && (
+                  <p className="text-sm text-white/70 font-medium mt-2 truncate max-w-sm">
+                    {entityData.razon_social}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {(entityData?.estado === 'aprobada' || entityData?.estado === 'aprobado') && (
+                <span className="flex items-center gap-1.5 bg-emerald-400/15 backdrop-blur-sm text-emerald-200 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-[0.12em] ring-1 ring-emerald-400/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                  Verificado UIAB
+                </span>
               )}
-            </div>
-            <div>
-              <p className="text-xs text-[#10375c]/30 font-medium capitalize">{formattedDate}</p>
-              <h1 className="font-poppins text-3xl sm:text-4xl font-extrabold text-[#00213f] tracking-tight leading-none mt-0.5">
-                Hola, {firstName}
-              </h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5">
-            {(entityData?.estado === 'aprobada' || entityData?.estado === 'aprobado') && (
-              <span className="flex items-center gap-1.5 bg-emerald-50/80 text-emerald-700 text-[10px] font-bold px-2.5 py-1.5 rounded-sm uppercase tracking-[0.1em]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Verificado
+              <span className="bg-white/10 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-[0.12em] ring-1 ring-white/20">
+                {isCompany ? 'Empresa' : isProvider ? 'Proveedor' : isAdmin ? 'Admin' : 'Invitado'}
               </span>
-            )}
-            <span className="bg-[#f2f4f6] text-[#10375c] text-[10px] font-bold px-2.5 py-1.5 rounded-sm uppercase tracking-[0.1em]">
-              {isCompany ? 'Empresa' : isProvider ? 'Proveedor' : isAdmin ? 'Admin' : 'Invitado'}
-            </span>
+            </div>
           </div>
         </header>
 
@@ -341,61 +374,107 @@ export default async function DashboardPage() {
         )}
 
         {/* ──────────────────────────────
-            ONBOARDING (if incomplete)
+            ONBOARDING (if incomplete) — con progress ring
         ────────────────────────────── */}
-        {showOnboarding && !isAdmin && (
-          <section className="bg-white rounded-md shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] overflow-hidden">
-            <div className="bg-gradient-to-r from-[#00213f] to-[#10375c] px-8 py-5 flex items-center justify-between">
-              <div>
-                <h2 className="font-poppins text-base font-bold text-white">Completá tu perfil</h2>
-                <p className="text-xs text-white/40 mt-0.5">{stepsCompleted} de {onboardingSteps.length} pasos completados</p>
-              </div>
-              <span className="font-poppins text-2xl font-extrabold text-white">{Math.round((stepsCompleted / onboardingSteps.length) * 100)}%</span>
-            </div>
-            <div className="px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {onboardingSteps.map((step) => (
-                <Link
-                  key={step.label}
-                  href={step.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${
-                    step.done ? 'bg-[#f7f9fb]' : 'bg-white hover:bg-[#f7f9fb]'
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-sm flex items-center justify-center flex-shrink-0 ${
-                    step.done ? 'bg-emerald-50' : 'bg-[#f2f4f6]'
-                  }`}>
-                    {step.done
-                      ? <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      : <step.icon className="w-4 h-4 text-[#10375c]/40" />}
+        {showOnboarding && !isAdmin && (() => {
+          const pct = Math.round((stepsCompleted / onboardingSteps.length) * 100);
+          const ringCircumference = 2 * Math.PI * 34;
+          const ringOffset = ringCircumference - (pct / 100) * ringCircumference;
+          return (
+            <section className="bg-white rounded-2xl shadow-[0_16px_40px_-16px_rgba(0,33,63,0.08)] overflow-hidden ring-1 ring-slate-200/70">
+              <div className="flex items-center gap-6 px-8 py-6 border-b border-slate-100">
+                {/* Progress ring */}
+                <div className="relative w-[86px] h-[86px] flex-shrink-0">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="34" stroke="#e2e8f0" strokeWidth="6" fill="none" />
+                    <circle
+                      cx="40" cy="40" r="34"
+                      stroke="url(#onbGrad)" strokeWidth="6" fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray={ringCircumference}
+                      strokeDashoffset={ringOffset}
+                    />
+                    <defs>
+                      <linearGradient id="onbGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" />
+                        <stop offset="100%" stopColor="#00213f" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="font-poppins text-lg font-extrabold text-[#00213f]">{pct}%</span>
                   </div>
-                  <span className={`text-sm font-medium ${step.done ? 'text-[#10375c]/40 line-through' : 'text-[#00213f]'}`}>
-                    {step.label}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="font-poppins text-lg font-bold text-[#00213f] flex items-center gap-2">
+                    Completá tu perfil
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    <span className="font-semibold text-[#00213f]">{stepsCompleted}</span> de {onboardingSteps.length} pasos listos · te faltan {onboardingSteps.length - stepsCompleted} para aparecer en el directorio
+                  </p>
+                </div>
+              </div>
+              <div className="px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {onboardingSteps.map((step) => (
+                  <Link
+                    key={step.label}
+                    href={step.href}
+                    className={`group flex items-center gap-3.5 px-4 py-3.5 rounded-xl transition-all duration-200 border ${
+                      step.done
+                        ? 'bg-emerald-50/50 border-emerald-100 hover:bg-emerald-50'
+                        : 'bg-white border-slate-200 hover:border-[#00213f]/30 hover:bg-slate-50 hover:shadow-sm'
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                      step.done ? 'bg-emerald-500 text-white shadow-[0_4px_12px_-2px_rgba(16,185,129,0.4)]' : 'bg-slate-100 text-slate-500 group-hover:bg-[#00213f] group-hover:text-white'
+                    }`}>
+                      {step.done
+                        ? <CheckCircle2 className="w-5 h-5" strokeWidth={2.5} />
+                        : <step.icon className="w-4 h-4" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-semibold leading-tight ${step.done ? 'text-emerald-800' : 'text-[#00213f]'}`}>
+                        {step.label}
+                      </p>
+                      <p className={`text-[11px] mt-0.5 ${step.done ? 'text-emerald-600/80' : 'text-slate-500'}`}>
+                        {step.done ? 'Listo' : 'Pendiente · tocá para completar'}
+                      </p>
+                    </div>
+                    {!step.done && <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-[#00213f] transition-colors" />}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
 
         {/* ──────────────────────────────
-            KPIs
+            KPIs — con barra de acento
         ────────────────────────────── */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { icon: Building, value: empresasCount, label: 'Empresas Activas', href: '/empresas', accent: 'bg-[#00213f]/5 text-[#00213f]' },
-            { icon: Users, value: proveedoresCount, label: 'Proveedores', href: '/proveedores', accent: 'bg-emerald-50 text-emerald-700' },
-            { icon: Target, value: oportunidadesCount, label: 'Oportunidades', href: '/oportunidades', accent: 'bg-amber-50 text-amber-700' },
-            { icon: isAdmin ? AlertCircle : Zap, value: isAdmin ? totalPending : fourthStatCount, label: isAdmin ? 'Pendientes' : isCompany ? 'Mis Oportunidades' : 'Mis Matches', href: isAdmin ? '/admin' : '/oportunidades', accent: 'bg-violet-50 text-violet-700' },
+            { icon: Building, value: empresasCount, label: 'Socios UIAB', sub: 'en el directorio', href: '/empresas', accent: 'bg-blue-50 text-blue-700', bar: 'from-blue-500 to-blue-700' },
+            { icon: Users, value: proveedoresCount, label: 'Proveedores', sub: 'verificados', href: '/proveedores', accent: 'bg-emerald-50 text-emerald-700', bar: 'from-emerald-500 to-teal-600' },
+            { icon: Target, value: oportunidadesCount, label: 'Oportunidades', sub: 'abiertas ahora', href: '/oportunidades', accent: 'bg-amber-50 text-amber-700', bar: 'from-amber-500 to-orange-500' },
+            { icon: isAdmin ? AlertCircle : Zap, value: isAdmin ? totalPending : fourthStatCount, label: isAdmin ? 'Pendientes' : isCompany ? 'Mis Oportunidades' : 'Mis Matches', sub: isAdmin ? 'a revisar' : 'activas', href: isAdmin ? '/admin' : '/oportunidades', accent: 'bg-violet-50 text-violet-700', bar: 'from-violet-500 to-purple-600' },
           ].map((stat) => (
-            <Link key={stat.label} href={stat.href} className="bg-white rounded-md p-6 shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] hover:shadow-[0_24px_48px_-12px_rgba(0,33,63,0.1)] transition-all duration-300 group">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-10 h-10 rounded-sm flex items-center justify-center ${stat.accent}`}>
-                  <stat.icon className="w-5 h-5" />
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className="group relative bg-white rounded-2xl p-6 ring-1 ring-slate-200/70 shadow-[0_4px_16px_-8px_rgba(0,33,63,0.08)] hover:shadow-[0_24px_48px_-16px_rgba(0,33,63,0.18)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+            >
+              <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${stat.bar} opacity-0 group-hover:opacity-100 transition-opacity`} />
+              <div className="flex items-center justify-between mb-5">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${stat.accent}`}>
+                  <stat.icon className="w-5 h-5" strokeWidth={2} />
                 </div>
-                <ArrowUpRight className="w-4 h-4 text-[#d8dadc] group-hover:text-[#10375c] transition-colors" />
+                <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-[#00213f] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
               </div>
-              <p className="font-poppins text-3xl font-extrabold text-[#00213f]">{stat.value}</p>
-              <p className="text-[10px] text-[#10375c]/30 font-bold mt-1 uppercase tracking-[0.1em]">{stat.label}</p>
+              <p className="font-poppins text-[34px] font-extrabold text-[#00213f] leading-none tracking-tight">{stat.value}</p>
+              <div className="mt-2 space-y-0.5">
+                <p className="text-[11px] text-[#00213f] font-bold uppercase tracking-[0.1em]">{stat.label}</p>
+                <p className="text-[11px] text-slate-500 font-medium">{stat.sub}</p>
+              </div>
             </Link>
           ))}
         </section>
@@ -413,10 +492,10 @@ export default async function DashboardPage() {
               <section className="bg-white rounded-md shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] overflow-hidden">
                 <div className="bg-[#f7f9fb] px-8 py-5 flex items-center justify-between">
                   <h2 className="font-poppins text-base font-bold text-[#00213f] flex items-center gap-2.5">
-                    {isCompany ? <Building className="w-5 h-5 text-[#10375c]/50" /> : <Users className="w-5 h-5 text-emerald-600/70" />}
+                    {isCompany ? <Building className="w-5 h-5 text-slate-600" /> : <Users className="w-5 h-5 text-emerald-600/70" />}
                     {isCompany ? 'Mi Empresa' : 'Mi Perfil Profesional'}
                   </h2>
-                  <Link href="/perfil/datos" className="text-xs font-bold text-[#10375c]/40 hover:text-[#00213f] transition-colors flex items-center gap-1 uppercase tracking-wider">
+                  <Link href="/perfil/datos" className="text-xs font-bold text-slate-500 hover:text-[#00213f] transition-colors flex items-center gap-1 uppercase tracking-wider">
                     Editar <ArrowRight className="w-3 h-3" />
                   </Link>
                 </div>
@@ -431,36 +510,36 @@ export default async function DashboardPage() {
                           {logoUrl ? (
                             <Image src={logoUrl} alt="" width={64} height={64} className="w-full h-full object-cover" />
                           ) : (
-                            <Building className="w-7 h-7 text-[#10375c]/20" />
+                            <Building className="w-7 h-7 text-slate-400" />
                           )}
                         </div>
                         <div>
-                          <p className="text-[10px] text-[#10375c]/25 font-bold uppercase tracking-[0.15em] mb-0.5">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] mb-0.5">
                             {isCompany ? 'Razón Social' : 'Nombre'}
                           </p>
                           <p className="font-poppins text-xl font-bold text-[#00213f] leading-tight">
                             {isCompany ? entityData.razon_social || '—' : `${entityData.nombre || ''} ${entityData.apellido || ''}`.trim() || '—'}
                           </p>
                           {isCompany && entityData.nombre_fantasia && entityData.nombre_fantasia !== entityData.razon_social && (
-                            <p className="text-xs text-[#10375c]/40 mt-0.5">{entityData.nombre_fantasia}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{entityData.nombre_fantasia}</p>
                           )}
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
                         <div>
-                          <p className="text-[10px] text-[#10375c]/25 font-bold uppercase tracking-[0.15em] mb-0.5">CUIT</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] mb-0.5">CUIT</p>
                           <p className="text-sm font-medium text-[#00213f]">{entityData.cuit || '—'}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] text-[#10375c]/25 font-bold uppercase tracking-[0.15em] mb-0.5">Localidad</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] mb-0.5">Localidad</p>
                           <p className="text-sm font-medium text-[#00213f] flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-[#10375c]/20" />{entityData.localidad || '—'}
+                            <MapPin className="w-3 h-3 text-slate-400" />{entityData.localidad || '—'}
                           </p>
                         </div>
                         {entityData.email && (
                           <div>
-                            <p className="text-[10px] text-[#10375c]/25 font-bold uppercase tracking-[0.15em] mb-0.5">Email</p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] mb-0.5">Email</p>
                             <p className="text-sm font-medium text-[#00213f] truncate">{entityData.email}</p>
                           </div>
                         )}
@@ -468,7 +547,7 @@ export default async function DashboardPage() {
 
                       {entityCategories.length > 0 && (
                         <div>
-                          <p className="text-[10px] text-[#10375c]/25 font-bold uppercase tracking-[0.15em] mb-2">{isCompany ? 'Sectores' : 'Especialidades'}</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] mb-2">{isCompany ? 'Sectores' : 'Especialidades'}</p>
                           <div className="flex flex-wrap gap-1.5">
                             {entityCategories.map((c: string) => (
                               <span key={c} className="bg-[#f2f4f6] text-[#10375c] text-xs font-medium px-2.5 py-1 rounded-sm">{c}</span>
@@ -479,8 +558,8 @@ export default async function DashboardPage() {
 
                       {isCompany && entityData.actividad && (
                         <div>
-                          <p className="text-[10px] text-[#10375c]/25 font-bold uppercase tracking-[0.15em] mb-0.5">Actividad</p>
-                          <p className="text-sm text-[#10375c]/60">{entityData.actividad}</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] mb-0.5">Actividad</p>
+                          <p className="text-sm text-slate-600">{entityData.actividad}</p>
                         </div>
                       )}
                     </div>
@@ -490,7 +569,7 @@ export default async function DashboardPage() {
                       {/* Completion */}
                       <div className="bg-[#f7f9fb] rounded-md p-5">
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-[10px] font-bold text-[#10375c]/40 uppercase tracking-wider">Completitud</p>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Completitud</p>
                           <span className={`text-sm font-extrabold font-poppins ${profilePct >= 80 ? 'text-emerald-600' : profilePct >= 50 ? 'text-amber-600' : 'text-red-500'}`}>{profilePct}%</span>
                         </div>
                         <div className="flex gap-0.5">
@@ -499,7 +578,7 @@ export default async function DashboardPage() {
                           ))}
                         </div>
                         {missingFields.length > 0 && missingFields.length <= 4 && (
-                          <p className="text-[10px] text-[#10375c]/30 mt-2">
+                          <p className="text-[10px] text-slate-500 mt-2">
                             Falta: {missingFields.slice(0, 3).join(', ')}{missingFields.length > 3 ? ` +${missingFields.length - 3}` : ''}
                           </p>
                         )}
@@ -508,14 +587,14 @@ export default async function DashboardPage() {
                       {/* Tarifa */}
                       {isCompany && tarifaData && (
                         <div className="bg-[#f7f9fb] rounded-md p-5">
-                          <p className="text-[10px] text-[#10375c]/25 font-bold uppercase tracking-[0.15em] mb-3">Membresía</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] mb-3">Membresía</p>
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-sm bg-white shadow-[0_4px_12px_-4px_rgba(0,33,63,0.06)] flex items-center justify-center">
                               <Award className="w-4 h-4 text-[#10375c]" />
                             </div>
                             <div className="flex-1">
                               <p className="text-sm font-bold text-[#00213f]">{tarifaData.nombre}</p>
-                              <p className="text-[10px] text-[#10375c]/30">{ars(tarifaData.precio_anual)}/año</p>
+                              <p className="text-[10px] text-slate-500">{ars(tarifaData.precio_anual)}/año</p>
                             </div>
                             <span className={`text-[10px] font-bold px-2 py-1 rounded-sm tracking-wider ${TARIFA_BADGE[tarifaData.nivel as number]?.style || ''}`}>
                               {TARIFA_BADGE[tarifaData.nivel as number]?.label}
@@ -527,27 +606,27 @@ export default async function DashboardPage() {
                       {/* Socio */}
                       {isCompany && entityData.n_socio && (
                         <div className="flex items-center gap-3 bg-[#00213f]/[0.02] rounded-md px-4 py-3">
-                          <CheckCircle2 className="w-4 h-4 text-[#10375c]/40 flex-shrink-0" />
-                          <p className="text-xs text-[#10375c]/60">Socio UIAB N° <span className="font-bold text-[#00213f]">{entityData.n_socio}</span></p>
+                          <CheckCircle2 className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                          <p className="text-xs text-slate-600">Socio UIAB N° <span className="font-bold text-[#00213f]">{entityData.n_socio}</span></p>
                         </div>
                       )}
 
                       {/* Suscripcion */}
                       {suscripcion && (
                         <div className="bg-[#f7f9fb] rounded-md p-5">
-                          <p className="text-[10px] text-[#10375c]/25 font-bold uppercase tracking-[0.15em] mb-2">Suscripción</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] mb-2">Suscripción</p>
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-semibold text-[#00213f]">{suscripcion.nombre_plan || 'Plan Activo'}</p>
                             <span className={`text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider ${
-                              suscripcion.estado === 'activa' ? 'bg-emerald-50 text-emerald-700' : 'bg-[#f2f4f6] text-[#10375c]/50'
+                              suscripcion.estado === 'activa' ? 'bg-emerald-50 text-emerald-700' : 'bg-[#f2f4f6] text-slate-600'
                             }`}>{suscripcion.estado}</span>
                           </div>
                           {suscripcion.finaliza_en && (
-                            <p className="text-[10px] text-[#10375c]/30 mt-1">
+                            <p className="text-[10px] text-slate-500 mt-1">
                               Vence: {new Date(suscripcion.finaliza_en).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
                             </p>
                           )}
-                          <Link href="/perfil/suscripcion" className="inline-flex items-center gap-1 text-[10px] font-bold text-[#10375c]/40 hover:text-[#00213f] mt-2 transition-colors uppercase tracking-wider">
+                          <Link href="/perfil/suscripcion" className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-[#00213f] mt-2 transition-colors uppercase tracking-wider">
                             Gestionar <ArrowRight className="w-3 h-3" />
                           </Link>
                         </div>
@@ -556,8 +635,8 @@ export default async function DashboardPage() {
                       {/* Provider description */}
                       {isProvider && entityData.descripcion && (
                         <div className="bg-[#f7f9fb] rounded-md p-5">
-                          <p className="text-[10px] text-[#10375c]/25 font-bold uppercase tracking-[0.15em] mb-2">Descripción</p>
-                          <p className="text-sm text-[#10375c]/50 leading-relaxed line-clamp-3">{entityData.descripcion}</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] mb-2">Descripción</p>
+                          <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">{entityData.descripcion}</p>
                         </div>
                       )}
                     </div>
@@ -572,16 +651,16 @@ export default async function DashboardPage() {
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-[#00213f] to-[#10375c] rounded-sm flex items-center justify-center shadow-[0_4px_16px_-4px_rgba(0,33,63,0.2)]">
-                      <Sparkles className="w-5 h-5 text-white" />
+                      <Activity className="w-5 h-5 text-white" />
                     </div>
                     <div>
                       <h2 className="font-poppins text-base font-bold text-[#00213f]">
                         {isCompany ? 'Proveedores Recomendados' : 'Oportunidades para Vos'}
                       </h2>
-                      <p className="text-[10px] text-[#10375c]/25 font-bold uppercase tracking-[0.15em] mt-0.5">Algoritmo de matching</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] mt-0.5">Algoritmo de matching</p>
                     </div>
                   </div>
-                  <Link href="/oportunidades" className="text-xs font-bold text-[#10375c]/40 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
+                  <Link href="/oportunidades" className="text-xs font-bold text-slate-500 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
                     Ver todo <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -603,13 +682,13 @@ export default async function DashboardPage() {
                               {isProvider ? match.oportunidad?.titulo : match.proveedor?.nombre_comercial || match.proveedor?.nombre}
                             </h4>
                             {(isProvider ? match.oportunidad?.localidad : match.proveedor?.localidad) && (
-                              <p className="text-[10px] text-[#10375c]/25 flex items-center gap-1 mb-3">
+                              <p className="text-[10px] text-slate-500 flex items-center gap-1 mb-3">
                                 <MapPin className="w-3 h-3" />
                                 {isProvider ? match.oportunidad?.localidad : match.proveedor?.localidad}
                               </p>
                             )}
                             <div className="mt-auto pt-4">
-                              <span className="text-[10px] font-bold text-[#10375c]/15 uppercase tracking-[0.15em]">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
                                 {isProvider ? 'Oportunidad' : 'Proveedor'}
                               </span>
                             </div>
@@ -621,12 +700,12 @@ export default async function DashboardPage() {
                 ) : (
                   <div className="bg-white rounded-md shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] p-12 text-center">
                     <Activity className="w-10 h-10 text-[#d8dadc] mx-auto mb-4" />
-                    <p className="text-sm font-medium text-[#10375c]/40 max-w-sm mx-auto leading-relaxed">
+                    <p className="text-sm font-medium text-slate-500 max-w-sm mx-auto leading-relaxed">
                       {isCompany
                         ? 'Publicá una oportunidad para recibir proveedores recomendados por el algoritmo.'
                         : 'Completá tu perfil para que el algoritmo te conecte con oportunidades relevantes.'}
                     </p>
-                    <Link href={isCompany ? '/oportunidades' : '/perfil/datos'} className="inline-flex items-center gap-1 text-sm font-bold text-[#10375c]/50 hover:text-[#00213f] mt-4 transition-colors">
+                    <Link href={isCompany ? '/oportunidades' : '/perfil/datos'} className="inline-flex items-center gap-1 text-sm font-bold text-slate-600 hover:text-[#00213f] mt-4 transition-colors">
                       {isCompany ? 'Publicar oportunidad' : 'Completar perfil'} <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
@@ -639,29 +718,29 @@ export default async function DashboardPage() {
               <section className="bg-white rounded-md shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] overflow-hidden">
                 <div className="bg-[#f7f9fb] px-8 py-5 flex items-center justify-between">
                   <h2 className="font-poppins text-base font-bold text-[#00213f] flex items-center gap-2.5">
-                    <Briefcase className="w-5 h-5 text-[#10375c]/50" />
+                    <Briefcase className="w-5 h-5 text-slate-600" />
                     Mis Oportunidades
                   </h2>
-                  <Link href="/oportunidades" className="text-xs font-bold text-[#10375c]/40 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
+                  <Link href="/oportunidades" className="text-xs font-bold text-slate-500 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
                     Ver todas <ArrowRight className="w-3 h-3" />
                   </Link>
                 </div>
                 <div className="divide-y divide-[#f7f9fb]">
                   {myOps.map((op: any) => {
-                    const est = ESTADO_OP[op.estado] || { label: op.estado, style: 'bg-[#f2f4f6] text-[#10375c]/50' };
+                    const est = ESTADO_OP[op.estado] || { label: op.estado, style: 'bg-[#f2f4f6] text-slate-600' };
                     return (
                       <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-4 px-8 py-4 hover:bg-[#f7f9fb] transition-colors group">
                         <div className="w-9 h-9 rounded-sm bg-[#f2f4f6] flex items-center justify-center flex-shrink-0">
-                          <CircleDot className="w-4 h-4 text-[#10375c]/30" />
+                          <CircleDot className="w-4 h-4 text-slate-500" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-[#00213f] truncate group-hover:text-[#10375c] transition-colors">{op.titulo}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             {(op.categoria as any)?.nombre && (
-                              <span className="text-[10px] text-[#10375c]/30">{(op.categoria as any).nombre}</span>
+                              <span className="text-[10px] text-slate-500">{(op.categoria as any).nombre}</span>
                             )}
-                            <span className="text-[10px] text-[#10375c]/20">·</span>
-                            <span className="text-[10px] text-[#10375c]/25">{timeAgo(op.creado_en)}</span>
+                            <span className="text-[10px] text-slate-400">·</span>
+                            <span className="text-[10px] text-slate-500">{timeAgo(op.creado_en)}</span>
                           </div>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider flex-shrink-0 ${est.style}`}>{est.label}</span>
@@ -677,7 +756,7 @@ export default async function DashboardPage() {
               <section className="bg-white rounded-md shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] overflow-hidden">
                 <div className="bg-[#f7f9fb] px-8 py-5 flex items-center justify-between">
                   <h2 className="font-poppins text-base font-bold text-[#00213f] flex items-center gap-2.5">
-                    <MessageSquare className="w-5 h-5 text-[#10375c]/50" />
+                    <MessageSquare className="w-5 h-5 text-slate-600" />
                     Solicitudes de Presupuesto
                   </h2>
                 </div>
@@ -691,10 +770,10 @@ export default async function DashboardPage() {
                         <p className="text-sm font-semibold text-[#00213f] truncate">
                           {(sol.empresa_origen as any)?.razon_social || 'Empresa'}
                         </p>
-                        <p className="text-[10px] text-[#10375c]/25 mt-0.5">{timeAgo(sol.creado_en)}</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">{timeAgo(sol.creado_en)}</p>
                       </div>
                       <span className={`text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider flex-shrink-0 ${
-                        sol.estado === 'pendiente' ? 'bg-amber-50 text-amber-700' : sol.estado === 'respondida' ? 'bg-emerald-50 text-emerald-700' : 'bg-[#f2f4f6] text-[#10375c]/50'
+                        sol.estado === 'pendiente' ? 'bg-amber-50 text-amber-700' : sol.estado === 'respondida' ? 'bg-emerald-50 text-emerald-700' : 'bg-[#f2f4f6] text-slate-600'
                       }`}>{sol.estado}</span>
                     </div>
                   ))}
@@ -709,7 +788,7 @@ export default async function DashboardPage() {
                   <Target className="w-5 h-5 text-amber-600/70" />
                   {isProvider ? 'Últimas Oportunidades' : 'Actividad Reciente'}
                 </h2>
-                <Link href="/oportunidades" className="text-xs font-bold text-[#10375c]/40 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
+                <Link href="/oportunidades" className="text-xs font-bold text-slate-500 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
                   Ver todas <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
@@ -724,14 +803,14 @@ export default async function DashboardPage() {
                         <p className="text-sm font-semibold text-[#00213f] truncate group-hover:text-[#10375c] transition-colors">{op.titulo}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {(op.categoria as any)?.nombre && (
-                            <span className="bg-[#f2f4f6] text-[#10375c]/50 text-[10px] font-semibold px-1.5 py-0.5 rounded-sm">{(op.categoria as any).nombre}</span>
+                            <span className="bg-[#f2f4f6] text-slate-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-sm">{(op.categoria as any).nombre}</span>
                           )}
                           {op.localidad && (
-                            <span className="text-[10px] text-[#10375c]/25 flex items-center gap-0.5"><MapPin className="w-3 h-3" />{op.localidad}</span>
+                            <span className="text-[10px] text-slate-500 flex items-center gap-0.5"><MapPin className="w-3 h-3" />{op.localidad}</span>
                           )}
                         </div>
                       </div>
-                      <span className="text-[10px] text-[#10375c]/20 font-semibold flex items-center gap-1 flex-shrink-0">
+                      <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 flex-shrink-0">
                         <Clock className="w-3 h-3" />{timeAgo(op.creado_en)}
                       </span>
                     </Link>
@@ -740,7 +819,7 @@ export default async function DashboardPage() {
               ) : (
                 <div className="p-12 text-center">
                   <Target className="w-10 h-10 text-[#d8dadc] mx-auto mb-3" />
-                  <p className="text-sm text-[#10375c]/30 font-medium">No hay oportunidades abiertas.</p>
+                  <p className="text-sm text-slate-500 font-medium">No hay oportunidades abiertas.</p>
                 </div>
               )}
             </section>
@@ -751,18 +830,18 @@ export default async function DashboardPage() {
 
             {/* ── QUICK ACTIONS ── */}
             <section className="bg-white rounded-md shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] p-6">
-              <h3 className="text-[10px] font-bold text-[#10375c]/25 uppercase tracking-[0.15em] mb-5">Acciones Rápidas</h3>
+              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.15em] mb-5">Acciones Rápidas</h3>
               <div className="space-y-1">
                 {quickActions.map((a) => (
                   <Link key={a.href} href={a.href} className="flex items-center gap-3.5 p-3 rounded-md hover:bg-[#f7f9fb] transition-colors group">
                     <div className="w-10 h-10 rounded-sm bg-[#f2f4f6] group-hover:bg-[#00213f]/5 flex items-center justify-center transition-colors flex-shrink-0">
-                      <a.icon className="w-5 h-5 text-[#10375c]/35 group-hover:text-[#00213f] transition-colors" />
+                      <a.icon className="w-5 h-5 text-slate-500 group-hover:text-[#00213f] transition-colors" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-[#00213f]">{a.label}</p>
-                      <p className="text-[10px] text-[#10375c]/25">{a.sub}</p>
+                      <p className="text-[10px] text-slate-500">{a.sub}</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-[#d8dadc] group-hover:text-[#10375c]/30 flex-shrink-0 transition-colors" />
+                    <ChevronRight className="w-4 h-4 text-[#d8dadc] group-hover:text-slate-500 flex-shrink-0 transition-colors" />
                   </Link>
                 ))}
               </div>
@@ -775,7 +854,7 @@ export default async function DashboardPage() {
                 <h3 className="font-poppins text-lg font-bold mb-2">
                   {isCompany ? 'Encontrá Proveedores' : isProvider ? 'Explorá Empresas' : 'Directorio UIAB'}
                 </h3>
-                <p className="text-sm text-white/40 leading-relaxed mb-5">
+                <p className="text-sm text-white/70 leading-relaxed mb-5">
                   {isCompany
                     ? 'Proveedores verificados para necesidades industriales de tu empresa.'
                     : 'Empresas que buscan tus servicios en Almirante Brown y alrededores.'}
@@ -788,7 +867,7 @@ export default async function DashboardPage() {
 
             {/* ── NETWORK PULSE ── */}
             <section className="bg-white rounded-md shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] p-6">
-              <h3 className="text-[10px] font-bold text-[#10375c]/25 uppercase tracking-[0.15em] mb-5 flex items-center gap-2">
+              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.15em] mb-5 flex items-center gap-2">
                 <BarChart3 className="w-3.5 h-3.5" /> Red Industrial
               </h3>
               <div className="space-y-4">
@@ -799,7 +878,7 @@ export default async function DashboardPage() {
                 ].map((s, i) => (
                   <div key={s.label}>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-[#10375c]/40">{s.label}</span>
+                      <span className="text-sm text-slate-500">{s.label}</span>
                       <span className="font-poppins text-lg font-bold text-[#00213f]">{s.value}</span>
                     </div>
                     {i < 2 && <div className="h-px bg-[#f2f4f6] mt-4" />}
@@ -810,14 +889,14 @@ export default async function DashboardPage() {
 
             {/* ── NOTIFICATIONS ── */}
             <section className="bg-white rounded-md shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] p-6">
-              <h3 className="text-[10px] font-bold text-[#10375c]/25 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
                 <Bell className="w-3.5 h-3.5" /> Notificaciones
               </h3>
               <div className="flex flex-col items-center py-5 text-center">
                 <div className="w-10 h-10 rounded-sm bg-[#f7f9fb] flex items-center justify-center mb-3">
                   <CheckCircle2 className="w-5 h-5 text-[#d8dadc]" />
                 </div>
-                <p className="text-xs text-[#10375c]/25 font-medium">Tu cuenta está al día</p>
+                <p className="text-xs text-slate-500 font-medium">Tu cuenta está al día</p>
               </div>
             </section>
           </div>

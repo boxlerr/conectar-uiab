@@ -7,6 +7,7 @@ export interface Entidad {
   descripcionCorta: string;
   descripcionLarga: string;
   logo: string;
+  logoUrl?: string | null;
   ubicacion: string;
   servicios: string[];
   certificaciones?: string[];

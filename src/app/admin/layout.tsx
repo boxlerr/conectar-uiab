@@ -1,15 +1,16 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { ShieldAlert, LayoutDashboard, Building, Wrench, MessageSquare, Users, Settings, DollarSign, Briefcase } from "lucide-react";
+import { ShieldAlert, LayoutDashboard, Building, Wrench, MessageSquare, Users, Settings, DollarSign, Briefcase, Tags } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utilidades";
 
 const adminNav = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "Empresas", href: "/admin/empresas", icon: Building },
+  { name: "Socios UIAB", href: "/admin/empresas", icon: Building },
   { name: "Proveedores", href: "/admin/proveedores", icon: Wrench },
+  { name: "Servicios", href: "/admin/servicios", icon: Tags },
   { name: "Reseñas", href: "/admin/resenas", icon: MessageSquare },
   { name: "Oportunidades", href: "/admin/oportunidades", icon: Briefcase },
   { name: "Usuarios", href: "/admin/usuarios", icon: Users },

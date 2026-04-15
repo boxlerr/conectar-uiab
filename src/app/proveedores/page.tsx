@@ -173,33 +173,23 @@ export default function ProveedoresPage() {
             
             {/* Results */}
             {proveedoresFiltrados.length > 0 ? (
-              <motion.div 
-                layout
-                className={viewMode === 'grid' 
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6" 
-                  : "flex flex-col gap-4"
+              <div
+                key={viewMode}
+                className={viewMode === 'grid'
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+                  : "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_32px_-12px_rgba(15,23,42,0.08)] overflow-hidden divide-y divide-slate-200/70"
                 }
               >
-                <AnimatePresence mode="popLayout">
-                  {proveedoresFiltrados.map((proveedor) => (
-                    <motion.div
-                      key={proveedor.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <DirectoryProfileCard 
-                        entidad={proveedor} 
-                        basePath="/proveedores" 
-                        variant={viewMode}
-                        colorScheme="emerald"
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </motion.div>
+                {proveedoresFiltrados.map((proveedor) => (
+                  <DirectoryProfileCard
+                    key={proveedor.id}
+                    entidad={proveedor}
+                    basePath="/proveedores"
+                    variant={viewMode}
+                    colorScheme="emerald"
+                  />
+                ))}
+              </div>
             ) : (
               <motion.div 
                 initial={{ opacity: 0 }}

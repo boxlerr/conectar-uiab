@@ -21,11 +21,11 @@ export function FilterSidebar({
 }: FilterSidebarProps) {
   // Theme variants
   const isEmerald = colorScheme === 'emerald';
-  const themeAccent = isEmerald ? "bg-emerald-600" : "bg-primary";
-  const themeText = isEmerald ? "text-emerald-700 hover:text-emerald-800" : "text-primary hover:text-primary-700";
-  const focusRing = isEmerald ? "focus:ring-emerald-500/20 group-focus-within:text-emerald-600" : "focus:ring-primary/20 group-focus-within:text-primary";
-  const activeBg = isEmerald ? "bg-emerald-600 shadow-emerald-900/10" : "bg-primary shadow-primary/10";
-  const hoverBg = isEmerald ? "hover:bg-emerald-50" : "hover:bg-surface-dim";
+  const themeAccent = isEmerald ? "bg-emerald-600" : "bg-primary-600";
+  const themeText = isEmerald ? "text-emerald-700 hover:text-emerald-800" : "text-primary-700 hover:text-primary-800";
+  const focusRing = isEmerald ? "focus:ring-emerald-500/20 group-focus-within:text-emerald-600" : "focus:ring-primary-500/20 group-focus-within:text-primary-600";
+  const activeBg = isEmerald ? "bg-emerald-600 shadow-emerald-900/10" : "bg-primary-600 shadow-primary-600/10";
+  const hoverBg = isEmerald ? "hover:bg-emerald-50" : "hover:bg-primary-50";
   
   return (
     <div className="bg-white/80 backdrop-blur-xl p-8 rounded-xl border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] sticky top-28 space-y-10 font-inter">

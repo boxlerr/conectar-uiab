@@ -25,6 +25,8 @@ export default async function EmpresaProfilePage({
       sitio_web,
       email,
       referente,
+      bucket_logo,
+      ruta_logo,
       empresas_categorias (
         categorias (
           nombre
@@ -45,6 +47,9 @@ export default async function EmpresaProfilePage({
 
   const cats = empresaDb.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
   const mainCat = cats.length > 0 ? cats[0] : "General";
+  const logoUrl = empresaDb.bucket_logo && empresaDb.ruta_logo
+    ? supabase.storage.from(empresaDb.bucket_logo).getPublicUrl(empresaDb.ruta_logo).data.publicUrl
+    : null;
 
   const empresa = {
     nombre: empresaDb.razon_social,
@@ -52,6 +57,7 @@ export default async function EmpresaProfilePage({
     descripcionCorta: empresaDb.actividad || "Miembro de la Unión Industrial",
     descripcionLarga: `Empresa verificada y registrada en el ecosistema industrial de UIAB. ${empresaDb.actividad ? `Principalmente enfocada en ${empresaDb.actividad.toLowerCase()}.` : ''}`,
     logo: empresaDb.razon_social.charAt(0).toUpperCase(),
+    logoUrl,
     ubicacion: `${empresaDb.localidad || 'S/N'}, ${empresaDb.direccion || ''}`.replace(/^, | ,|, $/g, ''),
     servicios: cats.slice(1).length > 0 ? cats.slice(1) : ["Servicios Industriales"],
     certificaciones: ["Socio Verificado UIAB"],
@@ -80,14 +86,18 @@ export default async function EmpresaProfilePage({
         </div>
 
         <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-12">
-          <Link href="/empresas" className="inline-flex items-center text-blue-200/80 hover:text-white mb-8 transition-colors text-xs font-bold tracking-widest uppercase">
+          <Link href="/directorio" className="inline-flex items-center text-blue-200/80 hover:text-white mb-8 transition-colors text-xs font-bold tracking-widest uppercase">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Directorio de Empresas
+            Directorio
           </Link>
           
           <div className="flex flex-col md:flex-row items-end gap-6 max-w-4xl">
-            <div className="w-32 h-32 bg-white text-[#00213f] rounded-2xl flex items-center justify-center font-manrope font-black text-6xl shadow-2xl shrink-0 border-4 border-white/10 translate-y-24 relative z-20">
-              {empresa.logo}
+            <div className="w-32 h-32 bg-white text-[#00213f] rounded-2xl flex items-center justify-center font-manrope font-black text-6xl shadow-2xl shrink-0 border-4 border-white/10 translate-y-24 relative z-20 overflow-hidden">
+              {empresa.logoUrl ? (
+                <Image src={empresa.logoUrl} alt={empresa.nombre} fill className="object-cover" sizes="128px" />
+              ) : (
+                empresa.logo
+              )}
             </div>
             <div className="pb-2">
               <div className="flex flex-wrap items-center gap-4 mb-4">

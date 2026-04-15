@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, MapPin, BadgeCheck, ShieldCheck } from "lucide-react";
 import { Entidad } from "@/lib/datos/directorio";
 
@@ -21,55 +22,68 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
     : "bg-gradient-to-tr from-[#00213f] to-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.3)] border-white/20";
 
   if (variant === 'list') {
+    const accentDot = isEmerald ? "bg-emerald-500" : "bg-blue-500";
+    const accentText = isEmerald ? "text-emerald-600" : "text-blue-600";
+    const accentHoverBg = isEmerald ? "group-hover:bg-emerald-50/40" : "group-hover:bg-blue-50/40";
+    const buttonHover = isEmerald
+      ? "group-hover:bg-emerald-600 group-hover:border-emerald-600 group-hover:text-white"
+      : "group-hover:bg-[#00213f] group-hover:border-[#00213f] group-hover:text-white";
+
     return (
-      <Link 
+      <Link
         href={`${basePath}/${entidad.slug}`}
-        className={`group relative bg-white transition-all duration-500 border border-slate-200 p-0 font-inter rounded-xl overflow-hidden hover:shadow-xl ${glowHover}`}
+        className="group relative block bg-white font-inter border-b border-slate-200/70 last:border-b-0 transition-all duration-500 hover:bg-slate-50/40"
       >
-        {/* Subtle Indicator Line */}
-        <div className={`absolute left-0 top-0 bottom-0 w-1 ${indicatorLine} scale-y-0 group-hover:scale-y-100 transition-transform duration-500 origin-top`} />
-        
-        <div className="flex flex-col xl:grid xl:grid-cols-[auto_1fr_auto] items-stretch relative z-10">
-          {/* Identity Block */}
-          <div className={`w-full xl:w-32 h-32 flex-shrink-0 flex items-center justify-center font-manrope font-black text-4xl border-r border-slate-100 transition-colors duration-500 ${bgLogo}`}>
-            {entidad.logo}
+        {/* Hairline accent izquierda */}
+        <span className={`absolute left-0 top-0 bottom-0 w-px ${indicatorLine} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+
+        <div className="grid grid-cols-[auto_1fr] md:grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-5 md:gap-8 px-6 md:px-8 py-6">
+          {/* Logo — marco delicado */}
+          <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-[10px] overflow-hidden bg-white ring-1 ring-slate-200 transition-all duration-500 group-hover:ring-slate-300 group-hover:shadow-[0_6px_24px_-10px_rgba(15,23,42,0.25)]">
+            {entidad.logoUrl ? (
+              <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="80px" />
+            ) : (
+              <div className={`w-full h-full flex items-center justify-center font-manrope font-black text-2xl md:text-3xl tracking-tight ${isEmerald ? 'text-emerald-700 bg-emerald-50/60' : 'text-[#00213f] bg-slate-50'}`}>
+                {entidad.logo}
+              </div>
+            )}
           </div>
 
-          {/* Core Info */}
-          <div className="flex-grow p-6 flex flex-col xl:flex-row gap-6 items-start xl:items-center">
-            <div className="flex-grow min-w-0 pr-4">
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className={`font-manrope text-2xl font-extrabold text-slate-800 tracking-tight transition-colors ${hoverText} truncate`}>
-                  {entidad.nombre}
-                </h3>
-                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border ${badgeClasses} scale-90 origin-left`}>
-                  <BadgeCheck className="w-3.5 h-3.5" />
-                  <span className="text-[9px] font-black uppercase tracking-widest">Verificado</span>
-                </div>
-              </div>
-              <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 max-w-2xl font-medium">
-                {entidad.descripcionCorta}
-              </p>
+          {/* Identidad */}
+          <div className="min-w-0 md:pr-6">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className={`inline-block w-1 h-1 rounded-full ${accentDot}`} />
+              <span className={`text-[9px] font-bold uppercase tracking-[0.22em] ${accentText}`}>
+                Verificado UIAB
+              </span>
             </div>
-
-            {/* Technical Metadata */}
-            <div className={`flex flex-col gap-3 xl:border-l ${isEmerald ? 'border-emerald-100' : 'border-blue-100'} xl:pl-6 min-w-[220px] shrink-0`}>
-              <div className="flex flex-col">
-                <span className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 ${isEmerald ? 'text-emerald-600/70' : 'text-blue-600/70'}`}>Sector</span>
-                <span className="text-sm font-bold text-slate-700 truncate">{entidad.categoria}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-slate-500 bg-slate-50 px-3 py-1.5 rounded-md border border-slate-100 w-fit">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-semibold uppercase tracking-wider">{entidad.ubicacion}</span>
-              </div>
-            </div>
+            <h3 className={`font-manrope text-[17px] md:text-[19px] font-bold text-slate-900 leading-[1.25] tracking-tight transition-colors duration-500 line-clamp-2 break-words ${hoverText}`}>
+              {entidad.nombre}
+            </h3>
+            <p className="text-slate-500 text-[13px] leading-relaxed font-normal line-clamp-1 mt-1.5">
+              {entidad.descripcionCorta}
+            </p>
           </div>
 
-          {/* Premium Tech Action */}
-          <div className="p-6 ml-auto xl:border-l border-slate-100 flex items-center justify-center bg-slate-50/50 group-hover:bg-transparent transition-colors">
-            <div className={`inline-flex items-center justify-center px-6 py-3.5 bg-white text-sm font-bold rounded-lg border border-slate-200 shadow-sm group-hover:text-white transition-all duration-300 ${isEmerald ? 'group-hover:bg-emerald-600 group-hover:border-emerald-600' : 'group-hover:bg-[#00213f] group-hover:border-[#00213f]'}`}>
-              Ver Expediente
-              <ArrowRight className="w-4 h-4 ml-3 transition-transform duration-300 group-hover:translate-x-1" />
+          {/* Metadata editorial */}
+          <div className="hidden md:flex flex-col gap-2 w-[170px] lg:w-[200px] shrink-0 pl-6 lg:pl-8 border-l border-slate-200/70">
+            <div>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.22em]">Sector</span>
+              <p className="text-sm font-semibold text-slate-800 leading-tight mt-1 line-clamp-1">{entidad.categoria}</p>
+            </div>
+            {entidad.ubicacion && (
+              <div className="flex items-start gap-1.5 text-slate-500 mt-1">
+                <MapPin className="w-3 h-3 mt-0.5 shrink-0 text-slate-400" />
+                <span className="text-[11px] font-medium leading-tight line-clamp-1">{entidad.ubicacion}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Acción — ghost pill con flecha */}
+          <div className="hidden md:flex items-center shrink-0">
+            <div className={`inline-flex items-center justify-center whitespace-nowrap px-5 py-2.5 text-[12px] font-semibold tracking-wide text-slate-700 rounded-full border border-slate-200 transition-all duration-500 ${buttonHover}`}>
+              Ver expediente
+              <ArrowRight className="w-3.5 h-3.5 ml-2 transition-transform duration-500 group-hover:translate-x-1" />
             </div>
           </div>
         </div>
@@ -88,8 +102,12 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
 
       {/* Header: Logo & Badges */}
       <div className="flex justify-between items-start mb-6 relative z-10">
-        <div className={`w-14 h-14 flex items-center justify-center font-manrope font-black text-2xl rounded-lg border border-slate-100 transition-colors duration-500 shadow-sm ${bgLogo} shrink-0`}>
-          {entidad.logo}
+        <div className={`w-14 h-14 flex items-center justify-center font-manrope font-black text-2xl rounded-lg border border-slate-100 transition-colors duration-500 shadow-sm overflow-hidden relative ${bgLogo} shrink-0`}>
+          {entidad.logoUrl ? (
+            <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="56px" />
+          ) : (
+            entidad.logo
+          )}
         </div>
         <div className="flex flex-col items-end gap-2 ml-4">
           <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded border ${badgeClasses}`}>

@@ -18,38 +18,41 @@ export default function MiPerfilDocumentosPage() {
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
 
+  const BUCKET_DOCS = "documentos-privados";
+  const carpetaEntidad = currentUser?.role === "company" ? "empresas" : "proveedores";
+  const folderPath = currentUser?.entityId ? `${carpetaEntidad}/${currentUser.entityId}` : null;
+
   useEffect(() => {
     async function fetchFiles() {
-      if (!currentUser?.entityId) {
+      if (!folderPath) {
         setLoading(false);
         return;
       }
-      const { data, error } = await supabase.storage
-        .from("documentos")
-        .list(currentUser.entityId, {
+      const { data } = await supabase.storage
+        .from(BUCKET_DOCS)
+        .list(folderPath, {
           limit: 100,
           offset: 0,
           sortBy: { column: "created_at", order: "desc" },
         });
 
       if (data) {
-        // Filter out empty folder placeholders or invalid objects
         const validFiles = data.filter((f) => f.name !== ".emptyFolderPlaceholder" && f.metadata);
         setFiles(
           validFiles.map((f) => ({
             id: f.id || f.name,
             name: f.name,
             size: f.metadata?.size ? (f.metadata.size / 1024 / 1024).toFixed(2) + " MB" : "Desconocido",
-            status: "verifying", // or any custom logic you prefer
+            status: "verifying",
             date: new Date(f.created_at || Date.now()).toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" }),
-            path: `${currentUser.entityId}/${f.name}`,
+            path: `${folderPath}/${f.name}`,
           }))
         );
       }
       setLoading(false);
     }
     fetchFiles();
-  }, [currentUser, supabase]);
+  }, [folderPath, supabase]);
   
   if (!currentUser) return null;
 
@@ -63,7 +66,13 @@ export default function MiPerfilDocumentosPage() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !currentUser.entityId) return;
+    if (!file) return;
+
+    if (!folderPath) {
+      toast.error("Completá tu perfil primero", { description: "Antes de subir documentación guardá tus datos corporativos." });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
 
     if (file.size > 10 * 1024 * 1024) {
       toast.error("Archivo demasiado pesado", { description: "El tamaño máximo permitido es 10MB." });
@@ -72,11 +81,12 @@ export default function MiPerfilDocumentosPage() {
 
     try {
       setIsUploading(true);
-      const filePath = `${currentUser.entityId}/${file.name}`;
-      
+      const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+      const filePath = `${folderPath}/${safeName}`;
+
       const { error: uploadError } = await supabase.storage
-        .from('documentos')
-        .upload(filePath, file, { upsert: true });
+        .from(BUCKET_DOCS)
+        .upload(filePath, file, { upsert: true, contentType: file.type });
 
       if (uploadError) throw uploadError;
 
@@ -109,7 +119,7 @@ export default function MiPerfilDocumentosPage() {
 
   const handleDelete = async (filePath: string, fileId: string) => {
     try {
-       const { error } = await supabase.storage.from('documentos').remove([filePath]);
+       const { error } = await supabase.storage.from(BUCKET_DOCS).remove([filePath]);
        if (error) throw error;
        toast.success("Archivo eliminado");
        setFiles(files.filter(f => f.id !== fileId));

@@ -300,15 +300,15 @@ function RegisterContent() {
   const checklistItems = useMemo(() => {
     if (selectedRole === 'company') {
       return [
-        { icon: Globe, label: "Directorio Comercial", desc: "El ecosistema empresarial de Alte. Brown." },
-        { icon: LayoutDashboard, label: "Tablero Central", desc: "Gestión de pedidos y cotizaciones." },
-        { icon: ShieldCheck, label: "Verificación de Perfiles", desc: "Proveedores validados por administración." }
+        { icon: Award, label: "Beneficios Exclusivos", desc: "Convenios, descuentos y servicios para socios." },
+        { icon: LayoutDashboard, label: "Capacitaciones y Eventos", desc: "Actividades, formación y novedades institucionales." },
+        { icon: Globe, label: "Red de Vinculación", desc: "Conectá con empresas, instituciones y miembros." }
       ]
     }
     return [
-      { icon: Megaphone, label: "Display Profesional", desc: "Tu perfil destaca a tu taller o profesión." },
-      { icon: Target, label: "Contacto Directo", desc: "Oportunidades de cotización con industrias." },
-      { icon: Award, label: "Acreditación Oficial", desc: "Membresía que eleva tu reputación." }
+      { icon: Megaphone, label: "Visibilidad en la Red", desc: "Aparecé en el directorio oficial de proveedores." },
+      { icon: Target, label: "Oportunidades Comerciales", desc: "Ofrecé tus productos y servicios a los socios." },
+      { icon: Award, label: "Contacto con Empresas", desc: "Accedé a industrias, comercios y potenciales clientes." }
     ]
   }, [selectedRole])
 
@@ -362,14 +362,14 @@ function RegisterContent() {
             <AnimatePresence mode="wait">
               <motion.div key={selectedRole || 'intro'} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}>
                 <h1 className="text-3xl lg:text-4xl xl:text-5xl font-black leading-[1.1] tracking-tighter mb-3 lg:mb-4" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>
-                  {step === 1 && "Ecosistema Oficial."}
-                  {step > 1 && selectedRole === 'company' && "Control Corporativo."}
-                  {step > 1 && selectedRole === 'provider' && "Tu Trabajo, Profesional."}
+                  {step === 1 && "Elegí tu tipo de registro."}
+                  {step > 1 && selectedRole === 'company' && "Ser Socio UIAB."}
+                  {step > 1 && selectedRole === 'provider' && "Ser Proveedor."}
                 </h1>
                 <p className="text-white/60 text-sm lg:text-base leading-relaxed mb-6 lg:mb-8 font-inter max-w-sm">
-                  {step === 1 && "Centralizamos la comunicación b2b de Almirante Brown para potenciar el crecimiento de empresas y comercios de la región."}
-                  {step > 1 && selectedRole === 'company' && "Registra tu empresa o comercio para acceder al directorio, buscar proveedores de confianza y recibir cotizaciones."}
-                  {step > 1 && selectedRole === 'provider' && "Crea tu perfil individual o de empresa de servicios. Empresas y clientes del partido buscan especialistas como tú diariamente."}
+                  {step === 1 && "Registrate como Socio para acceder a beneficios, capacitaciones, actividades y servicios exclusivos. O como Proveedor para ofrecer tus productos o servicios y vincularte con empresas y socios de la institución."}
+                  {step > 1 && selectedRole === 'company' && "Accedé a beneficios exclusivos, capacitaciones, convenios y oportunidades de vinculación con otras empresas, instituciones y miembros de la red."}
+                  {step > 1 && selectedRole === 'provider' && "Ganá visibilidad dentro de la red, ofrecé tus productos y servicios a los socios y conectá con empresas, industrias y potenciales clientes."}
                 </p>
 
                 {selectedRole && (
@@ -436,8 +436,9 @@ function RegisterContent() {
                     {step === 1 && (
                       <div className="space-y-4 lg:space-y-6">
                         <div className="space-y-1">
-                           <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">Configuración</Badge>
-                           <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter leading-none" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Define.<br />Tu Rol.</h2>
+                           <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">Registro</Badge>
+                           <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter leading-none" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>¿Cómo querés<br />registrarte?</h2>
+                           <p className="text-sm text-slate-500 font-inter pt-2 max-w-md">Elegí tu tipo de registro. Podés ser parte de UIAB como Socio o como Proveedor de productos y servicios.</p>
                         </div>
 
                         <div className="grid gap-4">
@@ -449,10 +450,10 @@ function RegisterContent() {
                                 </div>
                                 <div className="flex-1">
                                   <div className="flex items-center justify-between mb-1">
-                                     <h3 className="text-xl font-bold text-[#00213f] leading-none">Soy Empresa</h3>
+                                     <h3 className="text-xl font-bold text-[#00213f] leading-none">Quiero ser Socio</h3>
                                      <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", field.value === 'company' ? "border-primary-600 bg-primary-600 text-white" : "border-slate-300")}><Check className="h-2.5 w-2.5 opacity-0" style={{ opacity: field.value === 'company' ? 1 : 0 }} /></div>
                                   </div>
-                                  <p className="text-xs font-inter text-slate-500 pr-4">Empresa, fábrica, comercio o emprendimiento con actividad en el Partido de Almirante Brown.</p>
+                                  <p className="text-xs font-inter text-slate-500 pr-4">Empresa, institución, comercio u organización que quiere acceder a beneficios, capacitaciones, eventos, convenios y oportunidades de la institución.</p>
                                 </div>
                               </div>
 
@@ -462,10 +463,10 @@ function RegisterContent() {
                                 </div>
                                 <div className="flex-1">
                                   <div className="flex items-center justify-between mb-1">
-                                     <h3 className="text-xl font-bold text-[#00213f] leading-none">Soy Proveedor</h3>
+                                     <h3 className="text-xl font-bold text-[#00213f] leading-none">Quiero ser Proveedor</h3>
                                      <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", field.value === 'provider' ? "border-primary-600 bg-primary-600 text-white" : "border-slate-300")}><Check className="h-2.5 w-2.5 opacity-0" style={{ opacity: field.value === 'provider' ? 1 : 0 }} /></div>
                                   </div>
-                                  <p className="text-xs font-inter text-slate-500 pr-4">Profesional, técnico, oficio o prestador de servicios. Busco ofrecer mis servicios a empresas y particulares de Almirante Brown.</p>
+                                  <p className="text-xs font-inter text-slate-500 pr-4">Empresa o persona que ofrece productos o servicios. Ganá visibilidad, presencia en el directorio y contacto directo con empresas, industrias y socios de la institución.</p>
                                 </div>
                               </div>
                             </>
@@ -483,12 +484,12 @@ function RegisterContent() {
                       <div className="space-y-4 lg:space-y-5 text-center">
                          <div className="space-y-1 lg:space-y-2">
                             <h2 className="text-3xl lg:text-4xl font-black text-[#00213f] tracking-tighter leading-none" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>
-                               {selectedRole === 'company' ? "Tu red regional." : "Trabajo Profesional."}
+                               {selectedRole === 'company' ? "Beneficios de Socio." : "Visibilidad Profesional."}
                             </h2>
                             <p className="text-sm lg:text-base text-slate-500 max-w-md mx-auto">
-                               {selectedRole === 'company' 
-                                 ? "Abre las puertas de tu empresa o comercio a la mayor base local de proveedores de confianza y optimiza tus cotizaciones." 
-                                 : "Exponemos tu especialidad, servicio tecnológico, manual o intelectual ante las empresas y comercios del partido."}
+                               {selectedRole === 'company'
+                                 ? "Accedé a beneficios exclusivos, capacitaciones, eventos, convenios, oportunidades y novedades institucionales. Conectá con otras empresas, instituciones y miembros de la red."
+                                 : "Ofrecé tus productos y servicios a los socios, participá en oportunidades comerciales y ganá presencia en el directorio oficial."}
                             </p>
                          </div>
 
@@ -520,11 +521,12 @@ function RegisterContent() {
                             <>
                               <FormField control={form.control} name="tipoEmpresa" render={({ field }) => (
                                 <FormItem>
-                                   <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Clasificación *</FormLabel>
+                                   <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo de Socio *</FormLabel>
                                    <FormControl>
                                      <select className="flex w-full h-12 rounded-lg border border-slate-200 bg-white px-4 text-base font-bold text-[#00213f] focus:ring-4 focus:ring-primary-50 transition-all cursor-pointer shadow-sm outline-none" {...field}>
                                         <option value="">Selecciona tipo...</option>
                                         <option value="empresa">Empresa / Industria</option>
+                                        <option value="institucion">Institución / Organización</option>
                                         <option value="comercio">Comercio Minorista/Mayorista</option>
                                         <option value="gastronomia">Gastronomía y Alimentos</option>
                                         <option value="salud">Salud y Estética</option>
@@ -537,8 +539,8 @@ function RegisterContent() {
                               )} />
                               <FormField control={form.control} name="razonSocial" render={({ field }) => (
                                 <FormItem>
-                                   <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Razón Social *</FormLabel>
-                                   <FormControl><Input placeholder="Ej: Industria Ejemplo S.A." className="h-12 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} /></FormControl>
+                                   <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Razón Social / Nombre Institucional *</FormLabel>
+                                   <FormControl><Input placeholder="Ej: Industria Ejemplo S.A. / Fundación Ejemplo" className="h-12 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} /></FormControl>
                                    <FormMessage />
                                 </FormItem>
                               )} />

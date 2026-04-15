@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { User, Shield, Building, Wrench, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase } from "lucide-react";
+import { User, Shield, Building, Wrench, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase, BookOpen, GraduationCap, Landmark, Package, Users } from "lucide-react";
 import { cn } from "@/lib/utilidades";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import type { User as UserType } from "@/tipos";
@@ -145,10 +145,74 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
     }
   }, [isMobileMenuOpen]);
 
-  const navigation = [
-    { name: "Inicio", href: currentUser ? "/dashboard" : "/", icon: null },
-    { name: "Empresas", href: "/empresas", icon: Building },
-    { name: "Proveedores", href: "/proveedores", icon: Wrench },
+  type NavChild = {
+    name: string;
+    href: string;
+    icon: typeof Building;
+    description?: string;
+  };
+  type NavGroup = {
+    name: string;
+    icon: typeof Building;
+    description?: string;
+    items: NavChild[];
+  };
+  type NavItem = {
+    name: string;
+    href: string;
+    icon: typeof Building | null;
+    external?: boolean;
+    children?: NavChild[];
+    groups?: NavGroup[];
+  };
+
+  const navigation: NavItem[] = [
+    { name: currentUser ? "Dashboard" : "Inicio", href: currentUser ? "/dashboard" : "/", icon: null },
+    {
+      name: "Directorio",
+      href: "/directorio",
+      icon: BookOpen,
+      groups: [
+        {
+          name: "Socios UIAB",
+          icon: Building,
+          description: "Miembros verificados de la institución",
+          items: [
+            {
+              name: "Proveedores de servicios y productos",
+              href: "/empresas?categoria=proveedores",
+              icon: Package,
+              description: "Empresas industriales socias",
+            },
+            {
+              name: "Instituciones educativas",
+              href: "/empresas?categoria=educativas",
+              icon: GraduationCap,
+              description: "Centros de formación aliados",
+            },
+            {
+              name: "Instituciones bancarias",
+              href: "/empresas?categoria=bancarias",
+              icon: Landmark,
+              description: "Entidades financieras socias",
+            },
+          ],
+        },
+        {
+          name: "Directorio abierto",
+          icon: Users,
+          description: "Búsqueda general de servicios",
+          items: [
+            {
+              name: "Particulares",
+              href: "/proveedores",
+              icon: Wrench,
+              description: "Proveedores y servicios sin membresía",
+            },
+          ],
+        },
+      ],
+    },
     { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
     { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
     { name: "Contacto", href: "/contacto", icon: null },
@@ -157,6 +221,21 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
   if (currentUser?.role === "admin") {
     navigation.push({ name: "Panel Admin", href: "/admin", icon: Shield });
   }
+
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpenDropdown(null);
+      }
+    };
+    if (openDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openDropdown]);
 
   const navContainerRef = useRef<HTMLDivElement>(null);
   const [activePill, setActivePill] = useState({ left: 0, width: 0, opacity: 0 });
@@ -262,9 +341,132 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                 />
 
                 {navigation.map((item) => {
-                  const isActive = pathname === item.href;
+                  const allChildren = item.groups?.flatMap(g => g.items) ?? item.children ?? [];
+                  const isActive = allChildren.length > 0
+                    ? allChildren.some(c => pathname === c.href.split("?")[0]) || pathname === item.href
+                    : pathname === item.href;
                   const Icon = item.icon;
-                  
+
+                  if (item.children || item.groups) {
+                    const isOpen = openDropdown === item.name;
+                    const hasGroups = !!item.groups;
+                    return (
+                      <div 
+                        key={item.name} 
+                        className="relative flex" 
+                        ref={isOpen ? dropdownRef : undefined}
+                        data-active={isActive}
+                        onMouseEnter={(e) => handleHover(e as unknown as React.MouseEvent<HTMLAnchorElement>, item.href)}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setOpenDropdown(isOpen ? null : item.name)}
+                          className={cn(
+                            "relative px-4 py-2 text-sm font-semibold transition-colors duration-300 rounded-xl flex w-full items-center gap-2",
+                            isActive ? "text-primary-700" : "text-slate-600 hover:text-slate-900"
+                          )}
+                          style={{ zIndex: 10 }}
+                        >
+                          {Icon && (
+                            <Icon className={cn(
+                              "w-4 h-4 transition-transform duration-300",
+                              isActive ? "text-primary-600 scale-110" : "text-slate-400 opacity-70"
+                            )} />
+                          )}
+                          <span>{item.name}</span>
+                          <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-300", isOpen && "rotate-180")} />
+                        </button>
+                        <AnimatePresence>
+                          {isOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                              className={cn(
+                                "absolute left-1/2 -translate-x-1/2 top-full mt-3 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 origin-top",
+                                hasGroups ? "w-[22rem]" : "w-56"
+                              )}
+                            >
+                              {hasGroups ? (
+                                <div className="p-2 space-y-1">
+                                  {item.groups!.map((group, gi) => {
+                                    const GroupIcon = group.icon;
+                                    return (
+                                      <div key={group.name} className={cn(gi > 0 && "pt-2 mt-2 border-t border-slate-100")}>
+                                        <div className="flex items-center gap-2 px-3 pt-1.5 pb-1">
+                                          <div className="w-6 h-6 rounded-md bg-primary-50 flex items-center justify-center">
+                                            <GroupIcon className="w-3.5 h-3.5 text-primary-600" />
+                                          </div>
+                                          <div>
+                                            <p className="text-xs font-bold text-slate-900 leading-tight">{group.name}</p>
+                                            {group.description && (
+                                              <p className="text-[10px] text-slate-500 leading-tight">{group.description}</p>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="mt-1 space-y-0.5">
+                                          {group.items.map((child) => {
+                                            const ChildIcon = child.icon;
+                                            const childActive = pathname === child.href.split("?")[0];
+                                            return (
+                                              <Link
+                                                key={child.name}
+                                                href={child.href}
+                                                onClick={() => setOpenDropdown(null)}
+                                                className={cn(
+                                                  "w-full flex items-start gap-2.5 px-3 py-2 text-sm rounded-xl transition-colors",
+                                                  childActive
+                                                    ? "bg-primary-50 text-primary-700"
+                                                    : "text-slate-700 hover:text-primary-700 hover:bg-primary-50"
+                                                )}
+                                              >
+                                                <ChildIcon className={cn("w-4 h-4 mt-0.5 flex-shrink-0", childActive ? "text-primary-600" : "text-slate-400")} />
+                                                <div className="min-w-0">
+                                                  <p className="font-semibold leading-tight">{child.name}</p>
+                                                  {child.description && (
+                                                    <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{child.description}</p>
+                                                  )}
+                                                </div>
+                                              </Link>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className="p-1.5">
+                                  {item.children!.map((child) => {
+                                    const ChildIcon = child.icon;
+                                    const childActive = pathname === child.href;
+                                    return (
+                                      <Link
+                                        key={child.name}
+                                        href={child.href}
+                                        onClick={() => setOpenDropdown(null)}
+                                        className={cn(
+                                          "w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold rounded-xl transition-colors",
+                                          childActive
+                                            ? "bg-primary-50 text-primary-700"
+                                            : "text-slate-700 hover:text-primary-700 hover:bg-primary-50"
+                                        )}
+                                      >
+                                        <ChildIcon className={cn("w-4 h-4", childActive ? "text-primary-600" : "text-slate-400")} />
+                                        {child.name}
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  }
+
                   return (
                     <Link
                       key={item.name}
@@ -401,24 +603,76 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.05 }}
                       >
-                        <Link
-                          href={item.href}
-                          target={item.external ? "_blank" : undefined}
-                          rel={item.external ? "noopener noreferrer" : undefined}
-                          className={cn(
-                            "flex items-center justify-between px-4 py-3.5 rounded-xl text-base font-semibold transition-colors",
-                            isActive
-                              ? "bg-primary-50 text-primary-700"
-                              : "text-slate-700 hover:bg-slate-50 active:bg-slate-100"
-                          )}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          <div className="flex items-center gap-3">
-                            {Icon && <Icon className={cn("w-5 h-5", isActive ? "text-primary-600" : "text-slate-400")} />}
-                            {item.name}
+                        {item.children || item.groups ? (
+                          <div>
+                            <div className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                              {Icon && <Icon className="w-4 h-4" />}
+                              {item.name}
+                            </div>
+                            <div className="space-y-2 pl-2">
+                              {(item.groups
+                                ? item.groups
+                                : [{ name: "", icon: Building, items: item.children!, description: undefined }]
+                              ).map((group) => {
+                                const GroupIcon = group.icon;
+                                return (
+                                  <div key={group.name || "default"}>
+                                    {group.name && (
+                                      <div className="flex items-center gap-2 px-4 pt-2 pb-1">
+                                        <GroupIcon className="w-3.5 h-3.5 text-primary-600" />
+                                        <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{group.name}</p>
+                                      </div>
+                                    )}
+                                    <div className="space-y-1">
+                                      {group.items.map((child) => {
+                                        const ChildIcon = child.icon;
+                                        const childActive = pathname === child.href.split("?")[0];
+                                        return (
+                                          <Link
+                                            key={child.name}
+                                            href={child.href}
+                                            className={cn(
+                                              "flex items-center justify-between px-4 py-3 rounded-xl text-base font-semibold transition-colors",
+                                              childActive
+                                                ? "bg-primary-50 text-primary-700"
+                                                : "text-slate-700 hover:bg-slate-50 active:bg-slate-100"
+                                            )}
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                          >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                              <ChildIcon className={cn("w-5 h-5 flex-shrink-0", childActive ? "text-primary-600" : "text-slate-400")} />
+                                              <span className="truncate">{child.name}</span>
+                                            </div>
+                                            {!childActive && <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />}
+                                          </Link>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                          {!isActive && <ChevronRight className="w-4 h-4 text-slate-300" />}
-                        </Link>
+                        ) : (
+                          <Link
+                            href={item.href}
+                            target={item.external ? "_blank" : undefined}
+                            rel={item.external ? "noopener noreferrer" : undefined}
+                            className={cn(
+                              "flex items-center justify-between px-4 py-3.5 rounded-xl text-base font-semibold transition-colors",
+                              isActive
+                                ? "bg-primary-50 text-primary-700"
+                                : "text-slate-700 hover:bg-slate-50 active:bg-slate-100"
+                            )}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <div className="flex items-center gap-3">
+                              {Icon && <Icon className={cn("w-5 h-5", isActive ? "text-primary-600" : "text-slate-400")} />}
+                              {item.name}
+                            </div>
+                            {!isActive && <ChevronRight className="w-4 h-4 text-slate-300" />}
+                          </Link>
+                        )}
                       </motion.div>
                     );
                   })}

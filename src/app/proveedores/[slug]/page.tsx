@@ -20,9 +20,9 @@ export default async function ProveedorProfilePage({
       {/* Header Profile */}
       <div className="bg-primary-900 border-b border-primary-800 text-white pt-12 pb-24 -mt-24 mb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-24">
-          <Link href="/proveedores" className="inline-flex items-center text-primary-200 hover:text-white mb-8 transition-colors text-sm font-medium">
+          <Link href="/directorio?tab=prestadores" className="inline-flex items-center text-primary-200 hover:text-white mb-8 transition-colors text-sm font-medium">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver al directorio
+            Directorio
           </Link>
           
           <div className="flex flex-col md:flex-row items-start gap-8">

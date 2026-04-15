@@ -31,7 +31,12 @@ export default function MiPerfilDatosPage() {
     descripcion: "",
     cuit: "",
     ruta_logo: "",
+    bucket_logo: "",
+    nombre_logo: "",
+    mime_logo: "",
+    tamano_logo_bytes: 0 as number | null,
   });
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string>("");
 
   useEffect(() => {
     async function loadData() {
@@ -58,7 +63,15 @@ export default function MiPerfilDatosPage() {
           descripcion: data.descripcion || "",
           cuit: data.cuit || "",
           ruta_logo: data.ruta_logo || "",
+          bucket_logo: data.bucket_logo || "",
+          nombre_logo: data.nombre_logo || "",
+          mime_logo: data.mime_logo || "",
+          tamano_logo_bytes: data.tamano_logo_bytes || 0,
         });
+        if (data.bucket_logo && data.ruta_logo) {
+          const { data: urlData } = supabase.storage.from(data.bucket_logo).getPublicUrl(data.ruta_logo);
+          setLogoPreviewUrl(urlData.publicUrl);
+        }
       }
       setFetching(false);
     }
@@ -77,28 +90,58 @@ export default function MiPerfilDatosPage() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !currentUser.entityId) return;
+    if (!file) return;
+
+    if (!currentUser.entityId) {
+      toast.error("Primero guardá tus datos", {
+        description: "Antes de subir el logo completá Razón Social y CUIT y tocá Guardar para crear tu perfil.",
+      });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Formato inválido", { description: "Solo se permiten imágenes PNG, JPG o WEBP." });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Imagen muy pesada", { description: "El tamaño máximo permitido es 2 MB." });
+      return;
+    }
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${currentUser.entityId}-${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
-      
-      toast.loading('Subiendo imagen...', { id: 'upload-toast' });
+      const BUCKET = "imagenes-publicas";
+      const carpeta = currentUser.role === "company" ? "empresas" : "proveedores";
+      const fileExt = (file.name.split(".").pop() || "bin").toLowerCase();
+      const filePath = `${carpeta}/${currentUser.entityId}/logo-${Date.now()}.${fileExt}`;
 
-      // Assuming Bucket is called 'logos'
-      const { error: uploadError } = await supabase.storage.from('logos').upload(filePath, file);
+      toast.loading("Subiendo imagen...", { id: "upload-toast" });
 
-      if (uploadError) {
-        throw uploadError;
+      // Borramos el logo anterior si existía (para no acumular basura)
+      if (formData.bucket_logo && formData.ruta_logo && formData.ruta_logo !== filePath) {
+        await supabase.storage.from(formData.bucket_logo).remove([formData.ruta_logo]);
       }
 
-      const { data: publicUrlData } = supabase.storage.from('logos').getPublicUrl(filePath);
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET)
+        .upload(filePath, file, { upsert: true, contentType: file.type, cacheControl: "3600" });
 
-      setFormData(prev => ({ ...prev, ruta_logo: publicUrlData.publicUrl }));
-      toast.success('Logotipo cargado correctamente', { id: 'upload-toast' });
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+
+      setFormData(prev => ({
+        ...prev,
+        ruta_logo: filePath,
+        bucket_logo: BUCKET,
+        nombre_logo: file.name,
+        mime_logo: file.type,
+        tamano_logo_bytes: file.size,
+      }));
+      setLogoPreviewUrl(publicUrlData.publicUrl);
+      toast.success("Logotipo cargado correctamente", { id: "upload-toast" });
     } catch (error: any) {
-      toast.error('Error al subir', { description: error.message, id: 'upload-toast' });
+      toast.error("Error al subir", { description: error.message, id: "upload-toast" });
     }
   };
 
@@ -149,9 +192,9 @@ export default function MiPerfilDatosPage() {
               onClick={() => fileInputRef.current?.click()}
               className="relative w-24 h-24 rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:border-primary-400 hover:text-primary-500 hover:bg-primary-50 transition-all cursor-pointer overflow-hidden group"
             >
-              {formData.ruta_logo ? (
+              {logoPreviewUrl ? (
                 <>
-                  <Image src={formData.ruta_logo} alt="Logotipo" fill className="object-cover" />
+                  <Image src={logoPreviewUrl} alt="Logotipo" fill className="object-cover" unoptimized />
                   <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                     <span className="text-white text-xs font-semibold">CAMBIAR</span>
                   </div>

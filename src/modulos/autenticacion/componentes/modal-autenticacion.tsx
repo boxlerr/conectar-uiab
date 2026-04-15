@@ -272,7 +272,7 @@ export function AuthModal() {
                 }}
               >
                 <ShieldCheck className="w-4 h-4 text-primary-600 group-hover:text-white transition-colors" />
-                Registrate como Proveedor o Empresa
+                Registrate como Socio o Proveedor
               </button>
             </div>
           </div>

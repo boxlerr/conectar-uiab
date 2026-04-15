@@ -45,6 +45,8 @@ export default function EmpresasPage() {
           actividad,
           sitio_web,
           email,
+          bucket_logo,
+          ruta_logo,
           empresas_categorias (
             categorias (
               nombre
@@ -62,6 +64,9 @@ export default function EmpresasPage() {
       const mappedData: Entidad[] = data.map((emp: any) => {
         const cats = emp.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
         const mainCat = cats.length > 0 ? cats[0] : "Industrial General";
+        const logoUrl = emp.bucket_logo && emp.ruta_logo
+          ? supabase.storage.from(emp.bucket_logo).getPublicUrl(emp.ruta_logo).data.publicUrl
+          : null;
 
         return {
           id: emp.id,
@@ -72,8 +77,9 @@ export default function EmpresasPage() {
           descripcionCorta: emp.actividad || "Sin descripción",
           descripcionLarga: emp.actividad || "",
           logo: emp.razon_social.charAt(0).toUpperCase(),
+          logoUrl,
           ubicacion: `${emp.localidad || ''}, ${emp.direccion || ''}`.replace(/^, | ,|, $/g, ''),
-          servicios: cats.slice(1), 
+          servicios: cats.slice(1),
           contacto: {
             email: emp.email || "",
             telefono: "",
@@ -107,7 +113,8 @@ export default function EmpresasPage() {
     });
   }, [empresas, categoriaSeleccionada, searchTerm]);
 
-  if (loading || (currentUser && cargandoDatos)) {
+  // Solo bloqueamos si el auth aún resuelve (normalmente no pasa porque tenemos initialUser del server)
+  if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-blue-200 border-t-primary rounded-full animate-spin" />
@@ -243,34 +250,60 @@ export default function EmpresasPage() {
             </div>
             
             {/* Results */}
-            {empresasFiltradas.length > 0 ? (
-              <motion.div 
-                layout
-                className={viewMode === 'grid' 
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6" 
-                  : "flex flex-col gap-4"
+            {cargandoDatos ? (
+              <div className={viewMode === 'grid'
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+                : "bg-white rounded-2xl border border-slate-200/70 overflow-hidden divide-y divide-slate-200/70"
+              }>
+                {Array.from({ length: viewMode === 'grid' ? 6 : 5 }).map((_, i) => (
+                  viewMode === 'grid' ? (
+                    <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 h-[280px] animate-pulse">
+                      <div className="flex justify-between mb-6">
+                        <div className="w-14 h-14 rounded-lg bg-slate-100" />
+                        <div className="w-24 h-6 rounded bg-slate-100" />
+                      </div>
+                      <div className="h-5 w-3/4 bg-slate-100 rounded mb-3" />
+                      <div className="h-3 w-full bg-slate-100 rounded mb-2" />
+                      <div className="h-3 w-5/6 bg-slate-100 rounded mb-6" />
+                      <div className="pt-5 border-t border-slate-100">
+                        <div className="h-8 w-full bg-slate-50 rounded" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={i} className="px-8 py-6 flex items-center gap-8 animate-pulse">
+                      <div className="w-20 h-20 rounded-[10px] bg-slate-100" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-24 bg-slate-100 rounded" />
+                        <div className="h-5 w-2/3 bg-slate-100 rounded" />
+                        <div className="h-3 w-1/2 bg-slate-100 rounded" />
+                      </div>
+                      <div className="hidden md:block w-[170px] space-y-2">
+                        <div className="h-3 w-16 bg-slate-100 rounded" />
+                        <div className="h-4 w-28 bg-slate-100 rounded" />
+                      </div>
+                      <div className="hidden md:block w-32 h-9 rounded-full bg-slate-100" />
+                    </div>
+                  )
+                ))}
+              </div>
+            ) : empresasFiltradas.length > 0 ? (
+              <div
+                key={viewMode}
+                className={viewMode === 'grid'
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+                  : "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_32px_-12px_rgba(15,23,42,0.08)] overflow-hidden divide-y divide-slate-200/70"
                 }
               >
-                <AnimatePresence mode="popLayout">
-                  {empresasFiltradas.map((empresa) => (
-                    <motion.div
-                      key={empresa.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <DirectoryProfileCard 
-                        entidad={empresa} 
-                        basePath="/empresas" 
-                        variant={viewMode}
-                        colorScheme="blue"
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </motion.div>
+                {empresasFiltradas.map((empresa) => (
+                  <DirectoryProfileCard
+                    key={empresa.id}
+                    entidad={empresa}
+                    basePath="/empresas"
+                    variant={viewMode}
+                    colorScheme="blue"
+                  />
+                ))}
+              </div>
             ) : (
               <motion.div 
                 initial={{ opacity: 0 }}
