@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Entidad } from "@/lib/datos/directorio"; // Only for typing now
+import {
+  CategoriaSocio,
+  CATEGORIAS_SOCIO_META,
+  parseCategoriaSocioParam,
+} from "@/lib/datos/categorias-socio";
 import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
 import { PublicEmpresasLanding } from "@/components/ui/directorio/landing-empresas-publica";
@@ -15,6 +21,9 @@ import { crearSlug } from "@/lib/utilidades";
 
 export default function EmpresasPage() {
   const { currentUser, loading } = useAuth();
+  const searchParams = useSearchParams();
+  const categoriaSocio: CategoriaSocio | null = parseCategoriaSocioParam(searchParams.get("categoria"));
+  const metaSocio = categoriaSocio ? CATEGORIAS_SOCIO_META[categoriaSocio] : null;
   
   // Real Data states
   const [empresas, setEmpresas] = useState<Entidad[]>([]);
@@ -35,7 +44,7 @@ export default function EmpresasPage() {
       if (!currentUser) return;
       
       const supabase = createClient();
-      const { data, error } = await supabase
+      let query = supabase
         .from('empresas')
         .select(`
           id,
@@ -47,6 +56,7 @@ export default function EmpresasPage() {
           email,
           bucket_logo,
           ruta_logo,
+          categoria_socio,
           empresas_categorias (
             categorias (
               nombre
@@ -54,6 +64,12 @@ export default function EmpresasPage() {
           )
         `)
         .eq('estado', 'aprobada');
+
+      if (categoriaSocio) {
+        query = query.eq('categoria_socio', categoriaSocio);
+      }
+
+      const { data, error } = await query;
 
       if (error || !data) {
         console.error("Error fetching empresas:", error);
@@ -96,9 +112,10 @@ export default function EmpresasPage() {
     }
 
     if (!loading && currentUser) {
+      setCargandoDatos(true);
       fetchEmpresas();
     }
-  }, [currentUser, loading]);
+  }, [currentUser, loading, categoriaSocio]);
 
   const empresasFiltradas = useMemo(() => {
     return empresas.filter((empresa) => {
@@ -160,14 +177,25 @@ export default function EmpresasPage() {
             </div>
             
             <h1 className="font-manrope text-5xl md:text-6xl font-black text-white leading-tight tracking-tight mb-4 drop-shadow-xl">
-              Ecosistema Industrial <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">
-                Verificado UIAB
-              </span>
+              {metaSocio ? (
+                <>Socios UIAB <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">
+                    {metaSocio.nombre}
+                  </span>
+                </>
+              ) : (
+                <>Ecosistema Industrial <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">
+                    Verificado UIAB
+                  </span>
+                </>
+              )}
             </h1>
-            
+
             <p className="text-blue-100/80 text-lg md:text-xl font-medium max-w-2xl leading-relaxed">
-              Explora el directorio completo. Como usuario validado, tenes acceso a los datos de contacto y expedientes técnicos de toda la red.
+              {metaSocio
+                ? metaSocio.descripcion
+                : "Explora el directorio completo. Como usuario validado, tenes acceso a los datos de contacto y expedientes técnicos de toda la red."}
             </p>
           </motion.div>
         </div>
