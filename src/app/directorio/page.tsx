@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Entidad } from "@/lib/datos/directorio";
 import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
@@ -69,182 +69,207 @@ export default function DirectorioPage() {
     router.replace(url, { scroll: false });
   };
 
-  // Fetch empresas
-  useEffect(() => {
-    async function fetchEmpresas() {
-      if (!currentUser) return;
+  // Fetch empresas — wrapped in useCallback for reuse
+  const fetchEmpresas = useCallback(async () => {
+    if (!currentUser) return;
 
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("empresas")
-        .select(`
-          id,
-          razon_social,
-          direccion,
-          localidad,
-          actividad,
-          sitio_web,
-          email,
-          bucket_logo,
-          ruta_logo,
-          empresas_categorias (
-            categorias (
-              nombre
-            )
+    setCargandoEmpresas(true);
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("empresas")
+      .select(`
+        id,
+        razon_social,
+        direccion,
+        localidad,
+        actividad,
+        sitio_web,
+        email,
+        bucket_logo,
+        ruta_logo,
+        empresas_categorias (
+          categorias (
+            nombre
           )
-        `)
-        .eq("estado", "aprobada");
-
-      if (error || !data) {
-        setCargandoEmpresas(false);
-        return;
-      }
-
-      const mappedData: Entidad[] = data.map((emp: any) => {
-        const cats =
-          emp.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
-        const mainCat = cats.length > 0 ? cats[0] : "Industrial General";
-        const logoUrl =
-          emp.bucket_logo && emp.ruta_logo
-            ? supabase.storage
-                .from(emp.bucket_logo)
-                .getPublicUrl(emp.ruta_logo).data.publicUrl
-            : null;
-
-        return {
-          id: emp.id,
-          tipo: "empresa",
-          slug: crearSlug(emp.razon_social),
-          nombre: emp.razon_social,
-          categoria: mainCat,
-          descripcionCorta: emp.actividad || "Sin descripción",
-          descripcionLarga: emp.actividad || "",
-          logo: emp.razon_social.charAt(0).toUpperCase(),
-          logoUrl,
-          ubicacion: `${emp.localidad || ""}, ${emp.direccion || ""}`.replace(
-            /^, | ,|, $/g,
-            ""
-          ),
-          servicios: cats.slice(1),
-          rating: 0,
-          reviews: 0,
-          contacto: {
-            email: emp.email || "",
-            telefono: "",
-            sitioWeb: emp.sitio_web || "",
-          },
-        };
-      });
-
-      // Fetch reseñas
-      const { data: resenasData } = await supabase
-        .from("resenas")
-        .select("empresa_resenada_id, calificacion")
-        .eq("estado", "aprobada")
-        .not("empresa_resenada_id", "is", null);
-
-      if (resenasData) {
-        mappedData.forEach(emp => {
-          const empResenas = resenasData.filter(r => r.empresa_resenada_id === emp.id);
-          if (empResenas.length > 0) {
-            emp.reviews = empResenas.length;
-            emp.rating = Number((empResenas.reduce((acc, r) => acc + r.calificacion, 0) / emp.reviews).toFixed(1));
-          }
-        });
-      }
-
-      setEmpresas(mappedData);
-      const uniqueCats = Array.from(
-        new Set(mappedData.map((e) => e.categoria))
-      )
-        .filter(Boolean)
-        .sort();
-      setCategoriasEmpresas(uniqueCats);
-      setCargandoEmpresas(false);
-    }
-
-    if (!loading && currentUser) {
-      fetchEmpresas();
-    }
-  }, [currentUser, loading]);
-
-  // Fetch prestadores
-  useEffect(() => {
-    async function fetchPrestadores() {
-      if (!currentUser) return;
-
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("proveedores")
-        .select(
-          "id, nombre, apellido, nombre_comercial, tipo_proveedor, email, telefono, localidad, provincia, descripcion"
         )
-        .eq("estado", "aprobado");
+      `)
+      .eq("estado", "aprobada");
 
-      if (error || !data) {
-        setCargandoPrestadores(false);
-        return;
-      }
+    if (error || !data) {
+      setCargandoEmpresas(false);
+      return;
+    }
 
-      const mappedData: Entidad[] = data.map((p: any) => {
-        const displayName =
-          p.nombre_comercial ||
-          [p.nombre, p.apellido].filter(Boolean).join(" ") ||
-          "Sin nombre";
-        const categoria = p.tipo_proveedor || "Prestador de servicios";
+    const mappedData: Entidad[] = data.map((emp: any) => {
+      const cats =
+        emp.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
+      const mainCat = cats.length > 0 ? cats[0] : "Industrial General";
+      const logoUrl =
+        emp.bucket_logo && emp.ruta_logo
+          ? supabase.storage
+              .from(emp.bucket_logo)
+              .getPublicUrl(emp.ruta_logo).data.publicUrl
+          : null;
 
-        return {
-          id: p.id,
-          tipo: "proveedor",
-          slug: crearSlug(displayName),
-          nombre: displayName,
-          categoria,
-          descripcionCorta: p.descripcion || "Prestador de servicios verificado UIAB",
-          descripcionLarga: p.descripcion || "",
-          logo: displayName.charAt(0).toUpperCase(),
-          ubicacion: [p.localidad, p.provincia].filter(Boolean).join(", "),
-          servicios: [],
-          rating: 0,
-          reviews: 0,
-          contacto: {
-            email: p.email || "",
-            telefono: p.telefono || "",
-            sitioWeb: "",
-          },
-        };
+      return {
+        id: emp.id,
+        tipo: "empresa",
+        slug: crearSlug(emp.razon_social),
+        nombre: emp.razon_social,
+        categoria: mainCat,
+        descripcionCorta: emp.actividad || "Sin descripción",
+        descripcionLarga: emp.actividad || "",
+        logo: emp.razon_social.charAt(0).toUpperCase(),
+        logoUrl,
+        ubicacion: `${emp.localidad || ""}, ${emp.direccion || ""}`.replace(
+          /^, | ,|, $/g,
+          ""
+        ),
+        servicios: cats.slice(1),
+        rating: 0,
+        reviews: 0,
+        esSocio: true,
+        contacto: {
+          email: emp.email || "",
+          telefono: "",
+          sitioWeb: emp.sitio_web || "",
+        },
+      };
+    });
+
+    // Fetch reseñas
+    const { data: resenasData } = await supabase
+      .from("resenas")
+      .select("empresa_resenada_id, calificacion")
+      .eq("estado", "aprobada")
+      .not("empresa_resenada_id", "is", null);
+
+    if (resenasData) {
+      mappedData.forEach(emp => {
+        const empResenas = resenasData.filter(r => r.empresa_resenada_id === emp.id);
+        if (empResenas.length > 0) {
+          emp.reviews = empResenas.length;
+          emp.rating = Number((empResenas.reduce((acc, r) => acc + r.calificacion, 0) / emp.reviews).toFixed(1));
+        }
       });
+    }
 
-      // Fetch reseñas para proveedores
-      const { data: resenasData } = await supabase
-        .from("resenas")
-        .select("proveedor_resenado_id, calificacion")
-        .eq("estado", "aprobada")
-        .not("proveedor_resenado_id", "is", null);
+    setEmpresas(mappedData);
+    const uniqueCats = Array.from(
+      new Set(mappedData.map((e) => e.categoria))
+    )
+      .filter(Boolean)
+      .sort();
+    setCategoriasEmpresas(uniqueCats);
+    setCargandoEmpresas(false);
+  }, [currentUser]);
 
-      if (resenasData) {
-        mappedData.forEach(prov => {
-          const provResenas = resenasData.filter(r => r.proveedor_resenado_id === prov.id);
-          if (provResenas.length > 0) {
-            prov.reviews = provResenas.length;
-            prov.rating = Number((provResenas.reduce((acc, r) => acc + r.calificacion, 0) / prov.reviews).toFixed(1));
-          }
-        });
-      }
+  // Fetch prestadores — wrapped in useCallback for reuse
+  const fetchPrestadores = useCallback(async () => {
+    if (!currentUser) return;
 
-      setPrestadores(mappedData);
-      const uniqueCats = Array.from(
-        new Set(mappedData.map((e) => e.categoria))
+    setCargandoPrestadores(true);
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("proveedores")
+      .select(
+        "id, nombre, apellido, nombre_comercial, tipo_proveedor, email, telefono, localidad, provincia, descripcion, es_socio, bucket_logo, ruta_logo"
       )
-        .filter(Boolean)
-        .sort();
-      setCategoriasPrestadores(uniqueCats);
+      .eq("estado", "aprobado");
+
+    if (error || !data) {
       setCargandoPrestadores(false);
+      return;
     }
 
-    if (!loading && currentUser) {
-      fetchPrestadores();
+    const mappedData: Entidad[] = data.map((p: any) => {
+      const displayName =
+        p.nombre_comercial ||
+        [p.nombre, p.apellido].filter(Boolean).join(" ") ||
+        "Sin nombre";
+      const categoria = p.tipo_proveedor || "Prestador de servicios";
+      const logoUrl =
+        p.bucket_logo && p.ruta_logo
+          ? supabase.storage
+              .from(p.bucket_logo)
+              .getPublicUrl(p.ruta_logo).data.publicUrl
+          : null;
+
+      return {
+        id: p.id,
+        tipo: "proveedor",
+        slug: crearSlug(displayName),
+        nombre: displayName,
+        categoria,
+        descripcionCorta: p.descripcion || (p.es_socio ? "Prestador de servicios verificado UIAB" : "Prestador de servicios particular"),
+        descripcionLarga: p.descripcion || "",
+        logo: displayName.charAt(0).toUpperCase(),
+        logoUrl,
+        ubicacion: [p.localidad, p.provincia].filter(Boolean).join(", "),
+        servicios: [],
+        rating: 0,
+        reviews: 0,
+        esSocio: p.es_socio ?? false,
+        contacto: {
+          email: p.email || "",
+          telefono: p.telefono || "",
+          sitioWeb: "",
+        },
+      };
+    });
+
+    // Fetch reseñas para proveedores
+    const { data: resenasData } = await supabase
+      .from("resenas")
+      .select("proveedor_resenado_id, calificacion")
+      .eq("estado", "aprobada")
+      .not("proveedor_resenado_id", "is", null);
+
+    if (resenasData) {
+      mappedData.forEach(prov => {
+        const provResenas = resenasData.filter(r => r.proveedor_resenado_id === prov.id);
+        if (provResenas.length > 0) {
+          prov.reviews = provResenas.length;
+          prov.rating = Number((provResenas.reduce((acc, r) => acc + r.calificacion, 0) / prov.reviews).toFixed(1));
+        }
+      });
     }
-  }, [currentUser, loading]);
+
+    setPrestadores(mappedData);
+    const uniqueCats = Array.from(
+      new Set(mappedData.map((e) => e.categoria))
+    )
+      .filter(Boolean)
+      .sort();
+    setCategoriasPrestadores(uniqueCats);
+    setCargandoPrestadores(false);
+  }, [currentUser]);
+
+  // Fetch data on mount — always runs when component mounts/re-mounts
+  // This fixes back-navigation: when Next.js re-mounts the page component,
+  // state resets to defaults but this effect always fires to reload data.
+  useEffect(() => {
+    if (loading) return;
+    if (!currentUser) return;
+
+    // Always fetch on mount — don't skip even if refs say "fetched"
+    // because component state resets on re-mount but refs persist only within the same mount
+    fetchEmpresas();
+    fetchPrestadores();
+
+    // Handle back-navigation: when the browser navigates back via history,
+    // Next.js may restore the component tree without re-running effects.
+    // Listening to popstate ensures data reloads on back/forward navigation.
+    const handlePopState = () => {
+      fetchEmpresas();
+      fetchPrestadores();
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [loading, currentUser, fetchEmpresas, fetchPrestadores]);
 
   const entidadesActivas = activeTab === "empresas" ? empresas : prestadores;
   const categoriasActivas =
@@ -281,7 +306,7 @@ export default function DirectorioPage() {
 
   const isEmpresas = activeTab === "empresas";
   const colorAccent = isEmpresas ? "blue" : "emerald";
-  const basePath = isEmpresas ? "/empresas" : "/proveedores";
+  const basePath = "/empresas";
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-20">

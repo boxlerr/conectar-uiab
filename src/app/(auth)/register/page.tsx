@@ -160,6 +160,7 @@ function RegisterContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [showPass, setShowPass] = useState(false)
+  const [emailAlreadyExists, setEmailAlreadyExists] = useState(false)
 
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -234,13 +235,40 @@ function RegisterContent() {
     
     if (fieldsToValidate.length > 0) {
       const isValid = await form.trigger(fieldsToValidate)
-      if (isValid) nextStep()
-      else {
+      if (!isValid) {
         const errors = form.formState.errors
         Object.values(errors).forEach(err => {
            if (err?.message) toast.warning(err.message as string)
         })
+        return
       }
+
+      // ── Early email duplicate check on Step 6 ──
+      if (currentStep === 6) {
+        try {
+          const emailValue = form.getValues('email').toLowerCase().trim()
+          const res = await fetch('/api/auth/check-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailValue }),
+          })
+          const { exists } = await res.json()
+
+          if (exists) {
+            toast.error('Este email ya está registrado en UIAB Conecta', {
+              description: 'Si ya tenés una cuenta, podés iniciar sesión directamente o recuperar tu contraseña.',
+              duration: 8000,
+            })
+            setEmailAlreadyExists(true)
+            return // Don't advance to plan selection
+          }
+          setEmailAlreadyExists(false)
+        } catch {
+          // If the check fails, let it continue — the final signUp will catch it
+        }
+      }
+
+      nextStep()
     } else {
       nextStep()
     }
@@ -266,7 +294,20 @@ function RegisterContent() {
       })
 
       if (authError || !authData.user) {
-        toast.error('Error al registrarse', { description: authError?.message })
+        // Translate common Supabase Auth errors to Spanish
+        const rawMsg = authError?.message || ''
+        const isAlreadyRegistered = rawMsg.toLowerCase().includes('already registered') || rawMsg.toLowerCase().includes('already been registered')
+        
+        if (isAlreadyRegistered) {
+          toast.error('Este email ya está registrado', {
+            description: 'Si ya tenés una cuenta, podés iniciar sesión o recuperar tu contraseña.',
+            duration: 8000,
+          })
+          setEmailAlreadyExists(true)
+          setStep(6) // Send them back to the email step
+        } else {
+          toast.error('Error al registrarse', { description: rawMsg })
+        }
         setIsLoading(false)
         return
       }
@@ -790,10 +831,41 @@ function RegisterContent() {
                                <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Email Acceso Módulo *</FormLabel>
                                <FormControl>
                                   <div className="relative group">
-                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary-600" />
-                                     <Input placeholder="admin@empresa.com" className="h-12 pl-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary-50 transition-all font-bold text-lg text-[#00213f]" {...field} />
+                                     <Mail className={cn("absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors", emailAlreadyExists ? "text-rose-500" : "text-slate-400 group-focus-within:text-primary-600")} />
+                                     <Input placeholder="admin@empresa.com" className={cn("h-12 pl-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary-50 transition-all font-bold text-lg text-[#00213f]", emailAlreadyExists && "border-rose-300 bg-rose-50/50 focus:ring-rose-50 focus:border-rose-400")} {...field} onChange={(e) => { field.onChange(e); if (emailAlreadyExists) setEmailAlreadyExists(false); }} />
                                   </div>
                                </FormControl>
+                               <AnimatePresence>
+                                 {emailAlreadyExists && (
+                                   <motion.div 
+                                     initial={{ opacity: 0, height: 0 }} 
+                                     animate={{ opacity: 1, height: 'auto' }} 
+                                     exit={{ opacity: 0, height: 0 }}
+                                     className="overflow-hidden"
+                                   >
+                                     <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                                       <p className="text-sm font-bold text-amber-900">Este email ya tiene una cuenta en UIAB Conecta</p>
+                                       <p className="text-xs text-amber-700/80 leading-relaxed">Si ya te registraste antes, no necesitás crear otra cuenta. Podés ingresar directamente o recuperar tu contraseña.</p>
+                                       <div className="flex gap-2">
+                                         <Link 
+                                           href="/login" 
+                                           className="flex-1 h-10 bg-[#00213f] hover:bg-[#10375c] text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                                         >
+                                           <ArrowRight className="h-3.5 w-3.5" />
+                                           Iniciar Sesión
+                                         </Link>
+                                         <Link 
+                                           href="/recovery" 
+                                           className="flex-1 h-10 bg-white hover:bg-slate-50 text-[#00213f] text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 border border-slate-200 transition-colors"
+                                         >
+                                           <Lock className="h-3.5 w-3.5" />
+                                           Recuperar Contraseña
+                                         </Link>
+                                       </div>
+                                     </div>
+                                   </motion.div>
+                                 )}
+                               </AnimatePresence>
                                <FormMessage />
                             </FormItem>
                           )} />

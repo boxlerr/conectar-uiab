@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Entidad } from "@/lib/datos/directorio"; // Only for typing now
 import {
@@ -38,103 +38,114 @@ export default function EmpresasPage() {
   const headerY = useTransform(scrollY, [0, 600], ["0%", "50%"]);
   const headerOpacity = useTransform(scrollY, [0, 400], [1, 0]);
 
-  // Fetch real companies from Supabase
-  useEffect(() => {
-    async function fetchEmpresas() {
-      if (!currentUser) return;
-      
-      const supabase = createClient();
-      
-      let query = supabase.from('vista_directorio').select('*');
+  // Fetch real companies from Supabase — wrapped in useCallback for reuse
+  const fetchEmpresas = useCallback(async () => {
+    if (!currentUser) return;
 
-      if (categoriaSocio === 'proveedores_servicios_productos') {
-        // Mostramos socios del rubro + particulares
-        query = query.or(`categoria_socio.eq.${categoriaSocio},es_socio.eq.false`);
-      } else if (categoriaSocio) {
-        // Filtramos a la subcategoría específica
-        query = query.eq('categoria_socio', categoriaSocio);
-      }
+    setCargandoDatos(true);
+    setEmpresas([]);
+    const supabase = createClient();
+    
+    let query = supabase.from('vista_directorio').select('*');
 
-      const { data, error } = await query;
+    if (categoriaSocio === 'proveedores_servicios_productos') {
+      // Mostramos socios del rubro + particulares
+      query = query.or(`categoria_socio.eq.${categoriaSocio},es_socio.eq.false`);
+    } else if (categoriaSocio) {
+      // Filtramos a la subcategoría específica
+      query = query.eq('categoria_socio', categoriaSocio);
+    }
 
-      if (error || !data) {
-        console.error("Error fetching vista_directorio:", error);
-        setCargandoDatos(false);
-        return;
-      }
+    const { data, error } = await query;
 
-      // Obtenemos los tags/categorías manualmente porque PostgREST no suele mapear M2M en vistas
-      const empresaIds = data.filter((d: any) => d.tipo_entidad === 'empresa').map((d: any) => d.id);
-      const proveedorIds = data.filter((d: any) => d.tipo_entidad === 'proveedor').map((d: any) => d.id);
-
-      const [resEmp, resProv] = await Promise.all([
-        empresaIds.length > 0 
-          ? supabase.from('empresas_categorias').select('empresa_id, categorias(nombre)').in('empresa_id', empresaIds) 
-          : Promise.resolve({ data: [] }),
-        proveedorIds.length > 0 
-          ? supabase.from('proveedores_categorias').select('proveedor_id, categorias(nombre)').in('proveedor_id', proveedorIds) 
-          : Promise.resolve({ data: [] })
-      ]);
-
-      const catMap = new Map();
-      if (resEmp.data) {
-        resEmp.data.forEach((ec: any) => {
-          const current = catMap.get(ec.empresa_id) || [];
-          if (ec.categorias?.nombre) current.push(ec.categorias.nombre);
-          catMap.set(ec.empresa_id, current);
-        });
-      }
-      if (resProv.data) {
-        resProv.data.forEach((pc: any) => {
-          const current = catMap.get(pc.proveedor_id) || [];
-          if (pc.categorias?.nombre) current.push(pc.categorias.nombre);
-          catMap.set(pc.proveedor_id, current);
-        });
-      }
-
-      const mappedData: Entidad[] = data.map((item: any) => {
-        const cats = catMap.get(item.id) || [];
-        const mainCat = cats.length > 0 ? cats[0] : "Industrial General";
-        
-        const nombre = item.razon_social || item.nombre || "Sin nombre";
-        const logoUrl = item.bucket_logo && item.ruta_logo
-          ? supabase.storage.from(item.bucket_logo).getPublicUrl(item.ruta_logo).data.publicUrl
-          : null;
-
-        return {
-          id: item.id,
-          tipo: item.tipo_entidad || (item.es_socio ? "empresa" : "proveedor"),
-          slug: crearSlug(nombre),
-          nombre: nombre,
-          categoria: mainCat,
-          descripcionCorta: item.actividad || item.descripcion_corta || "Sin descripción",
-          descripcionLarga: item.actividad || item.descripcion || "",
-          logo: nombre.charAt(0).toUpperCase(),
-          logoUrl,
-          ubicacion: `${item.localidad || ''}, ${item.direccion || ''}`.replace(/^, | ,|, $/g, ''),
-          servicios: cats.slice(1),
-          contacto: {
-            email: item.email || "",
-            telefono: item.telefono || "",
-            sitioWeb: item.sitio_web || ""
-          },
-          esSocio: item.es_socio
-        };
-      });
-
-      setEmpresas(mappedData);
-      
-      const uniqueCats = Array.from(new Set(mappedData.map(e => e.categoria))).filter(Boolean).sort();
-      setCategorias(uniqueCats);
+    if (error || !data) {
+      console.error("Error fetching vista_directorio:", error);
       setCargandoDatos(false);
+      return;
     }
 
-    if (!loading && currentUser) {
-      setCargandoDatos(true);
-      setEmpresas([]);
-      fetchEmpresas();
+    // Obtenemos los tags/categorías manualmente porque PostgREST no suele mapear M2M en vistas
+    const empresaIds = data.filter((d: any) => d.tipo_entidad === 'empresa').map((d: any) => d.id);
+    const proveedorIds = data.filter((d: any) => d.tipo_entidad === 'proveedor').map((d: any) => d.id);
+
+    const [resEmp, resProv] = await Promise.all([
+      empresaIds.length > 0 
+        ? supabase.from('empresas_categorias').select('empresa_id, categorias(nombre)').in('empresa_id', empresaIds) 
+        : Promise.resolve({ data: [] }),
+      proveedorIds.length > 0 
+        ? supabase.from('proveedores_categorias').select('proveedor_id, categorias(nombre)').in('proveedor_id', proveedorIds) 
+        : Promise.resolve({ data: [] })
+    ]);
+
+    const catMap = new Map();
+    if (resEmp.data) {
+      resEmp.data.forEach((ec: any) => {
+        const current = catMap.get(ec.empresa_id) || [];
+        if (ec.categorias?.nombre) current.push(ec.categorias.nombre);
+        catMap.set(ec.empresa_id, current);
+      });
     }
-  }, [currentUser, loading, categoriaSocio]);
+    if (resProv.data) {
+      resProv.data.forEach((pc: any) => {
+        const current = catMap.get(pc.proveedor_id) || [];
+        if (pc.categorias?.nombre) current.push(pc.categorias.nombre);
+        catMap.set(pc.proveedor_id, current);
+      });
+    }
+
+    const mappedData: Entidad[] = data.map((item: any) => {
+      const cats = catMap.get(item.id) || [];
+      const mainCat = cats.length > 0 ? cats[0] : "Industrial General";
+      
+      const nombre = item.razon_social || item.nombre || "Sin nombre";
+      const logoUrl = item.bucket_logo && item.ruta_logo
+        ? supabase.storage.from(item.bucket_logo).getPublicUrl(item.ruta_logo).data.publicUrl
+        : null;
+
+      return {
+        id: item.id,
+        tipo: item.tipo_entidad || (item.es_socio ? "empresa" : "proveedor"),
+        slug: crearSlug(nombre),
+        nombre: nombre,
+        categoria: mainCat,
+        descripcionCorta: item.actividad || item.descripcion_corta || "Sin descripción",
+        descripcionLarga: item.actividad || item.descripcion || "",
+        logo: nombre.charAt(0).toUpperCase(),
+        logoUrl,
+        ubicacion: `${item.localidad || ''}, ${item.direccion || ''}`.replace(/^, | ,|, $/g, ''),
+        servicios: cats.slice(1),
+        contacto: {
+          email: item.email || "",
+          telefono: item.telefono || "",
+          sitioWeb: item.sitio_web || ""
+        },
+        esSocio: item.es_socio
+      };
+    });
+
+    setEmpresas(mappedData);
+    
+    const uniqueCats = Array.from(new Set(mappedData.map(e => e.categoria))).filter(Boolean).sort();
+    setCategorias(uniqueCats);
+    setCargandoDatos(false);
+  }, [currentUser, categoriaSocio]);
+
+  // Fetch data on mount and handle back-navigation
+  useEffect(() => {
+    if (loading || !currentUser) return;
+
+    fetchEmpresas();
+
+    // Handle back-navigation: popstate fires when browser history changes
+    const handlePopState = () => {
+      fetchEmpresas();
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [loading, currentUser, fetchEmpresas]);
 
   const empresasFiltradas = useMemo(() => {
     return empresas.filter((empresa) => {
@@ -357,7 +368,7 @@ export default function EmpresasPage() {
                   <DirectoryProfileCard
                     key={empresa.id}
                     entidad={empresa}
-                    basePath={empresa.tipo === 'proveedor' ? '/proveedores' : '/empresas'}
+                    basePath="/empresas"
                     variant={viewMode}
                     colorScheme="blue"
                   />

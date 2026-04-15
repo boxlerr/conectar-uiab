@@ -14,6 +14,7 @@ export interface Entidad {
   destacado?: boolean;
   rating?: number;
   reviews?: number;
+  esSocio?: boolean;
   contacto: {
     email: string;
     telefono: string;
