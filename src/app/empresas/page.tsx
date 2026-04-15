@@ -44,63 +44,81 @@ export default function EmpresasPage() {
       if (!currentUser) return;
       
       const supabase = createClient();
-      let query = supabase
-        .from('empresas')
-        .select(`
-          id,
-          razon_social,
-          direccion,
-          localidad,
-          actividad,
-          sitio_web,
-          email,
-          bucket_logo,
-          ruta_logo,
-          categoria_socio,
-          empresas_categorias (
-            categorias (
-              nombre
-            )
-          )
-        `)
-        .eq('estado', 'aprobada');
+      
+      let query = supabase.from('vista_directorio').select('*');
 
-      if (categoriaSocio) {
+      if (categoriaSocio === 'proveedores_servicios_productos') {
+        // Mostramos socios del rubro + particulares
+        query = query.or(`categoria_socio.eq.${categoriaSocio},es_socio.eq.false`);
+      } else if (categoriaSocio) {
+        // Filtramos a la subcategoría específica
         query = query.eq('categoria_socio', categoriaSocio);
       }
 
       const { data, error } = await query;
 
       if (error || !data) {
-        console.error("Error fetching empresas:", error);
+        console.error("Error fetching vista_directorio:", error);
         setCargandoDatos(false);
         return;
       }
 
-      const mappedData: Entidad[] = data.map((emp: any) => {
-        const cats = emp.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
+      // Obtenemos los tags/categorías manualmente porque PostgREST no suele mapear M2M en vistas
+      const empresaIds = data.filter((d: any) => d.tipo_entidad === 'empresa').map((d: any) => d.id);
+      const proveedorIds = data.filter((d: any) => d.tipo_entidad === 'proveedor').map((d: any) => d.id);
+
+      const [resEmp, resProv] = await Promise.all([
+        empresaIds.length > 0 
+          ? supabase.from('empresas_categorias').select('empresa_id, categorias(nombre)').in('empresa_id', empresaIds) 
+          : Promise.resolve({ data: [] }),
+        proveedorIds.length > 0 
+          ? supabase.from('proveedores_categorias').select('proveedor_id, categorias(nombre)').in('proveedor_id', proveedorIds) 
+          : Promise.resolve({ data: [] })
+      ]);
+
+      const catMap = new Map();
+      if (resEmp.data) {
+        resEmp.data.forEach((ec: any) => {
+          const current = catMap.get(ec.empresa_id) || [];
+          if (ec.categorias?.nombre) current.push(ec.categorias.nombre);
+          catMap.set(ec.empresa_id, current);
+        });
+      }
+      if (resProv.data) {
+        resProv.data.forEach((pc: any) => {
+          const current = catMap.get(pc.proveedor_id) || [];
+          if (pc.categorias?.nombre) current.push(pc.categorias.nombre);
+          catMap.set(pc.proveedor_id, current);
+        });
+      }
+
+      const mappedData: Entidad[] = data.map((item: any) => {
+        const cats = catMap.get(item.id) || [];
         const mainCat = cats.length > 0 ? cats[0] : "Industrial General";
-        const logoUrl = emp.bucket_logo && emp.ruta_logo
-          ? supabase.storage.from(emp.bucket_logo).getPublicUrl(emp.ruta_logo).data.publicUrl
+        
+        const nombre = item.razon_social || item.nombre || "Sin nombre";
+        const logoUrl = item.bucket_logo && item.ruta_logo
+          ? supabase.storage.from(item.bucket_logo).getPublicUrl(item.ruta_logo).data.publicUrl
           : null;
 
         return {
-          id: emp.id,
-          tipo: "empresa",
-          slug: crearSlug(emp.razon_social), // Uses friendly slug
-          nombre: emp.razon_social,
+          id: item.id,
+          tipo: item.tipo_entidad || (item.es_socio ? "empresa" : "proveedor"),
+          slug: crearSlug(nombre),
+          nombre: nombre,
           categoria: mainCat,
-          descripcionCorta: emp.actividad || "Sin descripción",
-          descripcionLarga: emp.actividad || "",
-          logo: emp.razon_social.charAt(0).toUpperCase(),
+          descripcionCorta: item.actividad || item.descripcion_corta || "Sin descripción",
+          descripcionLarga: item.actividad || item.descripcion || "",
+          logo: nombre.charAt(0).toUpperCase(),
           logoUrl,
-          ubicacion: `${emp.localidad || ''}, ${emp.direccion || ''}`.replace(/^, | ,|, $/g, ''),
+          ubicacion: `${item.localidad || ''}, ${item.direccion || ''}`.replace(/^, | ,|, $/g, ''),
           servicios: cats.slice(1),
           contacto: {
-            email: emp.email || "",
-            telefono: "",
-            sitioWeb: emp.sitio_web || ""
-          }
+            email: item.email || "",
+            telefono: item.telefono || "",
+            sitioWeb: item.sitio_web || ""
+          },
+          esSocio: item.es_socio
         };
       });
 
@@ -339,7 +357,7 @@ export default function EmpresasPage() {
                   <DirectoryProfileCard
                     key={empresa.id}
                     entidad={empresa}
-                    basePath="/empresas"
+                    basePath={empresa.tipo === 'proveedor' ? '/proveedores' : '/empresas'}
                     variant={viewMode}
                     colorScheme="blue"
                   />

@@ -187,15 +187,15 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
       icon: BookOpen,
       groups: [
         {
-          name: "Socios UIAB",
+          name: "Directorio",
           icon: Building,
-          description: "Miembros verificados de la institución",
+          description: "Organizaciones y proveedores de servicios",
           items: [
             {
               name: "Proveedores de servicios y productos",
               href: "/empresas?categoria=proveedores",
               icon: Package,
-              description: "Empresas industriales socias",
+              description: "Ecosistema industrial y particulares",
             },
             {
               name: "Instituciones educativas",
@@ -208,19 +208,6 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
               href: "/empresas?categoria=bancarias",
               icon: Landmark,
               description: "Entidades financieras socias",
-            },
-          ],
-        },
-        {
-          name: "Directorio abierto",
-          icon: Users,
-          description: "Búsqueda general de servicios",
-          items: [
-            {
-              name: "Particulares",
-              href: "/proveedores",
-              icon: Wrench,
-              description: "Proveedores y servicios sin membresía",
             },
           ],
         },

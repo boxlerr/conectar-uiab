@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/servidor";
 import { crearSlug } from "@/lib/utilidades";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
 import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2 } from "lucide-react";
 import Image from "next/image";
 
@@ -50,6 +51,33 @@ export default async function EmpresaProfilePage({
   const logoUrl = empresaDb.bucket_logo && empresaDb.ruta_logo
     ? supabase.storage.from(empresaDb.bucket_logo).getPublicUrl(empresaDb.ruta_logo).data.publicUrl
     : null;
+
+  // Fetch Reseñas Aprobadas
+  const { data: resenasData } = await supabase
+    .from('resenas')
+    .select(`
+      id,
+      calificacion,
+      comentario,
+      creada_en,
+      empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
+      proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
+    `)
+    .eq('empresa_resenada_id', empresaDb.id)
+    .eq('estado', 'aprobada')
+    .order('creada_en', { ascending: false });
+    
+  // If the explicit foreign key fails due to naming, fallback to a simpler flat query to prevent crashing
+  let finalResenas = resenasData || [];
+  if (!resenasData) {
+    const { data: fallbackData } = await supabase
+      .from('resenas')
+      .select('id, calificacion, comentario, creada_en')
+      .eq('empresa_resenada_id', empresaDb.id)
+      .eq('estado', 'aprobada')
+      .order('creada_en', { ascending: false });
+    finalResenas = fallbackData || [];
+  }
 
   const empresa = {
     nombre: empresaDb.razon_social,
@@ -152,6 +180,13 @@ export default async function EmpresaProfilePage({
                 ))}
               </div>
             </div>
+
+            {/* SECCION DE RESEÑAS */}
+            <ResenasPerfil 
+              resenasAprobadas={finalResenas} 
+              targetType="empresa" 
+              targetId={empresaDb.id} 
+            />
           </main>
 
           {/* Sidebar Column */}

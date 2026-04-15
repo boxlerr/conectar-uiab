@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { ShieldAlert, User, Briefcase, FileText, CreditCard, LayoutDashboard } from "lucide-react";
+import { ShieldAlert, User, Briefcase, FileText, CreditCard, LayoutDashboard, PackageSearch } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utilidades";
@@ -42,7 +42,8 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
   const profileNav = [
     { name: "Mi Resumen", href: "/perfil", icon: LayoutDashboard },
     { name: "Datos y Contacto", href: "/perfil/datos", icon: User },
-    { name: "Servicios Ofrecidos", href: "/perfil/servicios", icon: Briefcase },
+    { name: "Productos y Servicios", href: "/perfil/productos-servicios", icon: PackageSearch },
+    { name: "Rubros y Especialidades", href: "/perfil/servicios", icon: Briefcase },
     { name: "Documentación", href: "/perfil/documentos", icon: FileText },
     { name: "Mi Suscripción", href: "/perfil/suscripcion", icon: CreditCard },
   ];

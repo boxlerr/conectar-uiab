@@ -33,6 +33,7 @@ import {
   MessageSquare,
   Eye,
   User,
+  PackageSearch,
 } from 'lucide-react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -230,6 +231,12 @@ export default async function DashboardPage() {
     const { data } = await supabase.from('tarifas').select('*').eq('nivel', entityData.tarifa).single();
     tarifaData = data;
   }
+
+  // ── Productos / Servicios ──
+  const { data: myItemsData } = (isCompany || isProvider) && entityId
+    ? await supabase.from('items').select('id, titulo, precio, estado, creado_en').eq(isCompany ? 'empresa_id' : 'proveedor_id', entityId).order('creado_en', { ascending: false }).limit(3)
+    : { data: [] };
+  const myItems = myItemsData || [];
 
   // ── Derived ──
   const { pct: profilePct, missing: missingFields } = entityData
@@ -777,6 +784,51 @@ export default async function DashboardPage() {
                       }`}>{sol.estado}</span>
                     </div>
                   ))}
+                </div>
+              </section>
+            )}
+
+            {/* ── PRODUCTS / SERVICES SUMMARY ── */}
+            {(isCompany || isProvider) && (
+              <section className="bg-white rounded-md shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] overflow-hidden">
+                <div className="bg-[#f7f9fb] px-8 py-5 flex items-center justify-between">
+                  <h2 className="font-poppins text-base font-bold text-[#00213f] flex items-center gap-2.5">
+                    <PackageSearch className="w-5 h-5 text-slate-600" />
+                    Mis Productos y Servicios
+                  </h2>
+                  <Link href="/perfil/productos-servicios" className="text-xs font-bold text-slate-500 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
+                    Gestionar <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+                <div className="divide-y divide-[#f7f9fb]">
+                  {myItems.length > 0 ? myItems.map((item: any) => (
+                    <div key={item.id} className="flex items-center justify-between px-8 py-4 hover:bg-[#f7f9fb] transition-colors group">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-9 h-9 rounded-sm bg-primary-50/50 flex items-center justify-center flex-shrink-0">
+                          <PackageSearch className="w-4 h-4 text-primary-600/70" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[#00213f] truncate group-hover:text-[#10375c] transition-colors">{item.titulo}</p>
+                          {item.precio && (
+                            <p className="text-[10px] text-slate-500 mt-0.5 font-medium flex items-center gap-1">
+                              $ {Number(item.precio).toLocaleString('es-AR')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider flex-shrink-0 ml-4 ${item.estado === 'activo' ? 'bg-emerald-50 text-emerald-700' : 'bg-[#f2f4f6] text-slate-600'}`}>
+                        {item.estado || 'Activo'}
+                      </span>
+                    </div>
+                  )) : (
+                    <div className="px-8 py-8 text-center bg-white flex flex-col items-center">
+                      <PackageSearch className="w-8 h-8 text-slate-300 mb-3" />
+                      <p className="text-sm text-slate-500 font-medium">Aún no tienes productos o servicios en tu catálogo.</p>
+                      <Link href="/perfil/productos-servicios" className="mt-4 text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors uppercase tracking-wider flex items-center gap-1">
+                        Crear tu primer ítem <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </section>
             )}

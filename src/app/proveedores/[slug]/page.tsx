@@ -1,6 +1,8 @@
 import { getEntidadBySlug } from "@/lib/datos/directorio";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
+import { createClient } from "@/lib/supabase/servidor";
 import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Wrench } from "lucide-react";
 
 export default async function ProveedorProfilePage({
@@ -13,6 +15,32 @@ export default async function ProveedorProfilePage({
 
   if (!proveedor || proveedor.tipo !== "proveedor") {
     notFound();
+  }
+
+  const supabase = await createClient();
+  const { data: resenasData } = await supabase
+    .from('resenas')
+    .select(`
+      id,
+      calificacion,
+      comentario,
+      creada_en,
+      empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
+      proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
+    `)
+    .eq('proveedor_resenado_id', proveedor.id)
+    .eq('estado', 'aprobada')
+    .order('creada_en', { ascending: false });
+
+  let finalResenas = resenasData || [];
+  if (!resenasData) {
+    const { data: fallbackData } = await supabase
+      .from('resenas')
+      .select('id, calificacion, comentario, creada_en')
+      .eq('proveedor_resenado_id', proveedor.id)
+      .eq('estado', 'aprobada')
+      .order('creada_en', { ascending: false });
+    finalResenas = fallbackData || [];
   }
 
   return (
@@ -88,6 +116,13 @@ export default async function ProveedorProfilePage({
                 </div>
               </div>
             )}
+
+            {/* SECCION DE RESEÑAS */}
+            <ResenasPerfil 
+              resenasAprobadas={finalResenas} 
+              targetType="proveedor" 
+              targetId={proveedor.id} 
+            />
           </main>
 
           {/* Sidebar / Contact info */}
