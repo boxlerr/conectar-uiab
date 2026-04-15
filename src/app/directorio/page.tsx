@@ -126,6 +126,8 @@ export default function DirectorioPage() {
             ""
           ),
           servicios: cats.slice(1),
+          rating: 0,
+          reviews: 0,
           contacto: {
             email: emp.email || "",
             telefono: "",
@@ -133,6 +135,23 @@ export default function DirectorioPage() {
           },
         };
       });
+
+      // Fetch reseñas
+      const { data: resenasData } = await supabase
+        .from("resenas")
+        .select("empresa_resenada_id, calificacion")
+        .eq("estado", "aprobada")
+        .not("empresa_resenada_id", "is", null);
+
+      if (resenasData) {
+        mappedData.forEach(emp => {
+          const empResenas = resenasData.filter(r => r.empresa_resenada_id === emp.id);
+          if (empResenas.length > 0) {
+            emp.reviews = empResenas.length;
+            emp.rating = Number((empResenas.reduce((acc, r) => acc + r.calificacion, 0) / emp.reviews).toFixed(1));
+          }
+        });
+      }
 
       setEmpresas(mappedData);
       const uniqueCats = Array.from(
@@ -185,6 +204,8 @@ export default function DirectorioPage() {
           logo: displayName.charAt(0).toUpperCase(),
           ubicacion: [p.localidad, p.provincia].filter(Boolean).join(", "),
           servicios: [],
+          rating: 0,
+          reviews: 0,
           contacto: {
             email: p.email || "",
             telefono: p.telefono || "",
@@ -192,6 +213,23 @@ export default function DirectorioPage() {
           },
         };
       });
+
+      // Fetch reseñas para proveedores
+      const { data: resenasData } = await supabase
+        .from("resenas")
+        .select("proveedor_resenado_id, calificacion")
+        .eq("estado", "aprobada")
+        .not("proveedor_resenado_id", "is", null);
+
+      if (resenasData) {
+        mappedData.forEach(prov => {
+          const provResenas = resenasData.filter(r => r.proveedor_resenado_id === prov.id);
+          if (provResenas.length > 0) {
+            prov.reviews = provResenas.length;
+            prov.rating = Number((provResenas.reduce((acc, r) => acc + r.calificacion, 0) / prov.reviews).toFixed(1));
+          }
+        });
+      }
 
       setPrestadores(mappedData);
       const uniqueCats = Array.from(

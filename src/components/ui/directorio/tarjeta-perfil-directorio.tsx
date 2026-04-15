@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, MapPin, BadgeCheck, ShieldCheck } from "lucide-react";
+import { ArrowRight, MapPin, BadgeCheck, ShieldCheck, Star } from "lucide-react";
 import { Entidad } from "@/lib/datos/directorio";
 
 interface ProfileCardProps {
@@ -56,6 +56,14 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
               <span className={`text-[9px] font-bold uppercase tracking-[0.22em] ${accentText}`}>
                 Verificado UIAB
               </span>
+              {(entidad.rating && entidad.rating > 0) ? (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-slate-200" />
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600">
+                    <Star className="w-3 h-3 fill-amber-500" /> {entidad.rating} ({entidad.reviews})
+                  </span>
+                </>
+              ) : null}
             </div>
             <h3 className={`font-manrope text-[17px] md:text-[19px] font-bold text-slate-900 leading-[1.25] tracking-tight transition-colors duration-500 line-clamp-2 break-words ${hoverText}`}>
               {entidad.nombre}
@@ -114,9 +122,16 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
             <BadgeCheck className="w-3.5 h-3.5 shrink-0" />
             <span className="text-[10px] font-black uppercase tracking-widest shadow-sm">Verificado</span>
           </div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded border border-slate-100 text-right">
-            {entidad.categoria}
-          </span>
+          <div className="flex gap-2">
+            {(entidad.rating && entidad.rating > 0) ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                <Star className="w-3 h-3 fill-amber-500 text-amber-500" /> {entidad.rating}
+              </span>
+            ) : null}
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded border border-slate-100 text-right">
+              {entidad.categoria}
+            </span>
+          </div>
         </div>
       </div>
 

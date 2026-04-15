@@ -158,16 +158,16 @@ export function PanelResenas({ resenas }: { resenas: Resena[] }) {
                 </div>
                 <div className="flex gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                   {resena.estado === "pendiente_revision" && (
-                    <>
-                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 w-8 p-0"
-                        onClick={(e) => handleAprobar(resena.id, e)} disabled={isPending}>
-                        <Check className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50 h-8 w-8 p-0"
-                        onClick={(e) => { e.stopPropagation(); setModalRechazo(resena.id); }}>
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </>
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 w-8 p-0"
+                      onClick={(e) => handleAprobar(resena.id, e)} disabled={isPending}>
+                      <Check className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {(resena.estado === "pendiente_revision" || resena.estado === "aprobada") && (
+                    <Button size="sm" variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50 h-8 w-8 p-0"
+                      onClick={(e) => { e.stopPropagation(); setModalRechazo(resena.id); }}>
+                      <X className="w-4 h-4" />
+                    </Button>
                   )}
                 </div>
               </div>
@@ -218,13 +218,15 @@ export function PanelResenas({ resenas }: { resenas: Resena[] }) {
                 </section>
               )}
             </div>
-            {seleccionada.estado === "pendiente_revision" && (
+            {(seleccionada.estado === "pendiente_revision" || seleccionada.estado === "aprobada") && (
               <div className="sticky bottom-0 bg-white/95 border-t border-slate-100 p-5 flex gap-3">
-                <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isPending}
-                  onClick={() => handleAprobar(seleccionada.id)}>
-                  <Check className="w-4 h-4 mr-2" /> Publicar reseña
-                </Button>
-                <Button variant="outline" className="flex-1 text-rose-600 border-rose-200 hover:bg-rose-50" disabled={isPending}
+                {seleccionada.estado === "pendiente_revision" && (
+                  <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isPending}
+                    onClick={() => handleAprobar(seleccionada.id)}>
+                    <Check className="w-4 h-4 mr-2" /> Publicar reseña
+                  </Button>
+                )}
+                <Button variant="outline" className="flex-1 text-rose-600 border-rose-200 hover:bg-rose-50 bg-white" disabled={isPending}
                   onClick={() => setModalRechazo(seleccionada.id)}>
                   <X className="w-4 h-4 mr-2" /> Rechazar
                 </Button>
