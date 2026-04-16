@@ -88,23 +88,6 @@ export default function MiPerfilPage() {
         </div>
       </div>
 
-      {!isComplete && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm">
-          <div className="bg-amber-100 p-3 rounded-full text-amber-600 flex-shrink-0">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-amber-900 mb-1">Falta cargar tu documentación</h3>
-            <p className="text-sm text-amber-700/80">
-              Para que tu perfil sea visible en el directorio, es requerido subir las constancias impositivas o matrículas correspondientes.
-            </p>
-          </div>
-          <Link href="/perfil/documentos" className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg text-sm whitespace-nowrap shadow-sm shadow-amber-600/20 transition-colors">
-            Cargar Papeles
-          </Link>
-        </div>
-      )}
-
       {/* Grid Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
