@@ -118,9 +118,9 @@ export function DirectoryShowcase() {
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           {PROVEEDORES_CATEGORIES.map((cat, idx) => (
-            <Link 
-              key={idx} 
-              href={`/proveedores`} 
+            <Link
+              key={idx}
+              href={`/empresas?categoria=proveedores`}
               onClick={() => setActiveModal(null)}
               className="group flex items-center justify-between p-4 rounded-2xl border border-slate-200 hover:border-accent-400 hover:bg-accent-50 transition-all shadow-sm"
             >
@@ -130,7 +130,7 @@ export function DirectoryShowcase() {
           ))}
         </div>
         <div className="text-center pt-4 border-t border-slate-100">
-          <Link href="/proveedores" onClick={() => setActiveModal(null)} className="inline-flex items-center justify-center bg-accent-500 hover:bg-accent-600 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-accent-500/20 w-full sm:w-auto">
+          <Link href="/empresas?categoria=proveedores" onClick={() => setActiveModal(null)} className="inline-flex items-center justify-center bg-accent-500 hover:bg-accent-600 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-accent-500/20 w-full sm:w-auto">
             Explorar todos los proveedores
             <ArrowRight className="w-5 h-5 ml-2" />
           </Link>

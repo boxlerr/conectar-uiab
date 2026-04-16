@@ -7,63 +7,68 @@ interface ProfileCardProps {
   entidad: Entidad;
   basePath: string;
   variant?: 'grid' | 'list';
-  colorScheme?: 'blue' | 'emerald';
+  colorScheme?: 'blue' | 'emerald' | 'violet';
 }
 
 export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colorScheme = 'blue' }: ProfileCardProps) {
   const isParticular = entidad.esSocio === false;
   const isEmerald = colorScheme === 'emerald';
+  const isViolet = colorScheme === 'violet';
 
   // Particulars get a warm amber accent regardless of colorScheme
   const hoverText = isParticular
     ? "group-hover:text-amber-700"
-    : isEmerald ? "group-hover:text-emerald-700" : "group-hover:text-primary";
+    : isViolet ? "group-hover:text-violet-700" : isEmerald ? "group-hover:text-emerald-700" : "group-hover:text-primary";
 
   const glowHover = isParticular
     ? "group-hover:shadow-[0_0_40px_-10px_rgba(245,158,11,0.25)]"
-    : isEmerald ? "group-hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.2)]" : "group-hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.2)]";
+    : isViolet ? "group-hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.22)]" : isEmerald ? "group-hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.2)]" : "group-hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.2)]";
 
   const bgLogo = isParticular
     ? "bg-amber-50 group-hover:bg-amber-100 text-amber-800"
-    : isEmerald ? "bg-emerald-50 group-hover:bg-emerald-100 text-emerald-800" : "bg-slate-50 group-hover:bg-blue-50 text-primary";
+    : isViolet ? "bg-violet-50 group-hover:bg-violet-100 text-violet-800" : isEmerald ? "bg-emerald-50 group-hover:bg-emerald-100 text-emerald-800" : "bg-slate-50 group-hover:bg-blue-50 text-primary";
 
   const indicatorLine = isParticular
     ? "bg-gradient-to-r from-amber-400 to-orange-400"
-    : isEmerald ? "bg-emerald-500" : "bg-blue-500";
+    : isViolet ? "bg-gradient-to-r from-violet-500 to-indigo-500" : isEmerald ? "bg-emerald-500" : "bg-blue-500";
 
   const badgeClasses = isParticular
     ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-[0_4px_12px_rgba(245,158,11,0.3)] border-white/20"
-    : isEmerald
-      ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)] border-white/20"
-      : "bg-gradient-to-tr from-[#00213f] to-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.3)] border-white/20";
+    : isViolet
+      ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_4px_12px_rgba(139,92,246,0.3)] border-white/20"
+      : isEmerald
+        ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)] border-white/20"
+        : "bg-gradient-to-tr from-[#00213f] to-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.3)] border-white/20";
 
   const actionBg = isParticular
     ? "bg-amber-600"
-    : isEmerald ? 'bg-emerald-600' : 'bg-primary';
+    : isViolet ? 'bg-violet-700' : isEmerald ? 'bg-emerald-600' : 'bg-primary';
 
   if (variant === 'list') {
-    const accentDot = isParticular ? "bg-amber-500" : isEmerald ? "bg-emerald-500" : "bg-blue-500";
-    const accentText = isParticular ? "text-amber-600" : isEmerald ? "text-emerald-600" : "text-blue-600";
+    const accentDot = isParticular ? "bg-amber-500" : isViolet ? "bg-violet-500" : isEmerald ? "bg-emerald-500" : "bg-blue-500";
+    const accentText = isParticular ? "text-amber-600" : isViolet ? "text-violet-600" : isEmerald ? "text-emerald-600" : "text-blue-600";
     const buttonHover = isParticular
       ? "group-hover:bg-amber-600 group-hover:border-amber-600 group-hover:text-white"
-      : isEmerald
-        ? "group-hover:bg-emerald-600 group-hover:border-emerald-600 group-hover:text-white"
-        : "group-hover:bg-[#00213f] group-hover:border-[#00213f] group-hover:text-white";
+      : isViolet
+        ? "group-hover:bg-violet-700 group-hover:border-violet-700 group-hover:text-white"
+        : isEmerald
+          ? "group-hover:bg-emerald-600 group-hover:border-emerald-600 group-hover:text-white"
+          : "group-hover:bg-[#00213f] group-hover:border-[#00213f] group-hover:text-white";
 
     return (
       <Link
         href={`${basePath}/${entidad.slug}`}
-        className="group relative block bg-white font-inter border-b border-slate-200/70 last:border-b-0 transition-all duration-500 hover:bg-slate-50/40"
+        className="group relative block bg-white font-inter border-b border-slate-200/50 last:border-b-0 transition-all duration-500 hover:bg-slate-50/40"
       >
         {/* Hairline accent izquierda */}
         <span className={`absolute left-0 top-0 bottom-0 w-px ${indicatorLine} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
         <div className="grid grid-cols-[auto_1fr] md:grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-5 md:gap-8 px-6 md:px-8 py-6">
           {/* Logo — marco delicado, circular for particulares */}
-          <div className={`relative w-16 h-16 md:w-20 md:h-20 overflow-hidden bg-white ring-1 transition-all duration-500 group-hover:shadow-[0_6px_24px_-10px_rgba(15,23,42,0.25)] ${
+          <div className={`relative w-16 h-16 md:w-20 md:h-20 overflow-hidden bg-white ring-1 transition-all duration-500 ${
             isParticular
-              ? "rounded-full ring-amber-200 group-hover:ring-amber-300"
-              : "rounded-[10px] ring-slate-200 group-hover:ring-slate-300"
+              ? "rounded-full ring-amber-200/70 group-hover:ring-amber-300"
+              : "rounded-md ring-slate-200/70 group-hover:ring-slate-300"
           }`}>
             {entidad.logoUrl ? (
               <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="80px" />
@@ -94,7 +99,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
               {(entidad.rating && entidad.rating > 0) ? (
                 <>
                   <span className="w-1 h-1 rounded-full bg-slate-200" />
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-50/50 rounded-md border border-amber-100/50 text-[10px] font-black text-amber-700 transition-all duration-300 group-hover:bg-amber-50 group-hover:border-amber-200 group-hover:shadow-[0_2px_8px_-4px_rgba(245,158,11,0.3)]">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-50/60 rounded-sm text-[10px] font-black text-amber-700 transition-colors duration-300 group-hover:bg-amber-50">
                     <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                     {entidad.rating.toFixed(1)}
                     {entidad.reviews && (
@@ -106,7 +111,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
                 </>
               ) : null}
             </div>
-            <h3 className={`font-manrope text-[17px] md:text-[19px] font-bold text-slate-900 leading-[1.25] tracking-tight transition-colors duration-500 line-clamp-2 break-words ${hoverText}`}>
+            <h3 className={`font-manrope text-[17px] md:text-[19px] font-bold text-[#191c1e] leading-[1.25] tracking-tight transition-colors duration-500 line-clamp-2 break-words ${hoverText}`}>
               {entidad.nombre}
             </h3>
             <p className="text-slate-500 text-[13px] leading-relaxed font-normal line-clamp-1 mt-1.5">
@@ -115,10 +120,10 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
           </div>
 
           {/* Metadata editorial */}
-          <div className="hidden md:flex flex-col gap-2 w-[170px] lg:w-[200px] shrink-0 pl-6 lg:pl-8 border-l border-slate-200/70">
+          <div className="hidden md:flex flex-col gap-2 w-[170px] lg:w-[200px] shrink-0 pl-6 lg:pl-8 border-l border-slate-200/50">
             <div>
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.22em]">Sector</span>
-              <p className="text-sm font-semibold text-slate-800 leading-tight mt-1 line-clamp-1">{entidad.categoria}</p>
+              <p className="text-sm font-semibold text-[#191c1e] leading-tight mt-1 line-clamp-1">{entidad.categoria}</p>
             </div>
             {entidad.ubicacion && (
               <div className="flex items-start gap-1.5 text-slate-500 mt-1">
@@ -128,9 +133,9 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
             )}
           </div>
 
-          {/* Acción — ghost pill con flecha */}
+          {/* Acción — ghost button editorial */}
           <div className="hidden md:flex items-center shrink-0">
-            <div className={`inline-flex items-center justify-center whitespace-nowrap px-5 py-2.5 text-[12px] font-semibold tracking-wide text-slate-700 rounded-full border border-slate-200 transition-all duration-500 ${buttonHover}`}>
+            <div className={`inline-flex items-center justify-center whitespace-nowrap px-5 py-2.5 text-[12px] font-semibold tracking-wide text-slate-700 rounded-sm border border-slate-200/60 transition-all duration-500 ${buttonHover}`}>
               Ver expediente
               <ArrowRight className="w-3.5 h-3.5 ml-2 transition-transform duration-500 group-hover:translate-x-1" />
             </div>

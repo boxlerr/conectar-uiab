@@ -23,7 +23,7 @@ function LinkedInIcon({ className }: { className?: string }) {
 const quickLinks = [
   { label: "Inicio", href: "/" },
   { label: "Empresas", href: "/empresas" },
-  { label: "Proveedores", href: "/proveedores" },
+  { label: "Proveedores", href: "/empresas?categoria=proveedores" },
   { label: "Oportunidades", href: "/oportunidades" },
   { label: "Contacto", href: "/contacto" },
 ];

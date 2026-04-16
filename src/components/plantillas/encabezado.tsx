@@ -199,13 +199,13 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
             },
             {
               name: "Instituciones educativas",
-              href: "/empresas?categoria=educativas",
+              href: "/instituciones-educativas",
               icon: GraduationCap,
               description: "Centros de formación aliados",
             },
             {
               name: "Instituciones bancarias",
-              href: "/empresas?categoria=bancarias",
+              href: "/instituciones-bancarias",
               icon: Landmark,
               description: "Entidades financieras socias",
             },

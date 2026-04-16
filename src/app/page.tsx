@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { SectoresGrid } from "@/components/ui/directorio/grilla-sectores";
 import { EmpresasDestacadas } from "@/components/ui/directorio/empresas-destacadas";
+import { SeccionBeneficios } from "@/components/ui/directorio/seccion-beneficios";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 
 /* ─── Animations ─── */
@@ -148,7 +149,7 @@ export default function Home() {
                   Explorar Empresas
                 </Link>
                 <Link
-                  href="/proveedores"
+                  href="/empresas?categoria=proveedores"
                   className="h-12 px-7 rounded-sm font-semibold text-[14px] text-white/80 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/[0.06] transition-all inline-flex items-center justify-center"
                 >
                   <Wrench className="w-4 h-4 mr-2" />
@@ -348,8 +349,8 @@ export default function Home() {
                   {
                     icon: Wrench,
                     title: "Proveedores profesionales",
-                    desc: "Ingeniería, sistemas, contabilidad, mantenimiento técnico y profesionales verificados de todo el partido.",
-                    link: "/proveedores",
+                    desc: "Empresas socias y particulares matriculados: ingeniería, sistemas, contabilidad, mantenimiento técnico y más. Todos verificados.",
+                    link: "/empresas?categoria=proveedores",
                     linkLabel: "Ver proveedores",
                   },
                 ].map((step, i) => (
@@ -384,6 +385,11 @@ export default function Home() {
       {/* Existing components */}
       <SectoresGrid />
       <EmpresasDestacadas />
+      
+      {/* ═══════════════════════════════════════════
+          CORPORATE BENEFITS — SUBSCRIPTION VALUE
+      ═══════════════════════════════════════════ */}
+      <SeccionBeneficios />
 
       {/* ═══════════════════════════════════════════
           PILLARS

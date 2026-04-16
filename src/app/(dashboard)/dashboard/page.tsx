@@ -269,7 +269,7 @@ export default async function DashboardPage() {
     : isCompany
       ? [
           { href: '/oportunidades', icon: Plus, label: 'Publicar Oportunidad', sub: 'Nuevo requerimiento' },
-          { href: '/proveedores', icon: Search, label: 'Buscar Proveedores', sub: 'Directorio verificado' },
+          { href: '/empresas?categoria=proveedores', icon: Search, label: 'Buscar Proveedores', sub: 'Directorio verificado' },
           { href: '/perfil/datos', icon: Settings, label: 'Editar Perfil', sub: 'Datos institucionales' },
           { href: '/perfil/documentos', icon: FileCheck2, label: 'Documentos', sub: 'Facturas y habilitaciones' },
         ]
@@ -461,7 +461,7 @@ export default async function DashboardPage() {
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { icon: Building, value: empresasCount, label: 'Socios UIAB', sub: 'en el directorio', href: '/empresas', accent: 'bg-blue-50 text-blue-700', bar: 'from-blue-500 to-blue-700' },
-            { icon: Users, value: proveedoresCount, label: 'Proveedores', sub: 'verificados', href: '/proveedores', accent: 'bg-emerald-50 text-emerald-700', bar: 'from-emerald-500 to-teal-600' },
+            { icon: Users, value: proveedoresCount, label: 'Proveedores', sub: 'verificados', href: '/empresas?categoria=proveedores', accent: 'bg-emerald-50 text-emerald-700', bar: 'from-emerald-500 to-teal-600' },
             { icon: Target, value: oportunidadesCount, label: 'Oportunidades', sub: 'abiertas ahora', href: '/oportunidades', accent: 'bg-amber-50 text-amber-700', bar: 'from-amber-500 to-orange-500' },
             { icon: isAdmin ? AlertCircle : Zap, value: isAdmin ? totalPending : fourthStatCount, label: isAdmin ? 'Pendientes' : isCompany ? 'Mis Oportunidades' : 'Mis Matches', sub: isAdmin ? 'a revisar' : 'activas', href: isAdmin ? '/admin' : '/oportunidades', accent: 'bg-violet-50 text-violet-700', bar: 'from-violet-500 to-purple-600' },
           ].map((stat) => (
@@ -911,7 +911,7 @@ export default async function DashboardPage() {
                     ? 'Proveedores verificados para necesidades industriales de tu empresa.'
                     : 'Empresas que buscan tus servicios en Almirante Brown y alrededores.'}
                 </p>
-                <Link href={isCompany ? '/proveedores' : '/empresas'} className="inline-flex items-center gap-2 bg-white text-[#00213f] hover:bg-white/90 px-5 py-2.5 rounded-sm text-sm font-bold transition-colors">
+                <Link href={isCompany ? '/empresas?categoria=proveedores' : '/empresas'} className="inline-flex items-center gap-2 bg-white text-[#00213f] hover:bg-white/90 px-5 py-2.5 rounded-sm text-sm font-bold transition-colors">
                   {isCompany ? 'Ver Proveedores' : 'Ver Empresas'} <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
