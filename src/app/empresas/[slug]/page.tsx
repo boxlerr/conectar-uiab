@@ -4,7 +4,7 @@ import { crearSlug } from "@/lib/utilidades";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
-import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User } from "lucide-react";
+import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight } from "lucide-react";
 import Image from "next/image";
 
 // Helper: create admin client that bypasses RLS (safe in server components)
@@ -105,7 +105,6 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
     ? supabase.storage.from(empresaDb.bucket_logo).getPublicUrl(empresaDb.ruta_logo).data.publicUrl
     : null;
 
-  // Fetch Reseñas
   const { data: resenasData } = await supabase
     .from('resenas')
     .select(`
@@ -130,6 +129,23 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
       .order('creada_en', { ascending: false });
     finalResenas = fallbackData || [];
   }
+
+  // Fetch Opportunities
+  const { data: opsData } = await supabase
+    .from('oportunidades')
+    .select(`
+      id,
+      titulo,
+      descripcion,
+      localidad,
+      creado_en,
+      categoria:categorias(nombre)
+    `)
+    .eq('empresa_solicitante_id', empresaDb.id)
+    .eq('estado', 'abierta')
+    .order('creado_en', { ascending: false });
+
+  const oportunidadesActivas = opsData || [];
 
   const empresa = {
     nombre: empresaDb.razon_social,
@@ -218,6 +234,35 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
                 ))}
               </div>
             </div>
+
+            {oportunidadesActivas.length > 0 && (
+              <div className="bg-[#00182e] p-10 rounded-2xl shadow-2xl border border-white/5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
+                <div className="flex items-center gap-3 mb-8 relative z-10">
+                  <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                    <Briefcase className="w-5 h-5 text-blue-300" />
+                  </div>
+                  <h2 className="font-manrope text-2xl font-extrabold text-white tracking-tight">Oportunidades Activas</h2>
+                </div>
+                
+                <div className="space-y-4 relative z-10">
+                  {oportunidadesActivas.map((op: any) => (
+                    <Link key={op.id} href={`/oportunidades/${op.id}`}>
+                      <div className="bg-white/5 border border-white/10 hover:bg-white/10 p-6 rounded-xl transition-all group flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 last:mb-0">
+                        <div>
+                          <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">{(op.categoria as any)?.nombre || "General"}</p>
+                          <h4 className="text-white font-bold text-lg group-hover:text-blue-300 transition-colors">{op.titulo}</h4>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs font-bold text-white/40 uppercase tracking-widest">{op.localidad}</span>
+                          <ArrowRight className="w-5 h-5 text-white/20 group-hover:text-white transition-all group-hover:translate-x-1" />
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <ResenasPerfil resenasAprobadas={finalResenas} targetType="empresa" targetId={empresaDb.id} />
           </main>
@@ -317,7 +362,7 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
       empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
       proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
     `)
-    .eq('proveedor_resenado_id', provDb.id)
+    .eq('proveedor_resenada_id', provDb.id)
     .eq('estado', 'aprobada')
     .order('creada_en', { ascending: false });
 
@@ -447,6 +492,35 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
                 ))}
               </div>
             </div>
+
+            {oportunidadesActivas.length > 0 && (
+              <div className={`${isParticular ? 'bg-[#451a03]' : 'bg-[#064e3b]'} p-10 rounded-2xl shadow-2xl border border-white/5 relative overflow-hidden`}>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-32 -mt-32" />
+                <div className="flex items-center gap-3 mb-8 relative z-10">
+                  <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                    <Briefcase className="w-5 h-5 text-white/70" />
+                  </div>
+                  <h2 className="font-manrope text-2xl font-extrabold text-white tracking-tight">Oportunidades de Negocio</h2>
+                </div>
+                
+                <div className="space-y-4 relative z-10">
+                  {oportunidadesActivas.map((op: any) => (
+                    <Link key={op.id} href={`/oportunidades/${op.id}`}>
+                      <div className="bg-white/5 border border-white/10 hover:bg-white/10 p-6 rounded-xl transition-all group flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 last:mb-0">
+                        <div>
+                          <p className={`text-[10px] font-black ${isParticular ? 'text-amber-400' : 'text-emerald-400'} uppercase tracking-widest mb-1`}>{(op.categoria as any)?.nombre || "General"}</p>
+                          <h4 className="text-white font-bold text-lg group-hover:text-white/80 transition-colors">{op.titulo}</h4>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs font-bold text-white/40 uppercase tracking-widest">{op.localidad}</span>
+                          <ArrowRight className="w-5 h-5 text-white/20 group-hover:text-white transition-all group-hover:translate-x-1" />
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <ResenasPerfil resenasAprobadas={finalResenas} targetType="proveedor" targetId={provDb.id} />
           </main>
