@@ -68,13 +68,15 @@ export default function EmpresasPage() {
     const empresaIds = data.filter((d: any) => d.tipo_entidad === 'empresa').map((d: any) => d.id);
     const proveedorIds = data.filter((d: any) => d.tipo_entidad === 'proveedor').map((d: any) => d.id);
 
-    const [resEmp, resProv] = await Promise.all([
+    // Paralelizamos carga de categorías y de reseñas
+    const [resEmp, resProv, resResenas] = await Promise.all([
       empresaIds.length > 0 
         ? supabase.from('empresas_categorias').select('empresa_id, categorias(nombre)').in('empresa_id', empresaIds) 
         : Promise.resolve({ data: [] }),
       proveedorIds.length > 0 
         ? supabase.from('proveedores_categorias').select('proveedor_id, categorias(nombre)').in('proveedor_id', proveedorIds) 
-        : Promise.resolve({ data: [] })
+        : Promise.resolve({ data: [] }),
+      supabase.from('resenas').select('calificacion, empresa_resenada_id, proveedor_resenado_id').eq('estado', 'aprobada')
     ]);
 
     const catMap = new Map();
@@ -93,6 +95,19 @@ export default function EmpresasPage() {
       });
     }
 
+    // Cálculo de promedios de reseñas
+    const ratingsMap = new Map();
+    if (resResenas.data) {
+      resResenas.data.forEach((r: any) => {
+        const id = r.empresa_resenada_id || r.proveedor_resenado_id;
+        if (!id) return;
+        const current = ratingsMap.get(id) || { sum: 0, count: 0 };
+        current.sum += r.calificacion;
+        current.count += 1;
+        ratingsMap.set(id, current);
+      });
+    }
+
     const mappedData: Entidad[] = data.map((item: any) => {
       const cats = catMap.get(item.id) || [];
       const mainCat = cats.length > 0 ? cats[0] : "Industrial General";
@@ -101,6 +116,9 @@ export default function EmpresasPage() {
       const logoUrl = item.bucket_logo && item.ruta_logo
         ? supabase.storage.from(item.bucket_logo).getPublicUrl(item.ruta_logo).data.publicUrl
         : null;
+
+      const rData = ratingsMap.get(item.id);
+      const rating = rData ? Number((rData.sum / rData.count).toFixed(1)) : undefined;
 
       return {
         id: item.id,
@@ -119,7 +137,9 @@ export default function EmpresasPage() {
           telefono: item.telefono || "",
           sitioWeb: item.sitio_web || ""
         },
-        esSocio: item.es_socio
+        esSocio: item.es_socio,
+        rating,
+        reviews: rData?.count
       };
     });
 

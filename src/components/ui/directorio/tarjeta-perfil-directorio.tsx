@@ -94,8 +94,14 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
               {(entidad.rating && entidad.rating > 0) ? (
                 <>
                   <span className="w-1 h-1 rounded-full bg-slate-200" />
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600">
-                    <Star className="w-3 h-3 fill-amber-500" /> {entidad.rating} ({entidad.reviews})
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-50/50 rounded-md border border-amber-100/50 text-[10px] font-black text-amber-700 transition-all duration-300 group-hover:bg-amber-50 group-hover:border-amber-200 group-hover:shadow-[0_2px_8px_-4px_rgba(245,158,11,0.3)]">
+                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                    {entidad.rating.toFixed(1)}
+                    {entidad.reviews && (
+                      <span className="text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1.5 ml-0.5">
+                         {entidad.reviews}
+                      </span>
+                    )}
                   </span>
                 </>
               ) : null}
@@ -172,9 +178,17 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
           )}
           <div className="flex gap-2">
             {(entidad.rating && entidad.rating > 0) ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
-                <Star className="w-3 h-3 fill-amber-500 text-amber-500" /> {entidad.rating}
-              </span>
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 border border-amber-100/80 shadow-[0_2px_12px_-4px_rgba(245,158,11,0.15)] animate-in fade-in slide-in-from-right-2 duration-700 group-hover:border-amber-200 group-hover:bg-amber-50/80 transition-all">
+                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                <span className="text-[11px] font-black text-amber-800 leading-none">
+                  {entidad.rating.toFixed(1)}
+                </span>
+                {entidad.reviews && (
+                  <span className="text-[9px] font-bold text-amber-500/60 leading-none border-l border-amber-200/80 pl-1.5 ml-0.5">
+                    {entidad.reviews}
+                  </span>
+                )}
+              </div>
             ) : null}
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded border border-slate-100 text-right">
               {entidad.categoria}
