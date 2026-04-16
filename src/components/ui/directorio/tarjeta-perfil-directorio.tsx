@@ -140,23 +140,23 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
     );
   }
 
-  // Grid variant
+  // Grid variant — editorial, tonal layering per DESIGN.md
+  const ghostBorder = isParticular ? "border-amber-200/40" : "border-slate-200/50";
+
   return (
-    <Link 
+    <Link
       href={`${basePath}/${entidad.slug}`}
-      className={`group relative bg-white transition-all duration-500 border ${
-        isParticular ? "border-amber-100/80" : "border-slate-200"
-      } p-6 font-inter rounded-xl flex flex-col h-full overflow-hidden hover:-translate-y-1 hover:shadow-xl ${glowHover}`}
+      className={`group relative bg-white transition-all duration-500 border ${ghostBorder} p-7 font-inter rounded-md flex flex-col h-full overflow-hidden hover:-translate-y-1 hover:border-transparent ${glowHover}`}
     >
-      {/* Top indicator ribbon */}
-      <div className={`absolute top-0 left-0 w-full h-1.5 ${indicatorLine} origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500`} />
+      {/* Top indicator ribbon — animación de revelado al hover */}
+      <div className={`absolute top-0 left-0 w-full h-[3px] ${indicatorLine} origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500`} />
 
       {/* Header: Logo & Badges */}
       <div className="flex justify-between items-start mb-6 relative z-10">
-        <div className={`w-14 h-14 flex items-center justify-center font-manrope font-black text-2xl border transition-colors duration-500 shadow-sm overflow-hidden relative shrink-0 ${
+        <div className={`w-14 h-14 flex items-center justify-center font-manrope font-black text-2xl transition-colors duration-500 overflow-hidden relative shrink-0 ${
           isParticular
-            ? `rounded-full border-amber-200 ${bgLogo}`
-            : `rounded-lg border-slate-100 ${bgLogo}`
+            ? `rounded-full ring-1 ring-amber-200/50 ${bgLogo}`
+            : `rounded-sm ${bgLogo}`
         }`}>
           {entidad.logoUrl ? (
             <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="56px" />
@@ -166,31 +166,31 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
         </div>
         <div className="flex flex-col items-end gap-2 ml-4">
           {isParticular ? (
-            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${badgeClasses}`}>
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm ${badgeClasses}`}>
               <User className="w-3.5 h-3.5 shrink-0" />
-              <span className="text-[10px] font-black uppercase tracking-widest shadow-sm">Particular</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Particular</span>
             </div>
           ) : (
-            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded border ${badgeClasses}`}>
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm ${badgeClasses}`}>
               <BadgeCheck className="w-3.5 h-3.5 shrink-0" />
-              <span className="text-[10px] font-black uppercase tracking-widest shadow-sm">Verificado</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Verificado</span>
             </div>
           )}
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             {(entidad.rating && entidad.rating > 0) ? (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 border border-amber-100/80 shadow-[0_2px_12px_-4px_rgba(245,158,11,0.15)] animate-in fade-in slide-in-from-right-2 duration-700 group-hover:border-amber-200 group-hover:bg-amber-50/80 transition-all">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-amber-50/60 animate-in fade-in slide-in-from-right-2 duration-700 group-hover:bg-amber-50 transition-colors">
                 <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
                 <span className="text-[11px] font-black text-amber-800 leading-none">
                   {entidad.rating.toFixed(1)}
                 </span>
                 {entidad.reviews && (
-                  <span className="text-[9px] font-bold text-amber-500/60 leading-none border-l border-amber-200/80 pl-1.5 ml-0.5">
+                  <span className="text-[9px] font-bold text-amber-500/60 leading-none border-l border-amber-200/60 pl-1.5 ml-0.5">
                     {entidad.reviews}
                   </span>
                 )}
               </div>
             ) : null}
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded border border-slate-100 text-right">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100/60 px-2 py-0.5 rounded-sm">
               {entidad.categoria}
             </span>
           </div>
@@ -199,7 +199,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
 
       {/* Body Core */}
       <div className="flex-grow relative z-10 mb-6">
-        <h3 className={`font-manrope text-xl font-extrabold text-slate-800 tracking-tight leading-tight mb-3 transition-colors ${hoverText} line-clamp-2 break-words`}>
+        <h3 className={`font-manrope text-xl font-extrabold text-[#191c1e] tracking-tight leading-tight mb-3 transition-colors ${hoverText} line-clamp-2 break-words`}>
           {entidad.nombre}
         </h3>
         <p className="text-slate-500 text-sm leading-relaxed font-medium line-clamp-4">
@@ -207,12 +207,10 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
         </p>
       </div>
 
-      {/* Footer Details */}
-      <div className="pt-5 border-t border-slate-100 mt-auto">
-        <div className={`flex items-start gap-2 mb-4 w-full px-3 py-2 rounded-md border ${
-          isParticular
-            ? "text-amber-700 bg-amber-50/50 border-amber-100"
-            : "text-slate-600 bg-slate-50 border-slate-100"
+      {/* Footer — tonal layering, sin border-divider */}
+      <div className="mt-auto space-y-3">
+        <div className={`flex items-start gap-2 w-full px-3 py-2 rounded-sm ${
+          isParticular ? "text-amber-700 bg-amber-50/40" : "text-slate-600 bg-slate-50/70"
         }`}>
           <MapPin className={`w-4 h-4 shrink-0 mt-0.5 ${isParticular ? "text-amber-400" : "text-slate-400"}`} />
           <span className="text-xs font-bold uppercase tracking-wider leading-relaxed">
@@ -220,22 +218,24 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {entidad.servicios.slice(0, 3).map((servicio, idx) => (
-            <span key={idx} className="bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600 rounded-md whitespace-nowrap">
-              {servicio}
-            </span>
-          ))}
-          {entidad.servicios.length > 3 && (
-            <span className="bg-slate-50 border border-slate-200 px-2.5 py-1 text-[10px] font-bold text-slate-400 rounded-md">
-              +{entidad.servicios.length - 3}
-            </span>
-          )}
-        </div>
+        {entidad.servicios.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {entidad.servicios.slice(0, 3).map((servicio, idx) => (
+              <span key={idx} className="bg-slate-100/70 px-2 py-0.5 text-[10px] font-bold text-slate-600 rounded-sm whitespace-nowrap">
+                {servicio}
+              </span>
+            ))}
+            {entidad.servicios.length > 3 && (
+              <span className="bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-400 rounded-sm">
+                +{entidad.servicios.length - 3}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Action Arrow Float */}
-      <div className={`absolute bottom-6 right-6 w-10 h-10 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-300 z-10 shadow-lg ${actionBg}`}>
+      <div className={`absolute bottom-6 right-6 w-9 h-9 rounded-sm flex items-center justify-center text-white opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-300 z-10 ${actionBg}`}>
         <ArrowRight className="w-4 h-4" />
       </div>
     </Link>

@@ -31,7 +31,6 @@ export default async function ProveedorProfilePage({
       localidad,
       provincia,
       descripcion,
-      es_socio,
       bucket_logo,
       ruta_logo,
       proveedores_categorias (
@@ -59,7 +58,7 @@ export default async function ProveedorProfilePage({
     notFound();
   }
 
-  const isParticular = !provDb.es_socio;
+  const isParticular = true;
   const displayName =
     provDb.nombre_comercial ||
     [provDb.nombre, provDb.apellido].filter(Boolean).join(" ") ||

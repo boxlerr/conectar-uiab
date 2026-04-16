@@ -11,7 +11,7 @@ import {
 import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
 import { PublicEmpresasLanding } from "@/components/ui/directorio/landing-empresas-publica";
-import { Building2, LayoutGrid, List, CheckCircle2, LockOpen } from "lucide-react";
+import { Building2, LayoutGrid, List, CheckCircle2, LockOpen, User } from "lucide-react";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
@@ -27,12 +27,14 @@ export default function EmpresasPage() {
   
   // Real Data states
   const [empresas, setEmpresas] = useState<Entidad[]>([]);
-  const [categorias, setCategorias] = useState<string[]>([]);
   const [cargandoDatos, setCargandoDatos] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  // Tabs solo aplican cuando la vista mezcla socios + particulares
+  const mezclaParticulares = categoriaSocio === 'proveedores_servicios_productos';
+  const [activeTab, setActiveTab] = useState<'socios' | 'particulares'>('socios');
 
   const { scrollY } = useScroll();
   const headerY = useTransform(scrollY, [0, 600], ["0%", "50%"]);
@@ -144,9 +146,6 @@ export default function EmpresasPage() {
     });
 
     setEmpresas(mappedData);
-    
-    const uniqueCats = Array.from(new Set(mappedData.map(e => e.categoria))).filter(Boolean).sort();
-    setCategorias(uniqueCats);
     setCargandoDatos(false);
   }, [currentUser, categoriaSocio]);
 
@@ -169,16 +168,42 @@ export default function EmpresasPage() {
 
   const empresasFiltradas = useMemo(() => {
     return empresas.filter((empresa) => {
+      const matchTab = !mezclaParticulares
+        ? true
+        : activeTab === 'particulares'
+          ? empresa.esSocio === false
+          : empresa.esSocio !== false;
       const matchCategoria = categoriaSeleccionada ? empresa.categoria === categoriaSeleccionada : true;
       const term = searchTerm.toLowerCase();
-      const matchSearch = term === "" || 
-        empresa.nombre.toLowerCase().includes(term) || 
+      const matchSearch = term === "" ||
+        empresa.nombre.toLowerCase().includes(term) ||
         empresa.descripcionCorta.toLowerCase().includes(term) ||
         empresa.servicios.some((s: string) => s.toLowerCase().includes(term));
-      
-      return matchCategoria && matchSearch;
+
+      return matchTab && matchCategoria && matchSearch;
     });
-  }, [empresas, categoriaSeleccionada, searchTerm]);
+  }, [empresas, categoriaSeleccionada, searchTerm, mezclaParticulares, activeTab]);
+
+  const countSocios = useMemo(() => empresas.filter(e => e.esSocio !== false).length, [empresas]);
+  const countParticulares = useMemo(() => empresas.filter(e => e.esSocio === false).length, [empresas]);
+
+  // Categorías dinámicas por tab — los particulares traen sus propios sectores,
+  // no mostramos los sectores de empresas cuando estamos en el tab Particulares.
+  const categorias = useMemo(() => {
+    const fuente = !mezclaParticulares
+      ? empresas
+      : activeTab === 'particulares'
+        ? empresas.filter(e => e.esSocio === false)
+        : empresas.filter(e => e.esSocio !== false);
+    return Array.from(new Set(fuente.map(e => e.categoria))).filter(Boolean).sort();
+  }, [empresas, mezclaParticulares, activeTab]);
+
+  // Al cambiar de tab, limpiar el sector seleccionado porque probablemente
+  // no existe en el nuevo conjunto de categorías.
+  const handleTabChange = useCallback((tab: 'socios' | 'particulares') => {
+    setActiveTab(tab);
+    setCategoriaSeleccionada(null);
+  }, []);
 
   // Solo bloqueamos si el auth aún resuelve (normalmente no pasa porque tenemos initialUser del server)
   if (loading) {
@@ -277,7 +302,9 @@ export default function EmpresasPage() {
               <p className="text-sm font-medium text-slate-500">
                 {cargandoDatos
                   ? "Cargando..."
-                  : `Conectando ${empresas.length} ${metaSocio?.sustantivoPlural ?? "empresas"} en la zona`}
+                  : mezclaParticulares
+                    ? `${countSocios} empresas socias · ${countParticulares} particulares`
+                    : `Conectando ${empresas.length} ${metaSocio?.sustantivoPlural ?? "empresas"} en la zona`}
               </p>
             </div>
           </div>
@@ -294,6 +321,40 @@ export default function EmpresasPage() {
           </div>
         </motion.div>
 
+        {/* ─── Tabs (solo cuando la vista mezcla socios + particulares) ─── */}
+        {mezclaParticulares && (
+          <div className="flex gap-2 mb-8 bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit">
+            <button
+              onClick={() => handleTabChange('socios')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'socios'
+                  ? 'bg-white text-blue-700 shadow-sm border border-slate-200'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              Empresas socias
+              {!cargandoDatos && (
+                <span className="ml-1 text-xs font-black text-slate-400">{countSocios}</span>
+              )}
+            </button>
+            <button
+              onClick={() => handleTabChange('particulares')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'particulares'
+                  ? 'bg-white text-amber-700 shadow-sm border border-slate-200'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <User className="w-4 h-4" />
+              Particulares
+              {!cargandoDatos && (
+                <span className="ml-1 text-xs font-black text-slate-400">{countParticulares}</span>
+              )}
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
           {/* Sidebar */}
           <aside className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
@@ -303,7 +364,7 @@ export default function EmpresasPage() {
               onCategoriaChange={setCategoriaSeleccionada}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
-              colorScheme="blue"
+              colorScheme={mezclaParticulares && activeTab === 'particulares' ? 'amber' : 'blue'}
             />
           </aside>
           

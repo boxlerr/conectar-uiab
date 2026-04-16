@@ -87,6 +87,7 @@ export default function DirectorioPage() {
         email,
         bucket_logo,
         ruta_logo,
+        n_socio,
         empresas_categorias (
           categorias (
             nombre
@@ -173,7 +174,7 @@ export default function DirectorioPage() {
     const { data, error } = await supabase
       .from("proveedores")
       .select(
-        "id, nombre, apellido, nombre_comercial, tipo_proveedor, email, telefono, localidad, provincia, descripcion, es_socio, bucket_logo, ruta_logo"
+        "id, nombre, apellido, nombre_comercial, tipo_proveedor, email, telefono, localidad, provincia, descripcion, bucket_logo, ruta_logo"
       )
       .eq("estado", "aprobado");
 
@@ -201,7 +202,7 @@ export default function DirectorioPage() {
         slug: crearSlug(displayName),
         nombre: displayName,
         categoria,
-        descripcionCorta: p.descripcion || (p.es_socio ? "Prestador de servicios verificado UIAB" : "Prestador de servicios particular"),
+        descripcionCorta: p.descripcion || "Prestador de servicios particular",
         descripcionLarga: p.descripcion || "",
         logo: displayName.charAt(0).toUpperCase(),
         logoUrl,
@@ -209,7 +210,7 @@ export default function DirectorioPage() {
         servicios: [],
         rating: 0,
         reviews: 0,
-        esSocio: p.es_socio ?? false,
+        esSocio: false,
         contacto: {
           email: p.email || "",
           telefono: p.telefono || "",
@@ -271,11 +272,19 @@ export default function DirectorioPage() {
     };
   }, [loading, currentUser, fetchEmpresas, fetchPrestadores]);
 
-  const entidadesActivas = activeTab === "empresas" ? empresas : prestadores;
-  const categoriasActivas =
-    activeTab === "empresas" ? categoriasEmpresas : categoriasPrestadores;
-  const cargando =
-    activeTab === "empresas" ? cargandoEmpresas : cargandoPrestadores;
+  const entidadesActivas = useMemo(() => {
+    if (activeTab === "empresas") {
+      return empresas;
+    }
+    return prestadores;
+  }, [activeTab, empresas, prestadores]);
+
+  const categoriasActivas = useMemo(() => {
+    if (activeTab === "empresas") return categoriasEmpresas;
+    return Array.from(new Set(entidadesActivas.map(e => e.categoria))).filter(Boolean).sort();
+  }, [activeTab, categoriasEmpresas, entidadesActivas]);
+
+  const cargando = activeTab === "empresas" ? cargandoEmpresas : cargandoPrestadores;
 
   const entidadesFiltradas = useMemo(() => {
     return entidadesActivas.filter((e) => {

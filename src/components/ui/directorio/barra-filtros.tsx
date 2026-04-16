@@ -8,7 +8,7 @@ interface FilterSidebarProps {
   onCategoriaChange: (cat: string | null) => void;
   searchTerm: string;
   onSearchChange: (term: string) => void;
-  colorScheme?: 'blue' | 'emerald';
+  colorScheme?: 'blue' | 'emerald' | 'amber';
 }
 
 export function FilterSidebar({
@@ -21,11 +21,15 @@ export function FilterSidebar({
 }: FilterSidebarProps) {
   // Theme variants
   const isEmerald = colorScheme === 'emerald';
-  const themeAccent = isEmerald ? "bg-emerald-600" : "bg-primary-600";
-  const themeText = isEmerald ? "text-emerald-700 hover:text-emerald-800" : "text-primary-700 hover:text-primary-800";
-  const focusRing = isEmerald ? "focus:ring-emerald-500/20 group-focus-within:text-emerald-600" : "focus:ring-primary-500/20 group-focus-within:text-primary-600";
-  const activeBg = isEmerald ? "bg-emerald-600 shadow-emerald-900/10" : "bg-primary-600 shadow-primary-600/10";
-  const hoverBg = isEmerald ? "hover:bg-emerald-50" : "hover:bg-primary-50";
+  const isAmber = colorScheme === 'amber';
+  const themeAccent = isAmber ? "bg-amber-500" : isEmerald ? "bg-emerald-600" : "bg-primary-600";
+  const themeText = isAmber ? "text-amber-700 hover:text-amber-800" : isEmerald ? "text-emerald-700 hover:text-emerald-800" : "text-primary-700 hover:text-primary-800";
+  const focusRing = isAmber ? "focus:ring-amber-500/20 group-focus-within:text-amber-600" : isEmerald ? "focus:ring-emerald-500/20 group-focus-within:text-emerald-600" : "focus:ring-primary-500/20 group-focus-within:text-primary-600";
+  const activeBg = isAmber ? "bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-900/10" : isEmerald ? "bg-emerald-600 shadow-emerald-900/10" : "bg-primary-600 shadow-primary-600/10";
+  const hoverBg = isAmber ? "hover:bg-amber-50" : isEmerald ? "hover:bg-emerald-50" : "hover:bg-primary-50";
+  const hoverDot = isAmber ? "bg-amber-300" : isEmerald ? "bg-emerald-300" : "bg-primary-300";
+  const badgeBg = isAmber ? "bg-amber-50/50" : isEmerald ? "bg-emerald-50/50" : "bg-blue-50/50";
+  const badgeIcon = isAmber ? "text-amber-500" : isEmerald ? "text-emerald-500" : "text-blue-500";
   
   return (
     <div className="bg-white/80 backdrop-blur-xl p-8 rounded-xl border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] sticky top-28 space-y-10 font-inter">
@@ -85,7 +89,7 @@ export function FilterSidebar({
                 {categoriaSeleccionada === cat ? (
                   <div className="w-1.5 h-1.5 rounded-full bg-white/80" />
                 ) : (
-                  <div className={`w-1.5 h-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${isEmerald ? 'bg-emerald-300' : 'bg-primary-300'}`} />
+                  <div className={`w-1.5 h-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${hoverDot}`} />
                 )}
               </button>
             </li>
@@ -94,8 +98,8 @@ export function FilterSidebar({
       </div>
 
       {/* Trust Badge / Footer area */}
-      <div className={`pt-8 border-t border-slate-100 flex gap-3 items-center p-4 rounded-xl ${isEmerald ? 'bg-emerald-50/50' : 'bg-blue-50/50'}`}>
-        <ShieldCheck className={`w-8 h-8 flex-shrink-0 ${isEmerald ? 'text-emerald-500' : 'text-blue-500'}`} />
+      <div className={`pt-8 border-t border-slate-100 flex gap-3 items-center p-4 rounded-xl ${badgeBg}`}>
+        <ShieldCheck className={`w-8 h-8 flex-shrink-0 ${badgeIcon}`} />
         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
           Directorio verificado <br/> <span className={themeText}>Unión Industrial</span>
         </p>
