@@ -6,21 +6,24 @@ import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   Landmark,
-  TrendingUp,
+  Building2,
+  Users,
+  Network,
   ShieldCheck,
   Handshake,
-  BarChart3,
-  Wallet,
-  Scale,
   ArrowRight,
   ArrowUpRight,
   CheckCircle2,
   LayoutGrid,
   List,
   Lock,
-  FileSignature,
-  LineChart,
-  Calculator,
+  Globe,
+  Target,
+  Zap,
+  Award,
+  TrendingUp,
+  MapPin,
+  Factory,
   Briefcase,
 } from "lucide-react";
 
@@ -41,65 +44,89 @@ const fadeUp = {
   }),
 };
 
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: (i: number = 0) => ({
+    opacity: 1,
+    transition: { delay: i * 0.1, duration: 0.6 },
+  }),
+};
+
 const stagger = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.1 } },
 };
 
-/* ─── Page content ─── */
-const pilares = [
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+/* ─── Page content — REENFOCADO: Bancos como CLIENTES que se unen a la red ─── */
+const beneficiosRed = [
   {
-    icon: Wallet,
-    eyebrow: "Financiamiento",
-    titulo: "Líneas PyME específicas",
-    copy:
-      "Capital de trabajo, adquisición de bienes de capital, prefinanciación de exportaciones y programas de eficiencia energética — identificados por entidad, con tasas y requisitos explícitos.",
+    icon: Factory,
+    titulo: "Acceso a +60 empresas industriales",
+    copy: "Conecta directamente con empresas manufactureras, metalurgicas, quimicas y de servicios industriales del polo de Almirante Brown.",
   },
   {
-    icon: Briefcase,
-    eyebrow: "Asesoramiento",
-    titulo: "Oficiales con foco industrial",
-    copy:
-      "Cada entidad socia expone el referente comercial asignado al polo de Almirante Brown. Interlocutores que conocen el territorio, los sectores y el ciclo operativo de la industria.",
+    icon: Users,
+    titulo: "Red de proveedores verificados",
+    copy: "Mas de 50 proveedores auditados por la UIAB. Servicios profesionales, insumos industriales, logistica y mas.",
+  },
+  {
+    icon: Target,
+    titulo: "Segmentacion territorial",
+    copy: "Foco exclusivo en el Conurbano Sur. Conocimiento profundo del tejido productivo local y sus necesidades.",
   },
   {
     icon: ShieldCheck,
-    eyebrow: "Operatoria",
-    titulo: "Canal verificado UIAB",
-    copy:
-      "Acompañamiento en la presentación de carpetas, validación de documentación y negociación de condiciones. La UIAB avala el vínculo y monitorea el servicio a sus socios.",
+    titulo: "Validacion institucional",
+    copy: "La UIAB respalda cada conexion. Empresas verificadas, trayectoria auditada, interlocutores reales.",
   },
 ];
 
-const journey = [
+const comoFunciona = [
   {
     paso: "01",
-    icon: FileSignature,
-    titulo: "Consultá el catálogo",
-    copy:
-      "Revisá cada entidad, sus líneas activas, las condiciones vigentes y el referente comercial para el polo industrial.",
+    icon: Landmark,
+    titulo: "Tu entidad se suma al directorio",
+    copy: "Registra tu banco o entidad financiera en la red UIAB. Completa tu perfil institucional con servicios, cobertura y contacto comercial.",
   },
   {
     paso: "02",
-    icon: Scale,
-    titulo: "Compará condiciones",
-    copy:
-      "Plazos, tasas, garantías, topes y requisitos expuestos en cada expediente. Sin letra chica ni intermediarios.",
+    icon: Globe,
+    titulo: "Visibilidad ante empresas y proveedores",
+    copy: "Tu ficha queda expuesta en el directorio. Empresas y profesionales de la red pueden consultarte directamente.",
   },
   {
     paso: "03",
-    icon: TrendingUp,
-    titulo: "Operá con respaldo",
-    copy:
-      "Presentá tu carpeta con acompañamiento UIAB. Monitoreamos plazos de respuesta y calidad del servicio contigo.",
+    icon: Handshake,
+    titulo: "Conexiones comerciales directas",
+    copy: "Recibe consultas de empresas industriales buscando servicios financieros. Sin intermediarios, con trazabilidad UIAB.",
   },
 ];
 
-/* Sample rate-board entries — used as editorial illustration in the hero. */
-const rateBoard = [
-  { linea: "Capital de trabajo", plazo: "24 m", tipo: "Tasa variable" },
-  { linea: "Bienes de capital", plazo: "60 m", tipo: "Tasa fija" },
-  { linea: "Prefinanciación exportaciones", plazo: "12 m", tipo: "USD / variable" },
+const cifrasRed = [
+  { valor: "60+", label: "Empresas industriales", sublabel: "en el directorio activo" },
+  { valor: "50+", label: "Proveedores verificados", sublabel: "auditados por UIAB" },
+  { valor: "100%", label: "Cobertura territorial", sublabel: "Almirante Brown y Conurbano Sur" },
+  { valor: "24/7", label: "Directorio online", sublabel: "acceso permanente" },
+];
+
+const serviciosBuscados = [
+  "Cuentas corporativas",
+  "Financiamiento PyME",
+  "Comercio exterior",
+  "Leasing de equipos",
+  "Factoring",
+  "Seguros empresariales",
+  "Inversiones institucionales",
+  "Pagos y cobranzas",
 ];
 
 /* ─── Main page ─── */
@@ -113,8 +140,8 @@ export default function InstitucionesBancariasPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const { scrollY } = useScroll();
-  const headerY = useTransform(scrollY, [0, 600], ["0%", "40%"]);
-  const headerOpacity = useTransform(scrollY, [0, 420], [1, 0.18]);
+  const heroScale = useTransform(scrollY, [0, 600], [1, 1.1]);
+  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
 
   const fetchBancos = useCallback(async () => {
     if (!currentUser) {
@@ -141,9 +168,9 @@ export default function InstitucionesBancariasPage() {
     const [resEmp, resResenas] = await Promise.all([
       empresaIds.length > 0
         ? supabase
-            .from("empresas_categorias")
-            .select("empresa_id, categorias(nombre)")
-            .in("empresa_id", empresaIds)
+          .from("empresas_categorias")
+          .select("empresa_id, categorias(nombre)")
+          .in("empresa_id", empresaIds)
         : Promise.resolve({ data: [] as any[] }),
       supabase.from("resenas").select("calificacion, empresa_resenada_id").eq("estado", "aprobada"),
     ]);
@@ -210,7 +237,7 @@ export default function InstitucionesBancariasPage() {
 
   const categorias = useMemo(
     () => Array.from(new Set(empresas.map((e) => e.categoria))).filter(Boolean).sort(),
-    [empresas],
+    [empresas]
   );
 
   const empresasFiltradas = useMemo(() => {
@@ -227,614 +254,710 @@ export default function InstitucionesBancariasPage() {
   }, [empresas, categoriaSeleccionada, searchTerm]);
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] font-inter pb-24">
-      {/* ─── HERO — "vault / trading floor" ─── */}
-      <section className="relative min-h-[78vh] flex items-center overflow-hidden -mt-24 pt-36 pb-20">
-        <motion.div style={{ y: headerY, opacity: headerOpacity }} className="absolute inset-0 z-0">
-          <Image
-            src="/landing/hero-industrial.png"
-            alt="Instituciones bancarias UIAB"
-            fill
-            priority
-            className="object-cover object-center"
-          />
-          <div className="absolute inset-0 bg-gradient-to-tr from-[#021413] via-[#042f2e]/90 to-[#115e59]/70 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#021413]/85 via-[#021413]/40 to-transparent" />
-          {/* Columnar/ledger texture — vertical lines */}
-          <div
-            className="absolute inset-0 opacity-[0.07]"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(90deg, rgba(255,255,255,0.55) 0, rgba(255,255,255,0.55) 1px, transparent 1px, transparent 96px)",
-            }}
-          />
-        </motion.div>
+    <div className="min-h-screen bg-slate-50 font-inter">
+      {/* ─────────────────────────────────────────────────────────────────────────
+          HERO — Layout SPLIT minimalista, fondo claro, sin imagen AI
+          Texto izquierda + Card visual derecha con stats
+      ───────────────────────────────────────────────────────────────────────── */}
+      <section className="relative min-h-[calc(100vh-5rem)] flex items-center overflow-hidden bg-white">
+        {/* Subtle background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-emerald-50/30" />
 
-        {/* Ambient accents */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 0.18, scale: 1 }}
-          transition={{ duration: 1.2, delay: 0.4 }}
-          className="absolute top-24 right-[6%] w-[340px] h-[340px] rounded-full bg-gradient-to-br from-emerald-300 to-teal-600 blur-[130px] pointer-events-none z-0"
+        {/* Geometric accents */}
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-emerald-50/50 to-transparent" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-100/30 blur-[100px] pointer-events-none" />
+
+        {/* Grid pattern - very subtle */}
+        <div
+          className="absolute inset-0 opacity-[0.015]"
+          style={{
+            backgroundImage: "repeating-linear-gradient(90deg, #0f172a 0, #0f172a 1px, transparent 1px, transparent 60px), repeating-linear-gradient(0deg, #0f172a 0, #0f172a 1px, transparent 1px, transparent 60px)"
+          }}
         />
 
-        <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center"
-          >
-            {/* Left: editorial copy */}
-            <motion.div variants={fadeUp} custom={0} className="lg:col-span-7 max-w-3xl">
-              <div className="inline-flex items-center gap-2 backdrop-blur-md rounded bg-emerald-500/15 border border-emerald-300/30 text-emerald-100 px-3 py-1.5 mb-8 shadow-xl">
-                <Landmark className="w-4 h-4" />
-                <span className="text-[11px] font-black tracking-[0.22em] uppercase">
-                  Directorio · Financiero UIAB
-                </span>
-              </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 lg:py-16 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            {/* Left: Content */}
+            <motion.div
+              variants={stagger}
+              initial="hidden"
+              animate="visible"
+            >
+              {/* Badge */}
+              <motion.div variants={fadeUp} custom={0} className="mb-4 md:mb-6">
+                <div className="inline-flex items-center gap-3 bg-emerald-50 border border-emerald-200 px-4 py-2">
+                  <Landmark className="w-4 h-4 text-emerald-600" />
+                  <span className="text-[11px] font-black tracking-[0.2em] uppercase text-emerald-700">
+                    Red Financiera
+                  </span>
+                </div>
+              </motion.div>
 
-              <h1 className="font-manrope text-white leading-[0.98] tracking-tight mb-7 drop-shadow-[0_2px_30px_rgba(4,47,46,0.55)]">
-                <span className="block text-[13px] md:text-sm font-black tracking-[0.35em] uppercase text-emerald-200/80 mb-5">
-                  Capital · Territorio · Industria
+              {/* Headline */}
+              <motion.h1
+                variants={fadeUp}
+                custom={1}
+                className="font-manrope text-slate-900 leading-[1.05] tracking-tight mb-6"
+              >
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-black">
+                  Conecta tu entidad
                 </span>
-                <span className="block text-4xl sm:text-5xl md:text-[4.4rem] font-black">
-                  Capital que entiende
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-black">
+                  financiera con el
                 </span>
-                <span className="block text-4xl sm:text-5xl md:text-[4.4rem] font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 via-white to-emerald-100">
-                  el ciclo industrial.
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-black text-emerald-600">
+                  polo industrial.
                 </span>
-              </h1>
+              </motion.h1>
 
-              <p className="text-emerald-50/85 text-base md:text-lg font-medium leading-relaxed max-w-2xl mb-10">
-                Entidades financieras socias de la UIAB con líneas específicas para el polo
-                industrial de Almirante Brown. Contacto verificado, asesoramiento técnico y
-                operatoria directa — sin intermediarios.
-              </p>
+              {/* Subheadline */}
+              <motion.p
+                variants={fadeUp}
+                custom={2}
+                className="text-slate-600 text-base md:text-lg leading-relaxed mb-8 max-w-lg"
+              >
+                Suma tu banco al directorio de la UIAB y accede a mas de 60 empresas
+                industriales y 50 proveedores verificados del Conurbano Sur.
+                Una red comercial curada, con respaldo institucional.
+              </motion.p>
 
-              <div className="flex flex-wrap gap-4">
-                <a
-                  href="#directorio"
-                  className="group inline-flex items-center gap-3 bg-white text-[#042f2e] px-7 py-4 rounded text-sm font-black uppercase tracking-widest shadow-[0_12px_32px_-8px_rgba(4,47,46,0.6)] hover:shadow-[0_16px_40px_-6px_rgba(4,47,46,0.75)] transition-all duration-500 hover:-translate-y-0.5"
+              {/* CTAs */}
+              <motion.div
+                variants={fadeUp}
+                custom={3}
+                className="flex flex-col sm:flex-row gap-3 mb-8"
+              >
+                <Link
+                  href="/contacto"
+                  className="group inline-flex items-center justify-center gap-3 bg-slate-900 text-white px-7 py-3.5 text-sm font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors"
                 >
-                  Ver entidades
-                  <ArrowRight className="w-4 h-4 transition-transform duration-500 group-hover:translate-x-1" />
-                </a>
+                  Sumar mi entidad
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </Link>
                 <a
-                  href="#lineas"
-                  className="inline-flex items-center gap-3 backdrop-blur-md bg-white/5 border border-white/20 text-white px-7 py-4 rounded text-sm font-bold uppercase tracking-widest hover:bg-white/10 transition-all duration-500"
+                  href="#beneficios"
+                  className="inline-flex items-center justify-center gap-3 bg-white text-slate-700 border border-slate-300 px-7 py-3.5 text-sm font-bold uppercase tracking-wider hover:bg-slate-50 hover:border-slate-400 transition-colors"
                 >
-                  Líneas activas
+                  Ver beneficios
                 </a>
-              </div>
+              </motion.div>
+
+              {/* Trust indicators */}
+              <motion.div
+                variants={fadeUp}
+                custom={4}
+                className="flex flex-wrap gap-x-6 gap-y-2 text-slate-500 text-sm"
+              >
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  Red verificada
+                </span>
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  +110 miembros
+                </span>
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  Almirante Brown
+                </span>
+              </motion.div>
             </motion.div>
 
-            {/* Right: editorial "rate board" card */}
-            <motion.div variants={fadeUp} custom={2} className="lg:col-span-5 hidden lg:block">
-              <div className="relative">
-                {/* Ambient glow */}
-                <div className="absolute -inset-4 bg-gradient-to-br from-emerald-300/30 via-teal-500/20 to-transparent rounded-md blur-2xl" />
+            {/* Right: Stats Card */}
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="relative"
+            >
+              {/* Main card */}
+              <div className="bg-slate-900 p-8 md:p-10 relative overflow-hidden">
+                {/* Corner accent */}
+                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10" />
+                <div className="absolute top-0 right-0 w-12 h-12 bg-emerald-500/20" />
 
-                <div className="relative backdrop-blur-xl bg-white/8 border border-white/15 rounded-md shadow-[0_24px_60px_-20px_rgba(2,20,19,0.6)] overflow-hidden">
-                  {/* Header strip */}
-                  <div className="px-7 py-5 border-b border-white/10 flex items-center justify-between bg-white/[0.03]">
-                    <div className="flex items-center gap-2 text-emerald-100/80">
-                      <BarChart3 className="w-4 h-4" />
-                      <span className="text-[10px] font-black tracking-[0.3em] uppercase">
-                        Tablero de líneas
-                      </span>
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-500/20 flex items-center justify-center">
+                      <Network className="w-5 h-5 text-emerald-400" />
                     </div>
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-black text-emerald-300 tracking-widest">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      ACTIVO
-                    </span>
+                    <div>
+                      <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-400">
+                        Red UIAB
+                      </div>
+                      <div className="text-white font-bold text-lg">
+                        Directorio Activo
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Table header */}
-                  <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-7 py-3 text-[9px] font-black tracking-[0.26em] uppercase text-emerald-200/50 border-b border-white/5">
-                    <span>Línea</span>
-                    <span className="text-right">Plazo</span>
-                    <span className="text-right">Tipo</span>
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                    EN VIVO
                   </div>
+                </div>
 
-                  {/* Rows */}
-                  <div className="divide-y divide-white/5">
-                    {rateBoard.map((row, idx) => (
-                      <motion.div
-                        key={row.linea}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.6 + idx * 0.12, duration: 0.5 }}
-                        className="grid grid-cols-[1fr_auto_auto] gap-4 px-7 py-4 items-center group hover:bg-white/[0.04] transition-colors"
+                {/* Stats grid */}
+                <div className="grid grid-cols-2 gap-6 mb-8">
+                  {cifrasRed.map((stat, idx) => (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 + idx * 0.1 }}
+                      className="text-center p-4 bg-white/5 border border-white/10"
+                    >
+                      <div className="font-manrope text-2xl md:text-3xl font-black text-white mb-1">
+                        {stat.valor}
+                      </div>
+                      <div className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                        {stat.label}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Services list */}
+                <div>
+                  <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-500 mb-3">
+                    Servicios mas buscados
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {serviciosBuscados.slice(0, 6).map((servicio) => (
+                      <span
+                        key={servicio}
+                        className="inline-flex items-center px-2.5 py-1 bg-white/5 border border-white/10 text-slate-300 text-[11px] font-medium"
                       >
-                        <span className="text-white font-manrope text-[15px] font-bold tracking-tight">
-                          {row.linea}
-                        </span>
-                        <span className="text-emerald-200 text-[13px] font-black tabular-nums">
-                          {row.plazo}
-                        </span>
-                        <span className="text-emerald-100/80 text-[11px] font-semibold uppercase tracking-wider">
-                          {row.tipo}
-                        </span>
-                      </motion.div>
+                        {servicio}
+                      </span>
                     ))}
-                  </div>
-
-                  {/* Footer */}
-                  <div className="px-7 py-4 bg-white/[0.03] border-t border-white/10 flex items-center justify-between text-emerald-100/70 text-xs">
-                    <span className="font-semibold">Condiciones por entidad</span>
-                    <span className="inline-flex items-center gap-1 font-black text-emerald-300 tracking-widest text-[10px]">
-                      EXPEDIENTE <ArrowUpRight className="w-3 h-3" />
-                    </span>
                   </div>
                 </div>
               </div>
+
+              {/* Floating accent card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="absolute -bottom-6 -left-6 bg-white p-4 shadow-xl border border-slate-200"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-100 flex items-center justify-center">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">Verificado UIAB</div>
+                    <div className="text-xs text-slate-500">Respaldo institucional</div>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* ─── STATS BAR ─── */}
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="relative bg-white rounded-md border border-emerald-100/50 -mt-20 z-20 overflow-hidden
-                     shadow-[0_20px_60px_-20px_rgba(4,47,46,0.25)]"
-        >
-          <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500" />
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-100">
-            <StatCell
-              eyebrow="Entidades"
-              valor={cargandoDatos ? "…" : empresas.length > 0 ? `${empresas.length}` : "—"}
-              copy="socias del directorio"
-              icon={Landmark}
-            />
-            <StatCell eyebrow="Líneas PyME" valor="Activas" copy="capital · bienes · exportación" icon={Wallet} />
-            <StatCell eyebrow="Referentes" valor="Polo AB" copy="oficiales con foco industrial" icon={Handshake} />
-            <StatCell eyebrow="Operatoria" valor="UIAB" copy="acompañamiento de carpeta" icon={ShieldCheck} />
-          </div>
-        </motion.div>
-      </div>
-
-      {/* ─── PILARES ─── */}
-      <section id="lineas" className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-28 scroll-mt-28">
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          className="mb-14 max-w-3xl"
-        >
-          <motion.div variants={fadeUp} className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-[2px] bg-emerald-600" />
-            <span className="text-[11px] font-black tracking-[0.3em] uppercase text-emerald-700">
-              Qué vas a encontrar
-            </span>
-          </motion.div>
-          <motion.h2
-            variants={fadeUp}
-            custom={1}
-            className="font-manrope text-3xl md:text-5xl font-black text-[#191c1e] tracking-tight leading-[1.04]"
-          >
-            Un tablero financiero
-            <span className="text-emerald-700"> pensado para la industria de Almirante Brown.</span>
-          </motion.h2>
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            className="text-slate-500 text-[15px] md:text-base font-medium leading-relaxed mt-6 max-w-2xl"
-          >
-            Cada entidad socia expone sus líneas, condiciones y referente territorial. La UIAB
-            monitorea el vínculo: operás con trazabilidad y respaldo gremial.
-          </motion.p>
-        </motion.div>
-
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
-          className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-        >
-          {pilares.map((p, idx) => (
-            <motion.article
-              key={p.titulo}
-              variants={fadeUp}
-              custom={idx}
-              className="group relative bg-white rounded-md border border-emerald-200/30 p-8 overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:border-emerald-300/60"
-            >
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-500 to-teal-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-12 h-12 rounded-sm bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 transition-colors duration-500 group-hover:bg-emerald-100 ring-1 ring-emerald-200/50">
-                  <p.icon className="w-6 h-6" />
+      {/* ─────────────────────────────────────────────────────────────────────────
+          CIFRAS — Stats horizontales justo despues del hero
+      ───────────────────────────────────────────────────────────────────────── */}
+      <section className="bg-slate-900 border-y border-slate-800">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-800">
+            {cifrasRed.map((stat, idx) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1, duration: 0.5 }}
+                className="p-8 md:p-10 text-center"
+              >
+                <div className="font-manrope text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
+                  {stat.valor}
                 </div>
-                <span className="text-[10px] font-black tracking-[0.28em] uppercase text-emerald-700/80 mt-3">
-                  {p.eyebrow}
-                </span>
+                <div className="text-emerald-400 text-sm font-bold uppercase tracking-wider mb-1">
+                  {stat.label}
+                </div>
+                <div className="text-slate-500 text-xs font-medium">
+                  {stat.sublabel}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────────────────
+          PROPUESTA DE VALOR — Layout asimetrico con imagen
+      ───────────────────────────────────────────────────────────────────────── */}
+      <section className="py-24 md:py-32">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            {/* Imagen lado izquierdo */}
+            <motion.div
+              initial={{ opacity: 0, x: -40 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+              className="relative"
+            >
+              <div className="relative aspect-[4/3] overflow-hidden">
+                <Image
+                  src="/landing/bancarias-red.jpg"
+                  alt="Red de negocios UIAB"
+                  fill
+                  className="object-cover"
+                />
+                {/* Overlay accent */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-900/30 to-transparent" />
               </div>
 
-              <h3 className="font-manrope text-[22px] font-extrabold text-[#191c1e] leading-tight mb-4 tracking-tight">
-                {p.titulo}
-              </h3>
-              <p className="text-slate-500 text-[14px] leading-relaxed font-medium">
-                {p.copy}
-              </p>
-            </motion.article>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* ─── LÍNEAS ACTIVAS — Editorial grid of line types (distinctive to bancarias) ─── */}
-      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-24">
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
-          className="bg-white border border-emerald-100/50 rounded-md p-8 md:p-12 relative overflow-hidden"
-        >
-          <div
-            className="absolute inset-0 opacity-[0.035] pointer-events-none"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(90deg, rgba(4,47,46,0.9) 0, rgba(4,47,46,0.9) 1px, transparent 1px, transparent 48px)",
-            }}
-          />
-
-          <div className="relative">
-            <motion.div variants={fadeUp} className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-[2px] bg-emerald-600" />
-              <span className="text-[10px] font-black tracking-[0.3em] uppercase text-emerald-700">
-                Líneas activas · Polo industrial
-              </span>
-            </motion.div>
-            <motion.h3
-              variants={fadeUp}
-              custom={1}
-              className="font-manrope text-2xl md:text-[32px] font-black text-[#191c1e] tracking-tight leading-tight mb-10"
-            >
-              Catálogo típico de financiamiento disponible.
-            </motion.h3>
-
-            <motion.div
-              variants={stagger}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-80px" }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-emerald-100/60 rounded-sm overflow-hidden border border-emerald-100/60"
-            >
-              {[
-                { icon: Wallet, titulo: "Capital de trabajo", copy: "Liquidez operativa de corto y mediano plazo." },
-                { icon: LineChart, titulo: "Bienes de capital", copy: "Inversión en maquinaria, planta y equipamiento." },
-                { icon: TrendingUp, titulo: "Prefinanciación", copy: "Exportaciones industriales con foco regional." },
-                { icon: Calculator, titulo: "Eficiencia energética", copy: "Renovables, reconversión y ahorro energético." },
-              ].map((item, idx) => (
-                <motion.div
-                  key={item.titulo}
-                  variants={fadeUp}
-                  custom={idx}
-                  className="bg-white p-6 md:p-7 group transition-colors hover:bg-emerald-50/30"
-                >
-                  <div className="w-10 h-10 rounded-sm bg-emerald-50 text-emerald-700 flex items-center justify-center mb-5 ring-1 ring-emerald-200/60 group-hover:bg-emerald-100 transition-colors">
-                    <item.icon className="w-5 h-5" />
+              {/* Floating stat card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="absolute -bottom-8 -right-8 bg-white p-6 shadow-2xl border border-slate-100"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-emerald-50 flex items-center justify-center">
+                    <Network className="w-6 h-6 text-emerald-600" />
                   </div>
-                  <h4 className="font-manrope text-[17px] font-extrabold text-[#191c1e] tracking-tight leading-tight mb-2">
-                    {item.titulo}
-                  </h4>
-                  <p className="text-slate-500 text-[13px] font-medium leading-relaxed">
-                    {item.copy}
-                  </p>
-                </motion.div>
-              ))}
+                  <div>
+                    <div className="text-2xl font-black text-slate-900">110+</div>
+                    <div className="text-sm text-slate-500 font-medium">Miembros en la red</div>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
 
-            <motion.p
-              variants={fadeUp}
-              custom={5}
-              className="mt-8 text-[12px] text-slate-400 font-semibold tracking-wide"
-            >
-              * Disponibilidad y condiciones específicas por entidad. Consultá el expediente
-              individual de cada banco para detalles vigentes.
-            </motion.p>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* ─── CÓMO FUNCIONA ─── */}
-      <section id="como-funciona" className="mt-32">
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#021413] via-[#042f2e] to-[#0f4a47]" />
-          <div
-            className="absolute inset-0 opacity-[0.08]"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(0deg, rgba(255,255,255,0.4) 0, rgba(255,255,255,0.4) 1px, transparent 1px, transparent 80px)",
-            }}
-          />
-          <div className="absolute top-0 left-[10%] w-[480px] h-[480px] rounded-full bg-emerald-500/20 blur-[140px] pointer-events-none" />
-          <div className="absolute bottom-0 right-[5%] w-[420px] h-[420px] rounded-full bg-teal-500/20 blur-[140px] pointer-events-none" />
-
-          <div className="relative max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-24 md:py-32">
+            {/* Contenido lado derecho */}
             <motion.div
               variants={stagger}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              className="max-w-3xl mb-16"
+              viewport={{ once: true }}
+              className="lg:pl-8"
             >
-              <motion.div variants={fadeUp} className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-[2px] bg-emerald-300" />
-                <span className="text-[11px] font-black tracking-[0.3em] uppercase text-emerald-200">
-                  Cómo funciona
+              <motion.div variants={fadeUp} className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-[2px] bg-emerald-600" />
+                <span className="text-[11px] font-black tracking-[0.3em] uppercase text-emerald-700">
+                  Por que sumarte
                 </span>
               </motion.div>
+
               <motion.h2
                 variants={fadeUp}
                 custom={1}
-                className="font-manrope text-3xl md:text-5xl font-black text-white tracking-tight leading-[1.05]"
+                className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-[1.1] mb-6"
               >
-                Tres pasos para
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-white">
-                  operar con una entidad socia.
-                </span>
+                Una red comercial
+                <span className="text-emerald-700"> pensada para el sector financiero.</span>
               </motion.h2>
-            </motion.div>
 
-            <motion.div
-              variants={stagger}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-80px" }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8"
-            >
-              {journey.map((j, idx) => (
-                <motion.div key={j.paso} variants={fadeUp} custom={idx} className="relative group">
-                  {idx < journey.length - 1 && (
-                    <div className="hidden md:block absolute top-14 -right-4 lg:-right-5 w-8 lg:w-10 h-px bg-gradient-to-r from-emerald-300/50 to-transparent" />
-                  )}
+              <motion.p
+                variants={fadeUp}
+                custom={2}
+                className="text-slate-600 text-base md:text-lg leading-relaxed mb-10"
+              >
+                La UIAB nuclea a las principales empresas industriales y proveedores
+                del Conurbano Sur. Tu entidad financiera puede conectar directamente
+                con este ecosistema productivo, ofreciendo tus servicios a empresas
+                verificadas con necesidades reales.
+              </motion.p>
 
-                  <div className="relative h-full backdrop-blur-xl bg-white/[0.05] border border-white/10 rounded-md p-8 transition-all duration-500 group-hover:bg-white/[0.08] group-hover:border-emerald-300/40">
-                    <div className="flex items-baseline justify-between mb-8">
-                      <span className="font-manrope text-[56px] font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-300 to-white/30 leading-none tracking-tighter">
-                        {j.paso}
-                      </span>
-                      <div className="w-11 h-11 rounded-sm bg-white/10 border border-white/15 text-emerald-100 flex items-center justify-center">
-                        <j.icon className="w-5 h-5" />
-                      </div>
-                    </div>
-
-                    <h3 className="font-manrope text-xl md:text-[22px] font-extrabold text-white leading-tight tracking-tight mb-4">
-                      {j.titulo}
-                    </h3>
-                    <p className="text-emerald-100/70 text-[14px] leading-relaxed font-medium">
-                      {j.copy}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
+              {/* Lista de servicios buscados */}
+              <motion.div variants={fadeUp} custom={3}>
+                <h4 className="text-[11px] font-black tracking-[0.25em] uppercase text-slate-500 mb-4">
+                  Servicios mas buscados por las empresas:
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {serviciosBuscados.map((servicio) => (
+                    <span
+                      key={servicio}
+                      className="inline-flex items-center px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-semibold"
+                    >
+                      {servicio}
+                    </span>
+                  ))}
+                </div>
+              </motion.div>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* ─── DIRECTORIO INTEGRADO ─── */}
-      <section id="directorio" className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-24 scroll-mt-28">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7 }}
-          className="mb-14 flex flex-col md:flex-row md:items-end md:justify-between gap-6"
-        >
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-[2px] bg-emerald-600" />
+      {/* ─────────────────────────────────────────────────────────────────────────
+          BENEFICIOS — Grid de 4 cards
+      ───────────────────────────────────────────────────────────────────────── */}
+      <section id="beneficios" className="py-24 bg-white scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <motion.div variants={fadeUp} className="flex items-center justify-center gap-3 mb-6">
+              <div className="w-12 h-[2px] bg-emerald-600" />
               <span className="text-[11px] font-black tracking-[0.3em] uppercase text-emerald-700">
-                Directorio activo
+                Beneficios de la red
               </span>
-            </div>
-            <h2 className="font-manrope text-3xl md:text-5xl font-black text-[#191c1e] tracking-tight leading-[1.05]">
-              Entidades financieras
-              <span className="block text-emerald-700">socias de la UIAB.</span>
-            </h2>
-          </div>
+              <div className="w-12 h-[2px] bg-emerald-600" />
+            </motion.div>
 
-          {currentUser && (
-            <p className="text-slate-500 text-sm font-medium md:max-w-xs md:text-right">
-              {cargandoDatos
-                ? "Cargando tablero financiero…"
-                : `${empresas.length} entidades verificadas · ficha completa visible como socio UIAB.`}
-            </p>
-          )}
-        </motion.div>
+            <motion.h2
+              variants={fadeUp}
+              custom={1}
+              className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight max-w-3xl mx-auto"
+            >
+              Que obtiene tu entidad al sumarse a la red UIAB.
+            </motion.h2>
+          </motion.div>
 
-        {!currentUser && !loading ? (
-          <AccesoBloqueadoCard />
-        ) : (
-          <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
-            {/* Sidebar */}
-            <aside className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
-              <FilterSidebar
-                categorias={categorias}
-                categoriaSeleccionada={categoriaSeleccionada}
-                onCategoriaChange={setCategoriaSeleccionada}
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                colorScheme="emerald"
-              />
-            </aside>
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            {beneficiosRed.map((beneficio, idx) => (
+              <motion.article
+                key={beneficio.titulo}
+                variants={fadeUp}
+                custom={idx}
+                className="group relative bg-slate-50 border border-slate-200 p-8 md:p-10 transition-all duration-500 hover:bg-white hover:border-emerald-200 hover:shadow-xl"
+              >
+                {/* Top accent line */}
+                <div className="absolute top-0 left-0 w-full h-[2px] bg-emerald-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
 
-            {/* Main area */}
-            <main className="w-full lg:w-9/12 xl:w-3/4">
-              <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-md border border-emerald-100/60 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-                <div>
-                  <h3 className="font-manrope text-lg font-bold text-[#191c1e]">
-                    {cargandoDatos ? "Buscando…" : `${empresasFiltradas.length} resultados`}
-                  </h3>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Vista
-                  </span>
-                  <div className="bg-emerald-50/60 p-1 rounded-md flex gap-1 border border-emerald-100/60">
-                    <button
-                      onClick={() => setViewMode("grid")}
-                      className={`p-2 rounded-sm transition-all ${
-                        viewMode === "grid"
-                          ? "bg-white text-emerald-700 shadow-sm"
-                          : "text-slate-400 hover:text-emerald-700"
-                      }`}
-                      aria-label="Vista grilla"
-                    >
-                      <LayoutGrid className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode("list")}
-                      className={`p-2 rounded-sm transition-all ${
-                        viewMode === "list"
-                          ? "bg-white text-emerald-700 shadow-sm"
-                          : "text-slate-400 hover:text-emerald-700"
-                      }`}
-                      aria-label="Vista lista"
-                    >
-                      <List className="w-4 h-4" />
-                    </button>
+                <div className="flex items-start gap-5">
+                  <div className="w-14 h-14 bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300">
+                    <beneficio.icon className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="font-manrope text-xl font-bold text-slate-900 mb-3 tracking-tight">
+                      {beneficio.titulo}
+                    </h3>
+                    <p className="text-slate-600 text-[15px] leading-relaxed">
+                      {beneficio.copy}
+                    </p>
                   </div>
                 </div>
-              </div>
-
-              {cargandoDatos ? (
-                <SkeletonDirectorio viewMode={viewMode} />
-              ) : empresasFiltradas.length > 0 ? (
-                <div
-                  key={viewMode}
-                  className={
-                    viewMode === "grid"
-                      ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
-                      : "bg-white rounded-md border border-emerald-100/60 overflow-hidden divide-y divide-emerald-100/50"
-                  }
-                >
-                  {empresasFiltradas.map((inst) => (
-                    <DirectoryProfileCard
-                      key={inst.id}
-                      entidad={inst}
-                      basePath="/empresas"
-                      variant={viewMode}
-                      colorScheme="emerald"
-                    />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  onReset={() => {
-                    setSearchTerm("");
-                    setCategoriaSeleccionada(null);
-                  }}
-                />
-              )}
-            </main>
-          </div>
-        )}
+              </motion.article>
+            ))}
+          </motion.div>
+        </div>
       </section>
 
-      {/* ─── CTA FINAL ─── */}
-      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-32">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7 }}
-          className="relative overflow-hidden rounded-md bg-gradient-to-br from-[#021413] via-[#042f2e] to-[#115e59] p-10 md:p-16"
-        >
-          <div
-            className="absolute inset-0 opacity-[0.08]"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(90deg, rgba(255,255,255,0.5) 0, rgba(255,255,255,0.5) 1px, transparent 1px, transparent 72px)",
-            }}
-          />
-          <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-emerald-400/30 blur-[120px] translate-x-1/3 -translate-y-1/3" />
+      {/* ─────────────────────────────────────────────────────────────────────────
+          COMO FUNCIONA — Seccion oscura con steps
+      ───────────────────────────────────────────────────────────────────────── */}
+      <section className="relative py-24 md:py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950" />
 
-          <div className="relative grid grid-cols-1 md:grid-cols-[1fr_auto] gap-10 items-center">
-            <div className="max-w-xl">
-              <div className="inline-flex items-center gap-2 mb-6 text-emerald-200">
-                <Landmark className="w-4 h-4" />
-                <span className="text-[11px] font-black tracking-[0.3em] uppercase">
-                  ¿Representás una entidad financiera?
-                </span>
-              </div>
-              <h3 className="font-manrope text-3xl md:text-[2.5rem] font-black text-white leading-[1.05] tracking-tight mb-5">
-                Sumá tus líneas al polo
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-white">
-                  industrial más dinámico del Conurbano Sur.
-                </span>
-              </h3>
-              <p className="text-emerald-100/80 text-[15px] font-medium leading-relaxed">
-                Acceso directo a más de 60 empresas socias y cientos de PyMEs proveedoras.
-                Un canal comercial curado, con respaldo gremial y trazabilidad.
-              </p>
+        {/* Ambient glow */}
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-emerald-500/10 blur-[150px] pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto px-6">
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <motion.div variants={fadeUp} className="flex items-center justify-center gap-3 mb-6">
+              <div className="w-12 h-[2px] bg-emerald-400" />
+              <span className="text-[11px] font-black tracking-[0.3em] uppercase text-emerald-300">
+                Como funciona
+              </span>
+              <div className="w-12 h-[2px] bg-emerald-400" />
+            </motion.div>
+
+            <motion.h2
+              variants={fadeUp}
+              custom={1}
+              className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight max-w-3xl mx-auto"
+            >
+              Tres pasos para conectar con el
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-300"> ecosistema industrial.</span>
+            </motion.h2>
+          </motion.div>
+
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          >
+            {comoFunciona.map((step, idx) => (
+              <motion.div
+                key={step.paso}
+                variants={fadeUp}
+                custom={idx}
+                className="relative group"
+              >
+                {/* Connector line */}
+                {idx < comoFunciona.length - 1 && (
+                  <div className="hidden md:block absolute top-16 -right-4 w-8 h-px bg-gradient-to-r from-emerald-500/50 to-transparent" />
+                )}
+
+                <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-8 h-full transition-all duration-300 hover:bg-white/10 hover:border-emerald-500/30">
+                  <div className="flex items-start justify-between mb-8">
+                    <span className="font-manrope text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 to-emerald-600/30">
+                      {step.paso}
+                    </span>
+                    <div className="w-12 h-12 bg-white/10 border border-white/20 flex items-center justify-center">
+                      <step.icon className="w-6 h-6 text-emerald-300" />
+                    </div>
+                  </div>
+
+                  <h3 className="font-manrope text-xl font-bold text-white mb-4 tracking-tight">
+                    {step.titulo}
+                  </h3>
+                  <p className="text-slate-400 text-[15px] leading-relaxed">
+                    {step.copy}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────────────────
+          IMAGEN + CTA — Seccion visual con imagen
+      ───────────────────────────────────────────────────────────────────────── */}
+      <section className="py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-0 overflow-hidden border border-slate-200">
+            {/* Imagen - ocupa 3 columnas */}
+            <div className="lg:col-span-3 relative aspect-[16/10] lg:aspect-auto">
+              <Image
+                src="/landing/bancarias-meeting.jpg"
+                alt="Reunion de negocios"
+                fill
+                className="object-cover"
+              />
             </div>
 
-            <div className="flex flex-col gap-3 md:min-w-[240px]">
+            {/* Contenido - ocupa 2 columnas */}
+            <div className="lg:col-span-2 bg-slate-900 p-10 md:p-12 flex flex-col justify-center">
+              <div className="flex items-center gap-2 text-emerald-400 mb-6">
+                <Award className="w-5 h-5" />
+                <span className="text-[11px] font-black tracking-[0.25em] uppercase">
+                  Respaldo institucional
+                </span>
+              </div>
+
+              <h3 className="font-manrope text-2xl md:text-3xl font-black text-white leading-tight tracking-tight mb-5">
+                La Union Industrial de Almirante Brown respalda cada conexion.
+              </h3>
+
+              <p className="text-slate-400 text-[15px] leading-relaxed mb-8">
+                Mas de 40 anos nucleando al sector productivo del Conurbano Sur.
+                Tu entidad se suma a una red con trayectoria, empresas verificadas
+                y un compromiso real con el desarrollo industrial local.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  href="/contacto"
+                  className="group inline-flex items-center justify-center gap-2 bg-white text-slate-900 px-6 py-3.5 text-sm font-bold uppercase tracking-wider hover:bg-emerald-50 transition-colors"
+                >
+                  Contactar
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+                <Link
+                  href="/nosotros"
+                  className="inline-flex items-center justify-center gap-2 bg-white/10 border border-white/20 text-white px-6 py-3.5 text-sm font-bold uppercase tracking-wider hover:bg-white/20 transition-colors"
+                >
+                  Conocer la UIAB
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────────────────
+          DIRECTORIO — Entidades financieras ya en la red
+      ───────────────────────────────────────────────────────────────────────── */}
+      <section id="directorio" className="py-24 bg-slate-50 scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-14"
+          >
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-12 h-[2px] bg-emerald-600" />
+                <span className="text-[11px] font-black tracking-[0.3em] uppercase text-emerald-700">
+                  Directorio financiero
+                </span>
+              </div>
+              <h2 className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-[1.05]">
+                Entidades financieras
+                <span className="block text-emerald-700">en la red UIAB.</span>
+              </h2>
+            </div>
+
+            {currentUser && (
+              <p className="text-slate-500 text-sm font-medium md:max-w-xs md:text-right">
+                {cargandoDatos
+                  ? "Cargando entidades..."
+                  : `${empresas.length} entidades verificadas en el directorio.`}
+              </p>
+            )}
+          </motion.div>
+
+          {!currentUser && !loading ? (
+            <AccesoBloqueadoCard />
+          ) : (
+            <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
+              {/* Sidebar */}
+              <aside className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
+                <FilterSidebar
+                  categorias={categorias}
+                  categoriaSeleccionada={categoriaSeleccionada}
+                  onCategoriaChange={setCategoriaSeleccionada}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  colorScheme="emerald"
+                />
+              </aside>
+
+              {/* Main area */}
+              <main className="w-full lg:w-9/12 xl:w-3/4">
+                <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 border border-slate-200">
+                  <div>
+                    <h3 className="font-manrope text-lg font-bold text-slate-900">
+                      {cargandoDatos ? "Buscando..." : `${empresasFiltradas.length} resultados`}
+                    </h3>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Vista
+                    </span>
+                    <div className="bg-slate-100 p-1 flex gap-1 border border-slate-200">
+                      <button
+                        onClick={() => setViewMode("grid")}
+                        className={`p-2 transition-all ${viewMode === "grid"
+                          ? "bg-white text-emerald-700 shadow-sm"
+                          : "text-slate-400 hover:text-emerald-700"
+                          }`}
+                        aria-label="Vista grilla"
+                      >
+                        <LayoutGrid className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setViewMode("list")}
+                        className={`p-2 transition-all ${viewMode === "list"
+                          ? "bg-white text-emerald-700 shadow-sm"
+                          : "text-slate-400 hover:text-emerald-700"
+                          }`}
+                        aria-label="Vista lista"
+                      >
+                        <List className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {cargandoDatos ? (
+                  <SkeletonDirectorio viewMode={viewMode} />
+                ) : empresasFiltradas.length > 0 ? (
+                  <div
+                    key={viewMode}
+                    className={
+                      viewMode === "grid"
+                        ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
+                        : "bg-white border border-slate-200 overflow-hidden divide-y divide-slate-100"
+                    }
+                  >
+                    {empresasFiltradas.map((inst) => (
+                      <DirectoryProfileCard
+                        key={inst.id}
+                        entidad={inst}
+                        basePath="/empresas"
+                        variant={viewMode}
+                        colorScheme="emerald"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    onReset={() => {
+                      setSearchTerm("");
+                      setCategoriaSeleccionada(null);
+                    }}
+                  />
+                )}
+              </main>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────────────────
+          CTA FINAL
+      ───────────────────────────────────────────────────────────────────────── */}
+      <section className="py-24 bg-white">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+          >
+            <div className="inline-flex items-center gap-2 text-emerald-600 mb-6">
+              <Landmark className="w-5 h-5" />
+              <span className="text-[11px] font-black tracking-[0.25em] uppercase">
+                Suma tu entidad
+              </span>
+            </div>
+
+            <h2 className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight mb-6">
+              Conecta con el polo industrial mas dinamico del Conurbano Sur.
+            </h2>
+
+            <p className="text-slate-600 text-lg leading-relaxed max-w-2xl mx-auto mb-10">
+              Mas de 60 empresas industriales y 50 proveedores verificados esperan conocer
+              los servicios financieros de tu entidad. Sumarte es simple y la visibilidad es inmediata.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/contacto"
-                className="group inline-flex items-center justify-center gap-2 bg-white text-[#042f2e] px-7 py-4 rounded text-sm font-black uppercase tracking-widest shadow-[0_12px_32px_-8px_rgba(2,20,19,0.55)] hover:shadow-[0_16px_40px_-4px_rgba(2,20,19,0.7)] transition-all duration-500 hover:-translate-y-0.5"
+                className="group inline-flex items-center gap-3 bg-slate-900 text-white px-8 py-4 text-sm font-black uppercase tracking-widest hover:bg-slate-800 transition-colors"
               >
                 Contactanos
-                <ArrowRight className="w-4 h-4 transition-transform duration-500 group-hover:translate-x-1" />
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
                 href="/directorio"
-                className="inline-flex items-center justify-center gap-2 backdrop-blur-md bg-white/5 border border-white/20 text-white px-7 py-4 rounded text-sm font-bold uppercase tracking-widest hover:bg-white/10 transition-all duration-500"
+                className="inline-flex items-center gap-3 bg-slate-100 text-slate-700 border border-slate-200 px-8 py-4 text-sm font-bold uppercase tracking-widest hover:bg-slate-200 transition-colors"
               >
                 Ver directorio completo
               </Link>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </section>
     </div>
   );
 }
 
 /* ─── Sub-components ─── */
-
-function StatCell({
-  eyebrow,
-  valor,
-  copy,
-  icon: Icon,
-}: {
-  eyebrow: string;
-  valor: string;
-  copy: string;
-  icon: typeof Landmark;
-}) {
-  return (
-    <div className="p-6 md:p-8 flex items-start gap-4">
-      <div className="w-10 h-10 rounded-sm bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 ring-1 ring-emerald-200/60">
-        <Icon className="w-5 h-5" />
-      </div>
-      <div className="min-w-0">
-        <div className="text-[10px] font-black text-emerald-700/70 uppercase tracking-[0.22em] mb-1">
-          {eyebrow}
-        </div>
-        <div className="font-manrope text-[28px] md:text-[34px] font-black text-[#191c1e] leading-none tracking-tight mb-1.5">
-          {valor}
-        </div>
-        <div className="text-[12px] text-slate-500 font-medium leading-snug line-clamp-2">
-          {copy}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function AccesoBloqueadoCard() {
   return (
@@ -843,38 +966,37 @@ function AccesoBloqueadoCard() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.7 }}
-      className="relative overflow-hidden rounded-md border border-emerald-200/40 bg-white p-10 md:p-16"
+      className="relative overflow-hidden bg-white border border-slate-200 p-10 md:p-16"
     >
-      <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-500 to-teal-500" />
-      <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-emerald-100/60 blur-[100px] translate-x-1/3 -translate-y-1/3 pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-[2px] bg-emerald-500" />
 
-      <div className="relative grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-8 items-center">
-        <div className="w-16 h-16 rounded-sm bg-emerald-50 text-emerald-700 flex items-center justify-center ring-1 ring-emerald-200/60">
+      <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-8 items-center">
+        <div className="w-16 h-16 bg-slate-100 text-slate-600 flex items-center justify-center">
           <Lock className="w-7 h-7" />
         </div>
         <div className="max-w-xl">
           <div className="text-[10px] font-black tracking-[0.28em] uppercase text-emerald-700 mb-3">
-            Acceso restringido · Socios UIAB
+            Acceso restringido
           </div>
-          <h3 className="font-manrope text-2xl md:text-[30px] font-extrabold text-[#191c1e] leading-tight tracking-tight mb-3">
-            Ingresá para ver tasas y referentes.
+          <h3 className="font-manrope text-2xl md:text-3xl font-bold text-slate-900 leading-tight tracking-tight mb-3">
+            Ingresa para ver el directorio completo.
           </h3>
-          <p className="text-slate-500 text-[15px] font-medium leading-relaxed">
-            Las líneas activas, condiciones y contactos comerciales de las entidades socias
-            están reservados a empresas verificadas en el ecosistema UIAB.
+          <p className="text-slate-600 text-[15px] leading-relaxed">
+            Las fichas completas de las entidades financieras estan disponibles
+            para miembros verificados del ecosistema UIAB.
           </p>
         </div>
 
         <div className="flex flex-col gap-3 md:min-w-[200px]">
           <Link
             href="/login"
-            className="inline-flex items-center justify-center gap-2 bg-[#042f2e] text-white px-6 py-3.5 rounded text-sm font-black uppercase tracking-widest shadow-[0_12px_32px_-12px_rgba(4,47,46,0.55)] hover:bg-[#021413] transition-all duration-500"
+            className="inline-flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3.5 text-sm font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors"
           >
             Ingresar
           </Link>
           <Link
             href="/registro"
-            className="inline-flex items-center justify-center gap-2 bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-6 py-3.5 rounded text-sm font-bold uppercase tracking-widest hover:bg-emerald-100 transition-all duration-500"
+            className="inline-flex items-center justify-center gap-2 bg-slate-100 text-slate-700 border border-slate-200 px-6 py-3.5 text-sm font-bold uppercase tracking-wider hover:bg-slate-200 transition-colors"
           >
             Crear cuenta
           </Link>
@@ -889,68 +1011,65 @@ function EmptyState({ onReset }: { onReset: () => void }) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-white rounded-md border border-emerald-100/60 p-16 md:p-20 text-center"
+      className="bg-white border border-slate-200 p-16 md:p-20 text-center"
     >
-      <div className="w-20 h-20 rounded-sm bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-6 ring-1 ring-emerald-200/60">
+      <div className="w-20 h-20 bg-slate-100 text-slate-500 flex items-center justify-center mx-auto mb-6">
         <Landmark className="w-9 h-9" />
       </div>
-      <h3 className="font-manrope text-2xl font-extrabold text-[#191c1e] mb-3 tracking-tight">
-        Sin resultados por ahora
+      <h3 className="font-manrope text-2xl font-bold text-slate-900 mb-3 tracking-tight">
+        Sin resultados
       </h3>
-      <p className="text-slate-500 max-w-sm mx-auto mb-8 font-medium text-[14px] leading-relaxed">
-        Ajustá los filtros o explorá todas las entidades del tablero financiero UIAB.
+      <p className="text-slate-500 max-w-sm mx-auto mb-8 text-[14px] leading-relaxed">
+        Ajusta los filtros o explora todas las entidades disponibles.
       </p>
       <button
         onClick={onReset}
-        className="inline-flex items-center gap-2 bg-[#042f2e] text-white px-7 py-3.5 rounded text-xs font-black uppercase tracking-widest shadow-[0_10px_24px_-8px_rgba(4,47,46,0.45)] hover:bg-[#021413] transition-all duration-500"
+        className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 text-sm font-bold hover:bg-slate-200 transition-colors"
       >
-        Restablecer filtros
-        <CheckCircle2 className="w-4 h-4" />
+        Limpiar filtros
       </button>
     </motion.div>
   );
 }
 
 function SkeletonDirectorio({ viewMode }: { viewMode: "grid" | "list" }) {
+  const skeletons = Array.from({ length: 6 });
+
+  if (viewMode === "list") {
+    return (
+      <div className="bg-white border border-slate-200 divide-y divide-slate-100">
+        {skeletons.map((_, i) => (
+          <div key={i} className="p-6 animate-pulse">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-slate-200" />
+              <div className="flex-1 space-y-3">
+                <div className="h-4 bg-slate-200 w-1/3" />
+                <div className="h-3 bg-slate-100 w-2/3" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={
-        viewMode === "grid"
-          ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
-          : "bg-white rounded-md border border-emerald-100/60 overflow-hidden divide-y divide-emerald-100/50"
-      }
-    >
-      {Array.from({ length: viewMode === "grid" ? 6 : 5 }).map((_, i) =>
-        viewMode === "grid" ? (
-          <div
-            key={i}
-            className="bg-white rounded-md border border-emerald-100/60 p-7 h-[280px] animate-pulse"
-          >
-            <div className="flex justify-between mb-6">
-              <div className="w-14 h-14 rounded-sm bg-emerald-50" />
-              <div className="w-24 h-6 rounded-sm bg-emerald-50" />
-            </div>
-            <div className="h-5 w-3/4 bg-emerald-50 rounded mb-3" />
-            <div className="h-3 w-full bg-emerald-50/80 rounded mb-2" />
-            <div className="h-3 w-5/6 bg-emerald-50/80 rounded mb-6" />
-            <div className="h-8 w-full bg-emerald-50/60 rounded-sm" />
-          </div>
-        ) : (
-          <div key={i} className="px-8 py-6 flex items-center gap-8 animate-pulse">
-            <div className="w-20 h-20 rounded-md bg-emerald-50" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+      {skeletons.map((_, i) => (
+        <div key={i} className="bg-white border border-slate-200 p-6 animate-pulse">
+          <div className="flex items-start gap-4 mb-6">
+            <div className="w-14 h-14 bg-slate-200" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-24 bg-emerald-50 rounded" />
-              <div className="h-5 w-2/3 bg-emerald-50 rounded" />
-              <div className="h-3 w-1/2 bg-emerald-50/80 rounded" />
+              <div className="h-4 bg-slate-200 w-3/4" />
+              <div className="h-3 bg-slate-100 w-1/2" />
             </div>
-            <div className="hidden md:block w-[170px] space-y-2">
-              <div className="h-3 w-16 bg-emerald-50/80 rounded" />
-              <div className="h-4 w-28 bg-emerald-50/80 rounded" />
-            </div>
-            <div className="hidden md:block w-32 h-9 rounded-sm bg-emerald-50" />
           </div>
-        ),
-      )}
+          <div className="space-y-2">
+            <div className="h-3 bg-slate-100 w-full" />
+            <div className="h-3 bg-slate-100 w-2/3" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

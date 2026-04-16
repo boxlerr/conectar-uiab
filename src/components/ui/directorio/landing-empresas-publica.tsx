@@ -169,7 +169,7 @@ export function PublicEmpresasLanding() {
         }} />
 
         {/* Content */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex items-center pt-24 pb-20">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex items-center pt-20 pb-16">
           <motion.div
             initial="hidden"
             animate="visible"
@@ -218,7 +218,7 @@ export function PublicEmpresasLanding() {
         </div>
 
         {/* Integrated Stats Bar */}
-        <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 lg:pb-16">
+        <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 lg:pb-12">
           <motion.div
             initial="hidden"
             animate="visible"
