@@ -9,13 +9,16 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 
 export default function MiPerfilSuscripcionPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const supabase = createClient();
 
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Esperar a que auth esté lista antes de consultar Supabase.
+    if (authLoading) return;
+
     async function loadPayments() {
       if (!currentUser?.entityId) {
         setLoading(false);
@@ -36,7 +39,7 @@ export default function MiPerfilSuscripcionPage() {
       setLoading(false);
     }
     loadPayments();
-  }, [currentUser, supabase]);
+  }, [authLoading, currentUser?.entityId, currentUser?.role, supabase]);
   
   if (!currentUser) return null;
 

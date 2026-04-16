@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 
 export default function MiPerfilDatosPage() {
-  const { currentUser, refreshUser } = useAuth();
+  const { currentUser, refreshUser, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const supabase = createClient();
@@ -40,6 +40,9 @@ export default function MiPerfilDatosPage() {
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string>("");
 
   useEffect(() => {
+    // Esperar a que auth esté lista antes de consultar Supabase.
+    if (authLoading) return;
+
     async function loadData() {
       if (!currentUser?.entityId) {
         setFetching(false);
@@ -78,7 +81,7 @@ export default function MiPerfilDatosPage() {
       setFetching(false);
     }
     loadData();
-  }, [currentUser, supabase]);
+  }, [authLoading, currentUser?.entityId, currentUser?.role, supabase]);
 
   if (!currentUser) return null;
 

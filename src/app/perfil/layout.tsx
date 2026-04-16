@@ -1,14 +1,23 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { ShieldAlert, User, Briefcase, CreditCard, LayoutDashboard, PackageSearch } from "lucide-react";
+import { ShieldAlert, User, Briefcase, CreditCard, LayoutDashboard, PackageSearch, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utilidades";
 
 export default function PerfilLayout({ children }: { children: React.ReactNode }) {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const pathname = usePathname();
+
+  // Mientras auth está resolviendo, no mostrar "Acceso Requerido" (flash incorrecto)
+  if (authLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      </div>
+    );
+  }
 
   // Protect route
   if (!currentUser) {

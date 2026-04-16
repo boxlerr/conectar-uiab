@@ -9,13 +9,17 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 
 export default function MiPerfilPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const [profileDetails, setProfileDetails] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
-  
+
   useEffect(() => {
+    // Esperar a que auth termine de cargar: si hacemos fetch antes, la sesión
+    // de Supabase no está aplicada y RLS devuelve 0 (se quedaba cargando hasta F5).
+    if (authLoading) return;
+
     async function loadData() {
       if (!currentUser?.entityId) {
         setIsLoading(false);
@@ -42,7 +46,7 @@ export default function MiPerfilPage() {
       setIsLoading(false);
     }
     loadData();
-  }, [currentUser, supabase]);
+  }, [authLoading, currentUser?.entityId, currentUser?.role, supabase]);
 
   if (!currentUser) return null;
 

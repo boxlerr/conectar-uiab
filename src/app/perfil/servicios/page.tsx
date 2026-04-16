@@ -10,7 +10,7 @@ import { saveCategories } from "../acciones";
 import { toast } from "sonner";
 
 export default function MiPerfilServiciosPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const supabase = createClient();
   
   const [allCategories, setAllCategories] = useState<any[]>([]);
@@ -21,6 +21,9 @@ export default function MiPerfilServiciosPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
+    // Esperar a que auth esté lista antes de consultar Supabase.
+    if (authLoading) return;
+
     async function init() {
       // Always fetch master categories so UI doesn't look broken
       const { data: dbCategorias } = await supabase.from('categorias').select('id, nombre').eq('activa', true).order('nombre');
@@ -42,7 +45,7 @@ export default function MiPerfilServiciosPage() {
       setFetching(false);
     }
     init();
-  }, [currentUser, supabase]);
+  }, [authLoading, currentUser?.entityId, currentUser?.role, supabase]);
 
   if (!currentUser) return null;
 

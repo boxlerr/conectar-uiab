@@ -9,8 +9,8 @@ import { Loader2, Plus, Box, Package, Edit2, Trash2, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PerfilCatalogoPage() {
-  const { currentUser } = useAuth();
-  
+  const { currentUser, loading: authLoading } = useAuth();
+
   const [items, setItems] = useState<any[]>([]);
   const [fetching, setFetching] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -28,8 +28,10 @@ export default function PerfilCatalogoPage() {
   };
 
   useEffect(() => {
+    // Esperar a que auth esté lista antes de consultar.
+    if (authLoading) return;
     fetchItems();
-  }, [currentUser]);
+  }, [authLoading, currentUser?.entityId, currentUser?.role]);
 
   const handleEdit = (item: any) => {
     setItemToEdit(item);

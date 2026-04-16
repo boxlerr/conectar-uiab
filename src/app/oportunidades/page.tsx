@@ -25,11 +25,17 @@ export default function OportunidadesPage() {
   const isProveedor = currentUser?.role === "provider";
 
   useEffect(() => {
+    // Esperar a que auth termine de resolver antes de consultar.
+    // Si hacemos fetch con authLoading=true, la sesión de Supabase aún no está
+    // aplicada y RLS devuelve 0 filas (el bug de "no aparece hasta apretar F5").
+    if (authLoading) return;
+
     const fetchData = async () => {
+      setLoading(true);
       try {
         const ops = await oportunidadesService.getOportunidades();
         setOportunidades(ops);
-        
+
         if (isProveedor && currentUser?.entityId) {
           const m = await oportunidadesService.getMatchesForUser(currentUser.entityId, 'provider');
           setMatches(m);
@@ -41,7 +47,7 @@ export default function OportunidadesPage() {
       }
     };
     fetchData();
-  }, [isProveedor, currentUser?.entityId]);
+  }, [authLoading, isProveedor, currentUser?.entityId]);
 
   const filtrados = useMemo(() => {
     return oportunidades.filter(o => 
