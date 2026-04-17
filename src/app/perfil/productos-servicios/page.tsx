@@ -1,20 +1,37 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getUserItems, deleteItem } from "./acciones";
 import { FormularioItem } from "./FormularioItem";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Box, Package, Edit2, Trash2, Tag } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Box,
+  Package,
+  Edit2,
+  Trash2,
+  Tag,
+  Star,
+  Search,
+  Wrench,
+  ImageOff,
+} from "lucide-react";
 import { toast } from "sonner";
+import Image from "next/image";
+import { createClient } from "@/lib/supabase/cliente";
 
 export default function PerfilCatalogoPage() {
   const { currentUser, loading: authLoading } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
 
   const [items, setItems] = useState<any[]>([]);
   const [fetching, setFetching] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<any | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState<"todos" | "producto" | "servicio">("todos");
 
   const fetchItems = async () => {
     if (!currentUser?.entityId) {
@@ -22,13 +39,15 @@ export default function PerfilCatalogoPage() {
       return;
     }
     setFetching(true);
-    const data = await getUserItems(currentUser.role as 'company' | 'provider', currentUser.entityId);
+    const data = await getUserItems(
+      currentUser.role as "company" | "provider",
+      currentUser.entityId
+    );
     setItems(data);
     setFetching(false);
   };
 
   useEffect(() => {
-    // Esperar a que auth esté lista antes de consultar.
     if (authLoading) return;
     fetchItems();
   }, [authLoading, currentUser?.entityId, currentUser?.role]);
@@ -38,9 +57,8 @@ export default function PerfilCatalogoPage() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: string, titulo: string) => {
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar "${titulo}"?`)) return;
-    
+  const handleDelete = async (id: string, nombre: string) => {
+    if (!window.confirm(`¿Eliminar "${nombre}"? Esta acción no se puede deshacer.`)) return;
     const res = await deleteItem(id);
     if (res?.error) {
       toast.error("Error al eliminar", { description: res.error });
@@ -50,15 +68,31 @@ export default function PerfilCatalogoPage() {
     }
   };
 
-  if (!currentUser) return null;
+  const itemsFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    return items.filter((it) => {
+      if (filtroTipo !== "todos" && it.tipo_item !== filtroTipo) return false;
+      if (!q) return true;
+      return (
+        (it.nombre || "").toLowerCase().includes(q) ||
+        (it.descripcion_corta || "").toLowerCase().includes(q) ||
+        (it.sku || "").toLowerCase().includes(q) ||
+        (Array.isArray(it.palabras_clave) &&
+          it.palabras_clave.some((t: string) => t.toLowerCase().includes(q)))
+      );
+    });
+  }, [items, busqueda, filtroTipo]);
 
-  if (fetching) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-      </div>
-    );
-  }
+  const coverUrl = (item: any) => {
+    const imgs = Array.isArray(item.imagenes) ? [...item.imagenes] : [];
+    if (imgs.length === 0) return null;
+    imgs.sort((a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0));
+    const first = imgs[0];
+    const { data } = supabase.storage.from(first.bucket).getPublicUrl(first.ruta_archivo);
+    return data.publicUrl;
+  };
+
+  if (!currentUser) return null;
 
   if (isFormOpen) {
     return (
@@ -77,19 +111,27 @@ export default function PerfilCatalogoPage() {
     );
   }
 
+  if (fetching) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-             <Package className="w-8 h-8 text-primary-600" />
-             Productos y Servicios
+            <Package className="w-8 h-8 text-primary-600" />
+            Productos y Servicios
           </h1>
           <p className="text-slate-500 mt-1">
-            Administra los servicios o productos que distinguen tu operación comercial.
+            Administra los productos y servicios que distinguen tu operación.
           </p>
         </div>
-        <Button 
+        <Button
           onClick={() => {
             setItemToEdit(null);
             setIsFormOpen(true);
@@ -97,20 +139,57 @@ export default function PerfilCatalogoPage() {
           className="bg-primary-600 hover:bg-primary-700 text-white shadow-[0_4px_12px_rgba(14,165,233,0.25)] border-none shrink-0"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Añadir Producto/Servicio
+          Añadir ítem
         </Button>
       </div>
+
+      {items.length > 0 && (
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 placeholder:text-slate-400"
+              placeholder="Buscar por nombre, SKU o palabra clave..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+          </div>
+          <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
+            {[
+              { v: "todos", label: "Todos" },
+              { v: "producto", label: "Productos" },
+              { v: "servicio", label: "Servicios" },
+            ].map((o) => (
+              <button
+                key={o.v}
+                onClick={() => setFiltroTipo(o.v as any)}
+                className={
+                  "px-3 py-1.5 text-sm font-medium rounded-md transition-colors " +
+                  (filtroTipo === o.v
+                    ? "bg-primary-600 text-white"
+                    : "text-slate-600 hover:bg-slate-100")
+                }
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-12 text-center">
           <div className="w-16 h-16 bg-white shadow-sm rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
             <Box className="w-8 h-8 text-slate-400" />
           </div>
-          <h3 className="text-lg font-bold text-slate-800 mb-2">Aún no hay productos o servicios</h3>
+          <h3 className="text-lg font-bold text-slate-800 mb-2">
+            Aún no hay productos o servicios
+          </h3>
           <p className="text-sm text-slate-500 max-w-sm mx-auto mb-6">
-            Aún no has agregado los productos clave o servicios principales que ofreces al mercado. Comienza creando tu primer ítem.
+            Comenzá a construir tu catálogo agregando los ítems clave que ofrecés al mercado.
           </p>
-          <Button 
+          <Button
             onClick={() => {
               setItemToEdit(null);
               setIsFormOpen(true);
@@ -121,44 +200,127 @@ export default function PerfilCatalogoPage() {
             Crear el primer ítem
           </Button>
         </div>
+      ) : itemsFiltrados.length === 0 ? (
+        <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-12 text-center">
+          <p className="text-sm text-slate-500">Sin resultados para esta búsqueda.</p>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {items.map((item) => (
-            <div key={item.id} className="group bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-primary-200 transition-all duration-300 flex flex-col h-full relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-slate-200 group-hover:bg-primary-500 transition-colors" />
-              
-              <div className="flex justify-between items-start gap-3">
-                <div className="min-w-0 pr-6">
-                  <h3 className="font-bold text-slate-900 text-base leading-tight truncate group-hover:text-primary-700 transition-colors">
-                    {item.titulo}
-                  </h3>
-                  {item.precio && (
-                    <div className="flex items-center gap-1.5 mt-2">
-                       <Tag className="w-3.5 h-3.5 text-emerald-500" />
-                       <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded cursor-default">
-                         $ {Number(item.precio).toLocaleString('es-AR')}
-                       </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {itemsFiltrados.map((item) => {
+            const cover = coverUrl(item);
+            const esServicio = item.tipo_item === "servicio";
+            return (
+              <div
+                key={item.id}
+                className="group bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-primary-200 transition-all duration-300 flex flex-col overflow-hidden"
+              >
+                <div className="aspect-[16/10] relative bg-slate-100">
+                  {cover ? (
+                    <Image
+                      src={cover}
+                      alt={item.nombre}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-slate-300">
+                      <ImageOff className="w-10 h-10" />
                     </div>
                   )}
+
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                    {item.destacado && (
+                      <span className="bg-amber-400 text-amber-950 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-current" />
+                        DESTACADO
+                      </span>
+                    )}
+                    {item.estado === "borrador" && (
+                      <span className="bg-slate-700 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                        Borrador
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="absolute top-2 right-2 bg-white/90 backdrop-blur text-slate-700 text-[10px] font-semibold px-2 py-0.5 rounded uppercase flex items-center gap-1">
+                    {esServicio ? (
+                      <Wrench className="w-3 h-3" />
+                    ) : (
+                      <Package className="w-3 h-3" />
+                    )}
+                    {item.tipo_item || "producto"}
+                  </div>
                 </div>
 
-                <div className="shrink-0 -mt-1 -mr-1 z-10 flex items-center gap-1">
-                  <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); handleEdit(item); }} className="h-8 w-8 text-slate-400 hover:text-primary-600 pointer-events-auto transition-colors">
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); handleDelete(item.id, item.titulo); }} className="h-8 w-8 text-slate-400 hover:text-rose-600 pointer-events-auto transition-colors">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                <div className="p-4 flex-1 flex flex-col">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold text-slate-900 text-base leading-tight line-clamp-2 group-hover:text-primary-700 transition-colors">
+                        {item.nombre}
+                      </h3>
+                      {item.sku && (
+                        <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mt-1 inline-block">
+                          {item.sku}
+                        </span>
+                      )}
+                    </div>
+                    <div className="shrink-0 flex items-center gap-1 -mr-1 -mt-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(item)}
+                        className="h-8 w-8 text-slate-400 hover:text-primary-600 transition-colors"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(item.id, item.nombre)}
+                        className="h-8 w-8 text-slate-400 hover:text-rose-600 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <p className="mt-2 text-sm text-slate-500 leading-relaxed line-clamp-2 flex-1">
+                    {item.descripcion_corta ||
+                      item.descripcion_larga || (
+                        <span className="italic text-slate-400">Sin descripción...</span>
+                      )}
+                  </p>
+
+                  <div className="flex items-center gap-2 flex-wrap mt-3 pt-3 border-t border-slate-100">
+                    {item.precio_a_consultar ? (
+                      <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded flex items-center gap-1">
+                        <Tag className="w-3 h-3" /> A consultar
+                      </span>
+                    ) : item.precio != null ? (
+                      <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-1 rounded flex items-center gap-1">
+                        <Tag className="w-3 h-3 text-emerald-600" />
+                        {item.moneda === "USD" ? "US$" : "$"}{" "}
+                        {Number(item.precio).toLocaleString("es-AR")}
+                        {item.unidad && (
+                          <span className="font-normal text-emerald-700">
+                            {" "}
+                            / {item.unidad}
+                          </span>
+                        )}
+                      </span>
+                    ) : null}
+
+                    {Array.isArray(item.enlaces) && item.enlaces.length > 0 && (
+                      <span className="text-[10px] text-slate-500">
+                        {item.enlaces.length} enlace{item.enlaces.length === 1 ? "" : "s"}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              <div className="mt-4 flex-grow pointer-events-none">
-                 <p className="text-sm text-slate-500 leading-relaxed max-w-[95%] line-clamp-3">
-                   {item.descripcion || <span className="italic text-slate-400">Sin descripción...</span>}
-                 </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
