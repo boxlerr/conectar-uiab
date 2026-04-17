@@ -23,6 +23,8 @@ const { mockSingle, mockOrder, mockEq, mockSelect, mockFrom } = vi.hoisted(() =>
 
 vi.mock('@/lib/supabase/cliente', () => ({
   createClient: vi.fn(() => ({ from: mockFrom })),
+  // resetClient se llama dentro del timeout de race() — mock noop para test.
+  resetClient: vi.fn(),
 }));
 
 import { oportunidadesService } from '@/modulos/oportunidades/servicio-oportunidades';

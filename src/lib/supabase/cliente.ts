@@ -76,14 +76,54 @@ async function lockConTimeout<R>(
   }
 }
 
+/**
+ * Fetch con timeout de 15s. Se inyecta en el cliente Supabase (global.fetch),
+ * así CADA query HTTP que haga la librería queda protegida automáticamente
+ * sin tener que envolver cada llamada en cada página.
+ *
+ * Cuando una query se cuelga (lock huérfano de navigator.locks, red caída,
+ * token zombie), en vez de dejar la UI en skeleton infinito, rechazamos el
+ * fetch a los 15s, reciclamos el cliente (resetClient) y el caller recibe
+ * el error — la página puede mostrar estado de error en vez de cargar para
+ * siempre.
+ */
+function fetchConTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController()
+
+  // Si el caller ya trae un signal, lo respetamos encadenando.
+  if (init?.signal) {
+    if (init.signal.aborted) controller.abort(init.signal.reason)
+    else init.signal.addEventListener('abort', () => controller.abort(init.signal!.reason))
+  }
+
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
+  const label = url.split('/rest/v1/').pop()?.split('?')[0] || url.split('/auth/v1/').pop()?.split('?')[0] || 'query'
+
+  const timer = setTimeout(() => {
+    console.error(`[supabase] fetch TIMEOUT 15s en ${label} — abortando y reciclando cliente`)
+    resetClient()
+    controller.abort(new DOMException('Supabase fetch timeout', 'TimeoutError'))
+  }, 15_000)
+
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer))
+}
+
 function build(): BrowserClient {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       auth: {
-        // Override del lock default de @supabase/supabase-js.
+        // Override del lock default de @supabase/supabase-js — si un lock
+        // (navigator.locks) queda huérfano, saltamos y seguimos.
         lock: lockConTimeout as any,
+      },
+      global: {
+        // Cualquier query REST/auth/storage pasa por acá. Timeout universal
+        // de 15s: cubre todos los archivos nuevos (directorio, solicitudes,
+        // etiquetas, perfil, instituciones, oportunidades/[id], etc.) sin
+        // tener que envolver cada uno a mano.
+        fetch: fetchConTimeout,
       },
     }
   )
