@@ -4,6 +4,7 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { useEffect, useMemo, useState } from "react";
 import { getUserItems, deleteItem } from "./acciones";
 import { FormularioItem } from "./FormularioItem";
+import { DetalleItemModal } from "./DetalleItemModal";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
@@ -30,6 +31,7 @@ export default function PerfilCatalogoPage() {
   const [fetching, setFetching] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<any | null>(null);
+  const [itemDetalle, setItemDetalle] = useState<any | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "producto" | "servicio">("todos");
 
@@ -212,7 +214,8 @@ export default function PerfilCatalogoPage() {
             return (
               <div
                 key={item.id}
-                className="group bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-primary-200 transition-all duration-300 flex flex-col overflow-hidden"
+                onClick={() => setItemDetalle(item)}
+                className="group bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-primary-200 transition-all duration-300 flex flex-col overflow-hidden cursor-pointer"
               >
                 <div className="aspect-[16/10] relative bg-slate-100">
                   {cover ? (
@@ -237,7 +240,7 @@ export default function PerfilCatalogoPage() {
                       </span>
                     )}
                     {item.estado === "borrador" && (
-                      <span className="bg-slate-700 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                      <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
                         Borrador
                       </span>
                     )}
@@ -269,7 +272,10 @@ export default function PerfilCatalogoPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleEdit(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(item);
+                        }}
                         className="h-8 w-8 text-slate-400 hover:text-primary-600 transition-colors"
                       >
                         <Edit2 className="h-4 w-4" />
@@ -277,7 +283,10 @@ export default function PerfilCatalogoPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(item.id, item.nombre)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(item.id, item.nombre);
+                        }}
                         className="h-8 w-8 text-slate-400 hover:text-rose-600 transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -322,6 +331,18 @@ export default function PerfilCatalogoPage() {
             );
           })}
         </div>
+      )}
+
+      {itemDetalle && (
+        <DetalleItemModal
+          item={itemDetalle}
+          onClose={() => setItemDetalle(null)}
+          onEdit={() => {
+            setItemToEdit(itemDetalle);
+            setItemDetalle(null);
+            setIsFormOpen(true);
+          }}
+        />
       )}
     </div>
   );

@@ -21,8 +21,9 @@ import {
   ArrowDown,
   Tag as TagIcon,
   Info,
-  CheckCircle2,
   Search,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import Image from "next/image";
 import {
@@ -119,8 +120,8 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
   const [precioAConsultar, setPrecioAConsultar] = useState<boolean>(!!itemInit?.precio_a_consultar);
 
   const [destacado, setDestacado] = useState<boolean>(!!itemInit?.destacado);
-  const [estado, setEstado] = useState<"borrador" | "activo">(
-    itemInit?.estado === "borrador" ? "borrador" : "activo"
+  const [estado, setEstado] = useState<"borrador" | "publicado">(
+    itemInit?.estado === "borrador" ? "borrador" : "publicado"
   );
 
   const [enlaces, setEnlaces] = useState<EnlaceItem[]>(
@@ -291,81 +292,81 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
     }
 
     setSaving(true);
-    const payload: ItemPayload = {
-      nombre: nombre.trim(),
-      tipo_item,
-      descripcion_corta: descCorta.trim() || undefined,
-      descripcion_larga: descLarga.trim() || undefined,
-      unidad: unidad.trim() || undefined,
-      sku: sku.trim() || undefined,
-      categoria_id: categoriaId || null,
-      precio: precio ? Number(precio) : null,
-      moneda,
-      precio_a_consultar: precioAConsultar,
-      destacado,
-      estado,
-      enlaces,
-      palabras_clave: palabrasClave,
-    };
+    try {
+      const payload: ItemPayload = {
+        nombre: nombre.trim(),
+        tipo_item,
+        descripcion_corta: descCorta.trim() || undefined,
+        descripcion_larga: descLarga.trim() || undefined,
+        unidad: unidad.trim() || undefined,
+        sku: sku.trim() || undefined,
+        categoria_id: categoriaId || null,
+        precio: precio ? Number(precio) : null,
+        moneda,
+        precio_a_consultar: precioAConsultar,
+        destacado,
+        estado,
+        enlaces,
+        palabras_clave: palabrasClave,
+      };
 
-    let itemId = itemInit?.id as string | undefined;
+      let itemId = itemInit?.id as string | undefined;
 
-    if (itemId) {
-      const res = await updateItem(itemId, payload);
-      if (res?.error) {
-        toast.error("Error al guardar", { description: res.error });
-        setSaving(false);
-        return;
-      }
-    } else {
-      const res = await createItem(
-        currentUser.role as "company" | "provider",
-        currentUser.entityId,
-        payload
-      );
-      if (res?.error || !res?.id) {
-        toast.error("Error al crear", { description: res?.error });
-        setSaving(false);
-        return;
-      }
-      itemId = res.id;
-    }
-
-    // Subir imágenes locales
-    if (imagenesLocales.length > 0 && itemId) {
-      const carpeta = currentUser.role === "company" ? "empresas" : "proveedores";
-      let orden = imagenesRemotas.length;
-      for (const img of imagenesLocales) {
-        const ext = (img.file.name.split(".").pop() || "bin").toLowerCase();
-        const path = `${carpeta}/${currentUser.entityId}/items/${itemId}/${Date.now()}-${orden}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from(BUCKET)
-          .upload(path, img.file, { contentType: img.file.type, cacheControl: "3600" });
-        if (upErr) {
-          toast.error(`No se pudo subir "${img.file.name}"`, { description: upErr.message });
-          continue;
+      if (itemId) {
+        const res = await updateItem(itemId, payload);
+        if (res?.error) {
+          toast.error("Error al guardar", { description: res.error });
+          return;
         }
-        await registrarImagenItem({
-          item_id: itemId,
-          bucket: BUCKET,
-          ruta_archivo: path,
-          nombre_archivo: img.file.name,
-          mime_type: img.file.type,
-          tamano_bytes: img.file.size,
-          texto_alternativo: img.alt || undefined,
-          orden: orden++,
-        });
+      } else {
+        const res = await createItem(
+          currentUser.role as "company" | "provider",
+          currentUser.entityId,
+          payload
+        );
+        if (res?.error || !res?.id) {
+          toast.error("Error al crear", { description: res?.error });
+          return;
+        }
+        itemId = res.id;
       }
-    }
 
-    // Actualizar orden de las remotas (si el usuario reordenó)
-    if (imagenesRemotas.length > 0) {
-      await reordenarImagenesItem(imagenesRemotas.map((im, i) => ({ id: im.id, orden: i })));
-    }
+      if (imagenesLocales.length > 0 && itemId) {
+        let orden = imagenesRemotas.length;
+        for (const img of imagenesLocales) {
+          const ext = (img.file.name.split(".").pop() || "bin").toLowerCase();
+          const path = `items/${itemId}/${Date.now()}-${orden}.${ext}`;
+          const { error: upErr } = await supabase.storage
+            .from(BUCKET)
+            .upload(path, img.file, { contentType: img.file.type, cacheControl: "3600" });
+          if (upErr) {
+            toast.error(`No se pudo subir "${img.file.name}"`, { description: upErr.message });
+            continue;
+          }
+          await registrarImagenItem({
+            item_id: itemId,
+            bucket: BUCKET,
+            ruta_archivo: path,
+            nombre_archivo: img.file.name,
+            mime_type: img.file.type,
+            tamano_bytes: img.file.size,
+            texto_alternativo: img.alt || undefined,
+            orden: orden++,
+          });
+        }
+      }
 
-    toast.success(itemInit ? "Actualizado con éxito" : "Creado con éxito");
-    setSaving(false);
-    onSuccess();
+      if (imagenesRemotas.length > 0) {
+        await reordenarImagenesItem(imagenesRemotas.map((im, i) => ({ id: im.id, orden: i })));
+      }
+
+      toast.success(itemInit ? "Actualizado con éxito" : "Creado con éxito");
+      onSuccess();
+    } catch (err: any) {
+      toast.error("Error inesperado", { description: err?.message || String(err) });
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -486,33 +487,15 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
 
         {/* Sección: Clasificación */}
         <Seccion titulo="Clasificación" icon={TagIcon}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Campo label="Categoría" hint="Buscá entre todas las categorías.">
-              <CategoriaCombobox
-                value={categoriaId}
-                onChange={setCategoriaId}
-                categorias={categorias}
-              />
-            </Campo>
+          <Campo label="Categoría">
+            <CategoriaCombobox
+              value={categoriaId}
+              onChange={setCategoriaId}
+              categorias={categorias}
+            />
+          </Campo>
 
-            {tipo_item === "producto" && (
-              <Campo label="Unidad de venta" hint="Ej. kg, m², unidad.">
-                <input
-                  type="text"
-                  list="unidades-sugeridas"
-                  className={inputCls}
-                  placeholder="Unidad, kg, m², litro..."
-                  value={unidad}
-                  onChange={(e) => setUnidad(e.target.value)}
-                />
-                <datalist id="unidades-sugeridas">
-                  {UNIDADES_SUGERIDAS.map((u) => (
-                    <option key={u} value={u} />
-                  ))}
-                </datalist>
-              </Campo>
-            )}
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Campo label="SKU / Código interno">
               <input
                 type="text"
@@ -524,44 +507,62 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
               />
             </Campo>
 
-            <Campo label="Palabras clave" hint="Mejoran los matches del buscador.">
-              <div className="space-y-2">
-                <div className="flex flex-wrap gap-1.5">
-                  {palabrasClave.map((t) => (
-                    <span
-                      key={t}
-                      className="inline-flex items-center gap-1 bg-secondary-100 text-secondary-800 text-xs font-medium px-2 py-1 rounded"
-                    >
-                      {t}
-                      <button
-                        type="button"
-                        onClick={() => quitarTag(t)}
-                        className="hover:text-rose-600"
-                        aria-label={`Quitar ${t}`}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
+            {tipo_item === "producto" && (
+              <Campo label="Unidad de venta">
                 <input
                   type="text"
+                  list="unidades-sugeridas"
                   className={inputCls}
-                  placeholder="Escribí y apretá Enter o coma"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === ",") {
-                      e.preventDefault();
-                      agregarTag();
-                    } else if (e.key === "Backspace" && !tagInput && palabrasClave.length) {
-                      setPalabrasClave((prev) => prev.slice(0, -1));
-                    }
-                  }}
+                  placeholder="Ej. kg, m², unidad..."
+                  value={unidad}
+                  onChange={(e) => setUnidad(e.target.value)}
                 />
-              </div>
-            </Campo>
+                <datalist id="unidades-sugeridas">
+                  {UNIDADES_SUGERIDAS.map((u) => (
+                    <option key={u} value={u} />
+                  ))}
+                </datalist>
+              </Campo>
+            )}
           </div>
+
+          <Campo label="Palabras clave" hint="Mejoran las búsquedas. Presioná Enter o coma para agregar.">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500 transition-all">
+              <div className="flex flex-wrap gap-1.5 mb-2 empty:hidden">
+                {palabrasClave.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1 bg-white border border-slate-200 text-slate-700 text-xs font-medium px-2 py-1 rounded-md shadow-sm"
+                  >
+                    #{t}
+                    <button
+                      type="button"
+                      onClick={() => quitarTag(t)}
+                      className="text-slate-400 hover:text-rose-600 transition-colors"
+                      aria-label={`Quitar ${t}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <input
+                type="text"
+                className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                placeholder={palabrasClave.length === 0 ? "Ej. aluminio, tornería, CNC..." : "Agregar más..."}
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault();
+                    agregarTag();
+                  } else if (e.key === "Backspace" && !tagInput && palabrasClave.length) {
+                    setPalabrasClave((prev) => prev.slice(0, -1));
+                  }
+                }}
+              />
+            </div>
+          </Campo>
         </Seccion>
 
         {/* Sección: Precio */}
@@ -762,67 +763,62 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
           </div>
         </Seccion>
 
-        {/* Sección: Publicación */}
-        <Seccion titulo="Publicación" icon={CheckCircle2}>
-          <Campo label="Visibilidad">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setEstado("activo")}
-                className={cls(
-                  "relative rounded-lg border p-4 text-left transition-all",
-                  estado === "activo"
-                    ? "border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-500"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                )}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className={cls(
-                      "inline-flex w-2 h-2 rounded-full",
-                      estado === "activo" ? "bg-emerald-500" : "bg-slate-300"
-                    )}
-                  />
-                  <span className="font-semibold text-slate-900 text-sm">Publicado</span>
-                </div>
-                <p className="text-xs text-slate-500 leading-snug">
-                  Visible en tu catálogo público y en búsquedas del directorio.
-                </p>
-                {estado === "activo" && (
-                  <CheckCircle2 className="absolute top-3 right-3 w-4 h-4 text-emerald-600" />
-                )}
-              </button>
+        {/* Sección: Visibilidad */}
+        <Seccion titulo="Visibilidad" icon={Eye}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setEstado("publicado")}
+              className={cls(
+                "relative rounded-lg p-4 text-left transition-all",
+                estado === "publicado"
+                  ? "bg-primary-50 ring-1 ring-primary-500"
+                  : "bg-slate-50 hover:bg-slate-100"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Eye
+                  className={cls(
+                    "w-4 h-4",
+                    estado === "publicado" ? "text-primary-600" : "text-slate-400"
+                  )}
+                />
+                <span className="font-semibold text-slate-900 text-sm">Publicado</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-snug">
+                Visible en el catálogo público y búsquedas del directorio.
+              </p>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setEstado("borrador")}
-                className={cls(
-                  "relative rounded-lg border p-4 text-left transition-all",
-                  estado === "borrador"
-                    ? "border-slate-500 bg-slate-100 ring-1 ring-slate-500"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                )}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className={cls(
-                      "inline-flex w-2 h-2 rounded-full",
-                      estado === "borrador" ? "bg-slate-600" : "bg-slate-300"
-                    )}
-                  />
-                  <span className="font-semibold text-slate-900 text-sm">Borrador</span>
-                </div>
-                <p className="text-xs text-slate-500 leading-snug">
-                  Solo vos lo ves. Guardalo para seguir editándolo después.
-                </p>
-                {estado === "borrador" && (
-                  <CheckCircle2 className="absolute top-3 right-3 w-4 h-4 text-slate-600" />
-                )}
-              </button>
-            </div>
-          </Campo>
+            <button
+              type="button"
+              onClick={() => setEstado("borrador")}
+              className={cls(
+                "relative rounded-lg p-4 text-left transition-all",
+                estado === "borrador"
+                  ? "bg-slate-200 ring-1 ring-slate-500"
+                  : "bg-slate-50 hover:bg-slate-100"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <EyeOff
+                  className={cls(
+                    "w-4 h-4",
+                    estado === "borrador" ? "text-slate-700" : "text-slate-400"
+                  )}
+                />
+                <span className="font-semibold text-slate-900 text-sm">Borrador</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-snug">
+                Solo vos lo ves. Guardalo para seguir editándolo más tarde.
+              </p>
+            </button>
+          </div>
+        </Seccion>
 
-          <div className="pt-2">
+        {/* Sección: Destacar */}
+        <Seccion titulo="Destacar" icon={Star}>
+          <div>
             <button
               type="button"
               onClick={() => setDestacado(!destacado)}
@@ -1070,11 +1066,11 @@ function Campo({
 }) {
   return (
     <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between">
+      <div>
         <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
           {label} {required && <span className="text-rose-500 normal-case">*</span>}
         </label>
-        {hint && <span className="text-[11px] text-slate-400">{hint}</span>}
+        {hint && <p className="text-[11px] text-slate-400 mt-0.5">{hint}</p>}
       </div>
       {children}
     </div>
@@ -1266,17 +1262,20 @@ function ImagenCard({
     <div className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-100 group">
       <Image src={src} alt={alt} fill className="object-cover" unoptimized />
 
-      {isPortada && (
-        <div className="absolute top-1.5 left-1.5 bg-primary-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
-          Portada
-        </div>
-      )}
-
-      {pending && (
-        <div className="absolute top-1.5 right-1.5 bg-amber-400 text-amber-950 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
-          Pendiente
-        </div>
-      )}
+      <div className="absolute top-1.5 left-1.5 right-1.5 flex items-start justify-between gap-1 pointer-events-none">
+        {isPortada ? (
+          <span className="bg-primary-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm">
+            Portada
+          </span>
+        ) : (
+          <span />
+        )}
+        {pending && (
+          <span className="bg-amber-400 text-amber-950 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shadow-sm">
+            Pendiente
+          </span>
+        )}
+      </div>
 
       <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/40 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
         {onUp && (

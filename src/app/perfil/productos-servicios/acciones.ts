@@ -21,7 +21,7 @@ export type ItemPayload = {
   moneda?: string;
   precio_a_consultar?: boolean;
   destacado?: boolean;
-  estado?: "borrador" | "activo" | "publicado";
+  estado?: "borrador" | "publicado";
   enlaces?: EnlaceItem[];
   palabras_clave?: string[];
 };
@@ -105,7 +105,7 @@ export async function createItem(
         moneda: payload.moneda || "ARS",
         precio_a_consultar: !!payload.precio_a_consultar,
         destacado: !!payload.destacado,
-        estado: payload.estado || "activo",
+        estado: payload.estado || "publicado",
         enlaces: payload.enlaces || [],
         palabras_clave: payload.palabras_clave || [],
       },
@@ -139,7 +139,7 @@ export async function updateItem(id: string, payload: ItemPayload) {
       moneda: payload.moneda || "ARS",
       precio_a_consultar: !!payload.precio_a_consultar,
       destacado: !!payload.destacado,
-      estado: payload.estado || "activo",
+      estado: payload.estado || "publicado",
       enlaces: payload.enlaces || [],
       palabras_clave: payload.palabras_clave || [],
       actualizado_en: new Date().toISOString(),
