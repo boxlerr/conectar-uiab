@@ -14,11 +14,11 @@ export default async function NuevaOportunidadPage() {
     redirect("/login?callbackUrl=/oportunidades/nueva");
   }
 
-  // Cargar categorías activas
-  const { data: categorias } = await supabase
-    .from('categorias')
-    .select('id, nombre')
-    .order('nombre');
+  // Cargar categorías activas y tags disponibles en paralelo
+  const [{ data: categorias }, { data: tags }] = await Promise.all([
+    supabase.from('categorias').select('id, nombre').order('nombre'),
+    supabase.from('tags').select('id, nombre, tipo_tag').eq('activo', true).order('nombre'),
+  ]);
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-24">
@@ -59,7 +59,7 @@ export default async function NuevaOportunidadPage() {
       </div>
 
       <div className="max-w-[1128px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 mt-[-40px]">
-        <FormularioOportunidad categorias={categorias || []} />
+        <FormularioOportunidad categorias={categorias || []} tags={tags || []} />
       </div>
     </div>
   );

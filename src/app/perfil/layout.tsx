@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { ShieldAlert, User, Briefcase, CreditCard, LayoutDashboard, PackageSearch, Loader2 } from "lucide-react";
+import { ShieldAlert, User, Briefcase, CreditCard, LayoutDashboard, PackageSearch, Loader2, Tag, Inbox } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utilidades";
@@ -53,6 +53,8 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
     { name: "Datos y Contacto", href: "/perfil/datos", icon: User },
     { name: "Productos y Servicios", href: "/perfil/productos-servicios", icon: PackageSearch },
     { name: "Rubros y Especialidades", href: "/perfil/servicios", icon: Briefcase },
+    { name: "Etiquetas de Match", href: "/perfil/etiquetas", icon: Tag },
+    { name: "Bandeja de Solicitudes", href: "/perfil/solicitudes", icon: Inbox },
     { name: "Mi Suscripción", href: "/perfil/suscripcion", icon: CreditCard },
   ];
 

@@ -101,6 +101,46 @@ export async function updateCompanyOrProvider(
   }
 }
 
+export async function saveTags(
+  entityType: "company" | "provider",
+  entityId: string,
+  tagIds: string[]
+) {
+  if (!entityId || !entityType) {
+    return { error: "Missing identity" };
+  }
+
+  const isCompany = entityType === "company";
+  const relationTable = isCompany ? "empresas_tags" : "proveedores_tags";
+  const relationKey = isCompany ? "empresa_id" : "proveedor_id";
+
+  // Wipe existing tags first (idempotent save)
+  await supabaseAdmin
+    .from(relationTable)
+    .delete()
+    .eq(relationKey, entityId);
+
+  if (tagIds.length > 0) {
+    const payload = tagIds.map((tag_id) => ({
+      [relationKey]: entityId,
+      tag_id,
+      peso: 1,
+      origen: "manual" as const,
+    }));
+
+    const { error: insertError } = await supabaseAdmin
+      .from(relationTable)
+      .insert(payload);
+
+    if (insertError) {
+      console.error(`[Tag Save Error]:`, insertError.message);
+      return { error: insertError.message };
+    }
+  }
+
+  return { success: true };
+}
+
 export async function saveCategories(
   entityType: "company" | "provider",
   entityId: string,

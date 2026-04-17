@@ -39,12 +39,23 @@ export async function crearOportunidad(formData: FormData) {
   }
 
   // Parse Form Data
-  const titulo = formData.get("titulo") as string;
-  const descripcion = formData.get("descripcion") as string;
+  const titulo = (formData.get("titulo") as string)?.trim();
+  const descripcion = (formData.get("descripcion") as string)?.trim();
   const categoria_id = formData.get("categoria_id") as string;
-  const localidad = formData.get("localidad") as string;
+  const localidad = (formData.get("localidad") as string)?.trim();
   const visibilidad = (formData.get("visibilidad") as string) || "privada_parque";
-  
+
+  const cantidadRaw = formData.get("cantidad") as string | null;
+  const unidadRaw = (formData.get("unidad") as string | null)?.trim() || null;
+  const fechaRaw = (formData.get("fecha_necesidad") as string | null) || null;
+
+  const cantidad = cantidadRaw && cantidadRaw.length > 0 ? Number(cantidadRaw) : null;
+  if (cantidad !== null && (!Number.isFinite(cantidad) || cantidad < 0)) {
+    return { success: false, error: "La cantidad debe ser un número válido." };
+  }
+
+  const tagIds = formData.getAll("tag_ids").map(String).filter(Boolean);
+
   if (!titulo || !descripcion || !categoria_id || !localidad) {
     return { success: false, error: "Por favor completa todos los campos requeridos." };
   }
@@ -62,6 +73,9 @@ export async function crearOportunidad(formData: FormData) {
       creado_por: user.id,
       empresa_solicitante_id: empresaId,
       proveedor_solicitante_id: proveedorId,
+      cantidad,
+      unidad: unidadRaw,
+      fecha_necesidad: fechaRaw,
     })
     .select('id')
     .single();
@@ -69,6 +83,20 @@ export async function crearOportunidad(formData: FormData) {
   if (insertError) {
     console.error("Error al publicar oportunidad:", insertError);
     return { success: false, error: "Ocurrió un error al guardar la oportunidad." };
+  }
+
+  // Insert tags (trigger recalculará los matches)
+  if (tagIds.length > 0) {
+    const tagRows = tagIds.map((tag_id) => ({
+      oportunidad_id: newOp.id,
+      tag_id,
+      peso: 1,
+    }));
+    const { error: tagsError } = await supabase.from("oportunidades_tags").insert(tagRows);
+    if (tagsError) {
+      console.error("Error al guardar tags de oportunidad:", tagsError);
+      // No abortamos: la oportunidad ya quedó creada; solo logueamos.
+    }
   }
 
   // Revalidate cache paths

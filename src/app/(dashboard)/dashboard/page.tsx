@@ -180,9 +180,12 @@ export default async function DashboardPage() {
       .or(isCompany ? `empresa_id.eq.${entityId}` : `proveedor_id.eq.${entityId}`)
       .order('creado_en', { ascending: false }).limit(1).maybeSingle()
       : Promise.resolve({ data: null }),
-    // 9) Quote requests for providers
-    isProvider && entityId ? supabase.from('solicitudes_presupuesto').select('id, estado, creado_en, empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social)')
-      .eq('proveedor_destino_id', entityId).order('creado_en', { ascending: false }).limit(4)
+    // 9) Quote requests received by me (company OR provider as destino)
+    entityId && (isCompany || isProvider)
+      ? supabase.from('solicitudes_presupuesto')
+          .select('id, estado, creado_en, empresa_origen_id, proveedor_origen_id, empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social, nombre_fantasia), proveedor_origen:proveedores!solicitudes_presupuesto_proveedor_origen_id_fkey(nombre, nombre_comercial)')
+          .eq(isCompany ? 'empresa_destino_id' : 'proveedor_destino_id', entityId)
+          .order('creado_en', { ascending: false }).limit(4)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -758,32 +761,45 @@ export default async function DashboardPage() {
               </section>
             )}
 
-            {/* ── PROVIDER: QUOTE REQUESTS ── */}
-            {isProvider && solicitudes.length > 0 && (
+            {/* ── QUOTE REQUESTS (company OR provider) ── */}
+            {(isCompany || isProvider) && solicitudes.length > 0 && (
               <section className="bg-white rounded-md shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] overflow-hidden">
                 <div className="bg-[#f7f9fb] px-8 py-5 flex items-center justify-between">
                   <h2 className="font-poppins text-base font-bold text-[#00213f] flex items-center gap-2.5">
                     <MessageSquare className="w-5 h-5 text-slate-600" />
-                    Solicitudes de Presupuesto
+                    Solicitudes Recibidas
                   </h2>
+                  <Link href="/perfil/solicitudes" className="text-xs font-bold text-slate-500 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
+                    Ver bandeja
+                  </Link>
                 </div>
                 <div className="divide-y divide-[#f7f9fb]">
-                  {solicitudes.map((sol: any) => (
-                    <div key={sol.id} className="flex items-center gap-4 px-8 py-4">
-                      <div className="w-9 h-9 rounded-sm bg-amber-50/80 flex items-center justify-center flex-shrink-0">
-                        <MessageSquare className="w-4 h-4 text-amber-600/70" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#00213f] truncate">
-                          {(sol.empresa_origen as any)?.razon_social || 'Empresa'}
-                        </p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">{timeAgo(sol.creado_en)}</p>
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider flex-shrink-0 ${
-                        sol.estado === 'pendiente' ? 'bg-amber-50 text-amber-700' : sol.estado === 'respondida' ? 'bg-emerald-50 text-emerald-700' : 'bg-[#f2f4f6] text-slate-600'
-                      }`}>{sol.estado}</span>
-                    </div>
-                  ))}
+                  {solicitudes.map((sol: any) => {
+                    const origenNombre =
+                      sol.empresa_origen?.nombre_fantasia || sol.empresa_origen?.razon_social ||
+                      sol.proveedor_origen?.nombre_comercial || sol.proveedor_origen?.nombre ||
+                      'Solicitante';
+                    return (
+                      <Link
+                        href="/perfil/solicitudes"
+                        key={sol.id}
+                        className="flex items-center gap-4 px-8 py-4 hover:bg-slate-50/60 transition-colors"
+                      >
+                        <div className="w-9 h-9 rounded-sm bg-amber-50/80 flex items-center justify-center flex-shrink-0">
+                          <MessageSquare className="w-4 h-4 text-amber-600/70" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-[#00213f] truncate">
+                            {origenNombre}
+                          </p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">{timeAgo(sol.creado_en)}</p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider flex-shrink-0 ${
+                          sol.estado === 'enviada' ? 'bg-amber-50 text-amber-700' : sol.estado === 'respondida' ? 'bg-emerald-50 text-emerald-700' : sol.estado === 'vista' ? 'bg-blue-50 text-blue-700' : 'bg-[#f2f4f6] text-slate-600'
+                        }`}>{sol.estado}</span>
+                      </Link>
+                    );
+                  })}
                 </div>
               </section>
             )}

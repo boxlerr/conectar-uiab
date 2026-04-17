@@ -9,17 +9,36 @@ export interface Oportunidad {
   estado: string;
   empresa_solicitante_id?: string;
   proveedor_solicitante_id?: string;
+  cantidad?: number | null;
+  unidad?: string | null;
+  fecha_necesidad?: string | null;
   creado_en: string;
-  // Join fields
   categoria?: { nombre: string };
   empresa?: { razon_social: string };
+}
+
+export interface MatchCandidateEmpresa {
+  razon_social: string;
+  nombre_fantasia?: string | null;
+  localidad?: string | null;
+  ruta_logo?: string | null;
+  bucket_logo?: string | null;
+}
+
+export interface MatchCandidateProveedor {
+  nombre: string;
+  nombre_comercial?: string | null;
+  tipo_proveedor: string;
+  localidad?: string | null;
+  ruta_logo?: string | null;
+  bucket_logo?: string | null;
 }
 
 export interface Match {
   id: string;
   oportunidad_id: string;
-  empresa_candidata_id?: string;
-  proveedor_candidato_id?: string;
+  empresa_candidata_id?: string | null;
+  proveedor_candidato_id?: string | null;
   puntaje: number;
   detalle_puntaje: {
     tags: number;
@@ -29,11 +48,8 @@ export interface Match {
   estado: string;
   motivo_match: string;
   oportunidad?: Oportunidad;
-  proveedor?: {
-    nombre_comercial: string;
-    nombre: string;
-    tipo_proveedor: string;
-  };
+  empresa?: MatchCandidateEmpresa | null;
+  proveedor?: MatchCandidateProveedor | null;
 }
 
 // Timeout para queries: si Supabase queda colgado (token inválido, red caída),
@@ -64,6 +80,7 @@ async function race<T>(work: Promise<T>, ms = 10000, label = 'query'): Promise<T
 
 export const oportunidadesService = {
   async getOportunidades() {
+<<<<<<< Updated upstream
     const supabase = createClient();
     const { data, error } = await race(
       (async () => await supabase
@@ -78,12 +95,24 @@ export const oportunidadesService = {
       10000,
       'getOportunidades'
     );
+=======
+    const { data, error } = await supabase
+      .from('oportunidades')
+      .select(`
+        *,
+        categoria:categorias(nombre),
+        empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
+      `)
+      .eq('estado', 'abierta')
+      .order('creado_en', { ascending: false });
+>>>>>>> Stashed changes
 
     if (error) throw error;
     return data as Oportunidad[];
   },
 
   async getOportunidadById(id: string) {
+<<<<<<< Updated upstream
     const supabase = createClient();
     const { data, error } = await race(
       (async () => await supabase
@@ -98,6 +127,17 @@ export const oportunidadesService = {
       10000,
       'getOportunidadById'
     );
+=======
+    const { data, error } = await supabase
+      .from('oportunidades')
+      .select(`
+        *,
+        categoria:categorias(nombre),
+        empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
+      `)
+      .eq('id', id)
+      .single();
+>>>>>>> Stashed changes
 
     if (error) throw error;
     return data as Oportunidad;
@@ -107,6 +147,7 @@ export const oportunidadesService = {
     const supabase = createClient();
     const column = role === 'company' ? 'empresa_candidata_id' : 'proveedor_candidato_id';
 
+<<<<<<< Updated upstream
     const { data, error } = await race(
       (async () => await supabase
         .from('oportunidades_matches')
@@ -123,12 +164,27 @@ export const oportunidadesService = {
       10000,
       'getMatchesForUser'
     );
+=======
+    const { data, error } = await supabase
+      .from('oportunidades_matches')
+      .select(`
+        *,
+        oportunidad:oportunidades(
+          *,
+          categoria:categorias(nombre),
+          empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
+        )
+      `)
+      .eq(column, userId)
+      .order('puntaje', { ascending: false });
+>>>>>>> Stashed changes
 
     if (error) throw error;
     return data as Match[];
   },
 
   async getMatchesForOportunidad(oportunidadId: string) {
+<<<<<<< Updated upstream
     const supabase = createClient();
     const { data, error } = await race(
       (async () => await supabase
@@ -142,6 +198,17 @@ export const oportunidadesService = {
       10000,
       'getMatchesForOportunidad'
     );
+=======
+    const { data, error } = await supabase
+      .from('oportunidades_matches')
+      .select(`
+        *,
+        empresa:empresas!oportunidades_matches_empresa_candidata_id_fkey(razon_social, nombre_fantasia, localidad, ruta_logo, bucket_logo),
+        proveedor:proveedores!oportunidades_matches_proveedor_candidato_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, ruta_logo, bucket_logo)
+      `)
+      .eq('oportunidad_id', oportunidadId)
+      .order('puntaje', { ascending: false });
+>>>>>>> Stashed changes
 
     if (error) throw error;
     return data as Match[];
