@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { aprobarProveedor, rechazarProveedor } from "@/modulos/admin/acciones";
 
-type Proveedor = {
+type Particular = {
   id: string;
   nombre: string;
   apellido: string | null;
@@ -35,19 +35,19 @@ const BADGE: Record<string, { label: string; className: string }> = {
   oculto:              { label: "Oculto", className: "bg-slate-100 text-slate-500" },
 };
 
-export function PanelProveedores({ proveedores }: { proveedores: Proveedor[] }) {
+export function PanelProveedores({ proveedores: particulares }: { proveedores: Particular[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [filtro, setFiltro] = useState<Filtro>("pendiente_revision");
   const [busqueda, setBusqueda] = useState("");
-  const [seleccionado, setSeleccionado] = useState<Proveedor | null>(null);
+  const [seleccionado, setSeleccionado] = useState<Particular | null>(null);
   const [modalRechazo, setModalRechazo] = useState<{ id: string; nombre: string } | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
 
-  const nombreCompleto = (p: Proveedor) =>
+  const nombreCompleto = (p: Particular) =>
     [p.nombre, p.apellido].filter(Boolean).join(" ");
 
-  const filtrados = proveedores.filter((p) => {
+  const filtrados = particulares.filter((p) => {
     const matchFiltro = filtro === "all" || p.estado === filtro;
     const nombre = nombreCompleto(p).toLowerCase();
     const matchBusqueda = !busqueda ||
@@ -59,10 +59,10 @@ export function PanelProveedores({ proveedores }: { proveedores: Proveedor[] }) 
   });
 
   const counts = {
-    all: proveedores.length,
-    pendiente_revision: proveedores.filter((p) => p.estado === "pendiente_revision").length,
-    aprobado: proveedores.filter((p) => p.estado === "aprobado").length,
-    rechazado: proveedores.filter((p) => p.estado === "rechazado").length,
+    all: particulares.length,
+    pendiente_revision: particulares.filter((p) => p.estado === "pendiente_revision").length,
+    aprobado: particulares.filter((p) => p.estado === "aprobado").length,
+    rechazado: particulares.filter((p) => p.estado === "rechazado").length,
   };
 
   function refresh() { startTransition(() => router.refresh()); }
@@ -95,9 +95,9 @@ export function PanelProveedores({ proveedores }: { proveedores: Proveedor[] }) 
       <div>
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
           <Wrench className="w-8 h-8 text-emerald-600" />
-          Gestión de Proveedores
+          Gestión de Particulares
         </h1>
-        <p className="text-slate-500 mt-1">Aprobá o rechazá los perfiles de proveedores de servicios.</p>
+        <p className="text-slate-500 mt-1">Aprobá o rechazá los perfiles de particulares.</p>
       </div>
 
       <Card className="p-4 flex flex-col sm:flex-row gap-3 items-center shadow-sm border-slate-100">
@@ -124,7 +124,7 @@ export function PanelProveedores({ proveedores }: { proveedores: Proveedor[] }) 
         {filtrados.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
             <Wrench className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No hay proveedores con este filtro.</p>
+            <p className="text-slate-500 font-medium">No hay particulares con este filtro.</p>
           </div>
         ) : filtrados.map((prov) => {
           const badge = BADGE[prov.estado] ?? { label: prov.estado, className: "bg-slate-100 text-slate-600" };
@@ -203,7 +203,7 @@ export function PanelProveedores({ proveedores }: { proveedores: Proveedor[] }) 
 
             <div className="p-6 space-y-6">
               <section>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">Datos del proveedor</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">Datos del particular</p>
                 <dl className="space-y-2">
                   {[
                     ["CUIT", seleccionado.cuit],
@@ -255,7 +255,7 @@ export function PanelProveedores({ proveedores }: { proveedores: Proveedor[] }) 
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setModalRechazo(null)} />
           <div className="fixed z-50 inset-0 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200">
-              <h3 className="text-lg font-bold text-slate-900 mb-1">Rechazar proveedor</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-1">Rechazar particular</h3>
               <p className="text-sm text-slate-500 mb-4">
                 Ingresá el motivo para rechazar a <strong>{modalRechazo.nombre}</strong>.
               </p>

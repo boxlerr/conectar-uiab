@@ -94,7 +94,7 @@ export function PanelSuscripciones({ empresas, proveedores }: { empresas: Empres
       color: "text-emerald-600",
     },
     {
-      label: "Proveedores Activos",
+      label: "Particulares Activos",
       valor: proveedores.length,
       sub: "Aprobados en la plataforma",
       icon: Wrench,
@@ -183,7 +183,7 @@ export function PanelSuscripciones({ empresas, proveedores }: { empresas: Empres
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-all ${
                 filtroTipo === tipo ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
               }`}>
-              {tipo === "company" ? `Empresas (${empresas.length})` : `Proveedores (${proveedores.length})`}
+              {tipo === "company" ? `Empresas (${empresas.length})` : `Particulares (${proveedores.length})`}
             </button>
           ))}
         </div>
@@ -261,14 +261,14 @@ export function PanelSuscripciones({ empresas, proveedores }: { empresas: Empres
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Proveedor</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Particular</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Registrado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {proveedoresFiltrados.length === 0 ? (
-                  <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-500">No se encontraron proveedores.</td></tr>
+                  <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-500">No se encontraron particulares.</td></tr>
                 ) : proveedoresFiltrados.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">

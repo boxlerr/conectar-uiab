@@ -339,7 +339,7 @@ export default function EmpresasPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-[13px] font-black text-[#191c1e] uppercase tracking-[0.18em] mb-1.5">
-                  Proveedores de servicios y productos
+                  Empresas y particulares
                 </p>
                 <p className="text-[13px] text-slate-600 leading-relaxed">
                   En esta categoría conviven{" "}

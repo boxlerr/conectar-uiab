@@ -75,8 +75,8 @@ const beneficiosRed = [
   },
   {
     icon: Users,
-    titulo: "Red de proveedores verificados",
-    copy: "Mas de 50 proveedores auditados por la UIAB. Servicios profesionales, insumos industriales, logistica y mas.",
+    titulo: "Red de particulares verificados",
+    copy: "Mas de 50 particulares auditados por la UIAB. Servicios profesionales, insumos industriales, logistica y mas.",
   },
   {
     icon: Target,
@@ -100,7 +100,7 @@ const comoFunciona = [
   {
     paso: "02",
     icon: Globe,
-    titulo: "Visibilidad ante empresas y proveedores",
+    titulo: "Visibilidad ante empresas y particulares",
     copy: "Tu ficha queda expuesta en el directorio. Empresas y profesionales de la red pueden consultarte directamente.",
   },
   {
@@ -113,7 +113,7 @@ const comoFunciona = [
 
 const cifrasRed = [
   { valor: "60+", label: "Empresas industriales", sublabel: "en el directorio activo" },
-  { valor: "50+", label: "Proveedores verificados", sublabel: "auditados por UIAB" },
+  { valor: "50+", label: "Particulares verificados", sublabel: "auditados por UIAB" },
   { valor: "100%", label: "Cobertura territorial", sublabel: "Almirante Brown y Conurbano Sur" },
   { valor: "24/7", label: "Directorio online", sublabel: "acceso permanente" },
 ];
@@ -317,7 +317,7 @@ export default function InstitucionesBancariasPage() {
                 className="text-slate-600 text-base md:text-lg leading-relaxed mb-8 max-w-lg"
               >
                 Suma tu banco al directorio de la UIAB y accede a mas de 60 empresas
-                industriales y 50 proveedores verificados del Conurbano Sur.
+                industriales y 50 particulares verificados del Conurbano Sur.
                 Una red comercial curada, con respaldo institucional.
               </motion.p>
 
@@ -561,7 +561,7 @@ export default function InstitucionesBancariasPage() {
                 custom={2}
                 className="text-slate-600 text-base md:text-lg leading-relaxed mb-10"
               >
-                La UIAB nuclea a las principales empresas industriales y proveedores
+                La UIAB nuclea a las principales empresas industriales y particulares
                 del Conurbano Sur. Tu entidad financiera puede conectar directamente
                 con este ecosistema productivo, ofreciendo tus servicios a empresas
                 verificadas con necesidades reales.
@@ -931,7 +931,7 @@ export default function InstitucionesBancariasPage() {
             </h2>
 
             <p className="text-slate-600 text-lg leading-relaxed max-w-2xl mx-auto mb-10">
-              Mas de 60 empresas industriales y 50 proveedores verificados esperan conocer
+              Mas de 60 empresas industriales y 50 particulares verificados esperan conocer
               los servicios financieros de tu entidad. Sumarte es simple y la visibilidad es inmediata.
             </p>
 

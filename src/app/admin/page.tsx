@@ -48,14 +48,14 @@ export default async function AdminDashboardPage() {
 
   const stats = [
     { nombre: "Total Empresas", valor: data.totalEmpresas, icon: Building, color: "text-blue-600", bg: "bg-blue-50", href: "/admin/empresas" },
-    { nombre: "Total Proveedores", valor: data.totalProveedores, icon: Wrench, color: "text-emerald-600", bg: "bg-emerald-50", href: "/admin/proveedores" },
+    { nombre: "Total Particulares", valor: data.totalProveedores, icon: Wrench, color: "text-emerald-600", bg: "bg-emerald-50", href: "/admin/proveedores" },
     { nombre: "Usuarios Registrados", valor: data.totalUsuarios, icon: Users, color: "text-violet-600", bg: "bg-violet-50", href: "/admin/usuarios" },
     { nombre: "Oportunidades Abiertas", valor: data.oportunidadesAbiertas, icon: Briefcase, color: "text-amber-600", bg: "bg-amber-50", href: "/admin/oportunidades" },
   ];
 
   const pendientes = [
     { label: "Empresas nuevas", count: data.empresasPendientes, icon: Building, color: "bg-blue-100 text-blue-600", href: "/admin/empresas" },
-    { label: "Proveedores nuevos", count: data.proveedoresPendientes, icon: Wrench, color: "bg-emerald-100 text-emerald-600", href: "/admin/proveedores" },
+    { label: "Particulares nuevos", count: data.proveedoresPendientes, icon: Wrench, color: "bg-emerald-100 text-emerald-600", href: "/admin/proveedores" },
     { label: "Reseñas pendientes", count: data.resenasPendientes, icon: MessageSquare, color: "bg-amber-100 text-amber-600", href: "/admin/resenas" },
   ];
 

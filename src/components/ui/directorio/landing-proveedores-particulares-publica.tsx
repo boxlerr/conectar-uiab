@@ -324,7 +324,7 @@ export function PublicProveedoresParticularesLanding() {
               custom={2}
               className="text-lg text-slate-500 leading-relaxed mt-6 max-w-2xl"
             >
-              Cuando hablamos de <em className="text-[#191c1e] font-semibold">proveedores de servicios y productos</em>,
+              Cuando hablamos de <em className="text-[#191c1e] font-semibold">servicios y productos</em>,
               no nos referimos a un único tipo de perfil. En el partido conviven —y se necesitan mutuamente—
               las empresas socias UIAB y los profesionales particulares.
             </motion.p>
@@ -412,8 +412,8 @@ export function PublicProveedoresParticularesLanding() {
                 Ingenieros, técnicos, contadores, diseñadores, programadores, asesores y oficios
                 habilitados que trabajan por cuenta propia. Son personas físicas con matrícula o
                 habilitación individual, no empresas. Por eso los llamamos{" "}
-                <strong className="text-[#191c1e]">particulares</strong>, no &ldquo;proveedores&rdquo;:
-                la empresa socia también puede ser proveedor de servicios.
+                <strong className="text-[#191c1e]">particulares</strong>: individuos que ofrecen
+                servicios de manera autónoma, en paralelo a las empresas socias.
               </p>
 
               <ul className="space-y-3 mb-7">
@@ -594,7 +594,7 @@ export function PublicProveedoresParticularesLanding() {
                 num: "+60",
                 label: "Empresas industriales",
                 heading: "Empresas y comercios del partido necesitan tu servicio",
-                body: "Cientos de empresas y emprendimientos en Almirante Brown necesitan productos, servicios, profesionales, técnicos y oficios todas las semanas. Cada fábrica, cada negocio y cada PyME del partido es un cliente potencial tanto para empresas proveedoras como para particulares.",
+                body: "Cientos de empresas y emprendimientos en Almirante Brown necesitan productos, servicios, profesionales, técnicos y oficios todas las semanas. Cada fábrica, cada negocio y cada PyME del partido es un cliente potencial tanto para empresas socias como para particulares.",
                 icon: Users,
                 tone: "blue" as const,
               },

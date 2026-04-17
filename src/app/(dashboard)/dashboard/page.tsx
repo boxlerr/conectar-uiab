@@ -264,12 +264,12 @@ export default async function DashboardPage() {
     ? [
         { href: '/admin', icon: ShieldCheck, label: 'Panel Admin', sub: 'Gestión completa' },
         { href: '/admin/empresas', icon: Building, label: 'Socios UIAB', sub: `${pendingEmpresas} pendientes` },
-        { href: '/admin/proveedores', icon: Users, label: 'Proveedores', sub: `${pendingProveedores} pendientes` },
+        { href: '/admin/proveedores', icon: Users, label: 'Particulares', sub: `${pendingProveedores} pendientes` },
       ]
     : isCompany
       ? [
           { href: '/oportunidades', icon: Plus, label: 'Publicar Oportunidad', sub: 'Nuevo requerimiento' },
-          { href: '/empresas?categoria=proveedores', icon: Search, label: 'Buscar Proveedores', sub: 'Directorio verificado' },
+          { href: '/empresas?categoria=proveedores', icon: Search, label: 'Buscar Particulares', sub: 'Directorio verificado' },
           { href: '/perfil/datos', icon: Settings, label: 'Editar Perfil', sub: 'Datos institucionales' },
           { href: '/perfil/documentos', icon: FileCheck2, label: 'Documentos', sub: 'Facturas y habilitaciones' },
         ]
@@ -350,7 +350,7 @@ export default async function DashboardPage() {
                 </span>
               )}
               <span className="bg-white/10 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-[0.12em] ring-1 ring-white/20">
-                {isCompany ? 'Empresa' : isProvider ? 'Proveedor' : isAdmin ? 'Admin' : 'Invitado'}
+                {isCompany ? 'Empresa' : isProvider ? 'Particular' : isAdmin ? 'Admin' : 'Invitado'}
               </span>
             </div>
           </div>
@@ -370,7 +370,7 @@ export default async function DashboardPage() {
                   {totalPending} solicitud{totalPending !== 1 ? 'es' : ''} pendiente{totalPending !== 1 ? 's' : ''}
                 </p>
                 <p className="text-[10px] text-amber-700/60 mt-0.5">
-                  {pendingEmpresas} empresas · {pendingProveedores} proveedores · {pendingResenas} reseñas
+                  {pendingEmpresas} empresas · {pendingProveedores} particulares · {pendingResenas} reseñas
                 </p>
               </div>
             </div>
@@ -461,7 +461,7 @@ export default async function DashboardPage() {
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { icon: Building, value: empresasCount, label: 'Socios UIAB', sub: 'en el directorio', href: '/empresas', accent: 'bg-blue-50 text-blue-700', bar: 'from-blue-500 to-blue-700' },
-            { icon: Users, value: proveedoresCount, label: 'Proveedores', sub: 'verificados', href: '/empresas?categoria=proveedores', accent: 'bg-emerald-50 text-emerald-700', bar: 'from-emerald-500 to-teal-600' },
+            { icon: Users, value: proveedoresCount, label: 'Particulares', sub: 'verificados', href: '/empresas?categoria=proveedores', accent: 'bg-emerald-50 text-emerald-700', bar: 'from-emerald-500 to-teal-600' },
             { icon: Target, value: oportunidadesCount, label: 'Oportunidades', sub: 'abiertas ahora', href: '/oportunidades', accent: 'bg-amber-50 text-amber-700', bar: 'from-amber-500 to-orange-500' },
             { icon: isAdmin ? AlertCircle : Zap, value: isAdmin ? totalPending : fourthStatCount, label: isAdmin ? 'Pendientes' : isCompany ? 'Mis Oportunidades' : 'Mis Matches', sub: isAdmin ? 'a revisar' : 'activas', href: isAdmin ? '/admin' : '/oportunidades', accent: 'bg-violet-50 text-violet-700', bar: 'from-violet-500 to-purple-600' },
           ].map((stat) => (
@@ -662,7 +662,7 @@ export default async function DashboardPage() {
                     </div>
                     <div>
                       <h2 className="font-poppins text-base font-bold text-[#00213f]">
-                        {isCompany ? 'Proveedores Recomendados' : 'Oportunidades para Vos'}
+                        {isCompany ? 'Particulares Recomendados' : 'Oportunidades para Vos'}
                       </h2>
                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] mt-0.5">Algoritmo de matching</p>
                     </div>
@@ -696,7 +696,7 @@ export default async function DashboardPage() {
                             )}
                             <div className="mt-auto pt-4">
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
-                                {isProvider ? 'Oportunidad' : 'Proveedor'}
+                                {isProvider ? 'Oportunidad' : 'Particular'}
                               </span>
                             </div>
                           </div>
@@ -709,7 +709,7 @@ export default async function DashboardPage() {
                     <Activity className="w-10 h-10 text-[#d8dadc] mx-auto mb-4" />
                     <p className="text-sm font-medium text-slate-500 max-w-sm mx-auto leading-relaxed">
                       {isCompany
-                        ? 'Publicá una oportunidad para recibir proveedores recomendados por el algoritmo.'
+                        ? 'Publicá una oportunidad para recibir particulares recomendados por el algoritmo.'
                         : 'Completá tu perfil para que el algoritmo te conecte con oportunidades relevantes.'}
                     </p>
                     <Link href={isCompany ? '/oportunidades' : '/perfil/datos'} className="inline-flex items-center gap-1 text-sm font-bold text-slate-600 hover:text-[#00213f] mt-4 transition-colors">
@@ -904,15 +904,15 @@ export default async function DashboardPage() {
               <div className="absolute top-0 right-0 w-36 h-36 bg-white/[0.04] rounded-full blur-2xl -translate-y-1/2 translate-x-1/4" />
               <div className="relative z-10">
                 <h3 className="font-poppins text-lg font-bold mb-2">
-                  {isCompany ? 'Encontrá Proveedores' : isProvider ? 'Explorá Empresas' : 'Directorio UIAB'}
+                  {isCompany ? 'Encontrá Particulares' : isProvider ? 'Explorá Empresas' : 'Directorio UIAB'}
                 </h3>
                 <p className="text-sm text-white/70 leading-relaxed mb-5">
                   {isCompany
-                    ? 'Proveedores verificados para necesidades industriales de tu empresa.'
+                    ? 'Particulares verificados para necesidades industriales de tu empresa.'
                     : 'Empresas que buscan tus servicios en Almirante Brown y alrededores.'}
                 </p>
                 <Link href={isCompany ? '/empresas?categoria=proveedores' : '/empresas'} className="inline-flex items-center gap-2 bg-white text-[#00213f] hover:bg-white/90 px-5 py-2.5 rounded-sm text-sm font-bold transition-colors">
-                  {isCompany ? 'Ver Proveedores' : 'Ver Empresas'} <ArrowRight className="w-4 h-4" />
+                  {isCompany ? 'Ver Particulares' : 'Ver Empresas'} <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </section>
@@ -925,7 +925,7 @@ export default async function DashboardPage() {
               <div className="space-y-4">
                 {[
                   { label: 'Empresas socias', value: empresasCount },
-                  { label: 'Proveedores verificados', value: proveedoresCount },
+                  { label: 'Particulares verificados', value: proveedoresCount },
                   { label: 'Oportunidades abiertas', value: oportunidadesCount },
                 ].map((s, i) => (
                   <div key={s.label}>

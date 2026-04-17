@@ -209,7 +209,7 @@ export default function OportunidadDetail({ params }: { params: Promise<{ id: st
           <div className="mt-16 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-center justify-between border-b border-slate-100 pb-6">
               <div>
-                <h2 className="text-2xl font-manrope font-bold text-[#00213f] tracking-tight">Proveedores Recomendados</h2>
+                <h2 className="text-2xl font-manrope font-bold text-[#00213f] tracking-tight">Particulares Recomendados</h2>
                 <p className="text-slate-400 font-inter text-sm mt-1">Algoritmo de match basado en especialidad y cercanía.</p>
               </div>
               <Sparkles className="w-8 h-8 text-primary-200" />
@@ -242,7 +242,7 @@ export default function OportunidadDetail({ params }: { params: Promise<{ id: st
 
                       <div className="mt-auto">
                         <Button className="w-full bg-[#f2f4f6] hover:bg-[#00213f] text-[#00213f] hover:text-white border-none rounded-sm h-11 font-bold font-inter text-[10px] uppercase tracking-widest transition-all">
-                          Ver Perfil del Proveedor
+                          Ver Perfil del Particular
                         </Button>
                       </div>
                     </div>
@@ -253,7 +253,7 @@ export default function OportunidadDetail({ params }: { params: Promise<{ id: st
                   <div className="max-w-xs mx-auto">
                     <Sparkles className="w-12 h-12 text-slate-200 mx-auto mb-4" />
                     <p className="text-slate-400 font-inter font-medium leading-relaxed">
-                      Estamos analizando nuevos proveedores para tu requerimiento. Te avisaremos cuando encontremos el match perfecto.
+                      Estamos analizando nuevos particulares para tu requerimiento. Te avisaremos cuando encontremos el match perfecto.
                     </p>
                   </div>
                 </Card>

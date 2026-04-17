@@ -273,7 +273,7 @@ export function FormularioOportunidad({ categorias }: { categorias: Categoria[] 
         <div className="bg-white rounded-lg shadow-sm border border-slate-300 p-5">
           <div className="flex items-center gap-2 mb-3">
             <Settings className="w-5 h-5 text-slate-600" />
-            <h4 className="font-semibold text-slate-800 text-sm">Lleva tu requerimiento hasta los proveedores adecuados</h4>
+            <h4 className="font-semibold text-slate-800 text-sm">Lleva tu requerimiento hasta los particulares adecuados</h4>
           </div>
           <p className="text-xs text-slate-600 leading-relaxed">
             Incluye la descripción técnica del trabajo y añade las aptitudes necesarias para segmentar a los miembros de la red que cumplan los requisitos. Esto asegura respuestas de mayor calidad.

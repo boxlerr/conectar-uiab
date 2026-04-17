@@ -200,7 +200,7 @@ export default function OportunidadesPage() {
               <CardHeader className="p-8">
                 <CardTitle className="font-manrope text-2xl font-bold tracking-tight">¿Tienes una necesidad?</CardTitle>
                 <CardDescription className="text-slate-400 font-inter text-base mt-2">
-                  Publica tus requerimientos técnicos y nuestro algoritmo encontrará a los proveedores ideales.
+                  Publica tus requerimientos técnicos y nuestro algoritmo encontrará a los particulares ideales.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-8 pt-0">
@@ -215,7 +215,7 @@ export default function OportunidadesPage() {
                     <div className="mt-1 flex-shrink-0 w-5 h-5 rounded-full bg-primary-100/10 flex items-center justify-center">
                       <ArrowRight className="w-3 h-3 text-white" />
                     </div>
-                    <span className="text-slate-300">Proveedores auditados por UIAB</span>
+                    <span className="text-slate-300">Particulares auditados por UIAB</span>
                   </li>
                 </ul>
               </CardContent>

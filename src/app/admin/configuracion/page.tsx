@@ -114,7 +114,7 @@ export default function AdminConfiguracionPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900">Alertas de Nuevo Registro</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Recibe un correo cuando una empresa o proveedor solicite unirse a la red.</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Recibe un correo cuando una empresa o particular solicite unirse a la red.</p>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">

@@ -222,7 +222,7 @@ export default function Home() {
                       <Wrench className="w-4.5 h-4.5 text-primary-200" />
                     </div>
                     <div>
-                      <p className="text-[13px] font-bold text-white">50+ Proveedores</p>
+                      <p className="text-[13px] font-bold text-white">50+ Particulares</p>
                       <p className="text-[10px] text-white/40">Verificados UIAB</p>
                     </div>
                   </div>
@@ -309,7 +309,7 @@ export default function Home() {
             <motion.div variants={fadeUp} custom={0} className="hidden lg:flex justify-center">
               <Image
                 src="/landing/hero-connection.png"
-                alt="Ecosistema: Empresa → UIAB → Proveedor"
+                alt="Ecosistema: Empresa → UIAB → Particular"
                 width={500}
                 height={380}
                 className="w-full max-w-md h-auto drop-shadow-lg"
@@ -335,7 +335,7 @@ export default function Home() {
                   {
                     icon: Briefcase,
                     title: "Empresas del Partido",
-                    desc: "Más de 60 empresas radicadas publican su perfil, buscan proveedores y acceden a oportunidades de negocio exclusivas.",
+                    desc: "Más de 60 empresas radicadas publican su perfil, buscan particulares y acceden a oportunidades de negocio exclusivas.",
                     link: "/empresas",
                     linkLabel: "Ver directorio de empresas",
                   },
@@ -348,10 +348,10 @@ export default function Home() {
                   },
                   {
                     icon: Wrench,
-                    title: "Proveedores profesionales",
+                    title: "Particulares profesionales",
                     desc: "Empresas socias y particulares matriculados: ingeniería, sistemas, contabilidad, mantenimiento técnico y más. Todos verificados.",
                     link: "/empresas?categoria=proveedores",
-                    linkLabel: "Ver proveedores",
+                    linkLabel: "Ver particulares",
                   },
                 ].map((step, i) => (
                   <motion.div
@@ -434,7 +434,7 @@ export default function Home() {
               },
               {
                 title: "Networking Estratégico",
-                body: "Fomentamos la sinergia B2B conectando a empresas líderes con proveedores confiables para maximizar la cadena de valor.",
+                body: "Fomentamos la sinergia B2B conectando a empresas líderes con particulares confiables para maximizar la cadena de valor.",
                 icon: TrendingUp,
               },
               {

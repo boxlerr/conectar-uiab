@@ -347,7 +347,7 @@ function RegisterContent() {
       ]
     }
     return [
-      { icon: Megaphone, label: "Visibilidad en la Red", desc: "Aparecé en el directorio oficial de proveedores." },
+      { icon: Megaphone, label: "Visibilidad en la Red", desc: "Aparecé en el directorio oficial de particulares." },
       { icon: Target, label: "Oportunidades Comerciales", desc: "Ofrecé tus productos y servicios a los socios." },
       { icon: Award, label: "Contacto con Empresas", desc: "Accedé a industrias, comercios y potenciales clientes." }
     ]
@@ -405,10 +405,10 @@ function RegisterContent() {
                 <h1 className="text-3xl lg:text-4xl xl:text-5xl font-black leading-[1.1] tracking-tighter mb-3 lg:mb-4" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>
                   {step === 1 && "Elegí tu tipo de registro."}
                   {step > 1 && selectedRole === 'company' && "Ser Socio UIAB."}
-                  {step > 1 && selectedRole === 'provider' && "Ser Proveedor."}
+                  {step > 1 && selectedRole === 'provider' && "Ser Particular."}
                 </h1>
                 <p className="text-white/60 text-sm lg:text-base leading-relaxed mb-6 lg:mb-8 font-inter max-w-sm">
-                  {step === 1 && "Registrate como Socio para acceder a beneficios, capacitaciones, actividades y servicios exclusivos. O como Proveedor para ofrecer tus productos o servicios y vincularte con empresas y socios de la institución."}
+                  {step === 1 && "Registrate como Socio para acceder a beneficios, capacitaciones, actividades y servicios exclusivos. O como Particular para ofrecer tus productos o servicios y vincularte con empresas y socios de la institución."}
                   {step > 1 && selectedRole === 'company' && "Accedé a beneficios exclusivos, capacitaciones, convenios y oportunidades de vinculación con otras empresas, instituciones y miembros de la red."}
                   {step > 1 && selectedRole === 'provider' && "Ganá visibilidad dentro de la red, ofrecé tus productos y servicios a los socios y conectá con empresas, industrias y potenciales clientes."}
                 </p>
@@ -479,7 +479,7 @@ function RegisterContent() {
                         <div className="space-y-1">
                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">Registro</Badge>
                            <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter leading-none" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>¿Cómo querés<br />registrarte?</h2>
-                           <p className="text-sm text-slate-500 font-inter pt-2 max-w-md">Elegí tu tipo de registro. Podés ser parte de UIAB como Socio o como Proveedor de productos y servicios.</p>
+                           <p className="text-sm text-slate-500 font-inter pt-2 max-w-md">Elegí tu tipo de registro. Podés ser parte de UIAB como Socio o como Particular de productos y servicios.</p>
                         </div>
 
                         <div className="grid gap-4">
@@ -504,7 +504,7 @@ function RegisterContent() {
                                 </div>
                                 <div className="flex-1">
                                   <div className="flex items-center justify-between mb-1">
-                                     <h3 className="text-xl font-bold text-[#00213f] leading-none">Quiero ser Proveedor</h3>
+                                     <h3 className="text-xl font-bold text-[#00213f] leading-none">Quiero ser Particular</h3>
                                      <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", field.value === 'provider' ? "border-primary-600 bg-primary-600 text-white" : "border-slate-300")}><Check className="h-2.5 w-2.5 opacity-0" style={{ opacity: field.value === 'provider' ? 1 : 0 }} /></div>
                                   </div>
                                   <p className="text-xs font-inter text-slate-500 pr-4">Empresa o persona que ofrece productos o servicios. Ganá visibilidad, presencia en el directorio y contacto directo con empresas, industrias y socios de la institución.</p>

@@ -69,7 +69,7 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
               <span className="truncate">{currentUser.name}</span>
             </h2>
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-2 ml-10">
-              Panel {currentUser.role === 'company' ? 'Corporativo' : 'Proveedor'}
+              Panel {currentUser.role === 'company' ? 'Corporativo' : 'Particular'}
             </p>
           </div>
           

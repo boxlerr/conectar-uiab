@@ -23,13 +23,13 @@ type Filtro = "all" | "admin" | "company" | "provider";
 const ROL_CONFIG: Record<string, { label: string; icon: React.ElementType; bg: string; text: string }> = {
   admin:    { label: "Administrador", icon: Shield,   bg: "bg-slate-100",   text: "text-slate-700" },
   company:  { label: "Empresa",       icon: Building, bg: "bg-blue-50",     text: "text-blue-700"  },
-  provider: { label: "Proveedor",     icon: Wrench,   bg: "bg-emerald-50",  text: "text-emerald-700" },
+  provider: { label: "Particular",    icon: Wrench,   bg: "bg-emerald-50",  text: "text-emerald-700" },
 };
 
 const ROLES_DISPONIBLES: { value: string; label: string }[] = [
   { value: "admin",    label: "Administrador" },
   { value: "company",  label: "Empresa" },
-  { value: "provider", label: "Proveedor" },
+  { value: "provider", label: "Particular" },
 ];
 
 export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
@@ -76,7 +76,7 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
     { key: "all",      label: `Todos (${counts.all})` },
     { key: "admin",    label: `Admin (${counts.admin})` },
     { key: "company",  label: `Empresas (${counts.company})` },
-    { key: "provider", label: `Proveedores (${counts.provider})` },
+    { key: "provider", label: `Particulares (${counts.provider})` },
   ];
 
   return (

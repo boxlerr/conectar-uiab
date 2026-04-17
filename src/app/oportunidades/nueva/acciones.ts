@@ -35,7 +35,7 @@ export async function crearOportunidad(formData: FormData) {
   }
 
   if (!empresaId && !proveedorId) {
-    return { success: false, error: "No estás asociado a ninguna empresa o proveedor validado." };
+    return { success: false, error: "No estás asociado a ninguna empresa o particular validado." };
   }
 
   // Parse Form Data

@@ -19,7 +19,7 @@ export default function ProviderProfile({ params }: { params: Promise<{ id: stri
   if (!provider) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Proveedor no encontrado</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Particular no encontrado</h2>
         <Link href="/proveedor/proveedores">
           <Button variant="outline">Volver al directorio</Button>
         </Link>

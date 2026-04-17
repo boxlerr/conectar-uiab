@@ -71,7 +71,7 @@ function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType,
                <p className="text-sm font-bold text-slate-900 truncate">{currentUser.name}</p>
                <p className="text-xs text-slate-500 capitalize flex items-center gap-1 mt-0.5">
                  <Sparkles className="w-3 h-3 text-emerald-500" />
-                 {currentUser.role === 'company' ? 'Empresa' : currentUser.role === 'provider' ? 'Proveedor' : 'Admin'}
+                 {currentUser.role === 'company' ? 'Empresa' : currentUser.role === 'provider' ? 'Particular' : 'Admin'}
                </p>
             </div>
             
@@ -189,10 +189,10 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
         {
           name: "Directorio",
           icon: Building,
-          description: "Organizaciones y proveedores de servicios",
+          description: "Organizaciones y particulares",
           items: [
             {
-              name: "Proveedores de servicios y productos",
+              name: "Empresas y particulares",
               href: "/empresas?categoria=proveedores",
               icon: Package,
               description: "Ecosistema industrial y particulares",
