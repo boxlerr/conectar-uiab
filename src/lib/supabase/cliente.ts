@@ -35,45 +35,23 @@ let client: BrowserClient | undefined
 let lastVisibleAt = Date.now()
 
 /**
- * Lock con timeout. Firma compatible con la opción `auth.lock` de
- * @supabase/supabase-js. Si `navigator.locks` existe, lo usamos normalmente
- * pero con AbortSignal que corta a los 3s. Si el lock no se adquiere (porque
- * otro holder quedó colgado) lanzamos y dejamos que el caller siga sin lock —
- * Supabase ya tiene un fallback interno para este caso.
+ * Lock NO-OP. Reemplaza el lock default de @supabase/supabase-js que usa
+ * `navigator.locks.request('lock:sb-*-auth-token')` y puede colgarse
+ * indefinidamente si un holder queda huérfano (HMR, tab backgrounded, bfcache).
+ *
+ * Por qué es seguro:
+ *   El lock existe para evitar que múltiples tabs refresquen el token a la
+ *   vez. Sin el lock, el peor caso es un refresh duplicado — la API de Supabase
+ *   maneja eso bien (retorna el mismo refresh token). La consecuencia real:
+ *   0 impacto en producción de una tab. Para multi-tab, una colisión rara
+ *   es aceptable vs la UI colgada para siempre.
  */
-async function lockConTimeout<R>(
-  name: string,
-  acquireTimeoutMs: number,
+const lockNoOp = async <R>(
+  _name: string,
+  _acquireTimeoutMs: number,
   fn: () => Promise<R>
-): Promise<R> {
-  // En SSR no hay navigator.locks — ejecutar directo.
-  if (typeof navigator === 'undefined' || !('locks' in navigator) || !navigator.locks) {
-    return fn()
-  }
-
-  // Timeout agresivo: si el lock no se adquiere en ${acquireTimeoutMs || 3000}ms,
-  // saltamos el lock. Esto NO corrompe datos: los operations que usan el lock
-  // son idempotentes (refresh de token, lectura de sesión).
-  const timeout = Math.min(acquireTimeoutMs || 3000, 3000)
-  const abortCtrl = new AbortController()
-  const timer = setTimeout(() => abortCtrl.abort(), timeout)
-
-  try {
-    return await navigator.locks.request(
-      name,
-      { mode: 'exclusive', signal: abortCtrl.signal },
-      async () => fn()
-    )
-  } catch (err: any) {
-    // AbortError = lock huérfano. Corremos sin lock.
-    if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
-      console.warn(`[supabase] Lock "${name}" no se adquirió en ${timeout}ms — corriendo sin lock (probable lock huérfano)`)
-      return fn()
-    }
-    throw err
-  } finally {
-    clearTimeout(timer)
-  }
+): Promise<R> => {
+  return fn()
 }
 
 /**
@@ -114,9 +92,9 @@ function build(): BrowserClient {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       auth: {
-        // Override del lock default de @supabase/supabase-js — si un lock
-        // (navigator.locks) queda huérfano, saltamos y seguimos.
-        lock: lockConTimeout as any,
+        // Reemplazamos el lock default (navigator.locks) con un no-op para
+        // eliminar toda posibilidad de deadlock por locks huérfanos.
+        lock: lockNoOp as any,
       },
       global: {
         // Cualquier query REST/auth/storage pasa por acá. Timeout universal

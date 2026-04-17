@@ -50,6 +50,9 @@ export default function EmpresasPage() {
   // Real Data states
   const [empresas, setEmpresas] = useState<Entidad[]>([]);
   const [cargandoDatos, setCargandoDatos] = useState(true);
+  // Separamos "error de red/timeout" de "lista vacía real" — así la UI
+  // muestra retry en vez de un falso "no hay empresas".
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
@@ -62,40 +65,63 @@ export default function EmpresasPage() {
   const headerY = useTransform(scrollY, [0, 600], ["0%", "50%"]);
   const headerOpacity = useTransform(scrollY, [0, 400], [1, 0]);
 
+  // Helper: ejecuta la query principal con 1 retry automático. Supabase a
+  // veces tiene cold-start lento (>10s) en la primera query del Turbopack dev
+  // server; un retry inmediato casi siempre la resuelve rápido.
+  const ejecutarQueryDirectorio = useCallback(async () => {
+    const supabase = createClient();
+    let query = supabase.from('vista_directorio').select('*');
+
+    if (categoriaSocio === 'proveedores_servicios_productos') {
+      query = query.or(`categoria_socio.eq.${categoriaSocio},es_socio.eq.false`);
+    } else if (categoriaSocio) {
+      query = query.eq('categoria_socio', categoriaSocio);
+    }
+
+    return await conTimeout(
+      (async () => await query)(),
+      20000, // 20s: margen para cold-start de Supabase
+      'vista_directorio'
+    );
+  }, [categoriaSocio]);
+
   // Fetch real companies from Supabase — wrapped in useCallback for reuse
   const fetchEmpresas = useCallback(async () => {
     if (!currentUser) return;
 
     setCargandoDatos(true);
+    setErrorCarga(null);
     setEmpresas([]);
     const supabase = createClient();
-    
-    let query = supabase.from('vista_directorio').select('*');
-
-    if (categoriaSocio === 'proveedores_servicios_productos') {
-      // Mostramos socios del rubro + particulares
-      query = query.or(`categoria_socio.eq.${categoriaSocio},es_socio.eq.false`);
-    } else if (categoriaSocio) {
-      // Filtramos a la subcategoría específica
-      query = query.eq('categoria_socio', categoriaSocio);
-    }
 
     let data: any[] | null = null;
     let error: any = null;
-    try {
-      const res = await conTimeout(
-        (async () => await query)(),
-        10000,
-        'vista_directorio'
-      );
-      data = res.data as any[] | null;
-      error = res.error;
-    } catch (err) {
-      error = err;
+
+    // Intento 1 + retry automático si el 1° falla por timeout o error de red.
+    for (let intento = 1; intento <= 2; intento++) {
+      try {
+        const res = await ejecutarQueryDirectorio();
+        data = res.data as any[] | null;
+        error = res.error;
+        if (!error) break; // éxito → salir del loop
+      } catch (err) {
+        error = err;
+        if (intento === 1) {
+          console.warn(`[empresas] intento ${intento} falló, reintentando con cliente fresco`);
+          // resetClient ya corrió dentro de conTimeout → la próxima createClient
+          // devuelve instancia nueva.
+          continue;
+        }
+      }
     }
 
     if (error || !data) {
-      console.error("Error fetching vista_directorio:", error);
+      console.error("Error fetching vista_directorio (tras retry):", error);
+      setErrorCarga(
+        error?.message?.includes('Timeout')
+          ? 'La carga está tardando más de lo habitual. Tu conexión puede estar lenta.'
+          : 'No pudimos cargar el directorio. Intentá de nuevo.'
+      );
       setCargandoDatos(false);
       return;
     }
@@ -531,8 +557,28 @@ export default function EmpresasPage() {
                   />
                 ))}
               </div>
+            ) : errorCarga ? (
+              // Estado de ERROR (timeout/red): mostramos retry — distinto del
+              // "lista vacía real" para no confundir al usuario.
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-white rounded-2xl p-20 text-center border border-amber-200 shadow-sm"
+              >
+                <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-100">
+                  <Building2 className="w-10 h-10 text-amber-400" />
+                </div>
+                <h3 className="font-manrope text-2xl font-bold text-slate-800 mb-3">No pudimos cargar el directorio</h3>
+                <p className="text-slate-500 max-w-md mx-auto mb-8 font-medium">{errorCarga}</p>
+                <button
+                  onClick={() => fetchEmpresas()}
+                  className="bg-primary text-white px-8 py-3.5 rounded-lg font-bold shadow-lg hover:bg-blue-800 transition-all uppercase tracking-widest text-xs"
+                >
+                  Reintentar
+                </button>
+              </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="bg-white rounded-2xl p-20 text-center border border-slate-200 shadow-sm"
@@ -544,7 +590,7 @@ export default function EmpresasPage() {
                 <p className="text-slate-500 max-w-sm mx-auto mb-8 font-medium">
                   Pruebe ajustando los filtros de búsqueda o seleccionando una categoría diferente industrial.
                 </p>
-                <button 
+                <button
                   onClick={() => { setSearchTerm(''); setCategoriaSeleccionada(null); }}
                   className="bg-primary text-white px-8 py-3.5 rounded-lg font-bold shadow-lg hover:bg-blue-800 transition-all uppercase tracking-widest text-xs"
                 >
