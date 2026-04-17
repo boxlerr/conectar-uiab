@@ -5,6 +5,20 @@ import { useRouter } from "next/navigation";
 import type { User } from "@/tipos";
 import { createClient } from "@/lib/supabase/cliente";
 
+// ─── Logger condicional ──────────────────────────────────────────────────────
+// Activá logs detallados con `localStorage.setItem('auth-debug', '1')` en la
+// consola del browser. Útil para diagnosticar el bug "queda cargando" cuando
+// ocurre en producción — te deja ver qué hace el listener de Supabase,
+// cuándo se refresca el token, y cuándo se dispara el healthcheck.
+function dbg(...args: unknown[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (window.localStorage.getItem('auth-debug') === '1') {
+      console.log('[auth]', new Date().toISOString().slice(11, 23), ...args);
+    }
+  } catch { /* localStorage bloqueado en incognito raro */ }
+}
+
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
@@ -32,11 +46,15 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
   const router = useRouter();
   // Guard against running the initial fetch if we already have a server user
   const initialFetchDone = useRef(!!initialUser);
+  // Ref al currentUser para leer valor actual dentro de listeners sin re-suscribir
+  const currentUserRef = useRef(currentUser);
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
   const openAuthModal = () => setIsAuthModalOpen(true);
   const closeAuthModal = () => setIsAuthModalOpen(false);
 
   const fetchProfile = useCallback(async (userId: string, email: string): Promise<User | null> => {
+    dbg('fetchProfile:start', userId);
     try {
       const { data, error } = await supabase
         .from('perfiles')
@@ -45,7 +63,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
         .single();
 
       if (error) {
-        console.error("Error fetching profile:", error);
+        console.error("[auth] Error fetching profile:", error);
         return null;
       }
 
@@ -69,6 +87,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
           entityId = memberData?.proveedor_id;
         }
 
+        dbg('fetchProfile:done', { role: data.rol_sistema, entityId });
         return {
           id: data.id,
           name: data.nombre_completo || email.split('@')[0],
@@ -79,27 +98,31 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
         };
       }
     } catch (err) {
-      console.error("AuthContext fetchProfile error:", err);
+      console.error("[auth] fetchProfile error:", err);
     }
     return null;
   }, [supabase]);
 
   // Uses getUser() which validates the JWT server-side (NOT getSession() which only reads localStorage)
   const refreshUser = useCallback(async () => {
+    dbg('refreshUser:start');
     setLoading(true);
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error || !user) {
+        dbg('refreshUser: no user', error?.message);
         setCurrentUser(null);
       } else {
         const profile = await fetchProfile(user.id, user.email!);
         setCurrentUser(profile);
       }
-    } catch {
+    } catch (err) {
+      console.error('[auth] refreshUser error', err);
       setCurrentUser(null);
     } finally {
       setLoading(false);
+      dbg('refreshUser:done');
     }
   }, [supabase, fetchProfile]);
 
@@ -112,6 +135,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
 
     // Listen for auth state changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
+      dbg('onAuthStateChange:', event, session ? 'session=yes' : 'session=no');
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user) {
           const profile = await fetchProfile(session.user.id, session.user.email!);
@@ -121,31 +145,121 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         setLoading(false);
+      } else if (event === 'USER_UPDATED' && !session) {
+        // Token refresh falló (refresh token vencido). Forzamos reload para
+        // que el middleware redirija a /login y no quedemos en estado zombie.
+        if (typeof window !== 'undefined') window.location.href = '/';
       }
       // Ignore INITIAL_SESSION — we handle it ourselves via initialUser or refreshUser
     });
 
+    // ── Health check periódico (cada 60s) ────────────────────────────────────
+    // Detecta el caso "navegué un rato y quedó colgado": cada minuto validamos
+    // que la sesión sigue viva. Si falla 2 veces seguidas (probable token
+    // muerto), forzamos reload para que el middleware nos mande al login.
+    let healthFailCount = 0;
+    const healthCheck = async () => {
+      if (!currentUserRef.current) return; // Sin user logueado no tiene sentido
+      if (document.visibilityState !== 'visible') return; // No gastar en background
+      try {
+        const res = await Promise.race([
+          supabase.auth.getUser(),
+          new Promise<any>((_, rej) => setTimeout(() => rej(new Error('healthcheck timeout')), 8000)),
+        ]);
+        if (res.error || !res.data?.user) {
+          healthFailCount++;
+          dbg('healthcheck: FAILED', healthFailCount, '/', 2, res.error?.message);
+          if (healthFailCount >= 2) {
+            console.warn('[auth] Sesión perdida detectada por health-check — recargando');
+            if (typeof window !== 'undefined') window.location.href = '/';
+          }
+        } else {
+          if (healthFailCount > 0) dbg('healthcheck: recovered');
+          healthFailCount = 0;
+        }
+      } catch (err) {
+        healthFailCount++;
+        dbg('healthcheck: exception', healthFailCount, err);
+        if (healthFailCount >= 2 && typeof window !== 'undefined') {
+          console.warn('[auth] Health-check sigue fallando — recargando');
+          window.location.reload();
+        }
+      }
+    };
+    const healthInterval = setInterval(healthCheck, 60_000);
+
+    // ── Revalidación al volver al tab ────────────────────────────────────────
+    const handleVisibility = async () => {
+      if (document.visibilityState !== 'visible') return;
+      dbg('visibilitychange: visible');
+      if (!currentUserRef.current) return;
+      // Aprovechamos para correr un healthcheck inmediato al volver.
+      healthCheck();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(healthInterval);
     };
   }, [supabase, fetchProfile, refreshUser]);
 
   const isLoggingOut = useRef(false);
 
+  // ─── LOGOUT ─────────────────────────────────────────────────────────────────
+  // CRÍTICO: con @supabase/ssr la sesión vive en cookies httpOnly que el
+  // cliente browser NO puede borrar. `signOut({ scope: 'local' })` solo
+  // limpia localStorage (vacío). Las cookies quedan intactas y el middleware
+  // server-side sigue viendo la sesión como válida → redirige de vuelta a
+  // dashboard → "finge que cerró sesión pero no cerró".
+  //
+  // Fix real: llamar a una route handler que corre server-side y SÍ puede
+  // borrar las cookies via el callback `setAll` del supabase server client.
   const logout = async () => {
     if (isLoggingOut.current) return;
     isLoggingOut.current = true;
+    console.log('[logout] iniciando');
+
+    // Feedback inmediato al usuario (antes incluso del roundtrip al servidor).
+    setCurrentUser(null);
+
+    // Llamar al endpoint server-side con timeout de 4s.
+    // `credentials: 'same-origin'` para que envíe las cookies sb-*.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn('[logout] timeout 4s — abortando fetch');
+      controller.abort();
+    }, 4000);
+
     try {
-      await supabase.auth.signOut();
-      setCurrentUser(null);
-      router.push('/');
-      router.refresh();
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+        signal: controller.signal,
+      });
+      console.log('[logout] response:', response.status);
     } catch (err) {
-      console.error("Logout error", err);
-      setCurrentUser(null);
-      router.push('/');
+      // AbortError es esperado si excede 4s. Otros errores los logueamos pero
+      // no bloqueamos el redirect — la cookie ya está (probablemente) limpia.
+      console.warn('[logout] fetch falló:', err);
     } finally {
-      isLoggingOut.current = false;
+      clearTimeout(timeoutId);
+    }
+
+    // También signOut en el cliente browser (limpia state en memoria,
+    // dispara onAuthStateChange con SIGNED_OUT).
+    supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+
+    // Hard redirect: bypasea el router cache de Next.js. El middleware
+    // ahora recibe el request SIN cookies sb-* → isProtectedRoute=true →
+    // redirige a /login, o / muestra el landing público.
+    console.log('[logout] redirigiendo a /');
+    if (typeof window !== 'undefined') {
+      // Full reload — no router.push() (mantiene cache).
+      window.location.href = '/';
+    } else {
+      router.push('/');
     }
   };
 

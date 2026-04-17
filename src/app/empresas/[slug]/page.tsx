@@ -4,8 +4,57 @@ import { crearSlug } from "@/lib/utilidades";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
+import { CatalogoPublico, type CatalogoItem } from "@/components/ui/directorio/catalogo-publico";
 import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight } from "lucide-react";
 import Image from "next/image";
+
+// Fetch items publicados + imagenes y mapea al shape del componente publico.
+async function fetchCatalogoItems(
+  supabase: any,
+  role: "company" | "provider",
+  entityId: string
+): Promise<CatalogoItem[]> {
+  const filterKey = role === "company" ? "empresa_id" : "proveedor_id";
+  const { data, error } = await supabase
+    .from("items")
+    .select(`
+      id, nombre, tipo_item, descripcion_corta, descripcion_larga,
+      precio, moneda, precio_a_consultar, destacado, sku, unidad, enlaces,
+      imagenes:imagenes_item(id, bucket, ruta_archivo, orden, texto_alternativo)
+    `)
+    .eq(filterKey, entityId)
+    .eq("estado", "publicado")
+    .order("destacado", { ascending: false })
+    .order("creado_en", { ascending: false });
+
+  if (error || !data) return [];
+
+  return (data as any[]).map((it) => {
+    const imagenesOrdenadas = [...(it.imagenes || [])].sort(
+      (a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0)
+    );
+    return {
+      id: it.id,
+      nombre: it.nombre,
+      tipo_item: it.tipo_item,
+      descripcion_corta: it.descripcion_corta,
+      descripcion_larga: it.descripcion_larga,
+      precio: it.precio,
+      moneda: it.moneda,
+      precio_a_consultar: !!it.precio_a_consultar,
+      destacado: !!it.destacado,
+      sku: it.sku,
+      unidad: it.unidad,
+      enlaces: Array.isArray(it.enlaces) ? it.enlaces : [],
+      imagenes: imagenesOrdenadas
+        .filter((img: any) => img.bucket && img.ruta_archivo)
+        .map((img: any) => ({
+          url: supabase.storage.from(img.bucket).getPublicUrl(img.ruta_archivo).data.publicUrl,
+          alt: img.texto_alternativo || it.nombre,
+        })),
+    } as CatalogoItem;
+  });
+}
 
 // Helper: create admin client that bypasses RLS (safe in server components)
 function createAdminClient() {
@@ -146,15 +195,24 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
 
   const oportunidadesActivas = opsData || [];
 
+  // Catálogo público de productos/servicios
+  const catalogoItems = await fetchCatalogoItems(supabase, "company", empresaDb.id);
+
+  // Solo mostramos la descripción si hay actividad real — evitamos cards
+  // con texto genérico tipo "Empresa verificada y registrada..." que no
+  // aporta nada al visitante.
+  const tieneActividadReal = Boolean(empresaDb.actividad && empresaDb.actividad.trim().length > 8);
+  const serviciosExtra = cats.slice(1);
+  const tieneServiciosReales = serviciosExtra.length > 0;
+
   const empresa = {
     nombre: empresaDb.razon_social,
     categoria: mainCat,
-    descripcionCorta: empresaDb.actividad || "Miembro de la Unión Industrial",
-    descripcionLarga: `Empresa verificada y registrada en el ecosistema industrial de UIAB. ${empresaDb.actividad ? `Principalmente enfocada en ${empresaDb.actividad.toLowerCase()}.` : ''}`,
+    actividad: tieneActividadReal ? empresaDb.actividad : null,
     logo: empresaDb.razon_social.charAt(0).toUpperCase(),
     logoUrl,
-    ubicacion: `${empresaDb.localidad || 'S/N'}, ${empresaDb.direccion || ''}`.replace(/^, | ,|, $/g, ''),
-    servicios: cats.slice(1).length > 0 ? cats.slice(1) : ["Servicios Industriales"],
+    ubicacion: [empresaDb.localidad, empresaDb.direccion].filter(Boolean).join(", ") || null,
+    servicios: serviciosExtra,
     contacto: {
       email: empresaDb.email || "No disponible",
       telefono: "Protegido",
@@ -163,187 +221,216 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] font-inter pb-24">
-      {/* ─── Header ─── */}
-      <div className="relative h-[400px] flex items-center overflow-hidden -mt-24 pt-24 mb-16">
+    <div className="min-h-screen bg-slate-50 font-inter pb-20">
+      {/* ─── Header: más compacto, acento lateral en lugar de card flotante ─── */}
+      <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24">
         <div className="absolute inset-0 z-0">
-          <Image src="/landing/hero-industrial.png" alt="Fondo Industrial" fill className="object-cover object-center" priority />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/85 to-[#10375c]/70 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#00213f] to-transparent opacity-90" />
+          <Image src="/landing/hero-industrial.png" alt="" fill className="object-cover object-center" priority />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#00213f] via-[#00213f]/60 to-transparent" />
         </div>
 
-        <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-12">
-          <Link href="/directorio" className="inline-flex items-center text-blue-200/80 hover:text-white mb-8 transition-colors text-xs font-bold tracking-widest uppercase">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+        <div className="relative z-10 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 pb-10">
+          <Link href="/directorio" className="inline-flex items-center text-blue-200/70 hover:text-white mb-6 transition-colors text-[11px] font-bold tracking-[0.2em] uppercase">
+            <ArrowLeft className="w-3.5 h-3.5 mr-2" />
             Directorio
           </Link>
 
-          <div className="flex flex-col md:flex-row items-end gap-6 max-w-4xl">
-            <div className="w-32 h-32 bg-white text-[#00213f] rounded-2xl flex items-center justify-center font-manrope font-black text-6xl shadow-2xl shrink-0 border-4 border-white/10 translate-y-24 relative z-20 overflow-hidden">
-              {empresa.logoUrl ? (
-                <Image src={empresa.logoUrl} alt={empresa.nombre} fill className="object-cover" sizes="128px" />
-              ) : (
-                empresa.logo
-              )}
-            </div>
-            <div className="pb-2">
-              <div className="flex flex-wrap items-center gap-4 mb-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-blue-500/20 border border-blue-400/30 text-blue-200 text-[10px] font-black uppercase tracking-widest shadow-sm">
-                  {empresa.categoria}
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] font-black uppercase tracking-widest shadow-sm">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-300" />
-                  Verificado UIAB
-                </span>
-              </div>
-              <h1 className="font-manrope text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight drop-shadow-xl">
-                {empresa.nombre}
-              </h1>
-            </div>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-sm bg-blue-500/15 border border-blue-400/30 text-blue-200 text-[10px] font-bold uppercase tracking-[0.15em]">
+              {empresa.categoria}
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-white/10 border border-white/20 text-white text-[10px] font-bold uppercase tracking-[0.15em]">
+              <CheckCircle2 className="w-3 h-3 text-blue-300" />
+              Verificado UIAB
+            </span>
           </div>
+
+          <h1 className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-white leading-[1.05] tracking-tight max-w-3xl">
+            {empresa.nombre}
+          </h1>
         </div>
       </div>
 
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-16 relative z-10">
-        <div className="flex flex-col lg:flex-row gap-10">
-          <main className="w-full lg:w-[65%] space-y-10">
-            <div className="bg-white p-10 rounded-2xl shadow-xl shadow-primary/5 border border-slate-200/60">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100">
-                  <Building2 className="w-5 h-5 text-blue-600" />
-                </div>
-                <h2 className="font-manrope text-2xl font-extrabold text-slate-800 tracking-tight">Expediente Técnico</h2>
-              </div>
-              <h3 className="text-xl font-bold text-slate-700 font-manrope mb-4 leading-relaxed">{empresa.descripcionCorta}</h3>
-              <div className="prose prose-slate max-w-none text-slate-500 font-medium leading-loose text-[15px]">
-                <p>{empresa.descripcionLarga}</p>
-              </div>
-            </div>
+      {/* ─── Barra de identidad: logo + meta inline, sobria ─── */}
+      <div className="border-b border-slate-200 bg-white">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 py-6 flex flex-wrap items-center gap-6">
+          <div className="w-20 h-20 bg-white border border-slate-200 flex items-center justify-center font-manrope font-black text-4xl text-[#00213f] shrink-0 overflow-hidden rounded-md shadow-sm">
+            {empresa.logoUrl ? (
+              <Image src={empresa.logoUrl} alt={empresa.nombre} width={80} height={80} className="object-cover w-full h-full" />
+            ) : (
+              empresa.logo
+            )}
+          </div>
+          <div className="flex-1 min-w-[200px] flex flex-wrap gap-x-8 gap-y-3 items-center text-sm">
+            {empresa.ubicacion && (
+              <span className="inline-flex items-center gap-2 text-slate-600">
+                <MapPin className="w-4 h-4 text-slate-400" />
+                <span className="font-medium">{empresa.ubicacion}</span>
+              </span>
+            )}
+            {empresa.contacto.sitioWeb && (
+              <a
+                href={empresa.contacto.sitioWeb.match(/^https?:\/\//) ? empresa.contacto.sitioWeb : `https://${empresa.contacto.sitioWeb}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 font-semibold transition-colors"
+              >
+                <Globe className="w-4 h-4" />
+                {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+              </a>
+            )}
+          </div>
+          <a
+            href={`mailto:${empresa.contacto.email}`}
+            className="inline-flex items-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-2.5 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase"
+          >
+            <Mail className="w-3.5 h-3.5" />
+            Contactar
+          </a>
+        </div>
+      </div>
 
-            <div className="bg-white p-10 rounded-2xl shadow-xl shadow-primary/5 border border-slate-200/60">
-              <h2 className="font-manrope text-2xl font-extrabold text-slate-800 tracking-tight mb-8">Servicios y Especialidades</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
-                {empresa.servicios.map((servicio: string, idx: number) => (
-                  <div key={idx} className="flex items-start group">
-                    <div className="w-6 h-6 rounded bg-slate-50 border border-slate-200 flex items-center justify-center mr-4 mt-0.5 group-hover:border-blue-300 transition-colors shrink-0">
-                       <div className="w-2 h-2 rounded-full bg-blue-600" />
-                    </div>
-                    <span className="text-slate-600 font-bold group-hover:text-slate-900 transition-colors">{servicio}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {oportunidadesActivas.length > 0 && (
-              <div className="bg-white p-10 rounded-2xl shadow-xl shadow-primary/5 border border-slate-200/60 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10">
-                <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-200/60 shadow-inner group-hover:bg-white transition-colors">
-                      <Briefcase className="w-6 h-6 text-slate-700" />
-                    </div>
-                    <h2 className="font-manrope text-2xl font-extrabold text-[#00213f] tracking-tight">Mis Oportunidades</h2>
-                  </div>
-                  <Link href="/oportunidades" className="text-[11px] font-black text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-[0.2em] flex items-center gap-2 group">
-                    Ver todas
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                  </Link>
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 mt-10 relative z-10">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <main className="w-full lg:w-[64%] space-y-6">
+            {/* Solo mostramos "Sobre la empresa" si hay actividad real cargada */}
+            {empresa.actividad && (
+              <section className="bg-white p-7 rounded-md border border-slate-200">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <Building2 className="w-4 h-4 text-blue-600" />
+                  <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Sobre la empresa</h2>
                 </div>
-                
-                <div className="space-y-3">
-                  {oportunidadesActivas.map((op: any) => (
-                    <Link key={op.id} href={`/oportunidades/${op.id}`}>
-                      <div className="group bg-slate-50/50 border border-slate-100/80 hover:bg-white hover:border-blue-200 p-5 rounded-xl transition-all flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-5">
-                          <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center border border-slate-100 shadow-sm shrink-0">
-                            <Briefcase className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                          </div>
-                          <div>
-                            <h4 className="text-[#00213f] font-bold text-lg leading-snug group-hover:text-blue-700 transition-colors uppercase tracking-tight">{op.titulo}</h4>
-                            <p className="text-slate-500 text-[13px] font-medium mt-1">
-                              <span className="text-slate-600 font-bold">{(op.categoria as any)?.nombre || "Industrial"}</span>
-                              <span className="mx-2 text-slate-300">•</span>
-                              <span>{new Date(op.creado_en).toLocaleDateString("es-AR", { day: 'numeric', month: 'short' })}</span>
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="hidden sm:inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest rounded border border-emerald-100">
-                            Abierta
-                          </span>
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-slate-100 text-slate-300 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">
-                            <ArrowRight className="w-4 h-4 text-blue-600" />
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
+                <p className="text-slate-700 font-medium leading-relaxed text-[15px]">
+                  {empresa.actividad}
+                </p>
+              </section>
+            )}
+
+            {tieneServiciosReales && (
+              <section className="bg-white p-7 rounded-md border border-slate-200">
+                <div className="flex items-center gap-2.5 mb-5">
+                  <Wrench className="w-4 h-4 text-blue-600" />
+                  <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Rubros y especialidades</h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {empresa.servicios.map((servicio: string, idx: number) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                    >
+                      {servicio}
+                    </span>
                   ))}
                 </div>
-              </div>
+              </section>
+            )}
+
+            {catalogoItems.length > 0 && (
+              <CatalogoPublico items={catalogoItems} colorScheme="blue" />
+            )}
+
+            {oportunidadesActivas.length > 0 && (
+              <section className="bg-white rounded-md border border-slate-200 overflow-hidden">
+                <div className="flex items-center justify-between px-7 py-5 border-b border-slate-200">
+                  <div className="flex items-center gap-2.5">
+                    <Briefcase className="w-4 h-4 text-blue-600" />
+                    <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
+                      Oportunidades publicadas · {oportunidadesActivas.length}
+                    </h2>
+                  </div>
+                  <Link href="/oportunidades" className="text-[11px] font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-[0.15em] flex items-center gap-1.5 group">
+                    Ver todas
+                    <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
+
+                <ul className="divide-y divide-slate-100">
+                  {oportunidadesActivas.map((op: any) => (
+                    <li key={op.id}>
+                      <Link href={`/oportunidades/${op.id}`} className="group flex items-center justify-between gap-4 px-7 py-4 hover:bg-slate-50 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-[#00213f] font-bold text-[15px] leading-snug group-hover:text-blue-700 transition-colors truncate">{op.titulo}</h4>
+                          <p className="text-slate-500 text-[12px] font-medium mt-0.5">
+                            <span className="text-slate-600">{(op.categoria as any)?.nombre || "Industrial"}</span>
+                            <span className="mx-1.5 text-slate-300">·</span>
+                            <span>{new Date(op.creado_en).toLocaleDateString("es-AR", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-sm border border-emerald-200">
+                            Abierta
+                          </span>
+                          <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
 
             <ResenasPerfil resenasAprobadas={finalResenas} targetType="empresa" targetId={empresaDb.id} />
           </main>
 
-          <aside className="w-full lg:w-[35%]">
-            <div className="bg-white p-8 rounded-2xl shadow-xl shadow-primary/5 border border-slate-200/60 sticky top-28">
-              <h3 className="font-manrope text-xl font-extrabold text-[#00213f] mb-8 pb-4 border-b border-slate-100">
-                Datos de Contacto
-              </h3>
+          <aside className="w-full lg:w-[36%]">
+            <div className="bg-white rounded-md border border-slate-200 sticky top-28 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
+                <h3 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
+                  Datos de contacto
+                </h3>
+              </div>
 
-              <ul className="space-y-8 mb-10">
-                <li className="flex items-start">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 mr-4 border border-slate-100">
-                    <MapPin className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ubicación</p>
-                    <p className="text-slate-700 font-semibold leading-relaxed">{empresa.ubicacion}</p>
-                  </div>
-                </li>
+              <ul className="p-6 space-y-5">
+                {empresa.ubicacion && (
+                  <li className="flex items-start gap-3">
+                    <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
+                      <p className="text-slate-700 font-semibold text-[14px] leading-snug">{empresa.ubicacion}</p>
+                    </div>
+                  </li>
+                )}
 
-                <li className="flex items-start">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 mr-4 border border-slate-100">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Correo Electrónico</p>
-                    <a href={`mailto:${empresa.contacto.email}`} className="text-blue-600 font-bold hover:text-blue-800 transition-colors break-all">
+                <li className="flex items-start gap-3">
+                  <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo</p>
+                    <a href={`mailto:${empresa.contacto.email}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
                       {empresa.contacto.email}
                     </a>
                   </div>
                 </li>
 
-                <li className="flex items-start">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 mr-4 border border-slate-100">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Teléfono Directo</p>
-                    <p className="text-slate-700 font-semibold">{empresa.contacto.telefono}</p>
+                <li className="flex items-start gap-3">
+                  <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
+                    <p className="text-slate-600 font-medium text-[14px] italic">{empresa.contacto.telefono}</p>
                   </div>
                 </li>
 
                 {empresa.contacto.sitioWeb && (
-                  <li className="flex items-start">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 mr-4 border border-blue-100">
-                      <Globe className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold text-blue-400 uppercase tracking-widest mb-1">Página Web</p>
-                      <a href={empresa.contacto.sitioWeb.match(/^https?:\/\//) ? empresa.contacto.sitioWeb : `https://${empresa.contacto.sitioWeb}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold hover:text-blue-800 transition-colors break-all">
-                        {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '')}
+                  <li className="flex items-start gap-3">
+                    <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
+                      <a href={empresa.contacto.sitioWeb.match(/^https?:\/\//) ? empresa.contacto.sitioWeb : `https://${empresa.contacto.sitioWeb}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
+                        {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                       </a>
                     </div>
                   </li>
                 )}
               </ul>
 
-              <a
-                href={`mailto:${empresa.contacto.email}`}
-                className="flex items-center justify-center w-full bg-[#00182e] hover:bg-[#10375c] px-6 py-3.5 text-sm font-bold text-white rounded-lg transition-colors shadow-lg shadow-[#00182e]/20 tracking-wider uppercase"
-              >
-                Mandar Mensaje
-              </a>
+              <div className="px-6 pb-6">
+                <a
+                  href={`mailto:${empresa.contacto.email}`}
+                  className="flex items-center justify-center w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-3 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase"
+                >
+                  Enviar Mensaje
+                </a>
+              </div>
             </div>
           </aside>
         </div>
@@ -393,6 +480,9 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
       .order('creada_en', { ascending: false });
     finalResenas = fallbackData || [];
   }
+
+  // Catálogo público de productos/servicios
+  const catalogoItems = await fetchCatalogoItems(supabase, "provider", provDb.id);
 
   const proveedor = {
     nombre: displayName,
@@ -511,6 +601,10 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
             </div>
 
 
+
+            {catalogoItems.length > 0 && (
+              <CatalogoPublico items={catalogoItems} colorScheme={isParticular ? "amber" : "emerald"} />
+            )}
 
             <ResenasPerfil resenasAprobadas={finalResenas} targetType="proveedor" targetId={provDb.id} />
           </main>

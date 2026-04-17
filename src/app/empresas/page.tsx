@@ -16,9 +16,30 @@ import { Building2, LayoutGrid, List, CheckCircle2, LockOpen, User, Info } from 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/cliente";
+import { createClient, resetClient } from "@/lib/supabase/cliente";
 
 import { crearSlug } from "@/lib/utilidades";
+
+// Timeout para queries browser: si Supabase cuelga (lock huérfano, red caída),
+// rechazamos en Nms para que la UI muestre error en vez de skeleton infinito.
+// Ante timeout, reciclamos el cliente singleton (rompe el deadlock de navigator.locks).
+async function conTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_, rej) => {
+        timer = setTimeout(() => {
+          console.error(`[empresas] TIMEOUT ${ms}ms en ${label} — reciclando cliente Supabase`);
+          resetClient();
+          rej(new Error(`Timeout en ${label}`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 export default function EmpresasPage() {
   const { currentUser, loading } = useAuth();
@@ -59,7 +80,19 @@ export default function EmpresasPage() {
       query = query.eq('categoria_socio', categoriaSocio);
     }
 
-    const { data, error } = await query;
+    let data: any[] | null = null;
+    let error: any = null;
+    try {
+      const res = await conTimeout(
+        (async () => await query)(),
+        10000,
+        'vista_directorio'
+      );
+      data = res.data as any[] | null;
+      error = res.error;
+    } catch (err) {
+      error = err;
+    }
 
     if (error || !data) {
       console.error("Error fetching vista_directorio:", error);
@@ -71,16 +104,29 @@ export default function EmpresasPage() {
     const empresaIds = data.filter((d: any) => d.tipo_entidad === 'empresa').map((d: any) => d.id);
     const proveedorIds = data.filter((d: any) => d.tipo_entidad === 'proveedor').map((d: any) => d.id);
 
-    // Paralelizamos carga de categorías y de reseñas
-    const [resEmp, resProv, resResenas] = await Promise.all([
-      empresaIds.length > 0 
-        ? supabase.from('empresas_categorias').select('empresa_id, categorias(nombre)').in('empresa_id', empresaIds) 
-        : Promise.resolve({ data: [] }),
-      proveedorIds.length > 0 
-        ? supabase.from('proveedores_categorias').select('proveedor_id, categorias(nombre)').in('proveedor_id', proveedorIds) 
-        : Promise.resolve({ data: [] }),
-      supabase.from('resenas').select('calificacion, empresa_resenada_id, proveedor_resenado_id').eq('estado', 'aprobada')
-    ]);
+    // Paralelizamos carga de categorías y de reseñas (con timeout combinado)
+    let resEmp: any, resProv: any, resResenas: any;
+    try {
+      [resEmp, resProv, resResenas] = await conTimeout(
+        Promise.all([
+          empresaIds.length > 0
+            ? (async () => await supabase.from('empresas_categorias').select('empresa_id, categorias(nombre)').in('empresa_id', empresaIds))()
+            : Promise.resolve({ data: [] }),
+          proveedorIds.length > 0
+            ? (async () => await supabase.from('proveedores_categorias').select('proveedor_id, categorias(nombre)').in('proveedor_id', proveedorIds))()
+            : Promise.resolve({ data: [] }),
+          (async () => await supabase.from('resenas').select('calificacion, empresa_resenada_id, proveedor_resenado_id').eq('estado', 'aprobada'))(),
+        ]),
+        10000,
+        'categorías y reseñas'
+      );
+    } catch (err) {
+      console.error("Error fetching categorías/reseñas:", err);
+      // Continuamos con data vacía — no bloqueamos el render del directorio
+      resEmp = { data: [] };
+      resProv = { data: [] };
+      resResenas = { data: [] };
+    }
 
     const catMap = new Map();
     if (resEmp.data) {
