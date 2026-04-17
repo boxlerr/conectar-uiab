@@ -80,7 +80,6 @@ async function race<T>(work: Promise<T>, ms = 10000, label = 'query'): Promise<T
 
 export const oportunidadesService = {
   async getOportunidades() {
-<<<<<<< Updated upstream
     const supabase = createClient();
     const { data, error } = await race(
       (async () => await supabase
@@ -88,31 +87,19 @@ export const oportunidadesService = {
         .select(`
           *,
           categoria:categorias(nombre),
-          empresa:empresas(razon_social)
+          empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
         `)
         .eq('estado', 'abierta')
         .order('creado_en', { ascending: false }))(),
       10000,
       'getOportunidades'
     );
-=======
-    const { data, error } = await supabase
-      .from('oportunidades')
-      .select(`
-        *,
-        categoria:categorias(nombre),
-        empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
-      `)
-      .eq('estado', 'abierta')
-      .order('creado_en', { ascending: false });
->>>>>>> Stashed changes
 
     if (error) throw error;
     return data as Oportunidad[];
   },
 
   async getOportunidadById(id: string) {
-<<<<<<< Updated upstream
     const supabase = createClient();
     const { data, error } = await race(
       (async () => await supabase
@@ -120,24 +107,13 @@ export const oportunidadesService = {
         .select(`
           *,
           categoria:categorias(nombre),
-          empresa:empresas(razon_social)
+          empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
         `)
         .eq('id', id)
         .single())(),
       10000,
       'getOportunidadById'
     );
-=======
-    const { data, error } = await supabase
-      .from('oportunidades')
-      .select(`
-        *,
-        categoria:categorias(nombre),
-        empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
-      `)
-      .eq('id', id)
-      .single();
->>>>>>> Stashed changes
 
     if (error) throw error;
     return data as Oportunidad;
@@ -147,7 +123,6 @@ export const oportunidadesService = {
     const supabase = createClient();
     const column = role === 'company' ? 'empresa_candidata_id' : 'proveedor_candidato_id';
 
-<<<<<<< Updated upstream
     const { data, error } = await race(
       (async () => await supabase
         .from('oportunidades_matches')
@@ -156,7 +131,7 @@ export const oportunidadesService = {
           oportunidad:oportunidades(
             *,
             categoria:categorias(nombre),
-            empresa:empresas(razon_social)
+            empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
           )
         `)
         .eq(column, userId)
@@ -164,51 +139,26 @@ export const oportunidadesService = {
       10000,
       'getMatchesForUser'
     );
-=======
-    const { data, error } = await supabase
-      .from('oportunidades_matches')
-      .select(`
-        *,
-        oportunidad:oportunidades(
-          *,
-          categoria:categorias(nombre),
-          empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
-        )
-      `)
-      .eq(column, userId)
-      .order('puntaje', { ascending: false });
->>>>>>> Stashed changes
 
     if (error) throw error;
     return data as Match[];
   },
 
   async getMatchesForOportunidad(oportunidadId: string) {
-<<<<<<< Updated upstream
     const supabase = createClient();
     const { data, error } = await race(
       (async () => await supabase
         .from('oportunidades_matches')
         .select(`
           *,
-          proveedor:proveedores(nombre_comercial, nombre, tipo_proveedor)
+          empresa:empresas!oportunidades_matches_empresa_candidata_id_fkey(razon_social, nombre_fantasia, localidad, ruta_logo, bucket_logo),
+          proveedor:proveedores!oportunidades_matches_proveedor_candidato_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, ruta_logo, bucket_logo)
         `)
         .eq('oportunidad_id', oportunidadId)
         .order('puntaje', { ascending: false }))(),
       10000,
       'getMatchesForOportunidad'
     );
-=======
-    const { data, error } = await supabase
-      .from('oportunidades_matches')
-      .select(`
-        *,
-        empresa:empresas!oportunidades_matches_empresa_candidata_id_fkey(razon_social, nombre_fantasia, localidad, ruta_logo, bucket_logo),
-        proveedor:proveedores!oportunidades_matches_proveedor_candidato_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, ruta_logo, bucket_logo)
-      `)
-      .eq('oportunidad_id', oportunidadId)
-      .order('puntaje', { ascending: false });
->>>>>>> Stashed changes
 
     if (error) throw error;
     return data as Match[];
