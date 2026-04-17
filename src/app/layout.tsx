@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins, Open_Sans, Geist } from "next/font/google";
+import { Poppins, Open_Sans, Geist, Manrope, Inter } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 
@@ -11,6 +11,18 @@ const poppins = Poppins({
 
 const openSans = Open_Sans({
   variable: "--font-open-sans",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+const manrope = Manrope({
+  variable: "--font-manrope",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
 });
@@ -89,7 +101,7 @@ export default async function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body
-        className={`${openSans.variable} ${poppins.variable} font-sans antialiased min-h-screen bg-slate-50`}
+        className={`${openSans.variable} ${poppins.variable} ${manrope.variable} ${inter.variable} font-sans antialiased min-h-screen bg-slate-50`}
       >
         <AuthProvider initialUser={initialUser}>
           <Suspense>
