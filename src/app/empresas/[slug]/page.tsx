@@ -510,62 +510,7 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
               </div>
             </div>
 
-            {oportunidadesActivas.length > 0 && (
-              <div className="bg-white p-10 rounded-2xl shadow-xl shadow-primary/5 border border-slate-200/60 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10">
-                <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shadow-inner transition-colors ${
-                      isParticular ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"
-                    }`}>
-                      <Briefcase className={`w-6 h-6 ${isParticular ? "text-amber-700" : "text-emerald-700"}`} />
-                    </div>
-                    <h2 className="font-manrope text-2xl font-extrabold text-[#00213f] tracking-tight">Requerimientos de Negocio</h2>
-                  </div>
-                  <Link href="/oportunidades" className="text-[11px] font-black text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-[0.2em] flex items-center gap-2 group">
-                    Ver todas
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </div>
-                
-                <div className="space-y-3">
-                  {oportunidadesActivas.map((op: any) => (
-                    <Link key={op.id} href={`/oportunidades/${op.id}`}>
-                      <div className={`group bg-slate-50/50 border border-slate-100/80 p-5 rounded-xl transition-all flex items-center justify-between gap-4 hover:bg-white ${
-                        isParticular ? "hover:border-amber-200" : "hover:border-emerald-200"
-                      }`}>
-                        <div className="flex items-center gap-5">
-                          <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center border border-slate-100 shadow-sm shrink-0">
-                            <Briefcase className={`w-5 h-5 transition-colors ${
-                              isParticular ? "text-amber-400 group-hover:text-amber-600" : "text-emerald-400 group-hover:text-emerald-600"
-                            }`} />
-                          </div>
-                          <div>
-                            <h4 className="text-[#00213f] font-bold text-lg leading-snug tracking-tight uppercase transition-colors">{op.titulo}</h4>
-                            <p className="text-slate-500 text-[13px] font-medium mt-1">
-                              <span className="text-slate-600 font-bold">{(op.categoria as any)?.nombre || "Servicios"}</span>
-                              <span className="mx-2 text-slate-300">•</span>
-                              <span>{new Date(op.creado_en).toLocaleDateString("es-AR", { day: 'numeric', month: 'short' })}</span>
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className={`hidden sm:inline-block px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded border ${
-                            isParticular ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-emerald-50 text-emerald-700 border-emerald-100"
-                          }`}>
-                            Abierta
-                          </span>
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-white border border-slate-100 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0 ${
-                            isParticular ? "text-amber-600" : "text-emerald-600"
-                          }`}>
-                            <ArrowRight className="w-4 h-4" />
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
+
 
             <ResenasPerfil resenasAprobadas={finalResenas} targetType="proveedor" targetId={provDb.id} />
           </main>

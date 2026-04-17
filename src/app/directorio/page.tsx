@@ -147,10 +147,10 @@ export default function DirectorioPage() {
 
     if (resenasData) {
       mappedData.forEach(emp => {
-        const empResenas = resenasData.filter(r => r.empresa_resenada_id === emp.id);
+        const empResenas = resenasData.filter((r: any) => r.empresa_resenada_id === emp.id);
         if (empResenas.length > 0) {
           emp.reviews = empResenas.length;
-          emp.rating = Number((empResenas.reduce((acc, r) => acc + r.calificacion, 0) / emp.reviews).toFixed(1));
+          emp.rating = Number((empResenas.reduce((acc: number, r: any) => acc + r.calificacion, 0) / empResenas.length).toFixed(1));
         }
       });
     }
@@ -228,10 +228,10 @@ export default function DirectorioPage() {
 
     if (resenasData) {
       mappedData.forEach(prov => {
-        const provResenas = resenasData.filter(r => r.proveedor_resenado_id === prov.id);
+        const provResenas = resenasData.filter((r: any) => r.proveedor_resenado_id === prov.id);
         if (provResenas.length > 0) {
           prov.reviews = provResenas.length;
-          prov.rating = Number((provResenas.reduce((acc, r) => acc + r.calificacion, 0) / prov.reviews).toFixed(1));
+          prov.rating = Number((provResenas.reduce((acc: number, r: any) => acc + r.calificacion, 0) / provResenas.length).toFixed(1));
         }
       });
     }

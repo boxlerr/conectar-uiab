@@ -40,7 +40,7 @@ export default function MiPerfilServiciosPage() {
 
       const { data: userCurrent } = await supabase.from(relationTable).select('categoria_id').eq(relationKey, currentUser.entityId);
       if (userCurrent) {
-        setSelectedIds(userCurrent.map(x => x.categoria_id));
+        setSelectedIds(userCurrent.map((x: any) => x.categoria_id));
       }
       setFetching(false);
     }

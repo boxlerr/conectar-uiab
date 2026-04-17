@@ -14,7 +14,7 @@ interface FormularioResenaProps {
 }
 
 export function FormularioResena({ targetType, targetId }: FormularioResenaProps) {
-  const { currentUser, isLoading } = useAuth();
+  const { currentUser, loading: isLoading } = useAuth();
   const [rating, setRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [comentario, setComentario] = useState("");

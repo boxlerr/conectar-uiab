@@ -37,9 +37,9 @@ export default function MiPerfilDocumentosPage() {
         });
 
       if (data) {
-        const validFiles = data.filter((f) => f.name !== ".emptyFolderPlaceholder" && f.metadata);
+        const validFiles = data.filter((f: any) => f.name !== ".emptyFolderPlaceholder" && f.metadata);
         setFiles(
-          validFiles.map((f) => ({
+          validFiles.map((f: any) => ({
             id: f.id || f.name,
             name: f.name,
             size: f.metadata?.size ? (f.metadata.size / 1024 / 1024).toFixed(2) + " MB" : "Desconocido",

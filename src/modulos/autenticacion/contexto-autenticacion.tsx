@@ -111,7 +111,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
     }
 
     // Listen for auth state changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user) {
           const profile = await fetchProfile(session.user.id, session.user.email!);

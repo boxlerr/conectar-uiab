@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins, Open_Sans, Geist } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -91,10 +92,13 @@ export default async function RootLayout({
         className={`${openSans.variable} ${poppins.variable} font-sans antialiased min-h-screen bg-slate-50`}
       >
         <AuthProvider initialUser={initialUser}>
-          <AppShell>{children}</AppShell>
+          <Suspense>
+            <AppShell>{children}</AppShell>
+          </Suspense>
         </AuthProvider>
         <Toaster />
       </body>
     </html>
   );
 }
+
