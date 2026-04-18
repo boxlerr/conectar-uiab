@@ -98,12 +98,12 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-[2px] flex items-start justify-center p-4 pt-32 pb-8 overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 backdrop-blur-[2px] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
       onClick={onClose}
       style={{ backgroundColor: "rgba(25, 28, 30, 0.45)" }}
     >
       <div
-        className="bg-white w-full max-w-5xl max-h-[82vh] rounded-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+        className="relative bg-white w-full max-w-5xl max-h-[min(90vh,820px)] rounded-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
         style={{ boxShadow: "0 16px 48px rgba(25, 28, 30, 0.12), 0 2px 8px rgba(25, 28, 30, 0.04)" }}
       >
@@ -127,9 +127,9 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1.15fr_1fr] overflow-y-auto">
+        <div className="grid grid-cols-1 md:grid-cols-[1.15fr_1fr] flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
           {/* Imagen — layer más profundo */}
-          <div className="relative bg-slate-100 md:min-h-[560px] aspect-[4/3] md:aspect-auto">
+          <div className="relative bg-slate-100 aspect-[4/3] md:aspect-auto md:h-full">
             {imagenes.length > 0 ? (
               <>
                 <Image
@@ -184,7 +184,7 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
           </div>
 
           {/* Contenido — layer superior, sin borders */}
-          <div className="bg-white p-6 md:p-7 flex flex-col gap-5">
+          <div className="bg-white p-6 md:p-7 flex flex-col gap-5 md:overflow-y-auto">
             {/* Meta header */}
             <div className="flex items-center gap-3">
               <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500">
