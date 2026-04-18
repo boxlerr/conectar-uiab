@@ -39,6 +39,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { createClient } from "@/lib/supabase/cliente";
+import { TarjetaItem } from "@/components/ui/catalogo/TarjetaItem";
 
 interface FormularioItemProps {
   itemInit?: any;
@@ -898,113 +899,28 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
 
       {/* Preview lateral */}
       <aside className="lg:sticky lg:top-24 h-fit self-start z-10">
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center gap-2">
-            <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500">
-              Vista previa
-            </span>
-          </div>
-
-          <div className="relative w-full aspect-[4/3] bg-slate-100 overflow-hidden">
-            {(() => {
-              const portada =
-                imagenesRemotas[0]?.publicUrl || imagenesLocales[0]?.previewUrl;
-              if (portada) {
-                return (
-                  <Image
-                    key={portada}
-                    src={portada}
-                    alt={nombre || "Portada"}
-                    fill
-                    sizes="(min-width: 1024px) 340px, 100vw"
-                    className="object-cover"
-                    unoptimized
-                  />
-                );
-              }
-              return (
-                <div className="absolute inset-0 flex items-center justify-center text-slate-300">
-                  <ImagePlus className="w-10 h-10" />
-                </div>
-              );
-            })()}
-
-            {destacado && (
-              <div className="absolute top-2 left-2 bg-amber-400 text-amber-950 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
-                <Star className="w-3 h-3 fill-current" /> DESTACADO
-              </div>
-            )}
-            <div className="absolute top-2 right-2 bg-white/90 backdrop-blur text-slate-700 text-[10px] font-semibold px-2 py-0.5 rounded uppercase">
-              {tipo_item}
-            </div>
-          </div>
-
-          <div className="p-4 space-y-2">
-            <h3 className="font-bold text-slate-900 leading-tight line-clamp-2">
-              {nombre || <span className="text-slate-400">Nombre del ítem</span>}
-            </h3>
-            {descCorta && (
-              <p className="text-xs text-slate-500 line-clamp-2">{descCorta}</p>
-            )}
-
-            <div className="flex items-center gap-2 flex-wrap pt-1">
-              {precioAConsultar ? (
-                <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">
-                  A consultar
-                </span>
-              ) : precio ? (
-                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-1 rounded">
-                  {moneda === "USD" ? "US$" : "$"}{" "}
-                  {Number(precio).toLocaleString("es-AR")}
-                  {tipo_item === "producto" && unidad && (
-                    <span className="font-normal"> / {unidad}</span>
-                  )}
-                </span>
-              ) : null}
-              {sku && (
-                <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                  {sku}
-                </span>
-              )}
-            </div>
-
-            {palabrasClave.length > 0 && (
-              <div className="flex flex-wrap gap-1 pt-2">
-                {palabrasClave.slice(0, 4).map((t) => (
-                  <span
-                    key={t}
-                    className="text-[10px] bg-secondary-100 text-secondary-800 px-1.5 py-0.5 rounded"
-                  >
-                    #{t}
-                  </span>
-                ))}
-                {palabrasClave.length > 4 && (
-                  <span className="text-[10px] text-slate-500">
-                    +{palabrasClave.length - 4}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {enlaces.length > 0 && (
-              <div className="flex flex-wrap gap-1 pt-2">
-                {enlaces.map((en, i) => {
-                  const Icon =
-                    TIPOS_ENLACE.find((t) => t.value === en.tipo)?.icon || LinkIcon;
-                  return (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1 text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded"
-                    >
-                      <Icon className="w-3 h-3" />
-                      {en.etiqueta}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500">
+            Vista previa
+          </span>
         </div>
+
+        <TarjetaItem
+          item={{
+            nombre,
+            tipo_item,
+            descripcion_corta: descCorta,
+            destacado,
+            precio: precio ? Number(precio) : null,
+            precio_a_consultar: precioAConsultar,
+            moneda,
+            unidad,
+            sku,
+            palabras_clave: palabrasClave,
+            enlaces,
+            portadaUrl: imagenesRemotas[0]?.publicUrl || imagenesLocales[0]?.previewUrl || null,
+          }}
+        />
 
         <div className="mt-4 text-xs text-slate-500 px-1 leading-relaxed">
           Así se verá la tarjeta de tu {tipo_item} en el catálogo. Los cambios se reflejan en

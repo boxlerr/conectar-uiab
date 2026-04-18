@@ -20,6 +20,7 @@ async function fetchCatalogoItems(
     .select(`
       id, nombre, tipo_item, descripcion_corta, descripcion_larga,
       precio, moneda, precio_a_consultar, destacado, sku, unidad, enlaces,
+      palabras_clave,
       imagenes:imagenes_item(id, bucket, ruta_archivo, orden, texto_alternativo)
     `)
     .eq(filterKey, entityId)
@@ -52,6 +53,7 @@ async function fetchCatalogoItems(
           url: supabase.storage.from(img.bucket).getPublicUrl(img.ruta_archivo).data.publicUrl,
           alt: img.texto_alternativo || it.nombre,
         })),
+      palabras_clave: it.palabras_clave,
     } as CatalogoItem;
   });
 }
@@ -230,7 +232,7 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
           <div className="absolute inset-0 bg-gradient-to-r from-[#00213f] via-[#00213f]/60 to-transparent" />
         </div>
 
-        <div className="relative z-10 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 pb-10">
+        <div className="relative z-10 w-full max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 pb-10">
           <Link href="/directorio" className="inline-flex items-center text-blue-200/70 hover:text-white mb-6 transition-colors text-[11px] font-bold tracking-[0.2em] uppercase">
             <ArrowLeft className="w-3.5 h-3.5 mr-2" />
             Directorio
@@ -254,7 +256,7 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
 
       {/* ─── Barra de identidad: logo + meta inline, sobria ─── */}
       <div className="border-b border-slate-200 bg-white">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 py-6 flex flex-wrap items-center gap-6">
+        <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 py-6 flex flex-wrap items-center gap-6">
           <div className="w-20 h-20 bg-white border border-slate-200 flex items-center justify-center font-manrope font-black text-4xl text-[#00213f] shrink-0 overflow-hidden rounded-md shadow-sm">
             {empresa.logoUrl ? (
               <Image src={empresa.logoUrl} alt={empresa.nombre} width={80} height={80} className="object-cover w-full h-full" />
@@ -291,9 +293,9 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
         </div>
       </div>
 
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 mt-10 relative z-10">
+      <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 mt-10 relative z-10">
         <div className="flex flex-col lg:flex-row gap-8">
-          <main className="w-full lg:w-[64%] space-y-6">
+          <main className="w-full lg:w-[72%] space-y-6">
             {/* Solo mostramos "Sobre la empresa" si hay actividad real cargada */}
             {empresa.actividad && (
               <section className="bg-white p-7 rounded-md border border-slate-200">
@@ -373,7 +375,7 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
             <ResenasPerfil resenasAprobadas={finalResenas} targetType="empresa" targetId={empresaDb.id} />
           </main>
 
-          <aside className="w-full lg:w-[36%]">
+          <aside className="w-full lg:w-[28%]">
             <div className="bg-white rounded-md border border-slate-200 sticky top-28 overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
                 <h3 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">

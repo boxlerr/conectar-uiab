@@ -98,12 +98,12 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-[2px] flex items-start justify-center p-4 pt-32 pb-8 overflow-y-auto animate-in fade-in duration-200"
       onClick={onClose}
-      style={{ backgroundColor: "rgba(25, 28, 30, 0.55)" }}
+      style={{ backgroundColor: "rgba(25, 28, 30, 0.45)" }}
     >
       <div
-        className="bg-white w-full max-w-5xl max-h-[92vh] rounded-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+        className="bg-white w-full max-w-5xl max-h-[82vh] rounded-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
         style={{ boxShadow: "0 16px 48px rgba(25, 28, 30, 0.12), 0 2px 8px rgba(25, 28, 30, 0.04)" }}
       >

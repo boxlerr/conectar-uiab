@@ -14,16 +14,12 @@ import {
   Package,
   Edit2,
   Trash2,
-  Tag,
-  Star,
   Search,
-  Wrench,
-  ImageOff,
   FileSpreadsheet,
 } from "lucide-react";
 import { toast } from "sonner";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/cliente";
+import { TarjetaItem } from "@/components/ui/catalogo/TarjetaItem";
 
 export default function PerfilCatalogoPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -220,129 +216,53 @@ export default function PerfilCatalogoPage() {
           <p className="text-sm text-slate-500">Sin resultados para esta búsqueda.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {itemsFiltrados.map((item) => {
-            const cover = coverUrl(item);
-            const esServicio = item.tipo_item === "servicio";
-            return (
-              <div
-                key={item.id}
-                onClick={() => setItemDetalle(item)}
-                className="group bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-primary-200 transition-all duration-300 flex flex-col overflow-hidden cursor-pointer"
-              >
-                <div className="aspect-[16/10] relative bg-slate-100">
-                  {cover ? (
-                    <Image
-                      src={cover}
-                      alt={item.nombre}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-slate-300">
-                      <ImageOff className="w-10 h-10" />
-                    </div>
-                  )}
-
-                  <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                    {item.destacado && (
-                      <span className="bg-amber-400 text-amber-950 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-current" />
-                        DESTACADO
-                      </span>
-                    )}
-                    {item.estado === "borrador" && (
-                      <span className="bg-slate-800 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                        Borrador
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="absolute top-2 right-2 bg-white/90 backdrop-blur text-slate-700 text-[10px] font-semibold px-2 py-0.5 rounded uppercase flex items-center gap-1">
-                    {esServicio ? (
-                      <Wrench className="w-3 h-3" />
-                    ) : (
-                      <Package className="w-3 h-3" />
-                    )}
-                    {item.tipo_item || "producto"}
-                  </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+          {itemsFiltrados.map((item) => (
+            <TarjetaItem
+              key={item.id}
+              onClick={() => setItemDetalle(item)}
+              item={{
+                nombre: item.nombre,
+                tipo_item: item.tipo_item,
+                descripcion_corta: item.descripcion_corta || item.descripcion_larga,
+                destacado: !!item.destacado,
+                precio: item.precio,
+                precio_a_consultar: !!item.precio_a_consultar,
+                moneda: item.moneda,
+                unidad: item.unidad,
+                sku: item.sku,
+                palabras_clave: item.palabras_clave,
+                enlaces: item.enlaces,
+                portadaUrl: coverUrl(item),
+              }}
+              actions={
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(item);
+                    }}
+                    className="h-8 w-8 text-slate-400 hover:text-primary-600 transition-colors"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.id, item.nombre);
+                    }}
+                    className="h-8 w-8 text-slate-400 hover:text-rose-600 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-
-                <div className="p-4 flex-1 flex flex-col">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-bold text-slate-900 text-base leading-tight line-clamp-2 group-hover:text-primary-700 transition-colors">
-                        {item.nombre}
-                      </h3>
-                      {item.sku && (
-                        <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mt-1 inline-block">
-                          {item.sku}
-                        </span>
-                      )}
-                    </div>
-                    <div className="shrink-0 flex items-center gap-1 -mr-1 -mt-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(item);
-                        }}
-                        className="h-8 w-8 text-slate-400 hover:text-primary-600 transition-colors"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(item.id, item.nombre);
-                        }}
-                        className="h-8 w-8 text-slate-400 hover:text-rose-600 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <p className="mt-2 text-sm text-slate-500 leading-relaxed line-clamp-2 flex-1">
-                    {item.descripcion_corta ||
-                      item.descripcion_larga || (
-                        <span className="italic text-slate-400">Sin descripción...</span>
-                      )}
-                  </p>
-
-                  <div className="flex items-center gap-2 flex-wrap mt-3 pt-3 border-t border-slate-100">
-                    {item.precio_a_consultar ? (
-                      <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded flex items-center gap-1">
-                        <Tag className="w-3 h-3" /> A consultar
-                      </span>
-                    ) : item.precio != null ? (
-                      <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-1 rounded flex items-center gap-1">
-                        <Tag className="w-3 h-3 text-emerald-600" />
-                        {item.moneda === "USD" ? "US$" : "$"}{" "}
-                        {Number(item.precio).toLocaleString("es-AR")}
-                        {item.unidad && (
-                          <span className="font-normal text-emerald-700">
-                            {" "}
-                            / {item.unidad}
-                          </span>
-                        )}
-                      </span>
-                    ) : null}
-
-                    {Array.isArray(item.enlaces) && item.enlaces.length > 0 && (
-                      <span className="text-[10px] text-slate-500">
-                        {item.enlaces.length} enlace{item.enlaces.length === 1 ? "" : "s"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+              }
+            />
+          ))}
         </div>
       )}
 

@@ -11,6 +11,7 @@ import {
   crearCategoria,
   editarCategoria,
   toggleActivarCategoria,
+  eliminarCategoria,
 } from "@/modulos/admin/acciones";
 
 type Servicio = {
@@ -30,6 +31,7 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [servicioEnEdicion, setServicioEnEdicion] = useState<Servicio | null>(null);
+  const [servicioAEliminar, setServicioAEliminar] = useState<Servicio | null>(null);
   
   // Form states
   const [nombre, setNombre] = useState("");
@@ -88,6 +90,18 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
         handleCloseModal();
         refresh();
       }
+    }
+  }
+
+  async function handleConfirmarEliminar() {
+    if (!servicioAEliminar) return;
+    const res = await eliminarCategoria(servicioAEliminar.id);
+    if (res.error) {
+      toast.error("No se pudo eliminar", { description: res.error });
+    } else {
+      toast.success(`"${servicioAEliminar.nombre}" eliminado`);
+      setServicioAEliminar(null);
+      refresh();
     }
   }
 
@@ -167,13 +181,23 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
               </div>
 
               <div className="flex gap-2 items-center sm:pl-4 sm:border-l sm:border-slate-100 mt-2 sm:mt-0">
-                <Button variant="ghost" size="sm" onClick={() => handleOpenEditar(servicio)} className="text-slate-500 hover:text-primary-600 hover:bg-primary-50">
+                <Button variant="ghost" size="sm" onClick={() => handleOpenEditar(servicio)} className="text-slate-500 hover:text-primary-600 hover:bg-primary-50" title="Editar">
                   <Edit2 className="w-4 h-4" />
                 </Button>
-                
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setServicioAEliminar(servicio)}
+                  className="text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                  title="Eliminar"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+
                 <div className="flex items-center gap-2 px-2" title={servicio.activa ? "Desactivar" : "Activar"}>
-                  <Switch 
-                    checked={servicio.activa} 
+                  <Switch
+                    checked={servicio.activa}
                     onCheckedChange={() => handleToggle(servicio.id, servicio.activa)}
                     disabled={isPending}
                   />
@@ -184,6 +208,40 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
           ))
         )}
       </div>
+
+      {servicioAEliminar && (
+        <>
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onClick={() => setServicioAEliminar(null)} />
+          <div className="fixed z-50 inset-0 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-bold text-slate-900">Eliminar servicio</h3>
+                    <p className="text-sm text-slate-600 mt-1">
+                      ¿Seguro que querés eliminar <span className="font-semibold">"{servicioAEliminar.nombre}"</span>? Esta acción no se puede deshacer.
+                    </p>
+                    <p className="text-xs text-slate-400 mt-2">
+                      Si hay proveedores o empresas vinculados, no se podrá eliminar y te conviene desactivarlo en su lugar.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setServicioAEliminar(null)} disabled={isPending} className="font-semibold text-slate-600">
+                  Cancelar
+                </Button>
+                <Button onClick={handleConfirmarEliminar} disabled={isPending} className="bg-rose-600 hover:bg-rose-700 text-white font-semibold min-w-[100px]">
+                  {isPending ? "Eliminando..." : "Eliminar"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {modalOpen && (
         <>
