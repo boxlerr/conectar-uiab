@@ -271,7 +271,7 @@ A continuación se detalla el esquema de tablas y columnas extraído de la base 
   },
   {
     "table_name": "empresas",
-    "column_name": "nombre_fantasia",
+    "column_name": "nombre_comercial",
     "data_type": "text"
   },
   {

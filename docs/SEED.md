@@ -85,7 +85,7 @@ Estos campos NO están en el padrón y quedan `NULL` para las 51 empresas:
 
 | Campo | Impacto en matching | Nota |
 |-------|---------------------|------|
-| `nombre_fantasia` | Bajo | Solo visual |
+| `nombre_comercial` | Bajo | Solo visual |
 | `telefono` | Nulo | Contacto directo |
 | `whatsapp` | Nulo | Contacto directo |
 | `descripcion` | Medio | Útil para búsqueda textual futura |

@@ -19,7 +19,6 @@ export default function MiPerfilDatosPage() {
 
   const [formData, setFormData] = useState({
     razon_social: "",
-    nombre_fantasia: "",
     nombre_comercial: "",
     email: "",
     telefono: "",
@@ -55,7 +54,6 @@ export default function MiPerfilDatosPage() {
       if (data) {
         setFormData({
           razon_social: data.razon_social || "",
-          nombre_fantasia: data.nombre_fantasia || "",
           nombre_comercial: data.nombre_comercial || "",
           email: data.email || "",
           telefono: data.telefono || "",
@@ -159,9 +157,7 @@ export default function MiPerfilDatosPage() {
       // Filter data based on user role to avoid sending non-existent columns
       const dataToSave = { ...formData };
 
-      // Only include nombre_fantasia for companies
       if (currentUser.role !== "company") {
-        delete (dataToSave as any).nombre_fantasia;
         (dataToSave as any).tipo_proveedor = "particular";
         const [primerNombre, ...restoNombre] = (currentUser.name || "").split(" ");
         (dataToSave as any).nombre = primerNombre || "";
@@ -240,19 +236,6 @@ export default function MiPerfilDatosPage() {
               />
             </div>
 
-            {currentUser.role === 'company' && (
-               <div className="space-y-2">
-                 <label className="text-sm font-semibold text-slate-700">Nombre de Fantasía</label>
-                 <input 
-                   type="text" 
-                   value={formData.nombre_fantasia}
-                   onChange={e => setFormData({ ...formData, nombre_fantasia: e.target.value })}
-                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
-                   placeholder="Marca comercial"
-                 />
-               </div>
-            )}
-
             <div className="space-y-2">
                <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><FileText className="w-4 h-4 text-slate-400" /> CUIT</label>
                <input
@@ -287,7 +270,7 @@ export default function MiPerfilDatosPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><Phone className="w-4 h-4 text-slate-400" /> Teléfono Fijo</label>
+              <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><Phone className="w-4 h-4 text-slate-400" /> Teléfono Fijo <span className="text-sm font-normal text-slate-400 ml-1">(Opcional)</span></label>
               <input 
                 type="text" 
                 value={formData.telefono}

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getUserItems, deleteItem } from "./acciones";
 import { FormularioItem } from "./FormularioItem";
 import { DetalleItemModal } from "./DetalleItemModal";
+import { ImportarExcelModal } from "./ImportarExcelModal";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
@@ -18,6 +19,7 @@ import {
   Search,
   Wrench,
   ImageOff,
+  FileSpreadsheet,
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -34,6 +36,7 @@ export default function PerfilCatalogoPage() {
   const [itemDetalle, setItemDetalle] = useState<any | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "producto" | "servicio">("todos");
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const fetchItems = async () => {
     if (!currentUser?.entityId) {
@@ -133,16 +136,26 @@ export default function PerfilCatalogoPage() {
             Administra los productos y servicios que distinguen tu operación.
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setItemToEdit(null);
-            setIsFormOpen(true);
-          }}
-          className="bg-primary-600 hover:bg-primary-700 text-white shadow-[0_4px_12px_rgba(14,165,233,0.25)] border-none shrink-0"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Añadir ítem
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button
+            onClick={() => setIsImportOpen(true)}
+            variant="outline"
+            className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+          >
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            Importar Excel
+          </Button>
+          <Button
+            onClick={() => {
+              setItemToEdit(null);
+              setIsFormOpen(true);
+            }}
+            className="bg-primary-600 hover:bg-primary-700 text-white shadow-[0_4px_12px_rgba(14,165,233,0.25)] border-none"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Añadir ítem
+          </Button>
+        </div>
       </div>
 
       {items.length > 0 && (
@@ -331,6 +344,18 @@ export default function PerfilCatalogoPage() {
             );
           })}
         </div>
+      )}
+
+      {isImportOpen && currentUser?.entityId && (
+        <ImportarExcelModal
+          role={currentUser.role as "company" | "provider"}
+          entityId={currentUser.entityId}
+          onClose={() => setIsImportOpen(false)}
+          onSuccess={() => {
+            setIsImportOpen(false);
+            fetchItems();
+          }}
+        />
       )}
 
       {itemDetalle && (

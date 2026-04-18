@@ -348,7 +348,7 @@ function CandidatosSection({
 
 function MatchCard({ match, tipo }: { match: Match; tipo: 'empresa' | 'proveedor' }) {
   const nombre = tipo === 'empresa'
-    ? (match.empresa?.nombre_fantasia || match.empresa?.razon_social)
+    ? (match.empresa?.nombre_comercial || match.empresa?.razon_social)
     : (match.proveedor?.nombre_comercial || match.proveedor?.nombre);
   const localidad = tipo === 'empresa' ? match.empresa?.localidad : match.proveedor?.localidad;
   const subtitulo = tipo === 'empresa' ? 'Empresa verificada UIAB' : `${match.proveedor?.tipo_proveedor ?? 'Proveedor'} verificado`;

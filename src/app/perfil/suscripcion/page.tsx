@@ -3,43 +3,78 @@
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CreditCard, CheckCircle2, History, Banknote, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
+import { CreditCard, CheckCircle2, History, Banknote, ShieldCheck, Loader2, AlertCircle, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
+
+// Precios MENSUALES por tarifa (fallback si aún no cargaron los de DB).
+const TARIFA_PRECIO_FALLBACK: Record<number, number> = { 1: 108_000, 2: 216_000, 3: 360_000 };
+const TARIFA_RANGO: Record<number, string> = {
+  1: "Hasta 30 empleados",
+  2: "31 a 99 empleados",
+  3: "100+ empleados",
+};
+
+const formatARS = (n: number) =>
+  new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
 
 export default function MiPerfilSuscripcionPage() {
   const { currentUser, loading: authLoading } = useAuth();
   const supabase = createClient();
 
   const [payments, setPayments] = useState<any[]>([]);
+  const [empresa, setEmpresa] = useState<{
+    tarifa: number | null;
+    cantidad_empleados: number | null;
+    tarifa_vigente_hasta: string | null;
+  } | null>(null);
+  const [precios, setPrecios] = useState<Record<number, number>>(TARIFA_PRECIO_FALLBACK);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Esperar a que auth esté lista antes de consultar Supabase.
     if (authLoading) return;
 
-    async function loadPayments() {
+    async function loadData() {
       if (!currentUser?.entityId) {
         setLoading(false);
         return;
       }
-      
-      const columnFk = currentUser.role === 'company' ? 'empresa_id' : 'proveedor_id';
-      
-      const { data, error } = await supabase
-        .from('pagos_suscripciones')
-        .select('*')
-        .eq(columnFk, currentUser.entityId)
-        .order('pagado_en', { ascending: false });
 
-      if (data) {
-        setPayments(data);
+      const columnFk = currentUser.role === 'company' ? 'empresa_id' : 'proveedor_id';
+
+      const [pagosRes, empresaRes, tarifasRes] = await Promise.all([
+        supabase
+          .from('pagos_suscripciones')
+          .select('*')
+          .eq(columnFk, currentUser.entityId)
+          .order('pagado_en', { ascending: false }),
+        currentUser.role === 'company'
+          ? supabase
+              .from('empresas')
+              .select('tarifa, cantidad_empleados, tarifa_vigente_hasta')
+              .eq('id', currentUser.entityId)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+        supabase.from('tarifas_precios').select('nivel, precio_mensual'),
+      ]);
+
+      if (pagosRes.data) setPayments(pagosRes.data);
+      if (empresaRes && 'data' in empresaRes && empresaRes.data) setEmpresa(empresaRes.data as any);
+      if (tarifasRes.data && tarifasRes.data.length > 0) {
+        const map: Record<number, number> = { ...TARIFA_PRECIO_FALLBACK };
+        tarifasRes.data.forEach((t: any) => {
+          map[t.nivel] = Number(t.precio_mensual) || map[t.nivel];
+        });
+        setPrecios(map);
       }
       setLoading(false);
     }
-    loadPayments();
+    loadData();
   }, [authLoading, currentUser?.entityId, currentUser?.role, supabase]);
+
+  const montoMensual = empresa && empresa.tarifa ? precios[empresa.tarifa] ?? 0 : 0;
+  const montoAnual = montoMensual * 12;
   
   if (!currentUser) return null;
 
@@ -89,26 +124,74 @@ export default function MiPerfilSuscripcionPage() {
                   <Badge variant="outline" className="border-slate-700 bg-slate-800 text-slate-300">Renueva 01 Abr</Badge>
                 </div>
                 
-                <h2 className="text-3xl font-bold text-white mb-2">Plan {currentUser.role === 'company' ? 'Empresarial' : 'Profesional'} Pro</h2>
-                <div className="flex items-baseline gap-1 text-white mb-6">
-                  <span className="text-4xl font-black">$5.000</span>
-                  <span className="text-slate-400 font-medium">/mes (ARS)</span>
-                </div>
+                <h2 className="text-3xl font-bold text-white mb-2">
+                  {currentUser.role === 'company' && empresa?.tarifa
+                    ? `Tarifa ${empresa.tarifa} — Socio UIAB`
+                    : currentUser.role === 'company'
+                      ? 'Socio UIAB (tarifa por asignar)'
+                      : 'Plan Profesional'}
+                </h2>
+                {currentUser.role === 'company' ? (
+                  <>
+                    <div className="flex items-baseline gap-2 text-white mb-2 flex-wrap min-w-0">
+                      <span
+                        className="font-black tabular-nums break-words"
+                        style={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)" }}
+                      >
+                        {formatARS(montoMensual)}
+                      </span>
+                      <span className="text-slate-400 font-medium">/mes (ARS)</span>
+                    </div>
+                    <p className="text-xs text-slate-400 mb-6">
+                      Equivalente a {formatARS(montoAnual)}/año
+                    </p>
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-slate-300 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-primary-400" />
-                    <span>Visibilidad prioritaria en el buscador industrial</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-slate-300 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-primary-400" />
-                    <span>Acceso a panel de clientes y estadísticas</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-slate-300 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-primary-400" />
-                    <span>Recepción de reseñas certificadas</span>
-                  </div>
-                </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 text-slate-300 text-sm">
+                        <Users className="w-4 h-4 text-primary-400" />
+                        <span>
+                          {empresa?.cantidad_empleados
+                            ? `${empresa.cantidad_empleados} empleados declarados`
+                            : 'Cantidad de empleados sin declarar'}
+                          {empresa?.tarifa && <span className="text-slate-500"> · {TARIFA_RANGO[empresa.tarifa]}</span>}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-slate-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-primary-400" />
+                        <span>Visibilidad prioritaria en el buscador industrial</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-slate-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-primary-400" />
+                        <span>Acceso a panel de clientes y estadísticas</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-slate-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-primary-400" />
+                        <span>
+                          Tarifa vigente hasta {empresa?.tarifa_vigente_hasta
+                            ? new Date(empresa.tarifa_vigente_hasta).toLocaleDateString("es-AR", { month: "long", year: "numeric" })
+                            : "mayo 2026"} · UIAB ajusta trimestralmente por IPC
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-baseline gap-1 text-white mb-6">
+                      <span className="text-4xl font-black">$5.000</span>
+                      <span className="text-slate-400 font-medium">/mes (ARS)</span>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 text-slate-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-primary-400" />
+                        <span>Visibilidad prioritaria en el buscador industrial</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-slate-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-primary-400" />
+                        <span>Recepción de reseñas certificadas</span>
+                      </div>
+                    </div>
+                  </>
+                )}
              </div>
            </div>
            

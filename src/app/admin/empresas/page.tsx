@@ -8,7 +8,7 @@ async function getEmpresas() {
   );
   const { data, error } = await supabase
     .from("empresas")
-    .select("id, razon_social, nombre_fantasia, cuit, email, telefono, localidad, provincia, descripcion, estado, motivo_rechazo, tarifa, creado_en, aprobada_en")
+    .select("id, razon_social, nombre_comercial, cuit, email, telefono, localidad, provincia, descripcion, estado, motivo_rechazo, tarifa, creado_en, aprobada_en")
     .order("creado_en", { ascending: false });
 
   if (error) throw new Error(error.message);

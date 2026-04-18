@@ -12,9 +12,5 @@ ALTER TABLE proveedores
 COMMENT ON COLUMN proveedores.nombre_comercial IS
   'Nombre comercial del proveedor - el nombre que usan en sus operaciones comerciales.';
 
--- También agregar a empresas para mantener consistencia
-ALTER TABLE empresas
-  ADD COLUMN IF NOT EXISTS nombre_comercial text;
-
-COMMENT ON COLUMN empresas.nombre_comercial IS
-  'Nombre comercial de la empresa - el nombre que usan en sus operaciones comerciales.';
+-- Nota: empresas.nombre_comercial se crea vía rename desde nombre_fantasia
+-- en la migración 20260417_rename_empresas_nombre_fantasia_to_nombre_comercial.sql

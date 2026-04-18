@@ -80,7 +80,7 @@ export default function MiPerfilPage() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Bienvenido, {profileDetails.razon_social || profileDetails.nombre_fantasia || currentUser.name}</h1>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Bienvenido, {profileDetails.razon_social || profileDetails.nombre_comercial || currentUser.name}</h1>
           <p className="text-slate-500 mt-1">
             Revisión general del estado de tu perfil y suscripción.
           </p>

@@ -9,13 +9,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan parámetros de inicialización del registro' }, { status: 400 })
     }
 
-    const { 
-      role, email, 
-      razonSocial, nombreFantasia, nombre, apellido, nombreComercial, cuit, 
-      telefono, sitioWeb, 
-      pais, provincia, localidad, direccion, descripcion, 
-      sectorId, subSector, size, experience 
+    const {
+      role, email,
+      razonSocial, nombre, apellido, nombreComercial, cuit,
+      telefono, sitioWeb,
+      pais, provincia, localidad, direccion, descripcion,
+      sectorId, subSector, size, experience
     } = payload
+
+    // Parsear cantidad de empleados desde el string "size" del formulario.
+    // Ejemplos aceptados: "50", "50 empleados", "~ 120".
+    const parsedEmpleados = (() => {
+      if (typeof size !== 'string' && typeof size !== 'number') return null
+      const m = String(size).match(/\d+/)
+      if (!m) return null
+      const n = parseInt(m[0], 10)
+      return Number.isFinite(n) && n >= 0 ? n : null
+    })()
 
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,7 +57,7 @@ export async function POST(request: Request) {
         .from('empresas')
         .insert({
           razon_social: razonSocial,
-          nombre_fantasia: nombreFantasia || null,
+          nombre_comercial: nombreComercial || null,
           cuit: cuit,
           estado: 'pendiente_revision', // Requerirá aprobación desde panel de administración
           email: email,
@@ -58,10 +68,13 @@ export async function POST(request: Request) {
           localidad: localidad,
           direccion: direccion,
           descripcion: descripcion,
+          cantidad_empleados: parsedEmpleados,
+          // La tarifa se calcula automáticamente vía trigger DB
+          // a partir de cantidad_empleados.
         })
         .select()
         .single()
-        
+
         if (!empError && emp?.id) {
           entityId = emp.id;
           await supabaseAdmin.from('miembros_empresa').insert({

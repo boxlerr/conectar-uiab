@@ -67,7 +67,6 @@ const registerSchema = z.object({
   
   // -- Identidad --
   razonSocial: z.string().optional(),
-  nombreFantasia: z.string().optional(),
   nombre: z.string().optional(),
   apellido: z.string().optional(),
   nombreComercial: z.string().optional(),
@@ -86,7 +85,7 @@ const registerSchema = z.object({
   sectorId: z.string().min(1, { message: 'Selecciona un rubro' }),
   subSector: z.string().min(1, { message: 'Selecciona una especialidad' }),
   experience: z.string().optional(),
-  size: z.string().optional(),
+  size: z.string().optional(), // empresas: string numérico de empleados
 
   // -- Credenciales --
   email: z.string().email({ message: 'Email inválido' }),
@@ -103,6 +102,11 @@ const registerSchema = z.object({
     }
     if (!data.tipoEmpresa) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La Clasificación es obligatoria", path: ["tipoEmpresa"] });
+    }
+    // Empresa: cantidad_empleados obligatoria y numérica
+    const empleadosNum = data.size ? parseInt(String(data.size).replace(/\D/g, ''), 10) : NaN;
+    if (!Number.isFinite(empleadosNum) || empleadosNum <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Ingresá la cantidad de empleados (número)", path: ["size"] });
     }
   } else {
     if (!data.nombre || data.nombre.length < 2) {
@@ -166,7 +170,7 @@ function RegisterContent() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       role: 'company',
-      razonSocial: '', nombreFantasia: '', nombre: '', apellido: '', nombreComercial: '',
+      razonSocial: '', nombre: '', apellido: '', nombreComercial: '',
       cuit: '', telefono: '', sitioWeb: '', tipoEmpresa: '', tipoProveedor: '',
       provincia: '', localidad: '', direccion: '', descripcion: '',
       sectorId: '', subSector: '', experience: '', size: '',
@@ -224,7 +228,7 @@ function RegisterContent() {
     else if (currentStep === 3) {
       // Identity & Contact
       fieldsToValidate = selectedRole === 'company' 
-        ? ['razonSocial', 'nombreFantasia', 'tipoEmpresa', 'cuit', 'telefono', 'sitioWeb']
+        ? ['razonSocial', 'nombreComercial', 'tipoEmpresa', 'cuit', 'telefono', 'sitioWeb']
         : ['nombre', 'apellido', 'tipoProveedor', 'nombreComercial', 'cuit', 'telefono', 'sitioWeb']
     }
     else if (currentStep === 4) fieldsToValidate = ['provincia', 'localidad', 'direccion', 'descripcion']
@@ -585,9 +589,9 @@ function RegisterContent() {
                                    <FormMessage />
                                 </FormItem>
                               )} />
-                              <FormField control={form.control} name="nombreFantasia" render={({ field }) => (
+                              <FormField control={form.control} name="nombreComercial" render={({ field }) => (
                                 <FormItem>
-                                   <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nombre de Fantasía</FormLabel>
+                                   <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nombre Comercial</FormLabel>
                                    <FormControl><Input placeholder="Ej: Aceros Ejemplo" className="h-12 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} /></FormControl>
                                 </FormItem>
                               )} />
@@ -792,19 +796,69 @@ function RegisterContent() {
                              )}
                            </AnimatePresence>
 
-                           <FormField control={form.control} name={selectedRole === 'company' ? 'size' : 'experience'} render={({ field }) => (
-                             <FormItem className="pt-2">
-                               <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
-                                  {selectedRole === 'company' ? 'Cantidad de Empleados' : 'Años de Experiencia en el Perfil'}
-                               </FormLabel>
-                               <FormControl>
-                                 <div className="relative group">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                                    <Input placeholder={selectedRole === 'company' ? 'Ej: 50 empleados' : 'Ej: 15 años'} className="h-14 pl-11 font-semibold text-base border-slate-200 bg-white" {...field} />
-                                 </div>
-                               </FormControl>
-                             </FormItem>
-                           )} />
+                           {selectedRole === 'company' ? (
+                             <FormField control={form.control} name="size" render={({ field }) => {
+                               const empleadosNum = field.value ? parseInt(String(field.value).replace(/\D/g, ''), 10) : NaN;
+                               const tarifaPreview = Number.isFinite(empleadosNum) && empleadosNum > 0
+                                 ? (empleadosNum <= 30 ? { nivel: 1, precio: 108_000 }
+                                   : empleadosNum <= 99 ? { nivel: 2, precio: 216_000 }
+                                   : { nivel: 3, precio: 360_000 })
+                                 : null;
+                               return (
+                                 <FormItem className="pt-2">
+                                   <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                                     Cantidad de Empleados *
+                                   </FormLabel>
+                                   <FormControl>
+                                     <div className="relative group">
+                                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                       <Input
+                                         type="number"
+                                         min={1}
+                                         inputMode="numeric"
+                                         placeholder="Ej: 50"
+                                         className="h-14 pl-11 font-semibold text-base border-slate-200 bg-white"
+                                         {...field}
+                                         onChange={(e) => field.onChange(e.target.value.replace(/[^0-9]/g, ''))}
+                                       />
+                                     </div>
+                                   </FormControl>
+                                   <FormMessage />
+                                   {tarifaPreview && (
+                                     <div className="mt-3 flex items-center justify-between bg-primary-50 border border-primary-100 rounded-xl px-4 py-3">
+                                       <div>
+                                         <p className="text-[10px] font-bold text-primary-700 uppercase tracking-widest">Tarifa estimada</p>
+                                         <p className="text-sm font-bold text-[#00213f]">
+                                           Tarifa {tarifaPreview.nivel} · ${tarifaPreview.precio.toLocaleString('es-AR')} /mes
+                                         </p>
+                                       </div>
+                                       <Badge className="bg-primary-600 border-none text-[10px] font-black uppercase tracking-widest">
+                                         T{tarifaPreview.nivel}
+                                       </Badge>
+                                     </div>
+                                   )}
+                                   <p className="text-[10px] text-slate-400 font-inter mt-2 ml-1 leading-relaxed">
+                                     Tarifas vigentes hasta mayo 2026. UIAB ajusta trimestralmente por IPC.
+                                     La admin puede ajustar tu tarifa manualmente si corresponde.
+                                   </p>
+                                 </FormItem>
+                               );
+                             }} />
+                           ) : (
+                             <FormField control={form.control} name="experience" render={({ field }) => (
+                               <FormItem className="pt-2">
+                                 <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                                   Años de Experiencia en el Perfil
+                                 </FormLabel>
+                                 <FormControl>
+                                   <div className="relative group">
+                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                     <Input placeholder="Ej: 15 años" className="h-14 pl-11 font-semibold text-base border-slate-200 bg-white" {...field} />
+                                   </div>
+                                 </FormControl>
+                               </FormItem>
+                             )} />
+                           )}
                         </div>
 
                         <Button type="button" onClick={() => validateStep(5)} className="w-full h-12 lg:h-14 bg-[#00213f] hover:bg-black text-white font-black text-lg lg:text-xl rounded-xl transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98]">

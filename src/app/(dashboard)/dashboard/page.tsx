@@ -38,6 +38,7 @@ import {
   Globe,
   Mail,
   Link2,
+  Phone,
 } from 'lucide-react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -50,8 +51,8 @@ function calcProfileCompletion(entity: Record<string, any>, type: 'empresa' | 'p
   if (!entity) return { pct: 0, missing: [] as string[] };
   const fieldMap =
     type === 'empresa'
-      ? { razon_social: 'Razón Social', cuit: 'CUIT', email: 'Email', telefono: 'Teléfono', descripcion: 'Descripción', direccion: 'Dirección', localidad: 'Localidad', provincia: 'Provincia', sitio_web: 'Sitio web', nombre_fantasia: 'Nombre Fantasía', whatsapp: 'WhatsApp' }
-      : { nombre: 'Nombre', apellido: 'Apellido', cuit: 'CUIT', email: 'Email', telefono: 'Teléfono', descripcion: 'Descripción', direccion: 'Dirección', localidad: 'Localidad', provincia: 'Provincia', sitio_web: 'Sitio web', nombre_comercial: 'Nombre Comercial', whatsapp: 'WhatsApp' };
+      ? { razon_social: 'Razón Social', cuit: 'CUIT', email: 'Email', descripcion: 'Descripción', direccion: 'Dirección', localidad: 'Localidad', provincia: 'Provincia', nombre_comercial: 'Nombre Comercial', whatsapp: 'WhatsApp' }
+      : { nombre: 'Nombre', apellido: 'Apellido', cuit: 'CUIT', email: 'Email', descripcion: 'Descripción', direccion: 'Dirección', localidad: 'Localidad', provincia: 'Provincia', nombre_comercial: 'Nombre Comercial', whatsapp: 'WhatsApp' };
   const missing: string[] = [];
   let filled = 0;
   for (const [k, label] of Object.entries(fieldMap)) {
@@ -187,7 +188,7 @@ export default async function DashboardPage() {
     // 9) Quote requests received by me (company OR provider as destino)
     entityId && (isCompany || isProvider)
       ? supabase.from('solicitudes_presupuesto')
-          .select('id, estado, creado_en, empresa_origen_id, proveedor_origen_id, empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social, nombre_fantasia), proveedor_origen:proveedores!solicitudes_presupuesto_proveedor_origen_id_fkey(nombre, nombre_comercial)')
+          .select('id, estado, creado_en, empresa_origen_id, proveedor_origen_id, empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social, nombre_comercial), proveedor_origen:proveedores!solicitudes_presupuesto_proveedor_origen_id_fkey(nombre, nombre_comercial)')
           .eq(isCompany ? 'empresa_destino_id' : 'proveedor_destino_id', entityId)
           .order('creado_en', { ascending: false }).limit(4)
       : Promise.resolve({ data: [] }),
@@ -262,7 +263,7 @@ export default async function DashboardPage() {
     : null;
 
   const displayName = isCompany 
-    ? (entityData?.nombre_fantasia || entityData?.razon_social || 'Empresa sin nombre')
+    ? (entityData?.nombre_comercial || entityData?.razon_social || 'Empresa sin nombre')
     : isProvider
       ? (entityData?.nombre_comercial || `${entityData?.nombre} ${entityData?.apellido}`.trim() || 'Profesional sin nombre')
       : firstName;
@@ -313,106 +314,137 @@ export default async function DashboardPage() {
         {/* ──────────────────────────────
             HEADER — hero editorial
         ────────────────────────────── */}
-        <header className="relative overflow-hidden rounded-2xl bg-[#021326] shadow-[0_24px_60px_-24px_rgba(0,33,63,0.45)] min-h-[300px] flex flex-col justify-end">
-          {/* Base Gradiente Arquitectónico */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#001c38] via-[#052b50] to-[#0a355f] opacity-90" />
-          
+        <header className="relative overflow-hidden rounded-3xl bg-[#021326] shadow-[0_30px_70px_-30px_rgba(0,33,63,0.5)] ring-1 ring-white/5">
+          {/* Base Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#001c38] via-[#052b50] to-[#0a355f]" />
+
+          {/* Subtle grid pattern */}
           <div
             aria-hidden
-            className="absolute inset-0"
+            className="absolute inset-0 opacity-[0.07]"
             style={{
-              backgroundImage: `
-                radial-gradient(circle at 0% 0%, rgba(255,255,255,0.05) 0, transparent 50%),
-                radial-gradient(circle at 100% 100%, rgba(56,189,248,0.05) 0, transparent 50%),
-                linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.04) 20.2%, transparent 20.4%), 
-                linear-gradient(105deg, transparent 45%, rgba(255,255,255,0.03) 45.1%, transparent 45.2%),
-                linear-gradient(105deg, transparent 80%, rgba(255,255,255,0.06) 80.3%, transparent 80.5%)
-              `,
+              backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
+              backgroundSize: '44px 44px',
+              maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
             }}
           />
-          
-          <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] bg-sky-500/15 rounded-full blur-[100px] opacity-80" />
-          <div className="absolute -bottom-1/2 -left-1/4 w-[600px] h-[600px] bg-cyan-400/10 rounded-full blur-[90px] opacity-70" />
 
-          <div className="relative px-7 sm:px-10 py-10">
+          {/* Ambient glows */}
+          <div aria-hidden className="absolute -top-40 -right-20 w-[520px] h-[520px] bg-sky-500/20 rounded-full blur-[120px]" />
+          <div aria-hidden className="absolute -bottom-40 -left-20 w-[420px] h-[420px] bg-cyan-400/15 rounded-full blur-[110px]" />
+
+          <div className="relative px-6 sm:px-10 py-8 sm:py-10">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
-              <div className="flex items-center gap-6 min-w-0">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white/95 flex items-center justify-center overflow-hidden flex-shrink-0 ring-4 ring-white/10 shadow-2xl transition-transform hover:scale-105 duration-300">
-                  {logoUrl ? (
-                    <Image src={logoUrl} alt="" width={96} height={96} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="font-manrope font-black text-3xl sm:text-4xl text-[#00213f] tracking-tight">
-                      {displayName.charAt(0).toUpperCase()}
+              <div className="flex items-center gap-5 sm:gap-6 min-w-0 w-full">
+                {/* Avatar circular con ring gradiente */}
+                <Link
+                  href="/perfil/datos"
+                  className="group relative flex-shrink-0"
+                  aria-label="Editar logo"
+                >
+                  <div className="absolute -inset-0.5 rounded-full bg-gradient-to-br from-sky-400 via-cyan-300 to-blue-500 opacity-60 group-hover:opacity-100 blur-sm transition-opacity" />
+                  <div className="relative w-[88px] h-[88px] sm:w-[104px] sm:h-[104px] rounded-full bg-white flex items-center justify-center overflow-hidden ring-1 ring-white/20 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.45)]">
+                    {logoUrl ? (
+                      <Image src={logoUrl} alt="" width={120} height={120} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="font-manrope font-black text-[34px] sm:text-[40px] text-[#00213f] tracking-tight">
+                        {displayName.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    {/* Overlay cámara en hover */}
+                    <div className="absolute inset-0 bg-[#001c38]/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Camera className="w-6 h-6 text-white" strokeWidth={2} />
+                    </div>
+                  </div>
+                  {/* Badge verificado */}
+                  {(entityData?.estado === 'aprobada' || entityData?.estado === 'aprobado') && (
+                    <span className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-emerald-400 ring-4 ring-[#052b50] flex items-center justify-center">
+                      <ShieldCheck className="w-4 h-4 text-[#00213f]" strokeWidth={2.5} />
                     </span>
                   )}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="bg-white/10 backdrop-blur-sm text-white/50 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
+                </Link>
+
+                {/* Info */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className="bg-white/10 backdrop-blur text-white/80 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-white/10">
                       {isCompany ? 'Empresa' : isProvider ? 'Particular' : isAdmin ? 'Admin' : 'Invitado'}
                     </span>
                     {(entityData?.estado === 'aprobada' || entityData?.estado === 'aprobado') && (
-                      <span className="flex items-center gap-1.5 text-emerald-300 text-[10px] font-extrabold uppercase tracking-widest">
-                        <ShieldCheck className="w-3.5 h-3.5" /> Verificado UIAB
+                      <span className="flex items-center gap-1.5 bg-emerald-400/10 border border-emerald-400/20 text-emerald-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        <ShieldCheck className="w-3 h-3" /> Verificado
                       </span>
                     )}
                   </div>
-                  <h1 className="font-poppins text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+
+                  <h1 className="font-poppins text-[26px] sm:text-[34px] lg:text-[38px] font-extrabold text-white tracking-tight leading-[1.1] truncate">
                     {displayName}
                   </h1>
-                  <p className="text-blue-200/60 text-sm font-medium mt-1">
-                    Gestionado por {profile?.nombre_completo} · <span className="capitalize">{formattedDate}</span>
+
+                  <p className="text-blue-200/60 text-[13px] font-medium mt-1.5">
+                    Gestionado por <span className="text-white/85 font-semibold">{profile?.nombre_completo}</span> · <span className="capitalize">{formattedDate}</span>
                   </p>
-                  
-                  <div className="flex items-center gap-5 mt-4 text-white/50">
-                    {entityData?.email && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <Mail className="w-3.5 h-3.5" /> {entityData.email}
-                      </div>
-                    )}
-                    {entityData?.localidad && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <MapPin className="w-3.5 h-3.5" /> {entityData.localidad}
-                      </div>
-                    )}
-                    {entityData?.sitio_web && (
-                      <div className="flex items-center gap-2 text-xs truncate max-w-[200px]">
-                        <Globe className="w-3.5 h-3.5" /> {entityData.sitio_web.replace(/^https?:\/\//, '')}
-                      </div>
-                    )}
-                  </div>
+
+                  {/* Meta chips */}
+                  {(entityData?.email || entityData?.localidad || entityData?.sitio_web || entityData?.telefono) && (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-4">
+                      {entityData?.email && (
+                        <span className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors">
+                          <Mail className="w-3 h-3 text-sky-300" /> {entityData.email}
+                        </span>
+                      )}
+                      {entityData?.localidad && (
+                        <span className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors">
+                          <MapPin className="w-3 h-3 text-sky-300" /> {entityData.localidad}
+                        </span>
+                      )}
+                      {entityData?.sitio_web && (
+                        <span className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors max-w-[220px] truncate">
+                          <Globe className="w-3 h-3 text-sky-300 shrink-0" /> <span className="truncate">{entityData.sitio_web.replace(/^https?:\/\//, '')}</span>
+                        </span>
+                      )}
+                      {entityData?.telefono && (
+                        <span className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors">
+                          <Phone className="w-3 h-3 text-sky-300" /> {entityData.telefono}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row items-stretch gap-2.5 w-full lg:w-auto lg:self-start">
                 {publicProfileUrl && (
-                  <Link 
-                    href={publicProfileUrl} 
+                  <Link
+                    href={publicProfileUrl}
                     target="_blank"
-                    className="flex items-center justify-center gap-2 bg-white text-[#00213f] hover:bg-blue-50 px-6 py-3 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl w-full sm:w-auto"
+                    className="flex items-center justify-center gap-2 bg-white text-[#00213f] hover:bg-blue-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-black/20 whitespace-nowrap"
                   >
                     <Eye className="w-4 h-4" /> Ver Perfil Público
                   </Link>
                 )}
-                <Link 
-                  href="/perfil/datos" 
-                  className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-6 py-3 rounded-xl text-sm font-bold border border-white/20 transition-all w-full sm:w-auto"
+                <Link
+                  href="/perfil/datos"
+                  className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-xl text-sm font-bold border border-white/15 transition-all whitespace-nowrap"
                 >
                   <Settings className="w-4 h-4" /> Editar Datos
                 </Link>
               </div>
             </div>
 
-            {/* Completion indicator inside Hero if not 100% */}
+            {/* Progreso de completitud */}
             {profilePct < 100 && (
-              <div className="mt-8 pt-6 border-t border-white/10">
+              <div className="mt-7 pt-5 border-t border-white/10">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Completitud del Perfil</span>
-                  <span className="text-[10px] font-bold text-blue-300 uppercase">{profilePct}%</span>
+                  <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3" /> Completitud del Perfil
+                  </span>
+                  <span className="text-[11px] font-bold text-sky-300 tabular-nums">{profilePct}%</span>
                 </div>
                 <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-blue-400 to-emerald-400 transition-all duration-1000" 
+                  <div
+                    className="h-full bg-gradient-to-r from-sky-400 via-cyan-300 to-emerald-400 transition-all duration-1000"
                     style={{ width: `${profilePct}%` }}
                   />
                 </div>
@@ -676,7 +708,7 @@ export default async function DashboardPage() {
                 <div className="divide-y divide-[#f7f9fb]">
                   {solicitudes.map((sol: any) => {
                     const origenNombre =
-                      sol.empresa_origen?.nombre_fantasia || sol.empresa_origen?.razon_social ||
+                      sol.empresa_origen?.nombre_comercial || sol.empresa_origen?.razon_social ||
                       sol.proveedor_origen?.nombre_comercial || sol.proveedor_origen?.nombre ||
                       'Solicitante';
                     return (

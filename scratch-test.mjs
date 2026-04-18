@@ -10,7 +10,7 @@ const supabaseAdmin = createClient(
 async function test() {
   const safeData = {
     razon_social: "Vaxler",
-    nombre_fantasia: "Vaxler Software",
+    nombre_comercial: "Vaxler Software",
     email: "contacto@vaxler.com.ar",
     telefono: null,
     whatsapp: "3442419341",

@@ -19,7 +19,7 @@ export interface Oportunidad {
 
 export interface MatchCandidateEmpresa {
   razon_social: string;
-  nombre_fantasia?: string | null;
+  nombre_comercial?: string | null;
   localidad?: string | null;
   ruta_logo?: string | null;
   bucket_logo?: string | null;
@@ -151,7 +151,7 @@ export const oportunidadesService = {
         .from('oportunidades_matches')
         .select(`
           *,
-          empresa:empresas!oportunidades_matches_empresa_candidata_id_fkey(razon_social, nombre_fantasia, localidad, ruta_logo, bucket_logo),
+          empresa:empresas!oportunidades_matches_empresa_candidata_id_fkey(razon_social, nombre_comercial, localidad, ruta_logo, bucket_logo),
           proveedor:proveedores!oportunidades_matches_proveedor_candidato_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, ruta_logo, bucket_logo)
         `)
         .eq('oportunidad_id', oportunidadId)

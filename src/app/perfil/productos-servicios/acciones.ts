@@ -122,6 +122,47 @@ export async function createItem(
   return { success: true, id: data.id };
 }
 
+export async function createItemsBulk(
+  role: "company" | "provider",
+  entityId: string,
+  items: ItemPayload[]
+) {
+  const supabase = await createClient();
+  const foreignKey = role === "company" ? { empresa_id: entityId } : { proveedor_id: entityId };
+
+  if (!items.length) return { success: true, count: 0 };
+
+  const rows = items.map((payload) => ({
+    ...foreignKey,
+    nombre: payload.nombre,
+    tipo_item: payload.tipo_item,
+    descripcion_corta: payload.descripcion_corta || null,
+    descripcion_larga: payload.descripcion_larga || null,
+    unidad: payload.unidad || null,
+    sku: payload.sku || null,
+    categoria_id: payload.categoria_id || null,
+    precio: payload.precio_a_consultar ? null : payload.precio ?? null,
+    moneda: payload.moneda || "ARS",
+    precio_a_consultar: !!payload.precio_a_consultar,
+    destacado: !!payload.destacado,
+    estado: payload.estado || "publicado",
+    enlaces: payload.enlaces || [],
+    palabras_clave: payload.palabras_clave || [],
+  }));
+
+  const { error, count } = await supabase
+    .from("items")
+    .insert(rows, { count: "exact" });
+
+  if (error) {
+    console.error("Error bulk creating items:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/perfil/productos-servicios");
+  return { success: true, count: count ?? rows.length };
+}
+
 export async function updateItem(id: string, payload: ItemPayload) {
   const supabase = await createClient();
 

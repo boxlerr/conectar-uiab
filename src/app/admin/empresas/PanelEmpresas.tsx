@@ -29,7 +29,7 @@ function formatearPrecioTarifa(precioAnual: number): string {
 type Empresa = {
   id: string;
   razon_social: string;
-  nombre_fantasia: string | null;
+  nombre_comercial: string | null;
   cuit: string | null;
   email: string | null;
   telefono: string | null;
@@ -213,8 +213,8 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
                 </div>
                 <div className="min-w-0">
                   <h2 className="font-bold text-slate-900 truncate">{seleccionada.razon_social}</h2>
-                  {seleccionada.nombre_fantasia && (
-                    <p className="text-xs text-slate-500 truncate">{seleccionada.nombre_fantasia}</p>
+                  {seleccionada.nombre_comercial && (
+                    <p className="text-xs text-slate-500 truncate">{seleccionada.nombre_comercial}</p>
                   )}
                 </div>
               </div>

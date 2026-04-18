@@ -43,6 +43,38 @@ export async function asignarTarifa(empresaId: string, tarifa: NivelTarifa) {
     .eq("id", empresaId);
   if (error) return { error: error.message };
   revalidatePath("/admin/empresas");
+  revalidatePath("/admin/suscripciones");
+  return { success: true };
+}
+
+export async function actualizarPrecioTarifa(nivel: 1 | 2 | 3, precioMensual: number, vigenteHasta?: string | null) {
+  if (!Number.isFinite(precioMensual) || precioMensual <= 0) {
+    return { error: "Precio inválido" };
+  }
+  const update: Record<string, unknown> = {
+    precio_mensual: precioMensual,
+    actualizado_en: new Date().toISOString(),
+  };
+  if (vigenteHasta !== undefined) update.vigente_hasta = vigenteHasta;
+
+  const { error } = await adminClient()
+    .from("tarifas_precios")
+    .update(update)
+    .eq("nivel", nivel);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/suscripciones");
+  revalidatePath("/admin");
+  revalidatePath("/perfil/suscripcion");
+  return { success: true };
+}
+
+export async function actualizarCantidadEmpleados(empresaId: string, cantidad: number | null) {
+  const { error } = await adminClient()
+    .from("empresas")
+    .update({ cantidad_empleados: cantidad })
+    .eq("id", empresaId);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/suscripciones");
   return { success: true };
 }
 
@@ -171,6 +203,25 @@ export async function toggleActivarCategoria(id: string, activa: boolean) {
     .update({ activa })
     .eq("id", id);
   if (error) return { error: error.message };
+  revalidatePath("/admin/servicios");
+  return { success: true };
+}
+
+export async function eliminarCategoria(id: string) {
+  const { error } = await adminClient()
+    .from("categorias")
+    .delete()
+    .eq("id", id);
+  if (error) {
+    // FK violation → sugerir desactivar en lugar de eliminar
+    if (error.code === "23503" || /foreign key/i.test(error.message)) {
+      return {
+        error:
+          "No se puede eliminar: hay proveedores o empresas vinculados a este servicio. Desactivalo en su lugar.",
+      };
+    }
+    return { error: error.message };
+  }
   revalidatePath("/admin/servicios");
   return { success: true };
 }

@@ -43,7 +43,7 @@ interface Solicitud {
   proveedor_origen_id: string | null;
   empresa_origen?: {
     razon_social: string;
-    nombre_fantasia: string | null;
+    nombre_comercial: string | null;
     localidad: string | null;
   } | null;
   proveedor_origen?: {
@@ -99,7 +99,7 @@ export default function BandejaSolicitudesPage() {
         .select(
           `id, oportunidad_id, mensaje, estado, enviada_en, vista_en, respondida_en, cerrada_en,
            cantidad, unidad, empresa_origen_id, proveedor_origen_id,
-           empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social, nombre_fantasia, localidad),
+           empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social, nombre_comercial, localidad),
            proveedor_origen:proveedores!solicitudes_presupuesto_proveedor_origen_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad),
            oportunidad:oportunidades(id, titulo)`
         )
@@ -273,7 +273,7 @@ function SolicitudCard({
   const esEmpresaOrigen = Boolean(s.empresa_origen_id);
 
   const origenNombre = esEmpresaOrigen
-    ? s.empresa_origen?.nombre_fantasia || s.empresa_origen?.razon_social
+    ? s.empresa_origen?.nombre_comercial || s.empresa_origen?.razon_social
     : s.proveedor_origen?.nombre_comercial || s.proveedor_origen?.nombre;
 
   const origenLocalidad = esEmpresaOrigen
