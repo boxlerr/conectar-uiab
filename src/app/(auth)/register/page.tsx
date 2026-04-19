@@ -293,7 +293,12 @@ function RegisterContent() {
         email: values.email,
         password: values.password,
         options: {
-          data: { nombre_completo: fullName } // This is strictly for auth metadata
+          // Metadata del usuario (se copia en auth.users.user_metadata).
+          data: { nombre_completo: fullName },
+          // El link del correo de confirmación vuelve a nuestro callback,
+          // que canjea el token, establece la sesión y redirige a
+          // /confirmar-email para que el usuario vea el estado final.
+          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/confirmar-email`,
         }
       })
 

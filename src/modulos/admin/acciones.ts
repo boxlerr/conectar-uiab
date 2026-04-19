@@ -4,6 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { NivelTarifa } from "@/tipos";
 import { crearSlug } from "@/lib/utilidades";
+import { appUrl, enviarEmail } from "@/lib/email/cliente";
+import { plantillaAprobacion, plantillaRechazo } from "@/lib/email/plantillas";
 
 function adminClient() {
   return createClient(
@@ -14,23 +16,88 @@ function adminClient() {
 
 // ─── Empresas ────────────────────────────────────────────────────────────────
 
+/**
+ * Envuelve la notificación por email para que nunca rompa el flujo del
+ * server action. Si Resend falla o no hay API key, se loguea y se sigue.
+ */
+async function notificarAprobacion(
+  tipo: "empresa" | "particular",
+  destinatario: string | null | undefined,
+  nombre: string
+) {
+  if (!destinatario) return;
+  const plantilla = plantillaAprobacion({
+    tipo,
+    nombre,
+    urlBienvenida: `${appUrl()}/bienvenido`,
+  });
+  await enviarEmail({
+    para: destinatario,
+    asunto: plantilla.asunto,
+    html: plantilla.html,
+    texto: plantilla.texto,
+  });
+}
+
+async function notificarRechazo(
+  tipo: "empresa" | "particular",
+  destinatario: string | null | undefined,
+  nombre: string,
+  motivo: string
+) {
+  if (!destinatario) return;
+  const plantilla = plantillaRechazo({
+    tipo,
+    nombre,
+    motivo,
+    urlContacto: `${appUrl()}/contacto`,
+  });
+  await enviarEmail({
+    para: destinatario,
+    asunto: plantilla.asunto,
+    html: plantilla.html,
+    texto: plantilla.texto,
+  });
+}
+
 export async function aprobarEmpresa(empresaId: string) {
-  const { error } = await adminClient()
+  const db = adminClient();
+  const { data: empresa, error } = await db
     .from("empresas")
     .update({ estado: "aprobada", aprobada_en: new Date().toISOString() })
-    .eq("id", empresaId);
+    .eq("id", empresaId)
+    .select("email, razon_social, nombre_comercial")
+    .single();
   if (error) return { error: error.message };
+
+  await notificarAprobacion(
+    "empresa",
+    empresa?.email,
+    empresa?.nombre_comercial || empresa?.razon_social || "Empresa"
+  );
+
   revalidatePath("/admin/empresas");
   revalidatePath("/admin");
   return { success: true };
 }
 
 export async function rechazarEmpresa(empresaId: string, motivo: string) {
-  const { error } = await adminClient()
+  const db = adminClient();
+  const { data: empresa, error } = await db
     .from("empresas")
     .update({ estado: "rechazada", motivo_rechazo: motivo })
-    .eq("id", empresaId);
+    .eq("id", empresaId)
+    .select("email, razon_social, nombre_comercial")
+    .single();
   if (error) return { error: error.message };
+
+  await notificarRechazo(
+    "empresa",
+    empresa?.email,
+    empresa?.nombre_comercial || empresa?.razon_social || "Empresa",
+    motivo
+  );
+
   revalidatePath("/admin/empresas");
   revalidatePath("/admin");
   return { success: true };
@@ -81,22 +148,44 @@ export async function actualizarCantidadEmpleados(empresaId: string, cantidad: n
 // ─── Proveedores ─────────────────────────────────────────────────────────────
 
 export async function aprobarProveedor(proveedorId: string) {
-  const { error } = await adminClient()
+  const db = adminClient();
+  const { data: prov, error } = await db
     .from("proveedores")
     .update({ estado: "aprobado", aprobado_en: new Date().toISOString() })
-    .eq("id", proveedorId);
+    .eq("id", proveedorId)
+    .select("email, nombre, apellido, nombre_comercial, razon_social")
+    .single();
   if (error) return { error: error.message };
+
+  const nombre =
+    prov?.nombre_comercial ||
+    [prov?.nombre, prov?.apellido].filter(Boolean).join(" ") ||
+    prov?.razon_social ||
+    "Particular";
+  await notificarAprobacion("particular", prov?.email, nombre);
+
   revalidatePath("/admin/proveedores");
   revalidatePath("/admin");
   return { success: true };
 }
 
 export async function rechazarProveedor(proveedorId: string, motivo: string) {
-  const { error } = await adminClient()
+  const db = adminClient();
+  const { data: prov, error } = await db
     .from("proveedores")
     .update({ estado: "rechazado", motivo_rechazo: motivo })
-    .eq("id", proveedorId);
+    .eq("id", proveedorId)
+    .select("email, nombre, apellido, nombre_comercial, razon_social")
+    .single();
   if (error) return { error: error.message };
+
+  const nombre =
+    prov?.nombre_comercial ||
+    [prov?.nombre, prov?.apellido].filter(Boolean).join(" ") ||
+    prov?.razon_social ||
+    "Particular";
+  await notificarRechazo("particular", prov?.email, nombre, motivo);
+
   revalidatePath("/admin/proveedores");
   revalidatePath("/admin");
   return { success: true };

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { enviarEmail, emailAdmin, appUrl } from '@/lib/email/cliente'
+import { plantillaNotificacionAdmin } from '@/lib/email/plantillas'
 
 export async function POST(request: Request) {
   try {
@@ -139,17 +141,58 @@ export async function POST(request: Request) {
       }
     }
 
-    // 3. Email Notification System trigger logic
-    // Al usar puramente Supabase, la mejor práctica es:
-    // 1) En Supabase Dashboard > Database > Webhooks: Crear un Trigger que escuche inserts en 'empresas' y 'proveedores' con estado = 'pending'.
-    // 2) Ese Webhook llama a una Supabase Edge Function que usa Resend (SaaS) ó manda el email directo mediante el SMTP nativo de Auth.
-    
-    // De todos modos, loggeamos que este punto de inflexión fue exitoso.
-    console.log(`[Registro Completado] Notificación de nueva entidad \${role} (\${fullName}) en espera de revisión enviada a sistema de correos.`);
-    console.log(`Payload guardado con CUIT: \${cuit}`);
+    // 3. Notificación al administrador — nueva entidad pendiente de revisión.
+    //    Nunca bloqueamos el registro por un fallo de email: `enviarEmail`
+    //    captura y loguea internamente.
+    try {
+      const urlPanelAdmin =
+        role === 'company'
+          ? `${appUrl()}/admin/empresas`
+          : `${appUrl()}/admin/proveedores`
+
+      // Intentamos resolver el nombre del rubro desde la tabla categorías
+      // (si el sectorId corresponde a un UUID real). Si no, dejamos el
+      // subSector como rótulo.
+      let rubroLabel: string | null = subSector || null
+      if (sectorId && typeof sectorId === 'string' && sectorId.length > 20) {
+        const { data: cat } = await supabaseAdmin
+          .from('categorias')
+          .select('nombre')
+          .eq('id', sectorId)
+          .maybeSingle()
+        if (cat?.nombre) {
+          rubroLabel = subSector ? `${cat.nombre} — ${subSector}` : cat.nombre
+        }
+      }
+
+      const plantilla = plantillaNotificacionAdmin({
+        tipo: role === 'company' ? 'empresa' : 'particular',
+        nombre: fullName,
+        email,
+        cuit: cuit || null,
+        telefono: telefono || null,
+        localidad: localidad || null,
+        provincia: provincia || null,
+        rubro: rubroLabel,
+        urlPanelAdmin,
+      })
+
+      await enviarEmail({
+        para: emailAdmin(),
+        asunto: plantilla.asunto,
+        html: plantilla.html,
+        texto: plantilla.texto,
+        responderA: email,
+      })
+    } catch (emailErr) {
+      // Log y seguimos: el registro ya se persistió.
+      console.error('[register-sync] Error enviando notificación al admin:', emailErr)
+    }
+
+    console.log(`[register-sync] Registro completado: ${role} (${fullName}) → pendiente de revisión`)
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Registration API Error:', err)
     return NextResponse.json({ error: 'Error interno de backend al procesar la integración profunda.' }, { status: 500 })
   }

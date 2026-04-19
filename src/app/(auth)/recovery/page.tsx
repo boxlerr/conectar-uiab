@@ -45,8 +45,12 @@ export default function RecoveryPage() {
     setIsLoading(true)
 
     try {
+      // Supabase manda el correo de recuperación usando su plantilla nativa
+      // (configurable en el dashboard). El link vuelve a nuestro callback,
+      // que canjea el token y redirige a /restablecer-password con sesión
+      // activa.
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: `${window.location.origin}/update-password`,
+        redirectTo: `${window.location.origin}/api/auth/callback?next=/restablecer-password`,
       })
 
       if (error) {
