@@ -189,6 +189,14 @@ function RegisterContent() {
   const selectedRole = form.watch('role')
   const password = form.watch('password')
   const sectorId = form.watch('sectorId')
+  const [categorias, setCategorias] = useState<CategoriaDB[]>([])
+
+  useEffect(() => {
+    fetch('/api/categorias')
+      .then((r) => r.json())
+      .then((d) => setCategorias(d.categorias || []))
+      .catch(() => setCategorias([]))
+  }, [])
   
   const passRequirements = useMemo(() => [
     { label: "8+ Caracteres", met: password.length >= 8 },
@@ -573,16 +581,21 @@ function RegisterContent() {
                                 <FormItem>
                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo de Socio *</FormLabel>
                                    <FormControl>
-                                     <select className="flex w-full h-12 rounded-lg border border-slate-200 bg-white px-4 text-base font-bold text-[#00213f] focus:ring-4 focus:ring-primary-50 transition-all cursor-pointer shadow-sm outline-none" {...field}>
-                                        <option value="">Selecciona tipo...</option>
-                                        <option value="empresa">Empresa / Industria</option>
-                                        <option value="institucion">Institución / Organización</option>
-                                        <option value="comercio">Comercio Minorista/Mayorista</option>
-                                        <option value="gastronomia">Gastronomía y Alimentos</option>
-                                        <option value="salud">Salud y Estética</option>
-                                        <option value="educacion">Educación y Capacitación</option>
-                                        <option value="servicios_generales">Servicios Generales</option>
-                                     </select>
+                                     <BuscadorLista
+                                       value={field.value || ''}
+                                       onChange={field.onChange}
+                                       items={[
+                                         { value: 'empresa', label: 'Empresa / Industria' },
+                                         { value: 'institucion', label: 'Institución / Organización' },
+                                         { value: 'comercio', label: 'Comercio Minorista/Mayorista' },
+                                         { value: 'gastronomia', label: 'Gastronomía y Alimentos' },
+                                         { value: 'salud', label: 'Salud y Estética' },
+                                         { value: 'educacion', label: 'Educación y Capacitación' },
+                                         { value: 'servicios_generales', label: 'Servicios Generales' },
+                                       ]}
+                                       placeholder="Selecciona tipo..."
+                                       searchPlaceholder="Buscar tipo..."
+                                     />
                                    </FormControl>
                                    <FormMessage />
                                 </FormItem>
@@ -610,13 +623,18 @@ function RegisterContent() {
                                 <FormItem>
                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo de Prestador *</FormLabel>
                                    <FormControl>
-                                     <select className="flex w-full h-12 rounded-lg border border-slate-200 bg-white px-4 text-base font-bold text-[#00213f] focus:ring-4 focus:ring-primary-50 transition-all cursor-pointer shadow-sm outline-none" {...field}>
-                                        <option value="">Selecciona tipo...</option>
-                                        <option value="empresa">Empresa de Servicios</option>
-                                        <option value="profesional_independiente">Profesional Independiente</option>
-                                        <option value="monotributista">Monotributista / Oficio</option>
-                                        <option value="particular">Particular</option>
-                                     </select>
+                                     <BuscadorLista
+                                       value={field.value || ''}
+                                       onChange={field.onChange}
+                                       items={[
+                                         { value: 'empresa', label: 'Empresa de Servicios' },
+                                         { value: 'profesional_independiente', label: 'Profesional Independiente' },
+                                         { value: 'monotributista', label: 'Monotributista / Oficio' },
+                                         { value: 'particular', label: 'Particular' },
+                                       ]}
+                                       placeholder="Selecciona tipo..."
+                                       searchPlaceholder="Buscar tipo..."
+                                     />
                                    </FormControl>
                                    <FormMessage />
                                 </FormItem>
@@ -765,43 +783,22 @@ function RegisterContent() {
                         </div>
 
                         <div className="grid gap-4 bg-slate-50/50 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100">
-                           <FormField control={form.control} name="sectorId" render={({ field }) => (
+                           <FormField control={form.control} name="sectorId" render={() => (
                              <FormItem>
-                               <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Rubro Principal</FormLabel>
+                               <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Categoría</FormLabel>
                                <FormControl>
-                                 <BuscadorLista
-                                   value={field.value}
-                                   onChange={(v) => { field.onChange(v); form.setValue('subSector', ''); }}
-                                   items={ALL_SECTORS.map(s => ({ value: s.id, label: s.label }))}
-                                   placeholder="Selecciona tu macro rubro..."
-                                   searchPlaceholder="Buscar rubro..."
+                                 <BuscadorJerarquico
+                                   categorias={categorias}
+                                   value={form.watch('sectorId')}
+                                   onChange={(id, nombre) => {
+                                     form.setValue('sectorId', id, { shouldValidate: true });
+                                     form.setValue('subSector', nombre || 'general', { shouldValidate: true });
+                                   }}
                                  />
                                </FormControl>
                                <FormMessage />
                              </FormItem>
                            )} />
-
-                           <AnimatePresence mode="wait">
-                             {sectorId && (
-                               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                                 <FormField control={form.control} name="subSector" render={({ field }) => (
-                                   <FormItem>
-                                     <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Sub-Especialidad Técnica</FormLabel>
-                                     <FormControl>
-                                       <BuscadorLista
-                                         value={field.value}
-                                         onChange={field.onChange}
-                                         items={(selectedSectorData?.sub ?? []).map(s => ({ value: s, label: s }))}
-                                         placeholder="Selecciona tu especialidad..."
-                                         searchPlaceholder="Buscar especialidad..."
-                                       />
-                                     </FormControl>
-                                     <FormMessage />
-                                   </FormItem>
-                                 )} />
-                               </motion.div>
-                             )}
-                           </AnimatePresence>
 
                            {selectedRole === 'company' ? (
                              <FormField control={form.control} name="size" render={({ field }) => (
@@ -1186,6 +1183,142 @@ function BuscadorLista({
                 </button>
               ))
             )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type CategoriaDB = { id: string; nombre: string; categoria_padre_id: string | null };
+
+function BuscadorJerarquico({
+  categorias,
+  value,
+  onChange,
+}: {
+  categorias: CategoriaDB[];
+  value: string;
+  onChange: (categoriaId: string, nombre: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  const seleccionada = categorias.find((c) => c.id === value);
+  const padreDe = (c: { categoria_padre_id: string | null }) =>
+    c.categoria_padre_id ? categorias.find((x) => x.id === c.categoria_padre_id) : null;
+
+  const q = query.trim().toLowerCase();
+  const filtradas = q
+    ? categorias.filter((c) => {
+        const padre = padreDe(c);
+        return (
+          c.nombre.toLowerCase().includes(q) ||
+          (padre?.nombre.toLowerCase().includes(q) ?? false)
+        );
+      })
+    : categorias;
+
+  const raices = filtradas.filter((c) => !c.categoria_padre_id);
+  const hijasDe = (id: string) => filtradas.filter((c) => c.categoria_padre_id === id);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full h-12 rounded-lg border border-slate-200 bg-white px-4 text-base font-bold text-[#00213f] focus:ring-4 focus:ring-primary-50 transition-all cursor-pointer shadow-sm outline-none items-center justify-between text-left"
+      >
+        <span className={cn('truncate', !seleccionada && 'text-slate-400 font-semibold')}>
+          {seleccionada ? seleccionada.nombre : 'Seleccioná una categoría'}
+        </span>
+        <span className="ml-2 text-slate-400 shrink-0 flex items-center gap-1">
+          {value ? (
+            <X
+              className="w-4 h-4 hover:text-rose-600"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange('', '');
+                setQuery('');
+              }}
+            />
+          ) : (
+            <Search className="w-4 h-4" />
+          )}
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute z-30 mt-1 left-0 right-0 bg-white rounded-lg border border-slate-200 shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-slate-100">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                autoFocus
+                type="text"
+                className="w-full pl-8 pr-2 py-2 text-sm bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                placeholder="Buscar categoría..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="max-h-80 overflow-y-auto">
+            {raices.length === 0 && (
+              <div className="p-4 text-center text-xs text-slate-500">Sin coincidencias.</div>
+            )}
+            {raices.map((raiz) => {
+              const hijas = hijasDe(raiz.id);
+              return (
+                <div key={raiz.id} className="py-1">
+                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50">
+                    {raiz.nombre}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange(raiz.id, raiz.nombre);
+                      setOpen(false);
+                      setQuery('');
+                    }}
+                    className={cn(
+                      'w-full text-left px-3 py-1.5 text-sm hover:bg-primary-50 flex items-center gap-2',
+                      value === raiz.id && 'bg-primary-50 text-primary-700 font-semibold'
+                    )}
+                  >
+                    <span className="text-slate-400 text-xs">—</span>
+                    General
+                  </button>
+                  {hijas.map((h) => (
+                    <button
+                      key={h.id}
+                      type="button"
+                      onClick={() => {
+                        onChange(h.id, h.nombre);
+                        setOpen(false);
+                        setQuery('');
+                      }}
+                      className={cn(
+                        'w-full text-left px-3 py-1.5 text-sm hover:bg-primary-50 flex items-center gap-2',
+                        value === h.id && 'bg-primary-50 text-primary-700 font-semibold'
+                      )}
+                    >
+                      <span className="text-slate-300 text-xs ml-2">↳</span>
+                      {h.nombre}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

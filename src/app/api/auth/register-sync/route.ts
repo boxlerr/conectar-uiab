@@ -18,8 +18,15 @@ export async function POST(request: Request) {
       razonSocial, nombre, apellido, nombreComercial, cuit,
       telefono, sitioWeb,
       pais, provincia, localidad, direccion, descripcion,
-      sectorId, subSector, size, experience
+      sectorId, subSector, size, experience,
+      plan,
     } = payload
+
+    // Bandera para accesos de prueba: salteamos Mercado Pago y dejamos la cuenta
+    // activa de inmediato (entidad aprobada + suscripción cortesía).
+    const esPrueba = plan === 'gratis_test'
+    const estadoEntidadCompany = esPrueba ? 'aprobada' : 'pendiente_revision'
+    const estadoEntidadProvider = esPrueba ? 'aprobado' : 'pendiente_revision'
 
     // Parsear cantidad de empleados desde el string "size" del formulario.
     // Ejemplos aceptados: "50", "50 empleados", "~ 120".
@@ -63,7 +70,7 @@ export async function POST(request: Request) {
           razon_social: razonSocial,
           nombre_comercial: nombreComercial || null,
           cuit: cuit,
-          estado: 'pendiente_revision', // Requerirá aprobación desde panel de administración
+          estado: estadoEntidadCompany,
           email: email,
           telefono: telefono,
           sitio_web: sitioWeb || null,
@@ -109,7 +116,7 @@ export async function POST(request: Request) {
             razon_social: razonSocial || null, // Optional for independent pros
             nombre_comercial: nombreComercial || null,
             cuit: cuit,
-            estado: 'pendiente_revision', // Requerirá aprobación
+            estado: estadoEntidadProvider,
             email: email,
             telefono: telefono,
             sitio_web: sitioWeb || null,
@@ -205,31 +212,34 @@ export async function POST(request: Request) {
         await supabaseAdmin.from('suscripciones').insert({
           empresa_id: role === 'company' ? entityId : null,
           proveedor_id: role === 'provider' ? entityId : null,
-          monto,
+          monto: esPrueba ? 0 : monto,
           moneda: 'ARS',
-          nombre_plan: nombrePlan(role, tarifaNivel),
-          estado: 'pendiente_pago',
-          metodo_pago: 'mercadopago',
+          nombre_plan: esPrueba ? 'Cortesía (prueba)' : nombrePlan(role, tarifaNivel),
+          estado: esPrueba ? 'activa' : 'pendiente_pago',
+          metodo_pago: esPrueba ? 'cortesia' : 'mercadopago',
+          notas_admin: esPrueba ? 'Registro de prueba (Acceso gratis).' : null,
         })
 
-        // Email al usuario con CTA al checkout.
-        try {
-          const plantillaSus = plantillaSuscripcionPendiente({
-            nombre: fullName,
-            email,
-            plan: nombrePlan(role, tarifaNivel),
-            monto,
-            entidad: role === 'company' ? 'empresa' : 'particular',
-            urlCheckout: `${appUrl()}/suscripcion/checkout`,
-          })
-          await enviarEmail({
-            para: email,
-            asunto: plantillaSus.asunto,
-            html: plantillaSus.html,
-            texto: plantillaSus.texto,
-          })
-        } catch (err) {
-          console.error('[register-sync] error enviando mail suscripción pendiente:', err)
+        if (!esPrueba) {
+          // Email al usuario con CTA al checkout.
+          try {
+            const plantillaSus = plantillaSuscripcionPendiente({
+              nombre: fullName,
+              email,
+              plan: nombrePlan(role, tarifaNivel),
+              monto,
+              entidad: role === 'company' ? 'empresa' : 'particular',
+              urlCheckout: `${appUrl()}/suscripcion/checkout`,
+            })
+            await enviarEmail({
+              para: email,
+              asunto: plantillaSus.asunto,
+              html: plantillaSus.html,
+              texto: plantillaSus.texto,
+            })
+          } catch (err) {
+            console.error('[register-sync] error enviando mail suscripción pendiente:', err)
+          }
         }
       }
     } catch (err) {
