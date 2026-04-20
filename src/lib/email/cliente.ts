@@ -73,6 +73,9 @@ function obtenerTransporter(): Transporter | null {
     port: cfg.port,
     secure: cfg.secure,
     auth: { user: cfg.user, pass: cfg.pass },
+    connectionTimeout: 5_000,
+    socketTimeout: 10_000,
+    greetingTimeout: 5_000,
   });
   return transporterSingleton;
 }
@@ -145,6 +148,8 @@ export async function enviarEmail(
     return { ok: true, id: info.messageId };
   } catch (err: unknown) {
     console.error("[email] Excepción enviando email por SMTP:", err);
+    // Reiniciar el singleton por si la conexión quedó en estado inválido
+    transporterSingleton = null;
     const msg = err instanceof Error ? err.message : "Error desconocido";
     return { ok: false, error: msg };
   }

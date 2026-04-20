@@ -337,6 +337,7 @@ function RegisterContent() {
         return
       }
 
+      setIsLoading(false)
       setIsSuccess(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
       
