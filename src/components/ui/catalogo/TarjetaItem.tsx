@@ -65,11 +65,12 @@ export function TarjetaItem({ item, onClick, actions, className = "" }: Props) {
         }`
       : null;
 
-  const Root: any = onClick ? "button" : "div";
-
   return (
-    <Root
+    <div
       onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => (e.key === "Enter" || e.key === " ") && onClick() : undefined}
       className={`group text-left bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col transition-all duration-300 ${
         onClick ? "hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 cursor-pointer" : ""
       } ${className}`}
@@ -169,6 +170,6 @@ export function TarjetaItem({ item, onClick, actions, className = "" }: Props) {
           </div>
         )}
       </div>
-    </Root>
+    </div>
   );
 }

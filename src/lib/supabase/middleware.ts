@@ -40,13 +40,19 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   const isApiRoute = pathname.startsWith('/api/');
-  const isProtectedRoute = 
-    pathname.startsWith('/admin') || 
-    pathname.startsWith('/directorio') || 
-    pathname.startsWith('/empresa/') || 
-    pathname.startsWith('/perfil') || 
+  const isProtectedRoute =
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/directorio') ||
+    pathname.startsWith('/empresa/') ||
+    pathname.startsWith('/empresas') ||
+    pathname.startsWith('/perfil') ||
     pathname.startsWith('/proveedor/') ||
-    pathname.startsWith('/dashboard');
+    pathname.startsWith('/proveedores') ||
+    pathname.startsWith('/instituciones-bancarias') ||
+    pathname.startsWith('/instituciones-educativas') ||
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/oportunidades') ||
+    pathname.startsWith('/pendiente-aprobacion');
 
   // 1. Authentication Check (Require JWT)
   if (isProtectedRoute && (!user || userError)) {
@@ -59,10 +65,59 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 2. Redirect logged in users away from auth pages and root landing to dashboard
+  // 2. Approval gate: non-admin authenticated users must be approved to access
+  //    most protected routes. Unapproved users are redirected to the "pending"
+  //    page, and can only reach /perfil, /pendiente-aprobacion and auth APIs.
+  let isApproved = true;
+  if (user && !userError) {
+    const { data: perfil } = await supabase
+      .from('perfiles')
+      .select('rol_sistema')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const rol = perfil?.rol_sistema;
+
+    if (rol === 'company') {
+      const { data: m } = await supabase
+        .from('miembros_empresa')
+        .select('empresas(estado)')
+        .eq('perfil_id', user.id)
+        .eq('es_principal', true)
+        .maybeSingle();
+      const estado = (m as { empresas?: { estado?: string } } | null)?.empresas?.estado;
+      isApproved = estado === 'aprobada' || estado === 'activo';
+    } else if (rol === 'provider') {
+      const { data: m } = await supabase
+        .from('miembros_proveedor')
+        .select('proveedores(estado)')
+        .eq('perfil_id', user.id)
+        .eq('es_principal', true)
+        .maybeSingle();
+      const estado = (m as { proveedores?: { estado?: string } } | null)?.proveedores?.estado;
+      isApproved = estado === 'aprobado' || estado === 'activo';
+    }
+    // admin / guest / null → pasan sin gating
+  }
+
+  const isPendingAllowedPath =
+    pathname === '/pendiente-aprobacion' ||
+    pathname.startsWith('/perfil') ||
+    pathname.startsWith('/api/auth/');
+
+  if (user && !userError && !isApproved && isProtectedRoute && !isPendingAllowedPath) {
+    if (isApiRoute) {
+      return NextResponse.json({ error: 'Cuenta pendiente de aprobación' }, { status: 403 });
+    }
+    const url = request.nextUrl.clone()
+    url.pathname = '/pendiente-aprobacion'
+    return NextResponse.redirect(url)
+  }
+
+  // 3. Redirect logged in users away from auth pages and root landing
   if (user && !userError && (pathname === '/' || pathname === '/login' || pathname === '/register')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    url.pathname = isApproved ? '/dashboard' : '/pendiente-aprobacion'
     return NextResponse.redirect(url)
   }
 

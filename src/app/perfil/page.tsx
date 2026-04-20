@@ -74,7 +74,21 @@ export default function MiPerfilPage() {
     );
   }
 
-  const isComplete = profileDetails.estado === "aprobada" || profileDetails.estado === "verificado" || profileDetails.estado === "activo";
+  const estadoConfig: Record<string, { label: string; className: string }> = {
+    aprobada: { label: "Aprobado", className: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" },
+    aprobado: { label: "Aprobado", className: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" },
+    verificado: { label: "Verificado", className: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" },
+    activo: { label: "Activo", className: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" },
+    pendiente_revision: { label: "En revisión", className: "bg-amber-100 text-amber-700 hover:bg-amber-200" },
+    rechazado: { label: "Rechazado", className: "bg-rose-100 text-rose-700 hover:bg-rose-200" },
+    rechazada: { label: "Rechazado", className: "bg-rose-100 text-rose-700 hover:bg-rose-200" },
+    borrador: { label: "Borrador", className: "bg-slate-100 text-slate-700 hover:bg-slate-200" },
+    pausado: { label: "Pausado", className: "bg-slate-100 text-slate-700 hover:bg-slate-200" },
+    oculto: { label: "Oculto", className: "bg-slate-100 text-slate-700 hover:bg-slate-200" },
+  };
+  const estadoActual = profileDetails.estado || "borrador";
+  const estadoUI = estadoConfig[estadoActual] ?? { label: estadoActual, className: "bg-slate-100 text-slate-700 hover:bg-slate-200" };
+  const esRechazado = estadoActual === "rechazado" || estadoActual === "rechazada";
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -86,11 +100,21 @@ export default function MiPerfilPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={isComplete ? "default" : "secondary"} className={isComplete ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-amber-100 text-amber-700 hover:bg-amber-200"}>
-            Estado: {isComplete ? "Perfil Verificado" : (profileDetails.estado || "En Revisión")}
+          <Badge variant="secondary" className={estadoUI.className}>
+            Estado: {estadoUI.label}
           </Badge>
         </div>
       </div>
+
+      {esRechazado && profileDetails.motivo_rechazo && (
+        <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl flex gap-3">
+          <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-rose-900">Tu perfil fue rechazado</p>
+            <p className="text-sm text-rose-700 mt-1">{profileDetails.motivo_rechazo}</p>
+          </div>
+        </div>
+      )}
 
       {/* Grid Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
