@@ -253,8 +253,13 @@ export default function InstitucionesBancariasPage() {
     });
   }, [empresas, categoriaSeleccionada, searchTerm]);
 
+  const mostrarInformativo = !loading && !currentUser;
+  const mostrarDirectorio = !loading && !!currentUser;
+
   return (
     <div className="min-h-screen bg-slate-50 font-inter">
+      {mostrarInformativo && (
+      <>
       {/* ─────────────────────────────────────────────────────────────────────────
           HERO — Layout SPLIT minimalista, fondo claro, sin imagen AI
           Texto izquierda + Card visual derecha con stats
@@ -785,6 +790,11 @@ export default function InstitucionesBancariasPage() {
         </div>
       </section>
 
+      </>
+      )}
+
+      {mostrarDirectorio && (
+      <>
       {/* ─────────────────────────────────────────────────────────────────────────
           DIRECTORIO — Entidades financieras ya en la red
       ───────────────────────────────────────────────────────────────────────── */}
@@ -810,19 +820,14 @@ export default function InstitucionesBancariasPage() {
               </h2>
             </div>
 
-            {currentUser && (
-              <p className="text-slate-500 text-sm font-medium md:max-w-xs md:text-right">
-                {cargandoDatos
-                  ? "Cargando entidades..."
-                  : `${empresas.length} entidades verificadas en el directorio.`}
-              </p>
-            )}
+            <p className="text-slate-500 text-sm font-medium md:max-w-xs md:text-right">
+              {cargandoDatos
+                ? "Cargando entidades..."
+                : `${empresas.length} entidades verificadas en el directorio.`}
+            </p>
           </motion.div>
 
-          {!currentUser && !loading ? (
-            <AccesoBloqueadoCard />
-          ) : (
-            <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
+          <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
               {/* Sidebar */}
               <aside className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
                 <FilterSidebar
@@ -904,10 +909,13 @@ export default function InstitucionesBancariasPage() {
                 )}
               </main>
             </div>
-          )}
         </div>
       </section>
+      </>
+      )}
 
+      {mostrarInformativo && (
+      <>
       {/* ─────────────────────────────────────────────────────────────────────────
           CTA FINAL
       ───────────────────────────────────────────────────────────────────────── */}
@@ -953,6 +961,8 @@ export default function InstitucionesBancariasPage() {
           </motion.div>
         </div>
       </section>
+      </>
+      )}
     </div>
   );
 }

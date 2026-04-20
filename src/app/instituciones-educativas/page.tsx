@@ -273,8 +273,13 @@ export default function InstitucionesEducativasPage() {
     });
   }, [empresas, categoriaSeleccionada, searchTerm]);
 
+  const mostrarInformativo = !loading && !currentUser;
+  const mostrarDirectorio = !loading && !!currentUser;
+
   return (
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-24">
+      {mostrarInformativo && (
+      <>
       {/* ═══════════════════════════════════════════════════════════════════════════
           HERO SECTION - Industrial Academic Design
       ═══════════════════════════════════════════════════════════════════════════ */}
@@ -786,10 +791,15 @@ export default function InstitucionesEducativasPage() {
         </div>
       </section>
 
+      </>
+      )}
+
+      {mostrarDirectorio && (
+      <>
       {/* ═══════════════════════════════════════════════════════════════════════════
           DIRECTORIO INTEGRADO
       ═══════════════════════════════════════════════════════════════════════════ */}
-      <section id="directorio" className="max-w-[1440px] mx-auto px-6 lg:px-12 mt-24 scroll-mt-28">
+      <section id="directorio" className="max-w-[1440px] mx-auto px-6 lg:px-12 pt-24 scroll-mt-28">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -810,19 +820,14 @@ export default function InstitucionesEducativasPage() {
             </h2>
           </div>
 
-          {currentUser && (
-            <p className="text-slate-500 text-sm font-medium md:max-w-xs md:text-right">
-              {cargandoDatos
-                ? "Cargando expedientes académicos…"
-                : `${empresas.length} instituciones verificadas · ficha completa visible como socio UIAB.`}
-            </p>
-          )}
+          <p className="text-slate-500 text-sm font-medium md:max-w-xs md:text-right">
+            {cargandoDatos
+              ? "Cargando expedientes académicos…"
+              : `${empresas.length} instituciones verificadas · ficha completa visible como socio UIAB.`}
+          </p>
         </motion.div>
 
-        {!currentUser && !loading ? (
-          <AccesoBloqueadoCard />
-        ) : (
-          <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
+        <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
             {/* Sidebar */}
             <aside className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
               <FilterSidebar
@@ -904,9 +909,12 @@ export default function InstitucionesEducativasPage() {
               )}
             </main>
           </div>
-        )}
       </section>
+      </>
+      )}
 
+      {mostrarInformativo && (
+      <>
       {/* ═══════════════════════════════════════════════════════════════════════════
           CTA FINAL
       ═══════════════════════════════════════════════════════════════════════════ */}
@@ -958,6 +966,8 @@ export default function InstitucionesEducativasPage() {
           </div>
         </motion.div>
       </section>
+      </>
+      )}
     </div>
   );
 }

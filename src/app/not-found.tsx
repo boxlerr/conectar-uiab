@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Factory, ArrowLeft, Building2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,14 @@ export default function NotFound() {
           variants={fadeUp}
           className="inline-flex items-center justify-center w-20 h-20 rounded-sm bg-white border border-slate-200 shadow-sm mb-12"
         >
-          <Factory className="w-10 h-10 text-[#00213f]" />
+          <Image
+            src="/logo-prueba.png"
+            alt="UIAB"
+            width={48}
+            height={48}
+            className="object-contain"
+            priority
+          />
         </motion.div>
 
         <div className="space-y-6">
