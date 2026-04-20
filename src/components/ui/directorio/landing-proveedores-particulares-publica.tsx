@@ -946,14 +946,42 @@ export function PublicProveedoresParticularesLanding() {
             whileInView="visible"
             viewport={{ once: true, margin: "-40px" }}
             variants={stagger}
-            className="grid md:grid-cols-3 gap-5"
+            className="grid md:grid-cols-3 gap-5 relative"
           >
+            <div
+              aria-hidden
+              className="absolute inset-0 z-10 pointer-events-none"
+              style={{
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+                background: "rgba(255,255,255,0.35)",
+              }}
+            />
+            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <div className="pointer-events-auto flex flex-col items-center gap-3 bg-white/90 backdrop-blur-md border border-slate-200 rounded-sm px-6 py-5 shadow-xl max-w-sm text-center">
+                <div className="w-10 h-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <p className="text-[13px] font-semibold text-[#191c1e] leading-snug">
+                  Iniciá sesión o registrate para leer las reseñas completas de la red.
+                </p>
+                <Button
+                  onClick={openAuthModal}
+                  className="h-10 px-5 rounded-sm font-bold text-[12px] bg-[#00213f] hover:bg-[#10375c] text-white shadow-md active:scale-[0.98] transition-all"
+                >
+                  Iniciar sesión o registrarse
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
             {historias.map((h, i) => (
               <motion.div
                 key={i}
                 variants={fadeUp}
                 custom={i}
-                className="bg-[#f7f9fb] rounded-sm p-7 relative group border border-slate-100"
+                aria-hidden
+                className="bg-[#f7f9fb] rounded-sm p-7 relative group border border-slate-100 select-none"
+                style={{ filter: "blur(5px)" }}
               >
                 <div className="flex items-center gap-3 mb-5">
                   <div
