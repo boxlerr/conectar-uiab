@@ -40,18 +40,17 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   const isApiRoute = pathname.startsWith('/api/');
+  // Landing pages de los directorios (/directorio, /empresas, /proveedores,
+  // /instituciones-educativas, /instituciones-bancarias, /oportunidades) son
+  // públicas. El gating de la búsqueda/listado lo hace el cliente según auth.
+  // Los detalles (/empresa/[id], /proveedor/[id]) y áreas privadas siguen
+  // protegidas.
   const isProtectedRoute =
     pathname.startsWith('/admin') ||
-    pathname.startsWith('/directorio') ||
     pathname.startsWith('/empresa/') ||
-    pathname.startsWith('/empresas') ||
-    pathname.startsWith('/perfil') ||
     pathname.startsWith('/proveedor/') ||
-    pathname.startsWith('/proveedores') ||
-    pathname.startsWith('/instituciones-bancarias') ||
-    pathname.startsWith('/instituciones-educativas') ||
+    pathname.startsWith('/perfil') ||
     pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/oportunidades') ||
     pathname.startsWith('/pendiente-aprobacion');
 
   // 1. Authentication Check (Require JWT)
