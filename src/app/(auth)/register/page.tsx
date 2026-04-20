@@ -165,7 +165,6 @@ function RegisterContent() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [emailAlreadyExists, setEmailAlreadyExists] = useState(false)
-  const [mostrarTarifa, setMostrarTarifa] = useState(false)
 
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -290,18 +289,15 @@ function RegisterContent() {
       // We create the user using Supabase Auth
       const fullName = values.role === 'company' ? values.razonSocial : `${values.nombre} ${values.apellido}`
 
+      const esPrueba = values.plan === 'gratis_test';
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
-          // Metadata del usuario (se copia en auth.users.user_metadata).
           data: { nombre_completo: fullName },
-          // El link del correo de confirmación vuelve a nuestro callback,
-          // que canjea el token, establece la sesión y redirige a
-          // /confirmar-email para que el usuario vea el estado final.
-          // Tras confirmar el email, llevamos al checkout de suscripción.
-          // Si el usuario decide pagar luego, desde ahí puede volver al perfil.
-          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/suscripcion/checkout`,
+          emailRedirectTo: esPrueba
+            ? `${window.location.origin}/api/auth/callback?next=/dashboard`
+            : `${window.location.origin}/api/auth/callback?next=/suscripcion/checkout`,
         }
       })
 
@@ -807,62 +803,31 @@ function RegisterContent() {
                            </AnimatePresence>
 
                            {selectedRole === 'company' ? (
-                             <FormField control={form.control} name="size" render={({ field }) => {
-                               const empleadosNum = field.value ? parseInt(String(field.value).replace(/\D/g, ''), 10) : NaN;
-                               const tarifaPreview = Number.isFinite(empleadosNum) && empleadosNum > 0
-                                 ? (empleadosNum <= 30 ? { nivel: 1, precio: 108_000 }
-                                   : empleadosNum <= 99 ? { nivel: 2, precio: 216_000 }
-                                   : { nivel: 3, precio: 360_000 })
-                                 : null;
-                               return (
-                                 <FormItem className="pt-2">
-                                   <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
-                                     Cantidad de Empleados *
-                                   </FormLabel>
-                                   <FormControl>
-                                     <div className="relative group">
-                                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                                       <Input
-                                         type="number"
-                                         min={1}
-                                         inputMode="numeric"
-                                         placeholder="Ej: 50"
-                                         className="h-14 pl-11 font-semibold text-base border-slate-200 bg-white"
-                                         {...field}
-                                         onChange={(e) => { field.onChange(e.target.value.replace(/[^0-9]/g, '')); setMostrarTarifa(false); }}
-                                         onBlur={() => { field.onBlur(); if (Number.isFinite(empleadosNum) && empleadosNum > 0) setMostrarTarifa(true); }}
-                                       />
-                                     </div>
-                                   </FormControl>
-                                   <FormMessage />
-                                   <p className="text-[10px] text-slate-400 font-inter mt-2 ml-1 leading-relaxed">
-                                     Tu tarifa se calcula segmentando por cantidad de empleados. Podés ajustarla luego con la admin si corresponde.
-                                   </p>
-                                   <AnimatePresence>
-                                     {mostrarTarifa && tarifaPreview && (
-                                       <motion.div
-                                         initial={{ opacity: 0, y: -4, height: 0 }}
-                                         animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                         exit={{ opacity: 0, y: -4, height: 0 }}
-                                         className="overflow-hidden"
-                                       >
-                                         <div className="mt-3 flex items-center justify-between bg-primary-50 border border-primary-100 rounded-xl px-4 py-3">
-                                           <div>
-                                             <p className="text-[10px] font-bold text-primary-700 uppercase tracking-widest">Tarifa estimada</p>
-                                             <p className="text-sm font-bold text-[#00213f]">
-                                               Tarifa {tarifaPreview.nivel} · ${tarifaPreview.precio.toLocaleString('es-AR')} /mes
-                                             </p>
-                                           </div>
-                                           <Badge className="bg-primary-600 border-none text-[10px] font-black uppercase tracking-widest">
-                                             T{tarifaPreview.nivel}
-                                           </Badge>
-                                         </div>
-                                       </motion.div>
-                                     )}
-                                   </AnimatePresence>
-                                 </FormItem>
-                               );
-                             }} />
+                             <FormField control={form.control} name="size" render={({ field }) => (
+                               <FormItem className="pt-2">
+                                 <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                                   Cantidad de Empleados *
+                                 </FormLabel>
+                                 <FormControl>
+                                   <div className="relative group">
+                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                     <Input
+                                       type="number"
+                                       min={1}
+                                       inputMode="numeric"
+                                       placeholder="Ej: 50"
+                                       className="h-14 pl-11 font-semibold text-base border-slate-200 bg-white"
+                                       {...field}
+                                       onChange={(e) => field.onChange(e.target.value.replace(/[^0-9]/g, ''))}
+                                     />
+                                   </div>
+                                 </FormControl>
+                                 <FormMessage />
+                                 <p className="text-[10px] text-slate-400 font-inter mt-2 ml-1 leading-relaxed">
+                                   Tu tarifa se calcula por cantidad de empleados y la verás en el paso siguiente.
+                                 </p>
+                               </FormItem>
+                             )} />
                            ) : (
                              <FormField control={form.control} name="experience" render={({ field }) => (
                                <FormItem className="pt-2">
@@ -1034,85 +999,83 @@ function RegisterContent() {
                             'Acceso a eventos y capacitaciones abiertas UIAB',
                           ];
                       return (
-                      <div className="space-y-4 lg:space-y-6">
-                        <div className="space-y-1">
-                           <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">Membresía Oficial</Badge>
-                           <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Tu suscripción.</h2>
-                           <p className="text-slate-500 font-inter text-xs sm:text-sm">
+                      <div className="space-y-3">
+                        <div className="space-y-0.5">
+                           <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-0.5 text-[10px] tracking-widest uppercase rounded-sm">Membresía Oficial</Badge>
+                           <h2 className="text-2xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Tu suscripción.</h2>
+                           <p className="text-slate-500 font-inter text-xs">
                              {esEmpresa
-                               ? `Calculada según la cantidad de empleados declarada (${rangoEmpleados}).`
+                               ? `Calculada según empleados declarados (${rangoEmpleados}).`
                                : 'Membresía fija para particulares y profesionales.'}
                            </p>
                         </div>
 
-                        {/* Plan único — tarjeta editorial */}
-                        <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                          {/* Header con gradiente industrial */}
-                          <div className="relative p-6 sm:p-8" style={{ background: 'linear-gradient(135deg, #00213f 0%, #10375c 100%)' }}>
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex items-center gap-3">
-                                <div className="h-12 w-12 shrink-0 flex items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm border border-white/15">
-                                  <Rocket className="h-6 w-6 text-white" />
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Plan asignado</p>
-                                  <h3 className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight">{nombrePlan}</h3>
-                                </div>
+                        {/* Plan único — tarjeta compacta */}
+                        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                          {/* Header */}
+                          <div className="px-5 py-4 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #00213f 0%, #10375c 100%)' }}>
+                            <div className="flex items-center gap-3">
+                              <div className="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg bg-white/10 border border-white/15">
+                                <Rocket className="h-4 w-4 text-white" />
                               </div>
-                              {esEmpresa && (
-                                <Badge className="bg-white/15 text-white border border-white/20 font-black text-[10px] uppercase tracking-widest px-2 py-1 backdrop-blur-sm">
-                                  T{nivel}
-                                </Badge>
-                              )}
+                              <div>
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-white/50">Plan asignado</p>
+                                <h3 className="text-base font-black text-white leading-tight">{nombrePlan}</h3>
+                              </div>
                             </div>
-
-                            <div className="mt-6 flex items-baseline gap-2">
-                              <span className="text-4xl sm:text-5xl font-black text-white tracking-tighter leading-none">
-                                ${precio.toLocaleString('es-AR')}
-                              </span>
-                              <span className="text-sm font-semibold text-white/70">/ mes</span>
+                            <div className="text-right">
+                              <span className="text-2xl font-black text-white tracking-tighter">${precio.toLocaleString('es-AR')}</span>
+                              <span className="text-xs text-white/60 ml-1">/ mes</span>
+                              {esEmpresa && <Badge className="ml-2 bg-white/15 text-white border border-white/20 font-black text-[10px] uppercase">T{nivel}</Badge>}
                             </div>
-                            <p className="text-[11px] text-white/60 mt-2 leading-relaxed max-w-sm">
-                              Facturación mensual por Mercado Pago. Podés cancelar cuando quieras desde tu perfil.
-                            </p>
                           </div>
 
-                          {/* Beneficios */}
-                          <div className="p-6 sm:p-8 bg-[#f7f9fb]">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Qué incluye tu membresía</p>
-                            <ul className="grid gap-3">
+                          {/* Beneficios — grid 2 cols */}
+                          <div className="px-5 py-4 bg-[#f7f9fb]">
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-3">Qué incluye</p>
+                            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                               {beneficios.map((b, i) => (
-                                <li key={i} className="flex items-start gap-3">
-                                  <div className="h-5 w-5 shrink-0 rounded-full bg-primary-600 flex items-center justify-center mt-0.5">
-                                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                                <li key={i} className="flex items-start gap-2">
+                                  <div className="h-4 w-4 shrink-0 rounded-full bg-primary-600 flex items-center justify-center mt-0.5">
+                                    <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
                                   </div>
-                                  <span className="text-sm font-semibold text-[#191c1e] leading-relaxed">{b}</span>
+                                  <span className="text-xs font-semibold text-slate-700 leading-snug">{b}</span>
                                 </li>
                               ))}
                             </ul>
                           </div>
 
-                          {/* Total */}
-                          <div className="px-6 sm:px-8 py-5 bg-white border-t border-slate-100 flex items-center justify-between">
+                          {/* Footer total */}
+                          <div className="px-5 py-3 bg-white border-t border-slate-100 flex items-center justify-between">
                             <div>
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Total mensual</p>
-                              <p className="text-2xl font-black text-[#00213f] tracking-tighter">
-                                ${precio.toLocaleString('es-AR')} <span className="text-sm font-semibold text-slate-400">/ mes</span>
+                              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Total mensual</p>
+                              <p className="text-lg font-black text-[#00213f] tracking-tighter">
+                                ${precio.toLocaleString('es-AR')} <span className="text-xs font-semibold text-slate-400">/ mes</span>
                               </p>
                             </div>
-                            <div className="text-right">
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Compromiso</p>
-                              <p className="text-xs font-bold text-[#00213f]">Mes a mes · sin permanencia</p>
-                            </div>
+                            <p className="text-[10px] font-semibold text-slate-400">Mes a mes · sin permanencia</p>
                           </div>
                         </div>
 
-                        <div className="pt-2">
-                          <Button type="submit" disabled={isLoading} className="w-full h-12 lg:h-14 bg-primary-600 hover:bg-primary-700 text-white font-black text-lg sm:text-xl rounded-xl shadow-2xl shadow-primary-600/30 transition-all active:scale-[0.98]">
-                            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : <>Finalizar y continuar al pago <ArrowRight className="ml-3 h-5 w-5" /></>}
+                        <div className="space-y-2 pt-1">
+                          <Button type="submit" disabled={isLoading} className="w-full h-12 bg-primary-600 hover:bg-primary-700 text-white font-black text-base rounded-xl shadow-xl shadow-primary-600/20 transition-all active:scale-[0.98]">
+                            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Finalizar y continuar al pago <ArrowRight className="ml-2 h-4 w-4" /></>}
                           </Button>
-                          <p className="text-center text-[11px] text-slate-400 font-medium mt-4 max-w-md mx-auto leading-relaxed">
-                            Al continuar, se crea tu cuenta y se envía un email para confirmar tu correo. Luego serás redirigido al checkout seguro de Mercado Pago para activar tu membresía.
+                          {/* Botón temporal para testing — bypasea MercadoPago */}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={isLoading}
+                            onClick={async () => {
+                              form.setValue('plan', 'gratis_test');
+                              await form.handleSubmit(onSubmit)();
+                            }}
+                            className="w-full h-10 border-dashed border-slate-300 text-slate-500 hover:text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl"
+                          >
+                            Acceso gratis (solo para pruebas)
+                          </Button>
+                          <p className="text-center text-[10px] text-slate-400 font-medium max-w-md mx-auto leading-relaxed">
+                            Al continuar, se crea tu cuenta. Recibirás un email para confirmar tu correo.
                           </p>
                         </div>
                       </div>
