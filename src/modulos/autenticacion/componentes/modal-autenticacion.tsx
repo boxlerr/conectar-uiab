@@ -80,7 +80,7 @@ export function AuthModal() {
           initial={{ opacity: 0, scale: 0.97, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.97, y: 16 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] as const }}
           className="relative w-full max-w-[440px] max-h-[90vh] overflow-y-auto overflow-hidden"
           style={{ 
             borderRadius: "0.25rem",

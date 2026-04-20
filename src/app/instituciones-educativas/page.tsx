@@ -475,7 +475,7 @@ export default function InstitucionesEducativasPage() {
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] as const }}
           className="relative bg-white border border-violet-100/60 -mt-20 z-20 shadow-[0_20px_60px_-20px_rgba(58,28,140,0.2)]"
         >
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-600 via-violet-500 to-indigo-500" />
