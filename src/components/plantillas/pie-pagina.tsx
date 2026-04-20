@@ -30,6 +30,7 @@ const quickLinks = [
 
 const legalLinks = [
   { label: "Política de Privacidad", href: "/privacidad" },
+  { label: "Política de Cookies", href: "/cookies" },
   { label: "Términos y Condiciones", href: "/terminos" },
 ];
 
