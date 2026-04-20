@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { BannerSuscripcion, DashboardBlurGate } from '@/components/ui/BannerSuscripcion';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -308,6 +309,9 @@ export default async function DashboardPage() {
   // ═════════════════════════════════════════════════════════
 
   return (
+    <>
+    <BannerSuscripcion />
+    <DashboardBlurGate>
     <main className="min-h-screen bg-[#f7f9fb]">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-28 space-y-10">
 
@@ -939,5 +943,7 @@ export default async function DashboardPage() {
 
       </div>
     </main>
+    </DashboardBlurGate>
+    </>
   );
 }

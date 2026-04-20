@@ -121,15 +121,22 @@ export async function updateSession(request: NextRequest) {
   }
 
   // 3. Subscription gate: bloquea rutas pagantes si la suscripción no está activa.
-  // Excluidas: /perfil/suscripcion (donde el usuario ve/paga), /suscripcion/*, /api/*,
-  // admin (tiene su propio guard), auth pages, y usuarios con rol admin.
+  // Dashboard y /perfil son accesibles (el dashboard muestra un banner con blur).
+  // Bloqueados: directorio de empresas/proveedores, oportunidades y vistas internas
+  // de empresa/proveedor dentro del dashboard.
   const gatedRoute =
     user && !userError &&
     !isApiRoute &&
-    !pathname.startsWith('/perfil/suscripcion') &&
     !pathname.startsWith('/suscripcion') &&
     !pathname.startsWith('/admin') &&
-    (pathname.startsWith('/dashboard') || pathname.startsWith('/perfil') || pathname.startsWith('/empresa/') || pathname.startsWith('/proveedor/'));
+    (
+      pathname.startsWith('/directorio') ||
+      pathname.startsWith('/empresas') ||
+      pathname.startsWith('/proveedores') ||
+      pathname.startsWith('/oportunidades') ||
+      pathname.startsWith('/empresa/') ||
+      pathname.startsWith('/proveedor/')
+    );
 
   if (gatedRoute) {
     // Obtener rol + entityId
