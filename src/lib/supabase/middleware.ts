@@ -66,6 +66,60 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // 3. Subscription gate: bloquea rutas pagantes si la suscripción no está activa.
+  // Excluidas: /perfil/suscripcion (donde el usuario ve/paga), /suscripcion/*, /api/*,
+  // admin (tiene su propio guard), auth pages, y usuarios con rol admin.
+  const gatedRoute =
+    user && !userError &&
+    !isApiRoute &&
+    !pathname.startsWith('/perfil/suscripcion') &&
+    !pathname.startsWith('/suscripcion') &&
+    !pathname.startsWith('/admin') &&
+    (pathname.startsWith('/dashboard') || pathname.startsWith('/perfil') || pathname.startsWith('/empresa/') || pathname.startsWith('/proveedor/'));
+
+  if (gatedRoute) {
+    // Obtener rol + entityId
+    const { data: perfil } = await supabase
+      .from('perfiles')
+      .select('rol_sistema')
+      .eq('id', user!.id)
+      .maybeSingle();
+
+    if (perfil && perfil.rol_sistema !== 'admin' && perfil.rol_sistema !== 'guest') {
+      const tabla = perfil.rol_sistema === 'company' ? 'miembros_empresa' : 'miembros_proveedor';
+      const fk = perfil.rol_sistema === 'company' ? 'empresa_id' : 'proveedor_id';
+      const { data: m } = await supabase.from(tabla).select(fk).eq('perfil_id', user!.id).maybeSingle();
+      const entityId = (m as any)?.[fk];
+
+      if (entityId) {
+        const { data: sus } = await supabase
+          .from('suscripciones')
+          .select('estado, gracia_hasta')
+          .eq(fk, entityId)
+          .order('creado_en', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const estado = sus?.estado;
+        const gracia = sus?.gracia_hasta ? new Date(sus.gracia_hasta) : null;
+        const ahora = new Date();
+
+        const bloqueado =
+          !estado ||
+          estado === 'suspendida' ||
+          estado === 'cancelada' ||
+          (estado === 'en_mora' && gracia && gracia < ahora);
+
+        if (bloqueado) {
+          const url = request.nextUrl.clone();
+          url.pathname = '/suscripcion/bloqueado';
+          url.searchParams.set('from', pathname);
+          return NextResponse.redirect(url);
+        }
+      }
+    }
+  }
+
   // Check for admin routes explicitly handled by Next Layer Guards now.
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.

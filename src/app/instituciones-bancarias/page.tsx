@@ -70,8 +70,8 @@ const scaleIn = {
 const beneficiosRed = [
   {
     icon: Factory,
-    titulo: "Acceso a +60 empresas industriales",
-    copy: "Conecta directamente con empresas manufactureras, metalurgicas, quimicas y de servicios industriales del polo de Almirante Brown.",
+    titulo: "Acceso a +60 Socios UIAB",
+    copy: "Conecta directamente con empresas manufactureras, metalúrgicas, químicas y de servicios industriales del polo de Almirante Brown.",
   },
   {
     icon: Users,
@@ -107,12 +107,12 @@ const comoFunciona = [
     paso: "03",
     icon: Handshake,
     titulo: "Conexiones comerciales directas",
-    copy: "Recibe consultas de empresas industriales buscando servicios financieros. Sin intermediarios, con trazabilidad UIAB.",
+    copy: "Recibe consultas de Socios UIAB buscando servicios financieros. Sin intermediarios, con trazabilidad UIAB.",
   },
 ];
 
 const cifrasRed = [
-  { valor: "60+", label: "Empresas industriales", sublabel: "en el directorio activo" },
+  { valor: "60+", label: "Socios UIAB", sublabel: "en el directorio activo" },
   { valor: "50+", label: "Particulares verificados", sublabel: "auditados por UIAB" },
   { valor: "100%", label: "Cobertura territorial", sublabel: "Almirante Brown y Conurbano Sur" },
   { valor: "24/7", label: "Directorio online", sublabel: "acceso permanente" },
@@ -303,10 +303,10 @@ export default function InstitucionesBancariasPage() {
                   Conecta tu entidad
                 </span>
                 <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-black">
-                  financiera con el
+                  financiera con los
                 </span>
                 <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-black text-emerald-600">
-                  polo industrial.
+                  Socios UIAB.
                 </span>
               </motion.h1>
 
@@ -316,8 +316,8 @@ export default function InstitucionesBancariasPage() {
                 custom={2}
                 className="text-slate-600 text-base md:text-lg leading-relaxed mb-8 max-w-lg"
               >
-                Suma tu banco al directorio de la UIAB y accede a mas de 60 empresas
-                industriales y 50 particulares verificados del Conurbano Sur.
+                Suma tu banco al directorio de la UIAB y accede a más de 60 Socios
+                UIAB y 50 particulares verificados del Conurbano Sur.
                 Una red comercial curada, con respaldo institucional.
               </motion.p>
 
@@ -561,10 +561,10 @@ export default function InstitucionesBancariasPage() {
                 custom={2}
                 className="text-slate-600 text-base md:text-lg leading-relaxed mb-10"
               >
-                La UIAB nuclea a las principales empresas industriales y particulares
-                del Conurbano Sur. Tu entidad financiera puede conectar directamente
-                con este ecosistema productivo, ofreciendo tus servicios a empresas
-                verificadas con necesidades reales.
+                La UIAB nuclea a las principales empresas y socios de Almirante Brown.
+                Tu entidad financiera puede conectar directamente con este ecosistema
+                productivo, ofreciendo tus servicios a Socios UIAB verificados
+                con necesidades reales.
               </motion.p>
 
               {/* Lista de servicios buscados */}
@@ -760,7 +760,7 @@ export default function InstitucionesBancariasPage() {
               </h3>
 
               <p className="text-slate-400 text-[15px] leading-relaxed mb-8">
-                Mas de 40 anos nucleando al sector productivo del Conurbano Sur.
+                Desde 2007 nucleando al sector productivo del Conurbano Sur.
                 Tu entidad se suma a una red con trayectoria, empresas verificadas
                 y un compromiso real con el desarrollo industrial local.
               </p>
@@ -927,11 +927,11 @@ export default function InstitucionesBancariasPage() {
             </div>
 
             <h2 className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight mb-6">
-              Conecta con el polo industrial mas dinamico del Conurbano Sur.
+              Conecta con los socios UIAB más dinámicos del Conurbano Sur.
             </h2>
 
             <p className="text-slate-600 text-lg leading-relaxed max-w-2xl mx-auto mb-10">
-              Mas de 60 empresas industriales y 50 particulares verificados esperan conocer
+              Más de 60 socios UIAB y 50 particulares verificados esperan conocer
               los servicios financieros de tu entidad. Sumarte es simple y la visibilidad es inmediata.
             </p>
 

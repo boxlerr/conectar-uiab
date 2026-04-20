@@ -65,11 +65,23 @@ export function TarjetaItem({ item, onClick, actions, className = "" }: Props) {
         }`
       : null;
 
-  const Root: any = onClick ? "button" : "div";
+  const interactiveProps = onClick
+    ? {
+        role: "button" as const,
+        tabIndex: 0,
+        onClick,
+        onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        },
+      }
+    : {};
 
   return (
-    <Root
-      onClick={onClick}
+    <div
+      {...interactiveProps}
       className={`group text-left bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col transition-all duration-300 ${
         onClick ? "hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 cursor-pointer" : ""
       } ${className}`}
@@ -169,6 +181,6 @@ export function TarjetaItem({ item, onClick, actions, className = "" }: Props) {
           </div>
         )}
       </div>
-    </Root>
+    </div>
   );
 }

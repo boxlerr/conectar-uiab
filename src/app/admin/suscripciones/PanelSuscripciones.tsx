@@ -14,7 +14,9 @@ import {
   Check,
   X,
   Calendar,
+  Banknote,
 } from "lucide-react";
+import { ModalPagoManual } from "./ModalPagoManual";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -118,6 +120,7 @@ export function PanelSuscripciones({
   const [empleadosDraft, setEmpleadosDraft] = useState<string>("");
   const [editandoPrecio, setEditandoPrecio] = useState<number | null>(null);
   const [precioDraft, setPrecioDraft] = useState<string>("");
+  const [mostrarModalPagoManual, setMostrarModalPagoManual] = useState(false);
 
   const [mesSeleccionado, setMesSeleccionado] = useState<string>(() => {
     const d = new Date();
@@ -267,11 +270,30 @@ export function PanelSuscripciones({
             impactan a todos los socios del nivel.
           </p>
         </div>
-        <Button variant="outline" className="gap-2 bg-white hidden sm:flex" disabled>
-          <Download className="w-4 h-4" />
-          Exportar Reporte
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="default"
+            className="gap-2"
+            onClick={() => setMostrarModalPagoManual(true)}
+          >
+            <Banknote className="w-4 h-4" />
+            Registrar pago manual
+          </Button>
+          <Button variant="outline" className="gap-2 bg-white hidden sm:flex" disabled>
+            <Download className="w-4 h-4" />
+            Exportar Reporte
+          </Button>
+        </div>
       </div>
+
+      {mostrarModalPagoManual && (
+        <ModalPagoManual
+          empresas={empresas.map((e) => ({ id: e.id, razon_social: e.razon_social, tarifa: e.tarifa }))}
+          proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, apellido: p.apellido }))}
+          preciosPorNivel={precioPorNivel}
+          onClose={() => setMostrarModalPagoManual(false)}
+        />
+      )}
 
       {/* Métricas — responsive numerics, no overflow */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { enviarEmail, emailAdmin, appUrl } from '@/lib/email/cliente'
 import { plantillaNotificacionAdmin } from '@/lib/email/plantillas'
+import { plantillaSuscripcionPendiente } from '@/lib/email/plantillas-suscripciones'
+import { calcularMontoMensual, calcularTarifaPorEmpleados, nombrePlan } from '@/lib/mercadopago/suscripciones'
 
 export async function POST(request: Request) {
   try {
@@ -189,7 +191,52 @@ export async function POST(request: Request) {
       console.error('[register-sync] Error enviando notificación al admin:', emailErr)
     }
 
-    console.log(`[register-sync] Registro completado: ${role} (${fullName}) → pendiente de revisión`)
+    // 4. Crear fila inicial de suscripción en estado `pendiente_pago`.
+    //    Esto permite que el webhook y la UI tengan una fila sobre la que operar
+    //    aun antes de que el usuario inicie el flujo de checkout.
+    try {
+      if (entityId && (role === 'company' || role === 'provider')) {
+        const tarifaNivel = role === 'company' ? calcularTarifaPorEmpleados(parsedEmpleados) : null
+        const { data: precios } = await supabaseAdmin.from('tarifas_precios').select('nivel, precio_mensual')
+        const mapaPrecios: Record<number, number> = {}
+        ;(precios ?? []).forEach((p: any) => { mapaPrecios[p.nivel] = Number(p.precio_mensual) })
+        const monto = calcularMontoMensual({ role, tarifa: tarifaNivel, empleados: parsedEmpleados, preciosDb: mapaPrecios })
+
+        await supabaseAdmin.from('suscripciones').insert({
+          empresa_id: role === 'company' ? entityId : null,
+          proveedor_id: role === 'provider' ? entityId : null,
+          monto,
+          moneda: 'ARS',
+          nombre_plan: nombrePlan(role, tarifaNivel),
+          estado: 'pendiente_pago',
+          metodo_pago: 'mercadopago',
+        })
+
+        // Email al usuario con CTA al checkout.
+        try {
+          const plantillaSus = plantillaSuscripcionPendiente({
+            nombre: fullName,
+            email,
+            plan: nombrePlan(role, tarifaNivel),
+            monto,
+            entidad: role === 'company' ? 'empresa' : 'particular',
+            urlCheckout: `${appUrl()}/suscripcion/checkout`,
+          })
+          await enviarEmail({
+            para: email,
+            asunto: plantillaSus.asunto,
+            html: plantillaSus.html,
+            texto: plantillaSus.texto,
+          })
+        } catch (err) {
+          console.error('[register-sync] error enviando mail suscripción pendiente:', err)
+        }
+      }
+    } catch (err) {
+      console.error('[register-sync] error creando fila de suscripción inicial:', err)
+    }
+
+    console.log(`[register-sync] Registro completado: ${role} (${fullName}) → pendiente de revisión + pendiente_pago`)
 
     return NextResponse.json({ success: true })
   } catch (err: unknown) {

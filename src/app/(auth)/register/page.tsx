@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, Suspense } from 'react'
+import { useState, useMemo, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -9,9 +9,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createBrowserClient } from '@supabase/ssr'
 import { 
-  Building2, Truck, Loader2, CheckCircle2, ArrowRight, ChevronLeft, ShieldCheck, 
-  Target, Award, Globe, Lock, Mail, User, LayoutDashboard, Megaphone, Rocket, 
-  Shield, Check, Search, Factory, Settings2, MapPin, FileText, Phone, Link2
+  Building2, Truck, Loader2, CheckCircle2, ArrowRight, ChevronLeft, ChevronDown, ShieldCheck,
+  Target, Award, Globe, Lock, Mail, User, LayoutDashboard, Megaphone, Rocket,
+  Shield, Check, Search, Factory, Settings2, MapPin, FileText, Phone, Link2, X, Sparkles, Zap
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
@@ -165,6 +165,7 @@ function RegisterContent() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [emailAlreadyExists, setEmailAlreadyExists] = useState(false)
+  const [mostrarTarifa, setMostrarTarifa] = useState(false)
 
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -298,7 +299,9 @@ function RegisterContent() {
           // El link del correo de confirmación vuelve a nuestro callback,
           // que canjea el token, establece la sesión y redirige a
           // /confirmar-email para que el usuario vea el estado final.
-          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/confirmar-email`,
+          // Tras confirmar el email, llevamos al checkout de suscripción.
+          // Si el usuario decide pagar luego, desde ahí puede volver al perfil.
+          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/suscripcion/checkout`,
         }
       })
 
@@ -381,9 +384,9 @@ function RegisterContent() {
             ¡Tu pre-registro fue completado exitosamente! La administración de <strong>UIAB Conecta</strong> está evaluando tu solicitud.
           </p>
           <div className="bg-slate-50 rounded-xl p-6 text-sm text-slate-600 mb-8 text-left space-y-3">
-             <p className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" /> Recibirás un email confirmando la recepción de tus datos.</p>
-             <p className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" /> Una vez aprobado, tu perfil será público en el Directorio Comercial.</p>
-             <p className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" /> Podrás ingresar al tablero central con tu email y contraseña.</p>
+             <p className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" /> Confirmá tu email con el link que te enviamos.</p>
+             <p className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" /> Al confirmar, te llevaremos a completar el pago de tu suscripción mensual.</p>
+             <p className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" /> Una vez aprobado por UIAB, tu perfil será público en el Directorio Comercial.</p>
           </div>
           <Button onClick={() => router.push('/')} variant="outline" className="w-full h-14 border-slate-200 font-bold hover:bg-slate-50">
              Volver al Inicio
@@ -769,14 +772,13 @@ function RegisterContent() {
                              <FormItem>
                                <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Rubro Principal</FormLabel>
                                <FormControl>
-                                 <select 
-                                   className="flex w-full h-12 rounded-lg border border-slate-200 bg-white px-4 text-base font-bold text-[#00213f] focus:ring-4 focus:ring-primary-50 transition-all cursor-pointer shadow-sm outline-none"
-                                   {...field}
-                                   onChange={(e) => { field.onChange(e.target.value); form.setValue('subSector', ''); }}
-                                 >
-                                    <option value="">Selecciona tu macro rubro...</option>
-                                    {ALL_SECTORS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                                 </select>
+                                 <BuscadorLista
+                                   value={field.value}
+                                   onChange={(v) => { field.onChange(v); form.setValue('subSector', ''); }}
+                                   items={ALL_SECTORS.map(s => ({ value: s.id, label: s.label }))}
+                                   placeholder="Selecciona tu macro rubro..."
+                                   searchPlaceholder="Buscar rubro..."
+                                 />
                                </FormControl>
                                <FormMessage />
                              </FormItem>
@@ -789,10 +791,13 @@ function RegisterContent() {
                                    <FormItem>
                                      <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Sub-Especialidad Técnica</FormLabel>
                                      <FormControl>
-                                       <select className="flex w-full h-12 rounded-lg border border-slate-200 bg-white px-4 text-base font-bold text-[#00213f] focus:ring-4 focus:ring-primary-50 transition-all cursor-pointer shadow-sm outline-none" {...field}>
-                                         <option value="">Selecciona tu especialidad...</option>
-                                         {selectedSectorData?.sub.map((s, i) => <option key={i} value={s}>{s}</option>)}
-                                       </select>
+                                       <BuscadorLista
+                                         value={field.value}
+                                         onChange={field.onChange}
+                                         items={(selectedSectorData?.sub ?? []).map(s => ({ value: s, label: s }))}
+                                         placeholder="Selecciona tu especialidad..."
+                                         searchPlaceholder="Buscar especialidad..."
+                                       />
                                      </FormControl>
                                      <FormMessage />
                                    </FormItem>
@@ -824,28 +829,37 @@ function RegisterContent() {
                                          placeholder="Ej: 50"
                                          className="h-14 pl-11 font-semibold text-base border-slate-200 bg-white"
                                          {...field}
-                                         onChange={(e) => field.onChange(e.target.value.replace(/[^0-9]/g, ''))}
+                                         onChange={(e) => { field.onChange(e.target.value.replace(/[^0-9]/g, '')); setMostrarTarifa(false); }}
+                                         onBlur={() => { field.onBlur(); if (Number.isFinite(empleadosNum) && empleadosNum > 0) setMostrarTarifa(true); }}
                                        />
                                      </div>
                                    </FormControl>
                                    <FormMessage />
-                                   {tarifaPreview && (
-                                     <div className="mt-3 flex items-center justify-between bg-primary-50 border border-primary-100 rounded-xl px-4 py-3">
-                                       <div>
-                                         <p className="text-[10px] font-bold text-primary-700 uppercase tracking-widest">Tarifa estimada</p>
-                                         <p className="text-sm font-bold text-[#00213f]">
-                                           Tarifa {tarifaPreview.nivel} · ${tarifaPreview.precio.toLocaleString('es-AR')} /mes
-                                         </p>
-                                       </div>
-                                       <Badge className="bg-primary-600 border-none text-[10px] font-black uppercase tracking-widest">
-                                         T{tarifaPreview.nivel}
-                                       </Badge>
-                                     </div>
-                                   )}
                                    <p className="text-[10px] text-slate-400 font-inter mt-2 ml-1 leading-relaxed">
-                                     Tarifas vigentes hasta mayo 2026. UIAB ajusta trimestralmente por IPC.
-                                     La admin puede ajustar tu tarifa manualmente si corresponde.
+                                     Tu tarifa se calcula segmentando por cantidad de empleados. Podés ajustarla luego con la admin si corresponde.
                                    </p>
+                                   <AnimatePresence>
+                                     {mostrarTarifa && tarifaPreview && (
+                                       <motion.div
+                                         initial={{ opacity: 0, y: -4, height: 0 }}
+                                         animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                         exit={{ opacity: 0, y: -4, height: 0 }}
+                                         className="overflow-hidden"
+                                       >
+                                         <div className="mt-3 flex items-center justify-between bg-primary-50 border border-primary-100 rounded-xl px-4 py-3">
+                                           <div>
+                                             <p className="text-[10px] font-bold text-primary-700 uppercase tracking-widest">Tarifa estimada</p>
+                                             <p className="text-sm font-bold text-[#00213f]">
+                                               Tarifa {tarifaPreview.nivel} · ${tarifaPreview.precio.toLocaleString('es-AR')} /mes
+                                             </p>
+                                           </div>
+                                           <Badge className="bg-primary-600 border-none text-[10px] font-black uppercase tracking-widest">
+                                             T{tarifaPreview.nivel}
+                                           </Badge>
+                                         </div>
+                                       </motion.div>
+                                     )}
+                                   </AnimatePresence>
                                  </FormItem>
                                );
                              }} />
@@ -987,48 +1001,123 @@ function RegisterContent() {
                       </div>
                     )}
 
-                    {/* ─── PHASE 7: PLANS & SUBMIT ─── */}
-                    {step === 7 && (
+                    {/* ─── PHASE 7: SUSCRIPCIÓN (plan único según rol/empleados) ─── */}
+                    {step === 7 && (() => {
+                      const esEmpresa = selectedRole === 'company';
+                      const empleadosNum = parseInt(String(form.getValues('size') || '').replace(/\D/g, ''), 10);
+                      const nivel: 1 | 2 | 3 = !esEmpresa
+                        ? 1
+                        : empleadosNum <= 30 ? 1
+                        : empleadosNum <= 99 ? 2
+                        : 3;
+                      const precio = esEmpresa
+                        ? (nivel === 1 ? 108_000 : nivel === 2 ? 216_000 : 360_000)
+                        : 5_000;
+                      const nombrePlan = esEmpresa
+                        ? `UIAB Conecta · Tarifa ${nivel}`
+                        : 'UIAB Conecta · Particular';
+                      const rangoEmpleados = nivel === 1 ? '0–30 empleados' : nivel === 2 ? '31–99 empleados' : '100+ empleados';
+                      const beneficios = esEmpresa
+                        ? [
+                            'Ficha institucional en el directorio oficial UIAB',
+                            'Recepción de cotizaciones y consultas de empresas socias',
+                            'Publicación de productos, servicios y oportunidades',
+                            'Acceso a capacitaciones, eventos y convenios UIAB',
+                            'Panel de métricas de interacciones y leads',
+                            'Soporte prioritario del equipo UIAB Conecta',
+                          ]
+                        : [
+                            'Perfil de particular/profesional en el directorio UIAB',
+                            'Visibilidad ante empresas socias que buscan servicios',
+                            'Publicación ilimitada de servicios y especialidades',
+                            'Postulación a oportunidades publicadas por empresas',
+                            'Acceso a eventos y capacitaciones abiertas UIAB',
+                          ];
+                      return (
                       <div className="space-y-4 lg:space-y-6">
                         <div className="space-y-1">
-                           <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">MEMBRESÍAS OFICIALES</Badge>
-                           <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Suscripción.</h2>
-                           <p className="text-slate-500 font-inter text-xs sm:text-sm">Define tu nivel de presencia en el directorio.</p>
+                           <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">Membresía Oficial</Badge>
+                           <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Tu suscripción.</h2>
+                           <p className="text-slate-500 font-inter text-xs sm:text-sm">
+                             {esEmpresa
+                               ? `Calculada según la cantidad de empleados declarada (${rangoEmpleados}).`
+                               : 'Membresía fija para particulares y profesionales.'}
+                           </p>
                         </div>
 
-                        <FormField control={form.control} name="plan" render={({ field }) => (
-                          <div className="grid gap-4">
-                            {[
-                              { id: 'basic', label: 'Estándar', price: 'Consultar', desc: 'Presencia base y recepción pasiva de cotizaciones.' },
-                              { id: 'premium', label: 'Premium 2026', price: '$25.000 / mes', desc: 'Posicionamiento superior, sello validado y alertas proactivas.', featured: true }
-                            ].map(p => (
-                              <div key={p.id} onClick={() => field.onChange(p.id)} className={cn("p-4 sm:p-6 rounded-2xl border-2 transition-all cursor-pointer relative overflow-hidden flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3", field.value === p.id ? "bg-primary-50 border-primary-600 shadow-2xl ring-2 ring-primary-100" : "bg-white border-slate-200 hover:border-slate-300")}>
-                                 <div className="flex items-start gap-4">
-                                    <div className={cn("h-12 w-12 shrink-0 flex items-center justify-center rounded-xl", field.value === p.id ? "bg-primary-600 text-white shadow-lg shadow-primary-600/30" : "bg-slate-100 text-slate-400")}><Rocket className="h-6 w-6" /></div>
-                                    <div>
-                                       <h3 className="text-2xl font-bold text-[#00213f] leading-none mb-2">{p.label}</h3>
-                                       <p className="text-xs font-bold uppercase tracking-widest text-slate-500 max-w-[200px] leading-relaxed">{p.desc}</p>
-                                    </div>
-                                 </div>
-                                 <div className="sm:text-right pt-4 sm:pt-0 border-t sm:border-t-0 border-slate-200">
-                                    <p className="text-3xl font-black text-[#00213f] tracking-tighter leading-none">{p.price}</p>
-                                 </div>
-                                 {p.featured && <Badge className="absolute top-4 right-4 bg-primary-600 border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 shadow-md">Recomendado</Badge>}
+                        {/* Plan único — tarjeta editorial */}
+                        <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                          {/* Header con gradiente industrial */}
+                          <div className="relative p-6 sm:p-8" style={{ background: 'linear-gradient(135deg, #00213f 0%, #10375c 100%)' }}>
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-12 w-12 shrink-0 flex items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm border border-white/15">
+                                  <Rocket className="h-6 w-6 text-white" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Plan asignado</p>
+                                  <h3 className="text-xl sm:text-2xl font-black text-white leading-tight tracking-tight">{nombrePlan}</h3>
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                        )} />
+                              {esEmpresa && (
+                                <Badge className="bg-white/15 text-white border border-white/20 font-black text-[10px] uppercase tracking-widest px-2 py-1 backdrop-blur-sm">
+                                  T{nivel}
+                                </Badge>
+                              )}
+                            </div>
 
-                        <div className="pt-6">
-                          <Button type="submit" disabled={isLoading} className="w-full h-12 lg:h-14 bg-primary-600 hover:bg-primary-700 text-white font-black text-xl rounded-xl shadow-2xl shadow-primary-600/30 transition-all active:scale-[0.98]">
-                            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : 'Finalizar Envío de Perfil'}
+                            <div className="mt-6 flex items-baseline gap-2">
+                              <span className="text-4xl sm:text-5xl font-black text-white tracking-tighter leading-none">
+                                ${precio.toLocaleString('es-AR')}
+                              </span>
+                              <span className="text-sm font-semibold text-white/70">/ mes</span>
+                            </div>
+                            <p className="text-[11px] text-white/60 mt-2 leading-relaxed max-w-sm">
+                              Facturación mensual por Mercado Pago. Podés cancelar cuando quieras desde tu perfil.
+                            </p>
+                          </div>
+
+                          {/* Beneficios */}
+                          <div className="p-6 sm:p-8 bg-[#f7f9fb]">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Qué incluye tu membresía</p>
+                            <ul className="grid gap-3">
+                              {beneficios.map((b, i) => (
+                                <li key={i} className="flex items-start gap-3">
+                                  <div className="h-5 w-5 shrink-0 rounded-full bg-primary-600 flex items-center justify-center mt-0.5">
+                                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                                  </div>
+                                  <span className="text-sm font-semibold text-[#191c1e] leading-relaxed">{b}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* Total */}
+                          <div className="px-6 sm:px-8 py-5 bg-white border-t border-slate-100 flex items-center justify-between">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Total mensual</p>
+                              <p className="text-2xl font-black text-[#00213f] tracking-tighter">
+                                ${precio.toLocaleString('es-AR')} <span className="text-sm font-semibold text-slate-400">/ mes</span>
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Compromiso</p>
+                              <p className="text-xs font-bold text-[#00213f]">Mes a mes · sin permanencia</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <Button type="submit" disabled={isLoading} className="w-full h-12 lg:h-14 bg-primary-600 hover:bg-primary-700 text-white font-black text-lg sm:text-xl rounded-xl shadow-2xl shadow-primary-600/30 transition-all active:scale-[0.98]">
+                            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : <>Finalizar y continuar al pago <ArrowRight className="ml-3 h-5 w-5" /></>}
                           </Button>
-                          <p className="text-center text-xs text-slate-400 font-medium mt-4 max-w-sm mx-auto">
-                            Al hacer clic, aceptas que la administración revise tus datos. Recibirás una notificación por email.
+                          <p className="text-center text-[11px] text-slate-400 font-medium mt-4 max-w-md mx-auto leading-relaxed">
+                            Al continuar, se crea tu cuenta y se envía un email para confirmar tu correo. Luego serás redirigido al checkout seguro de Mercado Pago para activar tu membresía.
                           </p>
                         </div>
                       </div>
-                    )}
+                      );
+                    })()}
 
                   </form>
                 </Form>
@@ -1039,6 +1128,104 @@ function RegisterContent() {
       </div>
     </div>
   </div>
+  );
+}
+
+function BuscadorLista({
+  value,
+  onChange,
+  items,
+  placeholder,
+  searchPlaceholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  items: Array<{ value: string; label: string }>;
+  placeholder: string;
+  searchPlaceholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  const seleccionado = items.find((i) => i.value === value);
+  const q = query.trim().toLowerCase();
+  const filtrados = q ? items.filter((i) => i.label.toLowerCase().includes(q)) : items;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full h-12 rounded-lg border border-slate-200 bg-white px-4 text-base font-bold text-[#00213f] focus:ring-4 focus:ring-primary-50 transition-all cursor-pointer shadow-sm outline-none items-center justify-between text-left"
+      >
+        <span className={cn('truncate', !seleccionado && 'text-slate-400 font-semibold')}>
+          {seleccionado ? seleccionado.label : placeholder}
+        </span>
+        <span className="ml-2 text-slate-400 shrink-0 flex items-center gap-1">
+          {value && (
+            <X
+              className="w-4 h-4 hover:text-rose-600"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange('');
+                setQuery('');
+              }}
+            />
+          )}
+          <ChevronDown className={cn('w-4 h-4 transition-transform', open && 'rotate-180')} />
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute z-30 mt-1 left-0 right-0 bg-white rounded-lg border border-slate-200 shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-slate-100">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                autoFocus
+                type="text"
+                className="w-full pl-8 pr-2 py-2 text-sm bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                placeholder={searchPlaceholder}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="max-h-72 overflow-y-auto">
+            {filtrados.length === 0 ? (
+              <div className="p-4 text-center text-xs text-slate-500">Sin coincidencias.</div>
+            ) : (
+              filtrados.map((i) => (
+                <button
+                  key={i.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(i.value);
+                    setOpen(false);
+                    setQuery('');
+                  }}
+                  className={cn(
+                    'w-full text-left px-4 py-2.5 text-sm hover:bg-primary-50 transition-colors',
+                    value === i.value && 'bg-primary-50 text-primary-700 font-bold'
+                  )}
+                >
+                  {i.label}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

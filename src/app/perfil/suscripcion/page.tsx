@@ -6,7 +6,9 @@ import { Card } from "@/components/ui/card";
 import { CreditCard, CheckCircle2, History, Banknote, ShieldCheck, Loader2, AlertCircle, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
+import { toast } from "sonner";
 
 // Precios MENSUALES por tarifa (fallback si aún no cargaron los de DB).
 const TARIFA_PRECIO_FALLBACK: Record<number, number> = { 1: 108_000, 2: 216_000, 3: 360_000 };
@@ -21,6 +23,7 @@ const formatARS = (n: number) =>
 
 export default function MiPerfilSuscripcionPage() {
   const { currentUser, loading: authLoading } = useAuth();
+  const router = useRouter();
   const supabase = createClient();
 
   const [payments, setPayments] = useState<any[]>([]);
@@ -29,8 +32,20 @@ export default function MiPerfilSuscripcionPage() {
     cantidad_empleados: number | null;
     tarifa_vigente_hasta: string | null;
   } | null>(null);
+  const [suscripcion, setSuscripcion] = useState<{
+    id: string;
+    estado: string;
+    metodo_pago: string;
+    proximo_cobro_en: string | null;
+    mercado_pago_preapproval_id: string | null;
+    cancelada_en: string | null;
+    finaliza_en: string | null;
+    gracia_hasta: string | null;
+  } | null>(null);
   const [precios, setPrecios] = useState<Record<number, number>>(TARIFA_PRECIO_FALLBACK);
   const [loading, setLoading] = useState(true);
+  const [cancelando, setCancelando] = useState(false);
+  const [iniciandoPago, setIniciandoPago] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -43,12 +58,12 @@ export default function MiPerfilSuscripcionPage() {
 
       const columnFk = currentUser.role === 'company' ? 'empresa_id' : 'proveedor_id';
 
-      const [pagosRes, empresaRes, tarifasRes] = await Promise.all([
+      const [pagosRes, empresaRes, tarifasRes, susRes] = await Promise.all([
         supabase
           .from('pagos_suscripciones')
           .select('*')
           .eq(columnFk, currentUser.entityId)
-          .order('pagado_en', { ascending: false }),
+          .order('pagado_en', { ascending: false, nullsFirst: false }),
         currentUser.role === 'company'
           ? supabase
               .from('empresas')
@@ -57,10 +72,18 @@ export default function MiPerfilSuscripcionPage() {
               .maybeSingle()
           : Promise.resolve({ data: null }),
         supabase.from('tarifas_precios').select('nivel, precio_mensual'),
+        supabase
+          .from('suscripciones')
+          .select('id, estado, metodo_pago, proximo_cobro_en, mercado_pago_preapproval_id, cancelada_en, finaliza_en, gracia_hasta')
+          .eq(columnFk, currentUser.entityId)
+          .order('creado_en', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
 
       if (pagosRes.data) setPayments(pagosRes.data);
       if (empresaRes && 'data' in empresaRes && empresaRes.data) setEmpresa(empresaRes.data as any);
+      if (susRes.data) setSuscripcion(susRes.data as any);
       if (tarifasRes.data && tarifasRes.data.length > 0) {
         const map: Record<number, number> = { ...TARIFA_PRECIO_FALLBACK };
         tarifasRes.data.forEach((t: any) => {
@@ -73,9 +96,60 @@ export default function MiPerfilSuscripcionPage() {
     loadData();
   }, [authLoading, currentUser?.entityId, currentUser?.role, supabase]);
 
-  const montoMensual = empresa && empresa.tarifa ? precios[empresa.tarifa] ?? 0 : 0;
+  const montoMensual = currentUser?.role === 'company'
+    ? (empresa && empresa.tarifa ? precios[empresa.tarifa] ?? 0 : 0)
+    : 5000;
   const montoAnual = montoMensual * 12;
-  
+
+  const estadoBadge = (() => {
+    const e = suscripcion?.estado;
+    if (e === 'activa') return { text: 'Al día', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30', dot: 'bg-emerald-400' };
+    if (e === 'pendiente_pago') return { text: 'Pendiente de pago', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/30', dot: 'bg-amber-400' };
+    if (e === 'en_mora') return { text: 'En mora', cls: 'bg-orange-500/20 text-orange-300 border-orange-500/30', dot: 'bg-orange-400' };
+    if (e === 'suspendida') return { text: 'Suspendida', cls: 'bg-rose-500/20 text-rose-300 border-rose-500/30', dot: 'bg-rose-400' };
+    if (e === 'cancelada') return { text: 'Cancelada', cls: 'bg-slate-500/20 text-slate-300 border-slate-500/30', dot: 'bg-slate-400' };
+    return { text: 'Sin suscripción', cls: 'bg-slate-500/20 text-slate-300 border-slate-500/30', dot: 'bg-slate-400' };
+  })();
+
+  const nombreMetodo = (() => {
+    const m = suscripcion?.metodo_pago;
+    if (m === 'mercadopago') return 'Mercado Pago (tarjeta recurrente)';
+    if (m === 'efectivo') return 'Efectivo (en persona)';
+    if (m === 'cheque') return 'Cheque (en persona)';
+    if (m === 'cortesia') return 'Cortesía UIAB';
+    return 'Sin método configurado';
+  })();
+
+  async function iniciarPago() {
+    setIniciandoPago(true);
+    try {
+      const res = await fetch('/api/mercadopago/crear-preapproval', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error creando suscripción');
+      window.location.href = data.init_point;
+    } catch (err: any) {
+      toast.error(err.message || 'Error inesperado');
+      setIniciandoPago(false);
+    }
+  }
+
+  async function cancelarSuscripcion() {
+    if (!confirm('¿Cancelar tu suscripción? Mantenés el acceso hasta el fin del período ya pagado.')) return;
+    setCancelando(true);
+    try {
+      const res = await fetch('/api/mercadopago/cancelar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error cancelando');
+      toast.success('Suscripción cancelada');
+      router.refresh();
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || 'Error inesperado');
+    } finally {
+      setCancelando(false);
+    }
+  }
+
   if (!currentUser) return null;
 
   if (loading) {
@@ -117,11 +191,20 @@ export default function MiPerfilSuscripcionPage() {
              </div>
              
              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-2">
-                  <Badge className="bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border-emerald-500/30">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-pulse" /> Estado: Al día
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                  <Badge className={`${estadoBadge.cls} hover:${estadoBadge.cls}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${estadoBadge.dot} mr-2 animate-pulse`} /> Estado: {estadoBadge.text}
                   </Badge>
-                  <Badge variant="outline" className="border-slate-700 bg-slate-800 text-slate-300">Renueva 01 Abr</Badge>
+                  {suscripcion?.proximo_cobro_en && suscripcion.estado !== 'cancelada' && (
+                    <Badge variant="outline" className="border-slate-700 bg-slate-800 text-slate-300">
+                      Renueva {new Date(suscripcion.proximo_cobro_en).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
+                    </Badge>
+                  )}
+                  {suscripcion?.estado === 'cancelada' && suscripcion.finaliza_en && (
+                    <Badge variant="outline" className="border-slate-700 bg-slate-800 text-slate-300">
+                      Acceso hasta {new Date(suscripcion.finaliza_en).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
+                    </Badge>
+                  )}
                 </div>
                 
                 <h2 className="text-3xl font-bold text-white mb-2">
@@ -201,11 +284,23 @@ export default function MiPerfilSuscripcionPage() {
                    <CreditCard className="w-5 h-5 text-slate-600" />
                  </div>
                  <div>
-                   <p className="text-sm font-semibold text-slate-900">Visa terminada en •••• 4242</p>
-                   <p className="text-xs text-slate-500">Próximo cobro: 1 de Abril de 2026</p>
+                   <p className="text-sm font-semibold text-slate-900">{nombreMetodo}</p>
+                   <p className="text-xs text-slate-500">
+                     {suscripcion?.proximo_cobro_en
+                       ? `Próximo cobro: ${new Date(suscripcion.proximo_cobro_en).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                       : 'Sin fecha de próximo cobro'}
+                   </p>
                  </div>
               </div>
-              <Button variant="outline" className="w-full sm:w-auto">Cambiar Método</Button>
+              {(!suscripcion || ['pendiente_pago','suspendida','cancelada'].includes(suscripcion.estado)) ? (
+                <Button className="w-full sm:w-auto" onClick={iniciarPago} disabled={iniciandoPago}>
+                  {iniciandoPago ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : 'Pagar con Mercado Pago'}
+                </Button>
+              ) : (
+                <Button variant="outline" className="w-full sm:w-auto" onClick={iniciarPago} disabled={iniciandoPago}>
+                  Cambiar Método
+                </Button>
+              )}
            </div>
         </Card>
 
@@ -223,8 +318,13 @@ export default function MiPerfilSuscripcionPage() {
           <Card className="p-6 border-slate-100 border-dashed bg-slate-50 relative overflow-hidden group">
              <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-2">¿Necesitas pausar?</h3>
              <p className="text-xs text-slate-500 mb-4">Si cancelas, tu perfil dejará de ser público al finalizar el mes actual.</p>
-             <Button variant="ghost" className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-semibold h-10 border border-transparent hover:border-rose-100">
-               Cancelar Suscripción
+             <Button
+               variant="ghost"
+               className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-semibold h-10 border border-transparent hover:border-rose-100"
+               onClick={cancelarSuscripcion}
+               disabled={cancelando || !suscripcion || suscripcion.estado === 'cancelada'}
+             >
+               {cancelando ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Cancelando...</> : 'Cancelar Suscripción'}
              </Button>
           </Card>
         </div>
