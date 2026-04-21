@@ -59,22 +59,22 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
   ];
 
   return (
-    <div className="flex flex-col md:flex-row min-h-[calc(100vh-4rem)] max-w-7xl mx-auto w-full">
+    <div className="flex min-h-[calc(100vh-4rem)]">
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-slate-50 border-r border-slate-200 flex-shrink-0 md:sticky md:top-20 md:h-[calc(100vh-5rem)] overflow-y-auto">
-        <div className="h-full py-6 px-4 space-y-6">
+      <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col flex-shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+        <div className="py-6 px-4 space-y-6">
           <div className="px-2">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center font-bold">
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-8 h-8 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-sm shrink-0">
                 {currentUser.name.charAt(0)}
               </div>
-              <span className="truncate">{currentUser.name}</span>
-            </h2>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-2 ml-10">
+              <span className="font-bold text-slate-900 text-sm truncate">{currentUser.name}</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider ml-10">
               Panel {currentUser.role === 'company' ? 'Corporativo' : 'Particular'}
             </p>
           </div>
-          
+
           <nav className="space-y-1">
             {profileNav.map((item) => {
               const isActive = pathname === item.href;
@@ -84,10 +84,10 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                     isActive
-                      ? "bg-primary-50 text-primary-700 shadow-sm border border-primary-100/50"
-                      : "text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm border border-transparent"
+                      ? "bg-primary-50 text-primary-700"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   )}
                 >
                   <Icon className={cn("w-5 h-5", isActive ? "text-primary-600" : "text-slate-400")} />
@@ -100,8 +100,8 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 bg-white">
-        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 bg-slate-50/50 min-w-0">
+        <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>

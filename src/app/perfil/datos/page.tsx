@@ -35,7 +35,7 @@ export default function MiPerfilDatosPage() {
     nombre_logo: "",
     mime_logo: "",
     tamano_logo_bytes: 0 as number | null,
-    anios_experiencia: "" as string,
+    fecha_inicio_experiencia: "" as string,
   });
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string>("");
 
@@ -71,7 +71,7 @@ export default function MiPerfilDatosPage() {
           nombre_logo: data.nombre_logo || "",
           mime_logo: data.mime_logo || "",
           tamano_logo_bytes: data.tamano_logo_bytes || 0,
-          anios_experiencia: data.anios_experiencia != null ? String(data.anios_experiencia) : "",
+          fecha_inicio_experiencia: data.fecha_inicio_experiencia || "",
         });
         if (data.bucket_logo && data.ruta_logo) {
           const { data: urlData } = supabase.storage.from(data.bucket_logo).getPublicUrl(data.ruta_logo);
@@ -164,8 +164,7 @@ export default function MiPerfilDatosPage() {
         const [primerNombre, ...restoNombre] = (currentUser.name || "").split(" ");
         (dataToSave as any).nombre = primerNombre || "";
         (dataToSave as any).apellido = restoNombre.join(" ") || null;
-        const expNum = parseInt(formData.anios_experiencia, 10);
-        (dataToSave as any).anios_experiencia = Number.isFinite(expNum) && expNum >= 0 ? expNum : null;
+        (dataToSave as any).fecha_inicio_experiencia = formData.fecha_inicio_experiencia || null;
       }
 
       const result = await updateCompanyOrProvider(currentUser.role as any, currentUser.entityId, currentUser.id, dataToSave);
@@ -269,11 +268,25 @@ export default function MiPerfilDatosPage() {
                   type="number"
                   min={0}
                   max={99}
-                  value={formData.anios_experiencia}
-                  onChange={e => setFormData({ ...formData, anios_experiencia: e.target.value })}
+                  value={
+                    formData.fecha_inicio_experiencia
+                      ? Math.floor((Date.now() - new Date(formData.fecha_inicio_experiencia).getTime()) / (365.25 * 24 * 3600 * 1000))
+                      : ""
+                  }
+                  onChange={e => {
+                    const años = parseInt(e.target.value, 10);
+                    if (!Number.isFinite(años) || años < 0) {
+                      setFormData({ ...formData, fecha_inicio_experiencia: "" });
+                      return;
+                    }
+                    const fecha = new Date();
+                    fecha.setFullYear(fecha.getFullYear() - años);
+                    setFormData({ ...formData, fecha_inicio_experiencia: fecha.toISOString().split('T')[0] });
+                  }}
                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
                   placeholder="Ej: 15"
                 />
+                <p className="text-xs text-slate-400">Se actualiza automáticamente cada año.</p>
               </div>
             )}
 

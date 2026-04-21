@@ -115,7 +115,7 @@ export default async function EmpresaProfilePage({
         localidad,
         provincia,
         descripcion,
-        anios_experiencia,
+        fecha_inicio_experiencia,
         bucket_logo,
         ruta_logo,
         proveedores_categorias (
@@ -633,17 +633,20 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
                   </div>
                 </li>
 
-                {provDb.anios_experiencia != null && (
-                  <li className="flex items-start">
-                    <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 mr-4 border border-slate-100">
-                      <Clock className="w-4 h-4 text-slate-400" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Experiencia</p>
-                      <p className="text-slate-700 font-semibold leading-relaxed">{provDb.anios_experiencia} años</p>
-                    </div>
-                  </li>
-                )}
+                {provDb.fecha_inicio_experiencia != null && (() => {
+                  const años = Math.floor((Date.now() - new Date(provDb.fecha_inicio_experiencia).getTime()) / (365.25 * 24 * 3600 * 1000));
+                  return (
+                    <li className="flex items-start">
+                      <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 mr-4 border border-slate-100">
+                        <Clock className="w-4 h-4 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Experiencia</p>
+                        <p className="text-slate-700 font-semibold leading-relaxed">{años} año{años !== 1 ? 's' : ''}</p>
+                      </div>
+                    </li>
+                  );
+                })()}
 
                 <li className="flex items-start">
                   <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 mr-4 border border-slate-100">

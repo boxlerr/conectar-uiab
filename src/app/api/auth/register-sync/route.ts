@@ -108,12 +108,15 @@ export async function POST(request: Request) {
         }
   
       } else if (role === 'provider') {
-        const parsedExperiencia = (() => {
+        const fechaInicioExperiencia = (() => {
           if (!experience) return null;
           const m = String(experience).match(/\d+/);
           if (!m) return null;
-          const n = parseInt(m[0], 10);
-          return Number.isFinite(n) && n >= 0 ? n : null;
+          const años = parseInt(m[0], 10);
+          if (!Number.isFinite(años) || años < 0) return null;
+          const fecha = new Date();
+          fecha.setFullYear(fecha.getFullYear() - años);
+          return fecha.toISOString().split('T')[0];
         })();
 
         const { data: prov, error: provError } = await supabaseAdmin
@@ -133,7 +136,7 @@ export async function POST(request: Request) {
             localidad: localidad,
             direccion: direccion,
             descripcion: descripcion,
-            anios_experiencia: parsedExperiencia,
+            fecha_inicio_experiencia: fechaInicioExperiencia,
           })
           .select()
           .single()

@@ -12,7 +12,7 @@ import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
 import { PublicEmpresasLanding } from "@/components/ui/directorio/landing-empresas-publica";
 import { PublicProveedoresParticularesLanding } from "@/components/ui/directorio/landing-proveedores-particulares-publica";
-import { Building2, LayoutGrid, List, CheckCircle2, LockOpen, User, Info } from "lucide-react";
+import { Building2, LayoutGrid, List, CheckCircle2, LockOpen, User } from "lucide-react";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
@@ -352,6 +352,19 @@ export default function EmpresasPage() {
                 ? metaSocio.descripcion
                 : "Explora el directorio completo. Como usuario validado, tenes acceso a los datos de contacto y expedientes técnicos de toda la red."}
             </p>
+
+            {mezclaParticulares && (
+              <div className="mt-5 flex flex-wrap gap-3">
+                <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded px-3 py-1.5 text-sm font-semibold text-white">
+                  <Building2 className="w-4 h-4 text-blue-300" />
+                  Empresas socias UIAB con oferta B2B
+                </span>
+                <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded px-3 py-1.5 text-sm font-semibold text-white">
+                  <User className="w-4 h-4 text-amber-300" />
+                  Particulares: ingenieros, contadores, técnicos y más
+                </span>
+              </div>
+            )}
           </motion.div>
         </div>
       </div>
@@ -397,33 +410,9 @@ export default function EmpresasPage() {
           </div>
         </motion.div>
 
-        {/* ─── Clarifying banner + Tabs (cuando la vista mezcla socios + particulares) ─── */}
+        {/* ─── Tabs (cuando la vista mezcla socios + particulares) ─── */}
         {mezclaParticulares && (
           <>
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.5 }}
-              className="mb-6 flex items-start gap-4 p-5 bg-white rounded-md border border-slate-200/60 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
-            >
-              <div className="w-10 h-10 rounded-sm bg-[#f2f4f6] text-[#00213f] flex items-center justify-center shrink-0">
-                <Info className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[13px] font-black text-[#191c1e] uppercase tracking-[0.18em] mb-1.5">
-                  Empresas y particulares
-                </p>
-                <p className="text-[13px] text-slate-600 leading-relaxed">
-                  En esta categoría conviven{" "}
-                  <span className="font-semibold text-[#00213f]">empresas socias UIAB</span> con oferta
-                  B2B y{" "}
-                  <span className="font-semibold text-amber-700">particulares matriculados</span>{" "}
-                  (ingenieros, contadores, técnicos, diseñadores y más). Las pestañas de abajo te
-                  permiten filtrarlos por separado.
-                </p>
-              </div>
-            </motion.div>
-
             <div className="flex gap-2 mb-8 bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit">
               <button
                 onClick={() => handleTabChange('socios')}
