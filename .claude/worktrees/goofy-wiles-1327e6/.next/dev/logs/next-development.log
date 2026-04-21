@@ -1,0 +1,4 @@
+[00:22:25.280] Browser LOG     [supabase] Tab regresó tras 609s en background — reciclando cliente
+[00:22:25.282] Browser WARN    [supabase] resetClient() — reciclando cliente browser para romper deadlock
+[00:24:46.840] Browser ERROR   Failed to fetch RSC payload for http://localhost:3000/. Falling back to browser navigation. {}
+[00:27:01.081] Browser LOG     [supabase] Tab regresó tras 275s en background — reciclando cliente

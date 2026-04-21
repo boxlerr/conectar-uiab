@@ -3,7 +3,7 @@
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Briefcase, Plus, GripVertical, Trash2, Loader2, Search, CheckCircle2 } from "lucide-react";
+import { Briefcase, Loader2, Search, CheckCircle2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { saveCategories } from "../acciones";
@@ -13,7 +13,7 @@ export default function MiPerfilServiciosPage() {
   const { currentUser, loading: authLoading } = useAuth();
   const supabase = createClient();
   
-  const [allCategories, setAllCategories] = useState<any[]>([]);
+  const [allCategories, setAllCategories] = useState<{ id: string; nombre: string; categoria_padre_id: string | null }[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   
   const [fetching, setFetching] = useState(true);
@@ -26,7 +26,7 @@ export default function MiPerfilServiciosPage() {
 
     async function init() {
       // Always fetch master categories so UI doesn't look broken
-      const { data: dbCategorias } = await supabase.from('categorias').select('id, nombre').eq('activa', true).order('nombre');
+      const { data: dbCategorias } = await supabase.from('categorias').select('id, nombre, categoria_padre_id').eq('activa', true).order('nombre');
       if (dbCategorias) setAllCategories(dbCategorias);
 
       if (!currentUser?.entityId) {
@@ -80,7 +80,19 @@ export default function MiPerfilServiciosPage() {
     setSaving(false);
   };
 
-  const filteredCategories = allCategories.filter(c => c.nombre.toLowerCase().includes(search.toLowerCase()));
+  const q = search.trim().toLowerCase();
+  const filteredCategories = q
+    ? allCategories.filter(c => {
+        const padre = allCategories.find(x => x.id === c.categoria_padre_id);
+        return c.nombre.toLowerCase().includes(q) || (padre?.nombre.toLowerCase().includes(q) ?? false);
+      })
+    : allCategories;
+
+  // Root categories that have children → shown as group headers
+  const parents = filteredCategories.filter(c => !c.categoria_padre_id && filteredCategories.some(x => x.categoria_padre_id === c.id));
+  const childrenOf = (parentId: string) => filteredCategories.filter(c => c.categoria_padre_id === parentId);
+  // Root categories with no children → shown as standalone items
+  const flatCats = filteredCategories.filter(c => !c.categoria_padre_id && !filteredCategories.some(x => x.categoria_padre_id === c.id));
 
   // Render chosen details
   const chosenObjects = selectedIds.map(id => allCategories.find(c => c.id === id)).filter(Boolean);
@@ -107,26 +119,74 @@ export default function MiPerfilServiciosPage() {
               />
            </div>
 
-           <div className="max-h-[300px] overflow-y-auto pr-2 space-y-1 modern-scrollbar">
-             {filteredCategories.length > 0 ? filteredCategories.map(cat => {
-               const isSelected = selectedIds.includes(cat.id);
-               return (
-                 <div 
-                   key={cat.id} 
-                   onClick={() => handleToggleCategory(cat.id)}
-                   className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${isSelected ? 'bg-primary-50 border-primary-200 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-300'}`}
-                 >
-                   <span className={`text-sm font-medium ${isSelected ? 'text-primary-800' : 'text-slate-700'}`}>{cat.nombre}</span>
-                   {isSelected ? (
-                     <CheckCircle2 className="w-5 h-5 text-primary-600" />
-                   ) : (
-                     <div className="w-5 h-5 rounded-full border-2 border-slate-200" />
-                   )}
-                 </div>
-               )
-             }) : (
+           <div className="max-h-[360px] overflow-y-auto pr-1 modern-scrollbar">
+             {filteredCategories.length === 0 && (
                <div className="text-center py-8 text-slate-500 text-sm">No se encontraron categorías.</div>
              )}
+             {parents.map(parent => {
+               const children = childrenOf(parent.id);
+               return (
+                 <div key={parent.id} className="mb-1">
+                   <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50 rounded-md">
+                     {parent.nombre}
+                   </div>
+                   <button
+                     type="button"
+                     onClick={() => handleToggleCategory(parent.id)}
+                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all text-left ${selectedIds.includes(parent.id) ? 'bg-primary-50 text-primary-800' : 'hover:bg-slate-50 text-slate-600'}`}
+                   >
+                     <span className="text-sm flex items-center gap-2">
+                       <span className="text-slate-400 text-xs">—</span>
+                       General
+                     </span>
+                     {selectedIds.includes(parent.id) ? (
+                       <CheckCircle2 className="w-4 h-4 text-primary-600 shrink-0" />
+                     ) : (
+                       <div className="w-4 h-4 rounded-full border-2 border-slate-200 shrink-0" />
+                     )}
+                   </button>
+                   {children.map(child => {
+                     const isSelected = selectedIds.includes(child.id);
+                     return (
+                       <button
+                         key={child.id}
+                         type="button"
+                         onClick={() => handleToggleCategory(child.id)}
+                         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all text-left ${isSelected ? 'bg-primary-50 text-primary-800' : 'hover:bg-slate-50 text-slate-700'}`}
+                       >
+                         <span className="text-sm flex items-center gap-2">
+                           <span className="text-slate-300 text-xs ml-2">↳</span>
+                           {child.nombre}
+                         </span>
+                         {isSelected ? (
+                           <CheckCircle2 className="w-4 h-4 text-primary-600 shrink-0" />
+                         ) : (
+                           <div className="w-4 h-4 rounded-full border-2 border-slate-200 shrink-0" />
+                         )}
+                       </button>
+                     );
+                   })}
+                 </div>
+               );
+             })}
+             {flatCats.map(cat => {
+               const isSelected = selectedIds.includes(cat.id);
+               return (
+                 <button
+                   key={cat.id}
+                   type="button"
+                   onClick={() => handleToggleCategory(cat.id)}
+                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all text-left mb-0.5 ${isSelected ? 'bg-primary-50 text-primary-800' : 'hover:bg-slate-50 text-slate-700'}`}
+                 >
+                   <span className="text-sm font-medium">{cat.nombre}</span>
+                   {isSelected ? (
+                     <CheckCircle2 className="w-4 h-4 text-primary-600 shrink-0" />
+                   ) : (
+                     <div className="w-4 h-4 rounded-full border-2 border-slate-200 shrink-0" />
+                   )}
+                 </button>
+               );
+             })}
            </div>
         </Card>
 
@@ -138,7 +198,7 @@ export default function MiPerfilServiciosPage() {
               
               <ul className="space-y-3 mb-8">
                 {chosenObjects.length === 0 && <li className="text-sm text-slate-500 italic">No tienes servicios seleccionados.</li>}
-                {chosenObjects.map((co) => (
+                {chosenObjects.map((co) => co && (
                   <li key={co.id} className="flex items-center gap-2 text-sm bg-white/10 p-3 rounded-lg border border-white/5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     <span className="font-medium text-slate-200 line-clamp-1">{co.nombre}</span>

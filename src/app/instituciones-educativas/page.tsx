@@ -147,7 +147,7 @@ export default function InstitucionesEducativasPage() {
 
   const { scrollY } = useScroll();
   const headerY = useTransform(scrollY, [0, 600], ["0%", "35%"]);
-  const headerOpacity = useTransform(scrollY, [0, 420], [1, 0.15]);
+  const headerOpacity = useTransform(scrollY, [0, 900], [1, 1]);
 
   const fetchInstitucionesCount = useCallback(async () => {
     const supabase = createClient();

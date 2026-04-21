@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -23,6 +23,7 @@ import { SectoresGrid } from "@/components/ui/directorio/grilla-sectores";
 import { EmpresasDestacadas } from "@/components/ui/directorio/empresas-destacadas";
 import { SeccionBeneficios } from "@/components/ui/directorio/seccion-beneficios";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { useRouter } from "next/navigation";
 
 /* ─── Animations ─── */
 const fadeUp = {
@@ -58,8 +59,15 @@ const float = {
 };
 
 export default function Home() {
-  const { openAuthModal } = useAuth();
+  const { openAuthModal, currentUser, loading } = useAuth();
+  const router = useRouter();
   const heroRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!loading && currentUser) {
+      router.replace('/dashboard');
+    }
+  }, [currentUser, loading, router]);
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"],
@@ -141,20 +149,32 @@ export default function Home() {
 
               {/* CTAs */}
               <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-3 mb-10">
-                <Link
-                  href="/empresas"
-                  className="h-12 px-7 rounded-sm font-bold text-[14px] bg-white text-[#00213f] hover:bg-primary-50 shadow-xl shadow-black/15 active:scale-[0.98] transition-all inline-flex items-center justify-center"
-                >
-                  <Factory className="w-4 h-4 mr-2" />
-                  Explorar Empresas
-                </Link>
-                <Link
-                  href="/empresas?categoria=proveedores"
-                  className="h-12 px-7 rounded-sm font-semibold text-[14px] text-white/80 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/[0.06] transition-all inline-flex items-center justify-center"
-                >
-                  <Wrench className="w-4 h-4 mr-2" />
-                  Ver Proveedores
-                </Link>
+                {currentUser ? (
+                  <Link
+                    href="/dashboard"
+                    className="h-12 px-7 rounded-sm font-bold text-[14px] bg-white text-[#00213f] hover:bg-primary-50 shadow-xl shadow-black/15 active:scale-[0.98] transition-all inline-flex items-center justify-center"
+                  >
+                    <Factory className="w-4 h-4 mr-2" />
+                    Ir al Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/empresas"
+                      className="h-12 px-7 rounded-sm font-bold text-[14px] bg-white text-[#00213f] hover:bg-primary-50 shadow-xl shadow-black/15 active:scale-[0.98] transition-all inline-flex items-center justify-center"
+                    >
+                      <Factory className="w-4 h-4 mr-2" />
+                      Explorar Empresas
+                    </Link>
+                    <Link
+                      href="/empresas?categoria=proveedores"
+                      className="h-12 px-7 rounded-sm font-semibold text-[14px] text-white/80 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/[0.06] transition-all inline-flex items-center justify-center"
+                    >
+                      <Wrench className="w-4 h-4 mr-2" />
+                      Ver Proveedores
+                    </Link>
+                  </>
+                )}
               </motion.div>
 
               {/* Trust signals */}

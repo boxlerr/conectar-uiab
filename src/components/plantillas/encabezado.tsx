@@ -242,10 +242,10 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
   const [activePill, setActivePill] = useState({ left: 0, width: 0, opacity: 0 });
   const [hoverPill, setHoverPill] = useState({ left: 0, width: 0, opacity: 0 });
 
-  // Update active pill position when pathname changes
+  // Update active pill position when pathname or auth state changes
   useEffect(() => {
     if (!navContainerRef.current) return;
-    // Small timeout to ensure DOM is painted, though usually not needed
+    // Small timeout to ensure DOM is painted after navigation items re-render
     const timeout = setTimeout(() => {
       if (!navContainerRef.current) return;
       const activeEl = navContainerRef.current.querySelector('[data-active="true"]') as HTMLElement;
@@ -256,7 +256,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
       }
     }, 50);
     return () => clearTimeout(timeout);
-  }, [pathname]);
+  }, [pathname, currentUser?.id]);
 
   const handleHover = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
     setHoveredPath(path);
