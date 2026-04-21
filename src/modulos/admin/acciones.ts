@@ -5,7 +5,14 @@ import { revalidatePath } from "next/cache";
 import { NivelTarifa } from "@/tipos";
 import { crearSlug } from "@/lib/utilidades";
 import { appUrl, enviarEmail } from "@/lib/email/cliente";
-import { plantillaAprobacion, plantillaRechazo } from "@/lib/email/plantillas";
+import {
+  plantillaAprobacion,
+  plantillaRechazo,
+  plantillaResenaAprobada,
+  plantillaResenaRechazada,
+  plantillaResenaRecibida,
+} from "@/lib/email/plantillas";
+import { crearNotificacion } from "@/modulos/notificaciones/acciones";
 
 function adminClient() {
   return createClient(
@@ -194,22 +201,196 @@ export async function rechazarProveedor(proveedorId: string, motivo: string) {
 // ─── Reseñas ─────────────────────────────────────────────────────────────────
 
 export async function aprobarResena(resenaId: string) {
-  const { error } = await adminClient()
+  const db = adminClient();
+
+  const { data: resena, error: fetchError } = await db
+    .from("resenas")
+    .select(`
+      id, calificacion, comentario, creada_por,
+      empresa_autora_id, proveedor_autor_id,
+      empresa_resenada_id, proveedor_resenado_id,
+      empresa_autora:empresa_autora_id(email, razon_social, nombre_comercial),
+      proveedor_autor:proveedor_autor_id(email, nombre, apellido, nombre_comercial),
+      empresa_resenada:empresa_resenada_id(email, razon_social, nombre_comercial),
+      proveedor_resenado:proveedor_resenado_id(email, nombre, apellido)
+    `)
+    .eq("id", resenaId)
+    .single();
+
+  if (fetchError) return { error: fetchError.message };
+
+  const { error } = await db
     .from("resenas")
     .update({ estado: "aprobada", moderada_en: new Date().toISOString() })
     .eq("id", resenaId);
   if (error) return { error: error.message };
+
+  type EmpresaInfo = { email: string; razon_social: string; nombre_comercial?: string } | null;
+  type ProveedorInfo = { email: string; nombre: string; apellido?: string; nombre_comercial?: string } | null;
+  type EmpresaResenadaInfo = { email: string; razon_social: string; nombre_comercial?: string } | null;
+  type ProveedorResenadoInfo = { email: string; nombre: string; apellido?: string } | null;
+
+  // Supabase returns objects for FK joins but TS infers arrays; cast via unknown
+  const empresaAutora = (resena.empresa_autora as unknown) as EmpresaInfo;
+  const proveedorAutor = (resena.proveedor_autor as unknown) as ProveedorInfo;
+  const empresaResenada = (resena.empresa_resenada as unknown) as EmpresaResenadaInfo;
+  const proveedorResenado = (resena.proveedor_resenado as unknown) as ProveedorResenadoInfo;
+
+  const nombreAutor = empresaAutora
+    ? (empresaAutora.nombre_comercial || empresaAutora.razon_social)
+    : proveedorAutor
+    ? (proveedorAutor.nombre_comercial || [proveedorAutor.nombre, proveedorAutor.apellido].filter(Boolean).join(" "))
+    : "Autor";
+
+  const emailAutor = empresaAutora?.email ?? proveedorAutor?.email ?? null;
+
+  const nombreDestinatario = empresaResenada
+    ? (empresaResenada.nombre_comercial || empresaResenada.razon_social)
+    : proveedorResenado
+    ? [proveedorResenado.nombre, proveedorResenado.apellido].filter(Boolean).join(" ")
+    : "Destinatario";
+
+  const emailDestinatario = empresaResenada?.email ?? proveedorResenado?.email ?? null;
+
+  // URL del perfil del destinatario (para links en los emails)
+  const urlPerfilDestinatario = resena.empresa_resenada_id
+    ? `${appUrl()}/empresas/${resena.empresa_resenada_id}`
+    : resena.proveedor_resenado_id
+    ? `${appUrl()}/empresas/${resena.proveedor_resenado_id}`
+    : appUrl();
+
+  // Email al autor: su reseña fue aprobada
+  if (emailAutor) {
+    const plantilla = plantillaResenaAprobada({
+      nombreAutor,
+      nombreDestinatario,
+      calificacion: resena.calificacion,
+      comentario: resena.comentario,
+      urlPerfil: urlPerfilDestinatario,
+    });
+    await enviarEmail({ para: emailAutor, asunto: plantilla.asunto, html: plantilla.html, texto: plantilla.texto });
+  }
+
+  // Email al destinatario: recibió una nueva reseña
+  if (emailDestinatario) {
+    const plantilla = plantillaResenaRecibida({
+      tipoDestinatario: empresaResenada ? "empresa" : "particular",
+      nombreDestinatario,
+      nombreAutor,
+      calificacion: resena.calificacion,
+      comentario: resena.comentario,
+      urlPerfil: urlPerfilDestinatario,
+    });
+    await enviarEmail({ para: emailDestinatario, asunto: plantilla.asunto, html: plantilla.html, texto: plantilla.texto });
+  }
+
+  // Notificación in-web al autor (usa creada_por como perfil_id)
+  if (resena.creada_por) {
+    await crearNotificacion({
+      perfilId: resena.creada_por,
+      tipo: "resena_aprobada",
+      titulo: "Tu reseña fue publicada",
+      mensaje: `Tu reseña sobre ${nombreDestinatario} está ahora visible en el directorio.`,
+      url: urlPerfilDestinatario,
+    });
+  }
+
+  // Notificaciones in-web a los miembros del destinatario
+  if (resena.empresa_resenada_id) {
+    const { data: miembros } = await db
+      .from("miembros_empresa")
+      .select("perfil_id")
+      .eq("empresa_id", resena.empresa_resenada_id);
+    for (const m of miembros ?? []) {
+      await crearNotificacion({
+        perfilId: m.perfil_id,
+        tipo: "resena_recibida",
+        titulo: "Recibiste una nueva reseña",
+        mensaje: `${nombreAutor} publicó una reseña sobre ${nombreDestinatario} (${resena.calificacion}/5 estrellas).`,
+        url: urlPerfilDestinatario,
+      });
+    }
+  } else if (resena.proveedor_resenado_id) {
+    const { data: miembros } = await db
+      .from("miembros_proveedor")
+      .select("perfil_id")
+      .eq("proveedor_id", resena.proveedor_resenado_id);
+    for (const m of miembros ?? []) {
+      await crearNotificacion({
+        perfilId: m.perfil_id,
+        tipo: "resena_recibida",
+        titulo: "Recibiste una nueva reseña",
+        mensaje: `${nombreAutor} publicó una reseña sobre ${nombreDestinatario} (${resena.calificacion}/5 estrellas).`,
+        url: urlPerfilDestinatario,
+      });
+    }
+  }
+
   revalidatePath("/admin/resenas");
   revalidatePath("/admin");
   return { success: true };
 }
 
 export async function rechazarResena(resenaId: string, motivo: string) {
-  const { error } = await adminClient()
+  const db = adminClient();
+
+  const { data: resena, error: fetchError } = await db
+    .from("resenas")
+    .select(`
+      id, comentario, creada_por,
+      empresa_autora_id, proveedor_autor_id,
+      empresa_resenada_id, proveedor_resenado_id,
+      empresa_autora:empresa_autora_id(email, razon_social, nombre_comercial),
+      proveedor_autor:proveedor_autor_id(email, nombre, apellido, nombre_comercial),
+      empresa_resenada:empresa_resenada_id(razon_social, nombre_comercial),
+      proveedor_resenado:proveedor_resenado_id(nombre, apellido)
+    `)
+    .eq("id", resenaId)
+    .single();
+
+  if (fetchError) return { error: fetchError.message };
+
+  const { error } = await db
     .from("resenas")
     .update({ estado: "rechazada", motivo_moderacion: motivo, moderada_en: new Date().toISOString() })
     .eq("id", resenaId);
   if (error) return { error: error.message };
+
+  const empresaAutora = (resena.empresa_autora as unknown) as { email: string; razon_social: string; nombre_comercial?: string } | null;
+  const proveedorAutor = (resena.proveedor_autor as unknown) as { email: string; nombre: string; apellido?: string; nombre_comercial?: string } | null;
+  const empresaResenada = (resena.empresa_resenada as unknown) as { razon_social: string; nombre_comercial?: string } | null;
+  const proveedorResenado = (resena.proveedor_resenado as unknown) as { nombre: string; apellido?: string } | null;
+
+  const nombreAutor = empresaAutora
+    ? (empresaAutora.nombre_comercial || empresaAutora.razon_social)
+    : proveedorAutor
+    ? (proveedorAutor.nombre_comercial || [proveedorAutor.nombre, proveedorAutor.apellido].filter(Boolean).join(" "))
+    : "Autor";
+
+  const emailAutor = empresaAutora?.email ?? proveedorAutor?.email ?? null;
+
+  const nombreDestinatario = empresaResenada
+    ? (empresaResenada.nombre_comercial || empresaResenada.razon_social)
+    : proveedorResenado
+    ? [proveedorResenado.nombre, proveedorResenado.apellido].filter(Boolean).join(" ")
+    : "Destinatario";
+
+  // Email al autor: su reseña fue rechazada
+  if (emailAutor) {
+    const plantilla = plantillaResenaRechazada({ nombreAutor, nombreDestinatario, motivo });
+    await enviarEmail({ para: emailAutor, asunto: plantilla.asunto, html: plantilla.html, texto: plantilla.texto });
+  }
+
+  // Notificación in-web al autor
+  if (resena.creada_por) {
+    await crearNotificacion({
+      perfilId: resena.creada_por,
+      tipo: "resena_rechazada",
+      titulo: "Tu reseña no fue publicada",
+      mensaje: `Tu reseña sobre ${nombreDestinatario} no pudo publicarse. Motivo: ${motivo}`,
+    });
+  }
+
   revalidatePath("/admin/resenas");
   revalidatePath("/admin");
   return { success: true };

@@ -324,6 +324,166 @@ export function plantillaAprobacion(d: DatosAprobacion): {
   };
 }
 
+export interface DatosResenaAprobada {
+  nombreAutor: string;
+  nombreDestinatario: string;
+  calificacion: number;
+  comentario?: string | null;
+  urlPerfil: string;
+}
+
+/** Correo al autor de la reseña: fue aprobada y publicada. */
+export function plantillaResenaAprobada(d: DatosResenaAprobada): {
+  asunto: string;
+  html: string;
+  texto: string;
+} {
+  const estrellas = "★".repeat(d.calificacion) + "☆".repeat(5 - d.calificacion);
+  const bloqueCometario = d.comentario
+    ? `<div style="margin: 0 0 16px 0; padding: 16px 18px; background-color: ${BRAND.surfaceLow}; border-radius: 4px; border-left: 3px solid ${BRAND.primary};">
+        <div style="font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; font-size: 13px; line-height: 1.6; color: ${BRAND.onSurface}; font-style: italic;">
+          "${escapeText(d.comentario)}"
+        </div>
+      </div>`
+    : "";
+
+  const cuerpo = `
+    <p style="margin: 0 0 16px 0;">Hola <strong>${escapeText(d.nombreAutor)}</strong>, tu reseña sobre <strong>${escapeText(d.nombreDestinatario)}</strong> fue revisada y aprobada. Ya está publicada en el directorio de <strong>Conectar UIAB</strong>.</p>
+
+    ${tarjetaDatos([
+      { etiqueta: "Destinatario", valor: d.nombreDestinatario },
+      { etiqueta: "Calificación", valor: `${estrellas} (${d.calificacion}/5)` },
+    ])}
+
+    ${bloqueCometario}
+
+    <p style="margin: 0;">Podés ver la reseña publicada en el perfil de <strong>${escapeText(d.nombreDestinatario)}</strong>.</p>
+  `;
+
+  return {
+    asunto: `Tu reseña sobre ${d.nombreDestinatario} fue publicada — Conectar UIAB`,
+    html: renderEmailBase({
+      preheader: `Tu reseña sobre ${d.nombreDestinatario} ya está publicada en el directorio.`,
+      titulo: "Tu reseña fue publicada",
+      intro: "La reseña que enviaste pasó la revisión y ya es visible en el directorio.",
+      cuerpo,
+      cta: { etiqueta: "Ver perfil", href: d.urlPerfil },
+    }),
+    texto: [
+      `Tu reseña sobre ${d.nombreDestinatario} fue publicada`,
+      "",
+      `Hola ${d.nombreAutor},`,
+      `Tu reseña sobre ${d.nombreDestinatario} (${estrellas}) fue aprobada y ya está publicada.`,
+      d.comentario ? `Comentario: "${d.comentario}"` : "",
+      "",
+      `Ver perfil: ${d.urlPerfil}`,
+    ].filter(Boolean).join("\n"),
+  };
+}
+
+export interface DatosResenaRechazada {
+  nombreAutor: string;
+  nombreDestinatario: string;
+  motivo: string;
+}
+
+/** Correo al autor de la reseña: no fue aprobada. */
+export function plantillaResenaRechazada(d: DatosResenaRechazada): {
+  asunto: string;
+  html: string;
+  texto: string;
+} {
+  const cuerpo = `
+    <p style="margin: 0 0 16px 0;">Hola <strong>${escapeText(d.nombreAutor)}</strong>, revisamos la reseña que enviaste sobre <strong>${escapeText(d.nombreDestinatario)}</strong> y, por ahora, no pudimos publicarla.</p>
+
+    <div style="margin: 0 0 16px 0; padding: 16px 18px; background-color: ${BRAND.surfaceLow}; border-radius: 4px;">
+      <div style="font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: ${BRAND.onSurfaceMuted}; margin-bottom: 6px;">
+        Motivo
+      </div>
+      <div style="font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.6; color: ${BRAND.onSurface};">
+        ${escapeText(d.motivo)}
+      </div>
+    </div>
+
+    <p style="margin: 0;">Si creés que hubo un error, respondé este correo para que lo revisemos.</p>
+  `;
+
+  return {
+    asunto: `Tu reseña sobre ${d.nombreDestinatario} no fue publicada — Conectar UIAB`,
+    html: renderEmailBase({
+      preheader: `Tu reseña sobre ${d.nombreDestinatario} no pasó la revisión.`,
+      titulo: "Tu reseña no fue publicada",
+      intro: "Revisamos los datos que nos enviaste y queremos compartirte el resultado.",
+      cuerpo,
+    }),
+    texto: [
+      `Tu reseña sobre ${d.nombreDestinatario} no fue publicada`,
+      "",
+      `Hola ${d.nombreAutor},`,
+      "No pudimos publicar tu reseña por el siguiente motivo:",
+      d.motivo,
+    ].join("\n"),
+  };
+}
+
+export interface DatosResenaRecibida {
+  tipoDestinatario: TipoEntidad;
+  nombreDestinatario: string;
+  nombreAutor: string;
+  calificacion: number;
+  comentario?: string | null;
+  urlPerfil: string;
+}
+
+/** Correo a la entidad que recibió una reseña: nueva reseña publicada sobre ellos. */
+export function plantillaResenaRecibida(d: DatosResenaRecibida): {
+  asunto: string;
+  html: string;
+  texto: string;
+} {
+  const estrellas = "★".repeat(d.calificacion) + "☆".repeat(5 - d.calificacion);
+  const saludo = d.tipoDestinatario === "empresa" ? "Bienvenida" : "Bienvenida";
+  const bloqueCometario = d.comentario
+    ? `<div style="margin: 0 0 16px 0; padding: 16px 18px; background-color: ${BRAND.surfaceLow}; border-radius: 4px; border-left: 3px solid ${BRAND.primary};">
+        <div style="font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; font-size: 13px; line-height: 1.6; color: ${BRAND.onSurface}; font-style: italic;">
+          "${escapeText(d.comentario)}"
+        </div>
+      </div>`
+    : "";
+
+  const cuerpo = `
+    <p style="margin: 0 0 16px 0;"><strong>${escapeText(d.nombreAutor)}</strong> publicó una nueva reseña sobre <strong>${escapeText(d.nombreDestinatario)}</strong> en <strong>Conectar UIAB</strong>.</p>
+
+    ${tarjetaDatos([
+      { etiqueta: "Autor", valor: d.nombreAutor },
+      { etiqueta: "Calificación", valor: `${estrellas} (${d.calificacion}/5)` },
+    ])}
+
+    ${bloqueCometario}
+
+    <p style="margin: 0;">Podés ver la reseña en tu perfil del directorio.</p>
+  `;
+
+  return {
+    asunto: `Nueva reseña recibida de ${d.nombreAutor} — Conectar UIAB`,
+    html: renderEmailBase({
+      preheader: `${d.nombreAutor} publicó una reseña sobre ${d.nombreDestinatario}.`,
+      titulo: "Recibiste una nueva reseña",
+      intro: "Una reseña sobre tu organización fue publicada en el directorio.",
+      cuerpo,
+      cta: { etiqueta: "Ver mi perfil", href: d.urlPerfil },
+    }),
+    texto: [
+      `Nueva reseña recibida de ${d.nombreAutor}`,
+      "",
+      `${d.nombreAutor} publicó una reseña sobre ${d.nombreDestinatario}: ${estrellas}`,
+      d.comentario ? `"${d.comentario}"` : "",
+      "",
+      `Ver perfil: ${d.urlPerfil}`,
+    ].filter(Boolean).join("\n"),
+  };
+}
+
 export interface DatosRechazo {
   tipo: TipoEntidad;
   nombre: string;

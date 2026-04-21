@@ -10,6 +10,7 @@ import { User, Shield, Building, Wrench, Menu, X, Mail, Info, ChevronRight, LogO
 import { cn } from "@/lib/utilidades";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import type { User as UserType } from "@/tipos";
+import { CampanaNotificaciones } from "@/components/ui/campana-notificaciones";
 
 interface HeaderProps {
   currentUser: UserType | null;
@@ -501,8 +502,8 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
               className="hidden md:flex items-center gap-4"
             >
               {currentUser ? (
-                <div className="relative" onMouseLeave={() => setHoveredPath(null)}> 
-                  {/* Keep the generic onMouseLeave to close custom menus if needed, or use a specific state */}
+                <div className="flex items-center gap-2" onMouseLeave={() => setHoveredPath(null)}>
+                  {currentUser.role !== "admin" && <CampanaNotificaciones />}
                   <ProfileDropdownMenu currentUser={currentUser} onLogout={onLogout} />
                 </div>
               ) : (

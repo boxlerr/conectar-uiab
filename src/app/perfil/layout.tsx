@@ -54,7 +54,7 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
     { name: "Productos y Servicios", href: "/perfil/productos-servicios", icon: PackageSearch },
     { name: "Rubros y Especialidades", href: "/perfil/servicios", icon: Briefcase },
     { name: "Etiquetas de Match", href: "/perfil/etiquetas", icon: Tag },
-    { name: "Bandeja de Solicitudes", href: "/perfil/solicitudes", icon: Inbox },
+    { name: "Bandeja de Entrada", href: "/perfil/solicitudes", icon: Inbox },
     { name: "Mi Suscripción", href: "/perfil/suscripcion", icon: CreditCard },
   ];
 
