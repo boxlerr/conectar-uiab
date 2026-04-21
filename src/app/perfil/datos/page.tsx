@@ -35,6 +35,7 @@ export default function MiPerfilDatosPage() {
     nombre_logo: "",
     mime_logo: "",
     tamano_logo_bytes: 0 as number | null,
+    anios_experiencia: "" as string,
   });
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string>("");
 
@@ -70,6 +71,7 @@ export default function MiPerfilDatosPage() {
           nombre_logo: data.nombre_logo || "",
           mime_logo: data.mime_logo || "",
           tamano_logo_bytes: data.tamano_logo_bytes || 0,
+          anios_experiencia: data.anios_experiencia != null ? String(data.anios_experiencia) : "",
         });
         if (data.bucket_logo && data.ruta_logo) {
           const { data: urlData } = supabase.storage.from(data.bucket_logo).getPublicUrl(data.ruta_logo);
@@ -162,6 +164,8 @@ export default function MiPerfilDatosPage() {
         const [primerNombre, ...restoNombre] = (currentUser.name || "").split(" ");
         (dataToSave as any).nombre = primerNombre || "";
         (dataToSave as any).apellido = restoNombre.join(" ") || null;
+        const expNum = parseInt(formData.anios_experiencia, 10);
+        (dataToSave as any).anios_experiencia = Number.isFinite(expNum) && expNum >= 0 ? expNum : null;
       }
 
       const result = await updateCompanyOrProvider(currentUser.role as any, currentUser.entityId, currentUser.id, dataToSave);
@@ -257,6 +261,21 @@ export default function MiPerfilDatosPage() {
                 placeholder="Nombre que usas comercialmente"
               />
             </div>
+
+            {currentUser.role !== "company" && (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700">Años de Experiencia</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={99}
+                  value={formData.anios_experiencia}
+                  onChange={e => setFormData({ ...formData, anios_experiencia: e.target.value })}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                  placeholder="Ej: 15"
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><Mail className="w-4 h-4 text-slate-400" /> Correo Público</label>

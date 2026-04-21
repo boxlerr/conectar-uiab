@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
 import { CatalogoPublico, type CatalogoItem } from "@/components/ui/directorio/catalogo-publico";
-import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight } from "lucide-react";
+import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock } from "lucide-react";
 import Image from "next/image";
 
 // Fetch items publicados + imagenes y mapea al shape del componente publico.
@@ -115,6 +115,7 @@ export default async function EmpresaProfilePage({
         localidad,
         provincia,
         descripcion,
+        anios_experiencia,
         bucket_logo,
         ruta_logo,
         proveedores_categorias (
@@ -631,6 +632,18 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
                     <p className="text-slate-700 font-semibold leading-relaxed">{proveedor.ubicacion}</p>
                   </div>
                 </li>
+
+                {provDb.anios_experiencia != null && (
+                  <li className="flex items-start">
+                    <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 mr-4 border border-slate-100">
+                      <Clock className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Experiencia</p>
+                      <p className="text-slate-700 font-semibold leading-relaxed">{provDb.anios_experiencia} años</p>
+                    </div>
+                  </li>
+                )}
 
                 <li className="flex items-start">
                   <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 mr-4 border border-slate-100">

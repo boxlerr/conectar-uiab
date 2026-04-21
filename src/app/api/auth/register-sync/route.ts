@@ -108,12 +108,20 @@ export async function POST(request: Request) {
         }
   
       } else if (role === 'provider') {
+        const parsedExperiencia = (() => {
+          if (!experience) return null;
+          const m = String(experience).match(/\d+/);
+          if (!m) return null;
+          const n = parseInt(m[0], 10);
+          return Number.isFinite(n) && n >= 0 ? n : null;
+        })();
+
         const { data: prov, error: provError } = await supabaseAdmin
           .from('proveedores')
           .insert({
             nombre: nombre,
             apellido: apellido,
-            razon_social: razonSocial || null, // Optional for independent pros
+            razon_social: razonSocial || null,
             nombre_comercial: nombreComercial || null,
             cuit: cuit,
             estado: estadoEntidadProvider,
@@ -125,6 +133,7 @@ export async function POST(request: Request) {
             localidad: localidad,
             direccion: direccion,
             descripcion: descripcion,
+            anios_experiencia: parsedExperiencia,
           })
           .select()
           .single()
