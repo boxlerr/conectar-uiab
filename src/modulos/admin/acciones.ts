@@ -152,6 +152,34 @@ export async function actualizarCantidadEmpleados(empresaId: string, cantidad: n
   return { success: true };
 }
 
+export async function actualizarSuscripcionParticular(
+  proveedorId: string,
+  datos: { estado?: string; monto?: number }
+) {
+  const db = adminClient();
+
+  const { data: sus } = await db
+    .from("suscripciones")
+    .select("id")
+    .eq("proveedor_id", proveedorId)
+    .order("creado_en", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!sus) return { error: "No existe suscripción para este particular" };
+
+  const update: Record<string, unknown> = { actualizado_en: new Date().toISOString() };
+  if (datos.estado !== undefined) update.estado = datos.estado;
+  if (datos.monto !== undefined) update.monto = datos.monto;
+
+  const { error } = await db.from("suscripciones").update(update).eq("id", sus.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/suscripciones");
+  revalidatePath("/perfil/suscripcion");
+  return { success: true };
+}
+
 // ─── Proveedores ─────────────────────────────────────────────────────────────
 
 export async function aprobarProveedor(proveedorId: string) {

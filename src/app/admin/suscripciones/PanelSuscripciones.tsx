@@ -24,6 +24,7 @@ import {
   asignarTarifa,
   actualizarCantidadEmpleados,
   actualizarPrecioTarifa,
+  actualizarSuscripcionParticular,
 } from "@/modulos/admin/acciones";
 import { NivelTarifa } from "@/tipos";
 
@@ -39,6 +40,14 @@ type Empresa = {
   logo_url?: string | null;
 };
 
+type SuscripcionParticular = {
+  id: string;
+  estado: string | null;
+  monto: number | null;
+  metodo_pago: string | null;
+  proximo_cobro_en: string | null;
+};
+
 type Proveedor = {
   id: string;
   nombre: string;
@@ -46,6 +55,7 @@ type Proveedor = {
   email: string;
   estado: string;
   creado_en: string;
+  suscripcion?: SuscripcionParticular | null;
 };
 
 type Pago = {
@@ -121,6 +131,9 @@ export function PanelSuscripciones({
   const [editandoPrecio, setEditandoPrecio] = useState<number | null>(null);
   const [precioDraft, setPrecioDraft] = useState<string>("");
   const [mostrarModalPagoManual, setMostrarModalPagoManual] = useState(false);
+  const [editandoSusParticular, setEditandoSusParticular] = useState<string | null>(null);
+  const [montoProvDraft, setMontoProvDraft] = useState<string>("");
+  const [estadoProvDraft, setEstadoProvDraft] = useState<string>("");
 
   const [mesSeleccionado, setMesSeleccionado] = useState<string>(() => {
     const d = new Date();
@@ -173,8 +186,24 @@ export function PanelSuscripciones({
     refresh();
   }
 
+  async function handleGuardarSusParticular(proveedorId: string) {
+    const monto = parseInt(montoProvDraft.replace(/\D/g, ""), 10);
+    const datos: { estado?: string; monto?: number } = {};
+    if (estadoProvDraft) datos.estado = estadoProvDraft;
+    if (Number.isFinite(monto) && monto > 0) datos.monto = monto;
+    await actualizarSuscripcionParticular(proveedorId, datos);
+    setEditandoSusParticular(null);
+    setMontoProvDraft("");
+    setEstadoProvDraft("");
+    refresh();
+  }
+
   // Métricas
-  const ingresosMensual = empresas.reduce((acc, e) => acc + montoMensualEmpresa(e), 0);
+  const ingresosParticulares = proveedores.reduce(
+    (acc, p) => acc + (Number(p.suscripcion?.monto) || 0),
+    0
+  );
+  const ingresosMensual = empresas.reduce((acc, e) => acc + montoMensualEmpresa(e), 0) + ingresosParticulares;
   const ingresosAnuales = ingresosMensual * 12;
   const sinTarifa = empresas.filter((e) => !e.tarifa).length;
   const conTarifa = empresas.filter((e) => e.tarifa).length;
@@ -789,45 +818,167 @@ export function PanelSuscripciones({
                     Particular
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Email
+                    Monto mensual
+                  </th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    Estado
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Registrado
+                  </th>
+                  <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    Acciones
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white">
                 {proveedoresFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-6 py-12 text-center text-slate-500">
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
                       No se encontraron particulares.
                     </td>
                   </tr>
                 ) : (
-                  proveedoresFiltrados.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center">
-                            <Wrench className="w-4 h-4 text-emerald-600" />
+                  proveedoresFiltrados.map((p) => {
+                    const sus = p.suscripcion;
+                    const isEditing = editandoSusParticular === p.id;
+                    const estadoActual = sus?.estado ?? null;
+                    const montoActual = sus?.monto ? Number(sus.monto) : null;
+
+                    const estadoChip: Record<string, string> = {
+                      activa: "bg-emerald-50 text-emerald-700",
+                      pendiente_pago: "bg-amber-50 text-amber-700",
+                      en_mora: "bg-orange-50 text-orange-700",
+                      suspendida: "bg-rose-50 text-rose-700",
+                      cancelada: "bg-slate-100 text-slate-500",
+                    };
+                    const estadoLabel: Record<string, string> = {
+                      activa: "Activa",
+                      pendiente_pago: "Pendiente",
+                      en_mora: "En mora",
+                      suspendida: "Suspendida",
+                      cancelada: "Cancelada",
+                    };
+
+                    return (
+                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors align-middle">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center">
+                              <Wrench className="w-4 h-4 text-emerald-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900 text-sm">
+                                {p.nombre} {p.apellido ?? ""}
+                              </p>
+                              <p className="text-xs text-slate-500">{p.email}</p>
+                            </div>
                           </div>
-                          <p className="font-semibold text-slate-900 text-sm">
-                            {p.nombre} {p.apellido ?? ""}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                        {p.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500 tabular-nums">
-                        {new Date(p.creado_en).toLocaleDateString("es-AR", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm font-bold text-slate-700">$</span>
+                              <Input
+                                type="text"
+                                inputMode="numeric"
+                                value={montoProvDraft}
+                                onChange={(ev) =>
+                                  setMontoProvDraft(ev.target.value.replace(/\D/g, ""))
+                                }
+                                className="h-8 w-28 text-sm"
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-sm font-semibold text-slate-700 tabular-nums">
+                              {montoActual != null ? (
+                                formatCurrency(montoActual)
+                              ) : (
+                                <span className="text-slate-400 italic">sin dato</span>
+                              )}
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {isEditing ? (
+                            <select
+                              value={estadoProvDraft}
+                              onChange={(ev) => setEstadoProvDraft(ev.target.value)}
+                              className="h-8 px-2 rounded-md bg-slate-50 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            >
+                              <option value="activa">Activa</option>
+                              <option value="pendiente_pago">Pendiente de pago</option>
+                              <option value="en_mora">En mora</option>
+                              <option value="suspendida">Suspendida</option>
+                              <option value="cancelada">Cancelada</option>
+                            </select>
+                          ) : estadoActual ? (
+                            <span
+                              className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${
+                                estadoChip[estadoActual] ?? "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {estadoLabel[estadoActual] ?? estadoActual}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">sin suscripción</span>
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500 tabular-nums">
+                          {new Date(p.creado_en).toLocaleDateString("es-AR", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          {isEditing ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleGuardarSusParticular(p.id)}
+                                disabled={isPending || !sus}
+                                className="h-8"
+                              >
+                                <Check className="w-4 h-4 mr-1" />
+                                Guardar
+                              </Button>
+                              <button
+                                onClick={() => {
+                                  setEditandoSusParticular(null);
+                                  setMontoProvDraft("");
+                                  setEstadoProvDraft("");
+                                }}
+                                className="text-xs text-slate-500 hover:text-slate-700 px-2 h-8"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                if (!sus) return;
+                                setEditandoSusParticular(p.id);
+                                setMontoProvDraft(sus.monto != null ? String(sus.monto) : "");
+                                setEstadoProvDraft(sus.estado ?? "activa");
+                              }}
+                              disabled={!sus}
+                              title={!sus ? "Sin suscripción registrada" : "Editar suscripción"}
+                              className="flex items-center gap-1 text-xs text-slate-500 hover:text-primary-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              Editar
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

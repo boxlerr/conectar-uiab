@@ -12,6 +12,7 @@ async function getSuscripciones() {
     { data: proveedores, error: errProveedores },
     { data: pagos, error: errPagos },
     { data: tarifas, error: errTarifas },
+    { data: susParticulares },
   ] = await Promise.all([
     supabase
       .from("empresas")
@@ -32,12 +33,25 @@ async function getSuscripciones() {
       .from("tarifas_precios")
       .select("nivel, precio_mensual, vigente_desde, vigente_hasta, actualizado_en")
       .order("nivel", { ascending: true }),
+    supabase
+      .from("suscripciones")
+      .select("id, proveedor_id, estado, monto, metodo_pago, proximo_cobro_en")
+      .not("proveedor_id", "is", null)
+      .order("creado_en", { ascending: false }),
   ]);
 
   if (errEmpresas) throw new Error(errEmpresas.message);
   if (errProveedores) throw new Error(errProveedores.message);
   if (errPagos) throw new Error(errPagos.message);
   if (errTarifas) throw new Error(errTarifas.message);
+
+  // Map: proveedor_id → most recent suscripcion
+  const susPorProveedor: Record<string, any> = {};
+  for (const s of susParticulares ?? []) {
+    if (s.proveedor_id && !susPorProveedor[s.proveedor_id]) {
+      susPorProveedor[s.proveedor_id] = s;
+    }
+  }
 
   const empresasConLogo = (empresas ?? []).map((e: any) => {
     let logo_url: string | null = null;
@@ -47,9 +61,14 @@ async function getSuscripciones() {
     return { ...e, logo_url };
   });
 
+  const proveedoresConSus = (proveedores ?? []).map((p: any) => ({
+    ...p,
+    suscripcion: susPorProveedor[p.id] ?? null,
+  }));
+
   return {
     empresas: empresasConLogo,
-    proveedores: proveedores ?? [],
+    proveedores: proveedoresConSus,
     pagos: pagos ?? [],
     tarifas: tarifas ?? [],
   };
