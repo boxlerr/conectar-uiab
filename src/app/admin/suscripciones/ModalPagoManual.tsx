@@ -8,11 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Loader2, X, Banknote } from "lucide-react";
 import { toast } from "sonner";
 
+import { TARIFA_PRECIO_MENSUAL_FALLBACK, PRECIO_PARTICULAR_MENSUAL } from "@/lib/mercadopago/suscripciones";
+
 type EmpresaLite = { id: string; razon_social: string; tarifa?: number | null };
 type ProveedorLite = { id: string; nombre: string; apellido: string | null };
 
-const TARIFA_MONTOS_FALLBACK: Record<number, number> = { 1: 108_000, 2: 216_000, 3: 360_000 };
-const PARTICULAR_MENSUAL = 5_000;
 
 export function ModalPagoManual({
   empresas,
@@ -34,15 +34,15 @@ export function ModalPagoManual({
   const [nota, setNota] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const precios = preciosPorNivel ?? TARIFA_MONTOS_FALLBACK;
+  const precios = preciosPorNivel ?? TARIFA_PRECIO_MENSUAL_FALLBACK;
 
   function autoMonto(id: string, t: "empresa" | "proveedor") {
     if (t === "proveedor") {
-      setMonto(String(PARTICULAR_MENSUAL));
+      setMonto(String(PRECIO_PARTICULAR_MENSUAL));
       return;
     }
     const emp = empresas.find((e) => e.id === id);
-    if (emp?.tarifa) setMonto(String(precios[emp.tarifa] ?? TARIFA_MONTOS_FALLBACK[emp.tarifa] ?? 0));
+    if (emp?.tarifa) setMonto(String(precios[emp.tarifa] ?? TARIFA_PRECIO_MENSUAL_FALLBACK[emp.tarifa] ?? 0));
   }
 
   async function onSubmit(e: React.FormEvent) {

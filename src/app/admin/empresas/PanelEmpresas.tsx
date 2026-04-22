@@ -16,10 +16,10 @@ import {
 
 const NIVELES_TARIFA: NivelTarifa[] = [1, 2, 3];
 
-const TARIFAS: Record<NivelTarifa, { nombre: string; precioAnual: number }> = {
-  1: { nombre: "Tarifa 1", precioAnual: 108_000 },
-  2: { nombre: "Tarifa 2", precioAnual: 216_000 },
-  3: { nombre: "Tarifa 3", precioAnual: 360_000 },
+const TARIFAS: Record<NivelTarifa, { nombre: string }> = {
+  1: { nombre: "Tarifa 1" },
+  2: { nombre: "Tarifa 2" },
+  3: { nombre: "Tarifa 3" },
 };
 
 function formatearPrecioTarifa(precioAnual: number): string {
@@ -41,6 +41,7 @@ type Empresa = {
   tarifa: NivelTarifa | null;
   creado_en: string;
   aprobada_en: string | null;
+  estado_suscripcion?: string | null;
 };
 
 type Filtro = "all" | "pendiente_revision" | "aprobada" | "rechazada";
@@ -54,7 +55,7 @@ const ESTADO_BADGE: Record<string, { label: string; className: string }> = {
   oculta:              { label: "Oculta", className: "bg-slate-100 text-slate-500" },
 };
 
-export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
+export function PanelEmpresas({ empresas, preciosDb }: { empresas: Empresa[], preciosDb: Record<number, number> }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [filtro, setFiltro] = useState<Filtro>("pendiente_revision");
@@ -166,7 +167,7 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badge.className}`}>
                     {badge.label}
                   </span>
-                  {empresa.tarifa && <BadgeTarifa tarifa={empresa.tarifa} mostrarPrecio />}
+                  {empresa.tarifa && <BadgeTarifa tarifa={empresa.tarifa} mostrarPrecio precioMensual={preciosDb[empresa.tarifa] ? preciosDb[empresa.tarifa] : null} />}
                 </div>
                 <p className="text-sm text-slate-500 truncate">
                   {empresa.cuit && <span className="mr-3">CUIT: {empresa.cuit}</span>}
@@ -259,6 +260,7 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
                   {NIVELES_TARIFA.map((nivel) => {
                     const config = TARIFAS[nivel];
                     const activa = seleccionada.tarifa === nivel;
+                    const precioMensual = preciosDb[nivel] ? preciosDb[nivel] : 0;
                     return (
                       <button key={nivel} disabled={isPending}
                         onClick={() => handleTarifa(seleccionada.id, nivel)}
@@ -266,7 +268,7 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
                           activa ? "border-primary-500 bg-primary-50 shadow-sm" : "border-slate-200 bg-white hover:border-slate-300"
                         }`}>
                         <p className={`text-sm font-bold mb-0.5 ${activa ? "text-primary-700" : "text-slate-700"}`}>{config.nombre}</p>
-                        <p className={`text-xs ${activa ? "text-primary-600" : "text-slate-400"}`}>{formatearPrecioTarifa(config.precioAnual)}/año</p>
+                        <p className={`text-xs ${activa ? "text-primary-600" : "text-slate-400"}`}>{formatearPrecioTarifa(precioMensual)}/mes</p>
                       </button>
                     );
                   })}
@@ -286,15 +288,24 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
 
             {/* Footer actions */}
             {seleccionada.estado === "pendiente_revision" && (
-              <div className="sticky bottom-0 bg-white/95 border-t border-slate-100 p-5 flex gap-3">
-                <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isPending}
-                  onClick={() => handleAprobar(seleccionada.id)}>
-                  <Check className="w-4 h-4 mr-2" /> Aprobar Empresa
-                </Button>
-                <Button variant="outline" className="flex-1 text-rose-600 border-rose-200 hover:bg-rose-50" disabled={isPending}
-                  onClick={() => setModalRechazo({ id: seleccionada.id, nombre: seleccionada.razon_social })}>
-                  <X className="w-4 h-4 mr-2" /> Rechazar
-                </Button>
+              <div className="sticky bottom-0 bg-white/95 border-t border-slate-100 p-5 flex flex-col gap-3">
+                {(!seleccionada.estado_suscripcion || seleccionada.estado_suscripcion !== 'activa') && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3 py-2 rounded-lg text-center">
+                    ⚠️ No se puede aprobar: la empresa aún no ha pagado su suscripción.
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <Button 
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50" 
+                    disabled={isPending || seleccionada.estado_suscripcion !== 'activa'}
+                    onClick={() => handleAprobar(seleccionada.id)}>
+                    <Check className="w-4 h-4 mr-2" /> Aprobar Empresa
+                  </Button>
+                  <Button variant="outline" className="flex-1 text-rose-600 border-rose-200 hover:bg-rose-50" disabled={isPending}
+                    onClick={() => setModalRechazo({ id: seleccionada.id, nombre: seleccionada.razon_social })}>
+                    <X className="w-4 h-4 mr-2" /> Rechazar
+                  </Button>
+                </div>
               </div>
             )}
           </div>

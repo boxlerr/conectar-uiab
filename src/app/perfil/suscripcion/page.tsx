@@ -46,6 +46,7 @@ export default function MiPerfilSuscripcionPage() {
   const [loading, setLoading] = useState(true);
   const [cancelando, setCancelando] = useState(false);
   const [iniciandoPago, setIniciandoPago] = useState(false);
+  const [mostrarModalCancelacion, setMostrarModalCancelacion] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -134,7 +135,6 @@ export default function MiPerfilSuscripcionPage() {
   }
 
   async function cancelarSuscripcion() {
-    if (!confirm('¿Cancelar tu suscripción? Mantenés el acceso hasta el fin del período ya pagado.')) return;
     setCancelando(true);
     try {
       const res = await fetch('/api/mercadopago/cancelar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
@@ -147,6 +147,7 @@ export default function MiPerfilSuscripcionPage() {
       toast.error(err.message || 'Error inesperado');
     } finally {
       setCancelando(false);
+      setMostrarModalCancelacion(false);
     }
   }
 
@@ -162,6 +163,41 @@ export default function MiPerfilSuscripcionPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {mostrarModalCancelacion && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-0">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => !cancelando && setMostrarModalCancelacion(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-8 animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center mb-5 border border-rose-100">
+              <AlertCircle className="w-6 h-6 text-rose-600" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">¿Cancelar suscripción?</h3>
+            <p className="text-slate-500 mb-6 text-sm leading-relaxed">
+              Mantenés todos los beneficios hasta el final del período ya pagado. 
+              Después de eso, tu perfil dejará de ser público y perderás visibilidad en el directorio industrial.
+            </p>
+            
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+              <Button 
+                variant="ghost" 
+                className="w-full sm:w-auto text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium" 
+                onClick={() => setMostrarModalCancelacion(false)}
+                disabled={cancelando}
+              >
+                Volver atrás
+              </Button>
+              <Button 
+                variant="destructive" 
+                className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-sm shadow-rose-600/20" 
+                onClick={cancelarSuscripcion}
+                disabled={cancelando}
+              >
+                {cancelando ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Cancelando...</> : 'Sí, cancelar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Plan y Suscripción</h1>
         <p className="text-slate-500 mt-1">Gestiona tus pagos y tu membresía activa en UIAB Conecta.</p>
@@ -321,7 +357,7 @@ export default function MiPerfilSuscripcionPage() {
              <Button
                variant="ghost"
                className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-semibold h-10 border border-transparent hover:border-rose-100"
-               onClick={cancelarSuscripcion}
+               onClick={() => setMostrarModalCancelacion(true)}
                disabled={cancelando || !suscripcion || suscripcion.estado === 'cancelada'}
              >
                {cancelando ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Cancelando...</> : 'Cancelar Suscripción'}

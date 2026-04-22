@@ -166,14 +166,21 @@ export async function actualizarSuscripcionParticular(
     .limit(1)
     .maybeSingle();
 
-  if (!sus) return { error: "No existe suscripción para este particular" };
+  if (!sus) {
+    const { error: insertError } = await db.from("suscripciones").insert({
+      proveedor_id: proveedorId,
+      estado: datos.estado ?? "activa",
+      monto: datos.monto ?? 0,
+    });
+    if (insertError) return { error: insertError.message };
+  } else {
+    const update: Record<string, unknown> = { actualizado_en: new Date().toISOString() };
+    if (datos.estado !== undefined) update.estado = datos.estado;
+    if (datos.monto !== undefined) update.monto = datos.monto;
 
-  const update: Record<string, unknown> = { actualizado_en: new Date().toISOString() };
-  if (datos.estado !== undefined) update.estado = datos.estado;
-  if (datos.monto !== undefined) update.monto = datos.monto;
-
-  const { error } = await db.from("suscripciones").update(update).eq("id", sus.id);
-  if (error) return { error: error.message };
+    const { error } = await db.from("suscripciones").update(update).eq("id", sus.id);
+    if (error) return { error: error.message };
+  }
 
   revalidatePath("/admin/suscripciones");
   revalidatePath("/perfil/suscripcion");

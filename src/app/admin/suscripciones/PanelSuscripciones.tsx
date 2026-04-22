@@ -942,7 +942,7 @@ export function PanelSuscripciones({
                               <Button
                                 size="sm"
                                 onClick={() => handleGuardarSusParticular(p.id)}
-                                disabled={isPending || !sus}
+                                disabled={isPending}
                                 className="h-8"
                               >
                                 <Check className="w-4 h-4 mr-1" />
@@ -962,17 +962,15 @@ export function PanelSuscripciones({
                           ) : (
                             <button
                               onClick={() => {
-                                if (!sus) return;
                                 setEditandoSusParticular(p.id);
-                                setMontoProvDraft(sus.monto != null ? String(sus.monto) : "");
-                                setEstadoProvDraft(sus.estado ?? "activa");
+                                setMontoProvDraft(sus?.monto != null ? String(sus.monto) : "");
+                                setEstadoProvDraft(sus?.estado ?? "activa");
                               }}
-                              disabled={!sus}
-                              title={!sus ? "Sin suscripción registrada" : "Editar suscripción"}
+                              title={!sus ? "Asignar suscripción" : "Editar suscripción"}
                               className="flex items-center gap-1 text-xs text-slate-500 hover:text-primary-600 disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               <Pencil className="w-3.5 h-3.5" />
-                              Editar
+                              {sus ? "Editar" : "Asignar"}
                             </button>
                           )}
                         </td>

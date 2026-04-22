@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utilidades'
 import { useAuth } from '@/modulos/autenticacion/contexto-autenticacion'
+import { TARIFA_PRECIO_MENSUAL_FALLBACK } from '@/lib/mercadopago/suscripciones'
 
 // ─── OFFICIAL TAXONOMY ───
 
@@ -192,13 +193,27 @@ function RegisterContent() {
   const password = form.watch('password')
   const sectorId = form.watch('sectorId')
   const [categorias, setCategorias] = useState<CategoriaDB[]>([])
+  const [precios, setPrecios] = useState<Record<number, number>>(TARIFA_PRECIO_MENSUAL_FALLBACK)
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  )
 
   useEffect(() => {
     fetch('/api/categorias')
       .then((r) => r.json())
       .then((d) => setCategorias(d.categorias || []))
       .catch(() => setCategorias([]))
-  }, [])
+
+    supabase.from('tarifas_precios').select('nivel, precio_mensual').then(({ data, error }) => {
+      if (data && !error) {
+        const map = { ...TARIFA_PRECIO_MENSUAL_FALLBACK };
+        data.forEach((t: any) => { map[t.nivel as 1|2|3] = Number(t.precio_mensual) || map[t.nivel as 1|2|3]; });
+        setPrecios(map);
+      }
+    });
+  }, [supabase])
 
   const passRequirements = useMemo(() => [
     { label: "8+ Caracteres", met: password.length >= 8 },
@@ -208,11 +223,6 @@ function RegisterContent() {
   ], [password])
 
   const passStrength = useMemo(() => getPasswordStrength(password), [password])
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-  )
 
   const nextStep = () => {
     setStep(prev => prev + 1)
@@ -982,7 +992,7 @@ function RegisterContent() {
                             : empleadosNum <= 99 ? 2
                               : 3;
                         const precio = esEmpresa
-                          ? (nivel === 1 ? 108_000 : nivel === 2 ? 216_000 : 360_000)
+                          ? precios[nivel]
                           : 5_000;
                         const nombrePlan = esEmpresa
                           ? `UIAB Conecta · Tarifa ${nivel}`
