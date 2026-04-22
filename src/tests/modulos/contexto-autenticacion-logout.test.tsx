@@ -50,6 +50,7 @@ const usuarioFalso: User = {
   role: 'company' as any,
   isMember: true,
   entityId: 'emp-1',
+  subscriptionEstado: 'activa',
 };
 
 function wrapper({ children }: { children: React.ReactNode }) {

@@ -11,6 +11,7 @@ export interface User {
   role: UserRole;
   isMember: boolean; // Relevant if they are part of UIAB
   entityId?: string | null; // ID in 'empresas' or 'proveedores' table
+  subscriptionEstado: string | null; // 'activa' | 'pendiente_pago' | 'en_mora' | 'suspendida' | 'cancelada' | null
 }
 
 export interface Review {

@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utilidades'
+import { useAuth } from '@/modulos/autenticacion/contexto-autenticacion'
 
 // ─── OFFICIAL TAXONOMY ───
 
@@ -160,6 +161,7 @@ const getStrengthColor = (strength: number) => {
 function RegisterContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { refreshUser } = useAuth()
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -346,8 +348,14 @@ function RegisterContent() {
       }
 
       setIsLoading(false)
-      setIsSuccess(true)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+
+      if (esPrueba) {
+        setIsSuccess(true)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      } else {
+        await refreshUser()
+        router.push('/suscripcion/checkout')
+      }
 
     } catch (err) {
       toast.error('Error de Sistema. Intenta más tarde.')

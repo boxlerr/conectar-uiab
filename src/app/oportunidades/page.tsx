@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { oportunidadesService, Oportunidad, Match } from "@/modulos/oportunidades/servicio-oportunidades";
 
 import { PublicOportunidadesLanding } from "./landing-oportunidades-publica";
+import { AccesoRequerido } from "@/components/ui/acceso-requerido";
+import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
 // Remove MOCK_OPORTUNIDADES
 
 
@@ -61,6 +63,15 @@ export default function OportunidadesPage() {
 
   if (!currentUser && !authLoading) {
     return <PublicOportunidadesLanding oportunidades={oportunidades} loading={loading} />;
+  }
+
+  if (currentUser && currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa' && !authLoading) {
+    return (
+      <AccesoRequerido
+        estado={resolverEstadoGate(currentUser.subscriptionEstado ?? null, currentUser.isMember)}
+        className="min-h-screen"
+      />
+    );
   }
 
   return (

@@ -63,7 +63,10 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
         .single();
 
       if (error) {
-        console.error("[auth] Error fetching profile:", error);
+        // PGRST116 = no rows found; expected right after signUp before register-sync creates the row
+        if ((error as any).code !== 'PGRST116') {
+          console.error("[auth] Error fetching profile:", error);
+        }
         return null;
       }
 
@@ -87,7 +90,21 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
           entityId = memberData?.proveedor_id;
         }
 
-        dbg('fetchProfile:done', { role: data.rol_sistema, entityId });
+        // Fetch subscription estado for gating content sections
+        let subscriptionEstado: string | null = null;
+        if (entityId && (data.rol_sistema === 'company' || data.rol_sistema === 'provider')) {
+          const fk = data.rol_sistema === 'company' ? 'empresa_id' : 'proveedor_id';
+          const { data: sub } = await supabase
+            .from('suscripciones')
+            .select('estado')
+            .eq(fk, entityId)
+            .order('creado_en', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          subscriptionEstado = sub?.estado ?? null;
+        }
+
+        dbg('fetchProfile:done', { role: data.rol_sistema, entityId, subscriptionEstado });
         return {
           id: data.id,
           name: data.nombre_completo || email.split('@')[0],
@@ -95,6 +112,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
           role: data.rol_sistema as any,
           isMember: data.activo || false,
           entityId: entityId,
+          subscriptionEstado,
         };
       }
     } catch (err) {

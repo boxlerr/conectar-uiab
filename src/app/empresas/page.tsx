@@ -12,6 +12,8 @@ import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
 import { PublicEmpresasLanding } from "@/components/ui/directorio/landing-empresas-publica";
 import { PublicProveedoresParticularesLanding } from "@/components/ui/directorio/landing-proveedores-particulares-publica";
+import { AccesoRequerido } from "@/components/ui/acceso-requerido";
+import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
 import { Building2, LayoutGrid, List, CheckCircle2, LockOpen, User } from "lucide-react";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
@@ -225,6 +227,7 @@ export default function EmpresasPage() {
   // Fetch data on mount and handle back-navigation
   useEffect(() => {
     if (loading || !currentUser) return;
+    if (currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa') return;
 
     fetchEmpresas();
 
@@ -293,6 +296,16 @@ export default function EmpresasPage() {
       return <PublicProveedoresParticularesLanding />;
     }
     return <PublicEmpresasLanding />;
+  }
+
+  // Gate: suscripción requerida para ver el directorio
+  if (currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa') {
+    return (
+      <AccesoRequerido
+        estado={resolverEstadoGate(currentUser.subscriptionEstado ?? null, currentUser.isMember)}
+        className="min-h-screen"
+      />
+    );
   }
 
   // Authenticated directory view - PREMIUM B2B

@@ -7,6 +7,7 @@ export const mockAdmin: User = {
   email: 'admin@uiab.org.ar',
   role: 'admin',
   isMember: true,
+  subscriptionEstado: null,
 };
 
 // Categories

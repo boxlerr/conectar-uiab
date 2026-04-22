@@ -78,6 +78,19 @@ async function getServerUser(): Promise<User | null> {
       entityId = memberData?.proveedor_id ?? null;
     }
 
+    let subscriptionEstado: string | null = null;
+    if (entityId && (profile.rol_sistema === 'company' || profile.rol_sistema === 'provider')) {
+      const fk = profile.rol_sistema === 'company' ? 'empresa_id' : 'proveedor_id';
+      const { data: sub } = await supabase
+        .from('suscripciones')
+        .select('estado')
+        .eq(fk, entityId)
+        .order('creado_en', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      subscriptionEstado = sub?.estado ?? null;
+    }
+
     return {
       id: profile.id,
       name: profile.nombre_completo || user.email!.split('@')[0],
@@ -85,6 +98,7 @@ async function getServerUser(): Promise<User | null> {
       role: profile.rol_sistema as User['role'],
       isMember: profile.activo || false,
       entityId,
+      subscriptionEstado,
     };
   } catch {
     return null;

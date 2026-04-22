@@ -36,6 +36,8 @@ import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { createClient } from "@/lib/supabase/cliente";
 import { crearSlug } from "@/lib/utilidades";
+import { AccesoRequerido } from "@/components/ui/acceso-requerido";
+import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
 
 /* ─── Animation variants ─── */
 const fadeUp = {
@@ -164,7 +166,7 @@ export default function InstitucionesEducativasPage() {
   const fetchInstituciones = useCallback(async () => {
     fetchInstitucionesCount();
 
-    if (!currentUser) {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa')) {
       setCargandoDatos(false);
       return;
     }
@@ -273,8 +275,10 @@ export default function InstitucionesEducativasPage() {
     });
   }, [empresas, categoriaSeleccionada, searchTerm]);
 
+  const tieneAcceso        = currentUser?.role === 'admin' || currentUser?.subscriptionEstado === 'activa';
   const mostrarInformativo = !loading && !currentUser;
-  const mostrarDirectorio = !loading && !!currentUser;
+  const mostrarBloqueado   = !loading && !!currentUser && !tieneAcceso;
+  const mostrarDirectorio  = !loading && !!currentUser && tieneAcceso;
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-24">
@@ -792,6 +796,13 @@ export default function InstitucionesEducativasPage() {
       </section>
 
       </>
+      )}
+
+      {mostrarBloqueado && currentUser && (
+        <AccesoRequerido
+          estado={resolverEstadoGate(currentUser.subscriptionEstado ?? null, currentUser.isMember)}
+          className="min-h-[calc(100vh-5rem)]"
+        />
       )}
 
       {mostrarDirectorio && (

@@ -113,13 +113,18 @@ export async function POST() {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const externalReference = `suscripcion:${suscripcionId}`;
 
+  // MP requires payer_email to be an existing MP account in the same country.
+  // The user's email may not be an MP account — use the merchant's account as
+  // placeholder. The actual payer authenticates on MP's checkout page.
+  const payerEmail = process.env.MP_MERCHANT_EMAIL || perfil.email || user.email || "";
+
   let preapproval;
   try {
     preapproval = await crearPreapproval(
       {
         reason: plan,
         external_reference: externalReference,
-        payer_email: perfil.email || user.email || "",
+        payer_email: payerEmail,
         back_url: `${appUrl}/perfil/suscripcion?mp=ok`,
         auto_recurring: {
           frequency: 1,
