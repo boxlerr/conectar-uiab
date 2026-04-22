@@ -3,7 +3,7 @@
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CreditCard, CheckCircle2, History, Banknote, ShieldCheck, Loader2, AlertCircle, Users } from "lucide-react";
+import { CreditCard, CheckCircle2, History, ShieldCheck, Loader2, AlertCircle, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -342,14 +342,7 @@ export default function MiPerfilSuscripcionPage() {
 
         {/* Quick Actions & Help */}
         <div className="space-y-6 flex flex-col">
-          <Card className="p-6 border-slate-100 shadow-sm flex-1">
-             <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center border border-orange-100 mb-4">
-               <Banknote className="w-5 h-5" />
-             </div>
-             <h3 className="font-bold text-slate-900 mb-2">Facturación y AFIP</h3>
-             <p className="text-sm text-slate-600 mb-6">Tus comprobantes (Factura C) se emiten mensualmente a nombre de tu CUIT registrado en la plataforma.</p>
-             <Button className="w-full" variant="secondary">Solicitar Datos de Facturación</Button>
-          </Card>
+
 
           <Card className="p-6 border-slate-100 border-dashed bg-slate-50 relative overflow-hidden group">
              <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-2">¿Necesitas pausar?</h3>
