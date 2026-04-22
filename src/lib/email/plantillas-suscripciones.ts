@@ -96,7 +96,55 @@ export function plantillaPagoConfirmado(d: DatosSuscripcionComun & {
   };
 }
 
+// ─── 2b. Notificación al admin: pago recibido ───────────────────────────────
+
+export function plantillaPagoConfirmadoAdmin(d: {
+  nombre: string;
+  email: string;
+  plan: string;
+  monto: number;
+  pagadoEn: Date | string;
+  referenciaPago?: string | null;
+  entidad: "empresa" | "particular";
+}): { asunto: string; html: string; texto: string } {
+  const etiquetaTipo = d.entidad === "empresa" ? "Empresa" : "Particular";
+  const cuerpo = `
+    <p style="margin: 0 0 16px 0;">${chip("Pago recibido")}</p>
+    <p style="margin: 0 0 16px 0;">La entidad <strong>${d.nombre}</strong> completó el pago de su suscripción. La suscripción quedó <strong>activa</strong> y la entidad está pendiente de revisión para su aprobación en el directorio.</p>
+    ${tarjetaDatos([
+      { etiqueta: "Tipo", valor: etiquetaTipo },
+      { etiqueta: d.entidad === "empresa" ? "Razón social" : "Nombre", valor: d.nombre },
+      { etiqueta: "Email", valor: d.email },
+      { etiqueta: "Plan", valor: d.plan },
+      { etiqueta: "Monto", valor: formatARS(d.monto) },
+      { etiqueta: "Fecha de pago", valor: formatFecha(d.pagadoEn) },
+      ...(d.referenciaPago ? [{ etiqueta: "Referencia MP", valor: d.referenciaPago }] : []),
+    ])}
+    <p style="margin: 20px 0 0 0;">Ingresá al panel de administración para revisar y aprobar la entidad.</p>
+  `;
+  return {
+    asunto: `Pago recibido — ${d.nombre} completó su suscripción`,
+    html: renderEmailBase({
+      preheader: `${d.nombre} completó el pago de su suscripción.`,
+      titulo: `Pago recibido de ${etiquetaTipo.toLowerCase()}`,
+      intro: `${d.nombre} pagó su suscripción y está pendiente de aprobación.`,
+      cuerpo,
+      cta: { etiqueta: "Revisar en el panel", href: `${appUrl()}/admin/empresas` },
+      pie: "Recibís esta notificación porque tu cuenta figura como administradora de la red Conectar UIAB.",
+    }),
+    texto: [
+      `Pago recibido — ${d.nombre}`,
+      `Plan: ${d.plan}`,
+      `Monto: ${formatARS(d.monto)}`,
+      `Fecha: ${formatFecha(d.pagadoEn)}`,
+      "",
+      `Revisá en el panel: ${appUrl()}/admin/empresas`,
+    ].join("\n"),
+  };
+}
+
 // ─── 3. Pago fallido ─────────────────────────────────────────────────────────
+
 
 export function plantillaPagoFallido(d: DatosSuscripcionComun & {
   motivo?: string;

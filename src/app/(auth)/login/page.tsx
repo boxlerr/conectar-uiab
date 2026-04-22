@@ -33,37 +33,33 @@ function LoginContent() {
   const redirectParams = searchParams.get('redirect')
   
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
-  const form = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  })
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
-  // Shared Supabase browser client
   const supabase = createClient()
 
-  async function onSubmit(values: z.infer<typeof loginSchema>) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
     setIsLoading(true)
 
     try {
-      // 1. Authenticate with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
+        email,
+        password,
       })
 
       if (error) {
-        toast.error('Error de credenciales', {
-          description: 'El correo electrónico o la contraseña son incorrectos.',
-        })
+        const translatedMessage = error.message === "Invalid login credentials" 
+          ? "El correo electrónico o la contraseña son incorrectos." 
+          : error.message;
+          
+        toast.error("Error de acceso", { description: translatedMessage });
         setIsLoading(false)
         return
       }
 
-      // 2. Fetch role for Smart Redirection
       const { data: profile } = await supabase
         .from('perfiles')
         .select('rol_sistema')
@@ -74,14 +70,13 @@ function LoginContent() {
         description: 'Redirigiendo a tu panel...',
       })
 
-      // 3. Smart Redirect: Either to the intent redirect OR post-login default URL
       if (redirectParams) {
         router.push(redirectParams)
       } else {
         const rol = profile?.rol_sistema
         if (rol === 'admin') router.push('/admin')
-        else if (rol === 'company') router.push('/dashboard') // UX requirement for companies
-        else router.push('/dashboard') // Default path for others (providers, etc)
+        else if (rol === 'company') router.push('/dashboard')
+        else router.push('/dashboard')
       }
       
       router.refresh()
@@ -95,82 +90,168 @@ function LoginContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      {/* Structural Industrial Design Backdrop */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-primary-900 via-primary-800 to-slate-900" />
-      
-      {/* Form Card */}
-      <div className="relative z-10 w-full max-w-md rounded-xl bg-white p-8 shadow-2xl overflow-hidden ring-1 ring-slate-900/5">
-        
-        <div className="mb-8 text-center space-y-2">
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-            Conectar <span className="text-primary-600">UIAB</span>
-          </h1>
-          <p className="text-sm text-slate-500">Ingresa las credenciales de tu organización</p>
+    <div className="flex min-h-screen items-center justify-center bg-[#f2f4f6] p-4 sm:p-6 overflow-hidden relative">
+      <div 
+        className="relative w-full max-w-[440px] overflow-hidden z-10 bg-white"
+        style={{ 
+          borderRadius: "0.25rem",
+          boxShadow: "0 16px 32px rgba(25, 28, 30, 0.06)",
+        }}
+      >
+        {/* ── HEADER — Gradient primary → primary_container at 135° ── */}
+        <div 
+          className="relative px-8 pt-7 pb-6 overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #00213f 0%, #10375c 100%)" }}
+        >
+          <div className="absolute inset-0 opacity-[0.03]" style={{
+            backgroundImage: "radial-gradient(circle at 1px 1px, white 0.5px, transparent 0)",
+            backgroundSize: "32px 32px",
+          }} />
+          <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-primary-400/[0.06] blur-[80px]" />
+
+          <div className="relative z-10 flex items-center gap-3">
+            <div 
+              className="w-10 h-10 bg-white/[0.08] backdrop-blur-xl flex items-center justify-center"
+              style={{ borderRadius: "0.25rem" }}
+            >
+              {/* Fallback to text if Image not imported here */}
+              <div className="text-white font-bold text-xl">U</div>
+            </div>
+            <div>
+              <span 
+                className="text-[10px] font-bold text-white/40 tracking-[0.14em] uppercase block"
+                style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+              >
+                UIAB Conecta
+              </span>
+              <h2 
+                className="text-xl font-bold text-white tracking-tight leading-none mt-0.5"
+                style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+              >
+                Iniciar Sesión
+              </h2>
+            </div>
+          </div>
         </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-slate-700">Email Corporativo</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="ejemplo@industria.com" 
-                      className="bg-slate-50 border-slate-200 focus:bg-white focus:ring-primary-500" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel className="text-slate-700">Contraseña</FormLabel>
-                    <Link 
-                      href="/recovery" 
-                      className="text-xs font-semibold text-primary-600 hover:text-primary-700 hover:underline"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </Link>
-                  </div>
-                  <FormControl>
-                    <Input 
-                      type="password" 
-                      placeholder="••••••••" 
-                      className="bg-slate-50 border-slate-200 focus:bg-white focus:ring-primary-500"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        {/* ── FORM CONTENT — surface_container_lowest (#ffffff) ── */}
+        <div className="bg-white px-8 py-7">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email Input */}
+            <div className="space-y-2 text-left">
+              <label 
+                className="text-[11px] font-bold text-[#191c1e]/80 tracking-[0.08em] uppercase ml-0.5"
+                style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+              >
+                Correo Electrónico
+              </label>
+              <div className="relative group">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex h-12 w-full bg-[#f2f4f6] px-4 py-3 pl-4 text-[15px] font-semibold text-[#191c1e] placeholder:text-[#191c1e]/30 placeholder:font-normal focus:bg-white focus:outline-none transition-all"
+                  style={{ 
+                    borderRadius: "0.25rem",
+                    boxShadow: "none",
+                    border: "1.5px solid transparent",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.border = "1.5px solid rgba(0,33,63,0.12)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.border = "1.5px solid transparent";
+                  }}
+                  placeholder="correo@empresa.com"
+                />
+              </div>
+            </div>
 
+            {/* Password Input */}
+            <div className="space-y-2 text-left">
+              <div className="flex items-center justify-between ml-0.5">
+                <label 
+                  className="text-[11px] font-bold text-[#191c1e]/80 tracking-[0.08em] uppercase"
+                  style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+                >
+                  Contraseña
+                </label>
+                <Link 
+                  href="/recovery" 
+                  className="text-[10px] font-bold text-[#00213f]/60 hover:text-[#00213f] transition-colors uppercase tracking-wider"
+                  style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+              <div className="relative group">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="flex h-12 w-full bg-[#f2f4f6] px-4 py-3 pl-4 pr-12 text-[15px] font-semibold text-[#191c1e] placeholder:text-[#191c1e]/30 placeholder:font-normal focus:bg-white focus:outline-none transition-all tracking-wider"
+                  style={{ 
+                    borderRadius: "0.25rem",
+                    boxShadow: "none",
+                    border: "1.5px solid transparent",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.border = "1.5px solid rgba(0,33,63,0.12)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.border = "1.5px solid transparent";
+                  }}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#191c1e]/25 hover:text-[#191c1e]/60 transition-colors cursor-pointer"
+                  tabIndex={-1}
+                >
+                  <span className="text-xs font-semibold">{showPassword ? 'Ocultar' : 'Mostrar'}</span>
+                </button>
+              </div>
+            </div>
+            
             <Button 
               type="submit" 
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white shadow-sm"
+              className="w-full h-12 text-[14px] font-bold bg-[#00213f] hover:bg-[#10375c] text-white active:scale-[0.98] transition-all cursor-pointer"
+              style={{ borderRadius: "0.25rem" }}
               disabled={isLoading}
             >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Ingresar al Portal'}
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                'Ingresar al Portal'
+              )}
             </Button>
           </form>
-        </Form>
 
-        <div className="mt-8 border-t border-slate-200 pt-6 text-center text-sm text-slate-500">
-          ¿Representas a una nueva industria?{' '}
-          <Link href="/register" className="font-semibold text-primary-600 hover:underline transition-colors">
-            Solicitar alta
-          </Link>
+          {/* ── REGISTER SECTION ── */}
+          <div className="mt-6 -mx-8 -mb-7 px-8 py-6 bg-[#f7f9fb]">
+            <p 
+              className="text-[13px] text-[#191c1e]/50 text-center mb-3 leading-relaxed"
+              style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+            >
+              ¿Es tu primera vez en{" "}
+              <span className="font-bold text-[#191c1e]">UIAB Conecta</span>?
+            </p>
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={() => router.push("/register")}
+              className="w-full h-11 bg-white hover:bg-[#00213f] text-[#00213f] hover:text-white text-[13px] font-bold transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98] group"
+              style={{ 
+                borderRadius: "0.25rem",
+                boxShadow: "0 1px 3px rgba(0,33,63,0.04)",
+              }}
+            >
+              Registrate como Socio o Proveedor
+            </button>
+          </div>
         </div>
       </div>
     </div>

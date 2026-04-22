@@ -102,7 +102,9 @@ export async function updateSession(request: NextRequest) {
   const isPendingAllowedPath =
     pathname === '/pendiente-aprobacion' ||
     pathname.startsWith('/perfil') ||
-    pathname.startsWith('/api/auth/');
+    pathname.startsWith('/suscripcion') ||
+    pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/api/mercadopago/');
 
   if (user && !userError && !isApproved && isProtectedRoute && !isPendingAllowedPath) {
     if (isApiRoute) {

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { crearPreapproval } from "@/lib/mercadopago/cliente";
@@ -17,7 +17,7 @@ import {
  * Requiere sesión. No recibe body — el monto se calcula del lado servidor
  * a partir de la tarifa de la empresa.
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) {
@@ -110,13 +110,18 @@ export async function POST() {
   }
 
   // 4. Crear preapproval en MP
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const origin = req.headers.get("origin") || req.nextUrl.origin;
+  const appUrl = origin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const externalReference = `suscripcion:${suscripcionId}`;
 
-  // MP requires payer_email to be an existing MP account in the same country.
-  // The user's email may not be an MP account — use the merchant's account as
-  // placeholder. The actual payer authenticates on MP's checkout page.
-  const payerEmail = process.env.MP_MERCHANT_EMAIL || perfil.email || user.email || "";
+  // IMPORTANT: Never use the merchant's email as payer_email, it causes 400 errors.
+  let payerEmail = perfil.email || user.email || "";
+
+  // In test environment, if the collector is a test user, the payer MUST also be a valid test user.
+  // We allow overriding the payerEmail via .env to the Test Buyer's email to avoid API errors.
+  if (process.env.MP_ENTORNO === "test" && process.env.MP_TEST_PAYER_EMAIL) {
+    payerEmail = process.env.MP_TEST_PAYER_EMAIL;
+  }
 
   let preapproval;
   try {
@@ -125,7 +130,7 @@ export async function POST() {
         reason: plan,
         external_reference: externalReference,
         payer_email: payerEmail,
-        back_url: `${appUrl}/perfil/suscripcion?mp=ok`,
+        back_url: `${appUrl}/pendiente-aprobacion?mp=ok`,
         auto_recurring: {
           frequency: 1,
           frequency_type: "months",
