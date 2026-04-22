@@ -20,7 +20,12 @@ import {
   Star,
   ThumbsUp,
   Send,
+  Phone,
+  Mail,
+  Globe,
+  Clock,
 } from "lucide-react";
+import { crearSlug } from "@/lib/utilidades";
 import { useEffect, useState, useTransition, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/cliente";
@@ -47,8 +52,8 @@ interface Solicitud {
   unidad: string | null;
   empresa_origen_id: string | null;
   proveedor_origen_id: string | null;
-  empresa_origen?: { razon_social: string; nombre_comercial: string | null; localidad: string | null } | null;
-  proveedor_origen?: { nombre: string; nombre_comercial: string | null; tipo_proveedor: string; localidad: string | null } | null;
+  empresa_origen?: { razon_social: string; nombre_comercial: string | null; localidad: string | null; email?: string | null; telefono?: string | null; sitio_web?: string | null } | null;
+  proveedor_origen?: { nombre: string; nombre_comercial: string | null; tipo_proveedor: string; localidad: string | null; email?: string | null; telefono?: string | null; fecha_inicio_experiencia?: string | null; sitio_web?: string | null } | null;
   oportunidad?: { id: string; titulo: string } | null;
 }
 
@@ -111,8 +116,8 @@ export default function BandejaEntradaPage() {
         .select(
           `id, oportunidad_id, mensaje, estado, enviada_en, vista_en, respondida_en, cerrada_en,
            cantidad, unidad, empresa_origen_id, proveedor_origen_id,
-           empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social, nombre_comercial, localidad),
-           proveedor_origen:proveedores!solicitudes_presupuesto_proveedor_origen_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad),
+           empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social, nombre_comercial, localidad, email, telefono, sitio_web),
+           proveedor_origen:proveedores!solicitudes_presupuesto_proveedor_origen_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, email, telefono, fecha_inicio_experiencia),
            oportunidad:oportunidades(id, titulo)`
         )
         .eq(destinoCol, entityId)
@@ -370,6 +375,15 @@ function SolicitudCard({
     : s.proveedor_origen?.nombre_comercial || s.proveedor_origen?.nombre;
   const origenLocalidad = esEmpresaOrigen ? s.empresa_origen?.localidad : s.proveedor_origen?.localidad;
   const origenTipo = esEmpresaOrigen ? "Empresa" : s.proveedor_origen?.tipo_proveedor ?? "Particular";
+  const origenEmail = esEmpresaOrigen ? s.empresa_origen?.email : s.proveedor_origen?.email;
+  const origenTelefono = esEmpresaOrigen ? s.empresa_origen?.telefono : s.proveedor_origen?.telefono;
+  const origenWeb = esEmpresaOrigen ? s.empresa_origen?.sitio_web : s.proveedor_origen?.sitio_web;
+  const origenSlug = origenNombre ? crearSlug(origenNombre) : null;
+  const perfilHref = origenSlug ? `/empresas/${origenSlug}` : null;
+
+  const anosExperiencia = !esEmpresaOrigen && s.proveedor_origen?.fecha_inicio_experiencia
+    ? Math.floor((Date.now() - new Date(s.proveedor_origen.fecha_inicio_experiencia).getTime()) / (365.25 * 24 * 3600 * 1000))
+    : null;
 
   return (
     <Card className="p-6 border-slate-100 shadow-sm hover:shadow-md transition-all">
@@ -379,11 +393,38 @@ function SolicitudCard({
             {esEmpresaOrigen ? <Building2 className="w-5 h-5 text-slate-500" /> : <User className="w-5 h-5 text-slate-500" />}
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="font-bold text-slate-900 text-base truncate">{origenNombre ?? "Sin nombre"}</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-slate-900 text-base truncate">{origenNombre ?? "Sin nombre"}</h3>
+              {perfilHref && (
+                <Link href={perfilHref} target="_blank" className="text-primary-600 hover:text-primary-700 transition-colors shrink-0" title="Ver perfil">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              )}
+            </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-1">
               <span className="font-semibold uppercase tracking-wider">{origenTipo}</span>
               {origenLocalidad && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {origenLocalidad}</span>}
+              {anosExperiencia !== null && anosExperiencia > 0 && (
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {anosExperiencia} años de exp.</span>
+              )}
               <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(s.enviada_en).toLocaleDateString("es-AR")}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-1.5">
+              {origenEmail && (
+                <a href={`mailto:${origenEmail}`} className="flex items-center gap-1 hover:text-primary-600 transition-colors">
+                  <Mail className="w-3 h-3" /> {origenEmail}
+                </a>
+              )}
+              {origenTelefono && (
+                <a href={`tel:${origenTelefono.replace(/[^0-9+]/g, '')}`} className="flex items-center gap-1 hover:text-primary-600 transition-colors">
+                  <Phone className="w-3 h-3" /> {origenTelefono}
+                </a>
+              )}
+              {origenWeb && (
+                <a href={origenWeb} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary-600 transition-colors truncate max-w-[200px]">
+                  <Globe className="w-3 h-3 shrink-0" /> {origenWeb.replace(/^https?:\/\//, '')}
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -415,6 +456,13 @@ function SolicitudCard({
       </div>
 
       <div className="flex flex-wrap gap-2 justify-end">
+        {perfilHref && (
+          <Link href={perfilHref} target="_blank">
+            <Button variant="outline" size="sm" className="text-xs">
+              <User className="w-3.5 h-3.5 mr-2" /> Ver perfil
+            </Button>
+          </Link>
+        )}
         {s.estado === "enviada" && (
           <Button variant="outline" size="sm" onClick={() => onVista(s.id)} disabled={isPending} className="text-xs">
             <Eye className="w-3.5 h-3.5 mr-2" /> Marcar como vista

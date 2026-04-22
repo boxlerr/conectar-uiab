@@ -87,7 +87,7 @@ export default function DialogoPostularse({
     <>
       <Button
         onClick={() => setOpen(true)}
-        className="w-full sm:w-80 bg-[#00213f] hover:bg-[#10375c] text-white font-bold h-14 rounded-sm shadow-xl shadow-primary-900/10 transition-all font-inter uppercase tracking-widest text-xs"
+        className="w-full bg-[#00213f] hover:bg-[#10375c] text-white font-bold h-14 rounded-sm shadow-xl shadow-primary-900/10 transition-all font-inter uppercase tracking-widest text-xs"
       >
         Postularse a esta oportunidad
       </Button>

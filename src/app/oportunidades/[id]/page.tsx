@@ -286,7 +286,7 @@ export default function OportunidadDetail({
               <div className="bg-white p-8 lg:p-10 rounded-sm relative">
                 <div className="absolute top-0 left-0 w-12 h-1 bg-[#00213f]" />
                 <div
-                  className="text-base lg:text-lg text-slate-700 font-inter leading-[1.75] [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2 [&_p]:mb-4 [&_p:last-child]:mb-0 [&_strong]:text-[#00213f] [&_strong]:font-bold first-letter:font-manrope first-letter:font-bold first-letter:text-[#00213f] first-letter:text-5xl first-letter:float-left first-letter:mr-3 first-letter:leading-[0.9]"
+                  className="text-base lg:text-lg text-slate-700 font-inter leading-[1.75] [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2 [&_p]:mb-4 [&_p:last-child]:mb-0 [&_strong]:text-[#00213f] [&_strong]:font-bold"
                   dangerouslySetInnerHTML={{ __html: op.descripcion }}
                 />
               </div>
