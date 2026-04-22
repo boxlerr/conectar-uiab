@@ -462,14 +462,16 @@ export default function EmpresasPage() {
         <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
           {/* Sidebar */}
           <aside className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
-            <FilterSidebar
-              categorias={categorias}
-              categoriaSeleccionada={categoriaSeleccionada}
-              onCategoriaChange={setCategoriaSeleccionada}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              colorScheme={mezclaParticulares && activeTab === 'particulares' ? 'amber' : 'blue'}
-            />
+            <div className="lg:sticky lg:top-28">
+              <FilterSidebar
+                categorias={categorias}
+                categoriaSeleccionada={categoriaSeleccionada}
+                onCategoriaChange={setCategoriaSeleccionada}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                colorScheme={mezclaParticulares && activeTab === 'particulares' ? 'amber' : 'blue'}
+              />
+            </div>
           </aside>
           
           {/* Main Grid Area */}

@@ -7,7 +7,7 @@ interface ProfileCardProps {
   entidad: Entidad;
   basePath: string;
   variant?: 'grid' | 'list';
-  colorScheme?: 'blue' | 'emerald' | 'violet';
+  colorScheme?: 'blue' | 'emerald' | 'violet' | 'amber';
 }
 
 export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colorScheme = 'blue' }: ProfileCardProps) {
@@ -15,38 +15,37 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
   const isEmerald = colorScheme === 'emerald';
   const isViolet = colorScheme === 'violet';
 
-  // Particulars get a warm amber accent regardless of colorScheme
   const hoverText = isParticular
-    ? "group-hover:text-amber-700"
-    : isViolet ? "group-hover:text-violet-700" : isEmerald ? "group-hover:text-emerald-700" : "group-hover:text-primary";
-
-  const glowHover = isParticular
-    ? "group-hover:shadow-[0_0_40px_-10px_rgba(245,158,11,0.25)]"
-    : isViolet ? "group-hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.22)]" : isEmerald ? "group-hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.2)]" : "group-hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.2)]";
-
-  const bgLogo = isParticular
-    ? "bg-amber-50 group-hover:bg-amber-100 text-amber-800"
-    : isViolet ? "bg-violet-50 group-hover:bg-violet-100 text-violet-800" : isEmerald ? "bg-emerald-50 group-hover:bg-emerald-100 text-emerald-800" : "bg-slate-50 group-hover:bg-blue-50 text-primary";
+    ? "group-hover:text-[#bf7035]"
+    : isViolet ? "group-hover:text-violet-700" : isEmerald ? "group-hover:text-emerald-700" : "group-hover:text-[#10375c]";
 
   const indicatorLine = isParticular
-    ? "bg-gradient-to-r from-amber-400 to-orange-400"
-    : isViolet ? "bg-gradient-to-r from-violet-500 to-indigo-500" : isEmerald ? "bg-emerald-500" : "bg-blue-500";
+    ? "bg-gradient-to-r from-[#bf7035] to-[#d4894a]"
+    : isViolet ? "bg-gradient-to-r from-violet-500 to-indigo-500" : isEmerald ? "bg-emerald-500" : "bg-gradient-to-r from-[#10375c] to-[#1a6496]";
 
-  const badgeClasses = isParticular
-    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-[0_4px_12px_rgba(245,158,11,0.3)] border-white/20"
-    : isViolet
-      ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_4px_12px_rgba(139,92,246,0.3)] border-white/20"
-      : isEmerald
-        ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)] border-white/20"
-        : "bg-gradient-to-tr from-[#00213f] to-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.3)] border-white/20";
+  const bgLogo = isParticular
+    ? "bg-[#bf7035]/8 text-[#bf7035]"
+    : isViolet ? "bg-violet-50 text-violet-800" : isEmerald ? "bg-emerald-50 text-emerald-800" : "bg-[#10375c]/8 text-[#10375c]";
+
+  const verifiedBg = isParticular
+    ? "bg-[#bf7035] text-white"
+    : isViolet ? "bg-violet-700 text-white" : isEmerald ? "bg-emerald-600 text-white" : "bg-[#10375c] text-white";
+
+  const sectorChip = isParticular
+    ? "bg-[#bf7035]/8 text-[#bf7035]"
+    : isViolet ? "bg-violet-50 text-violet-700" : isEmerald ? "bg-emerald-50 text-emerald-700" : "bg-[#10375c]/8 text-[#10375c]";
+
+  const locationBg = isParticular ? "bg-[#bf7035]/6" : "bg-[#10375c]/6";
+  const locationText = isParticular ? "text-[#bf7035]" : "text-[#10375c]";
+  const locationIcon = isParticular ? "text-[#bf7035]/60" : "text-[#10375c]/60";
 
   const actionBg = isParticular
-    ? "bg-amber-600"
-    : isViolet ? 'bg-violet-700' : isEmerald ? 'bg-emerald-600' : 'bg-primary';
+    ? "bg-[#bf7035]" : isViolet ? "bg-violet-700" : isEmerald ? "bg-emerald-600" : "bg-[#10375c]";
 
+  // ─── LIST VARIANT ───────────────────────────────────────────────────────────
   if (variant === 'list') {
-    const accentDot = isParticular ? "bg-amber-500" : isViolet ? "bg-violet-500" : isEmerald ? "bg-emerald-500" : "bg-blue-500";
-    const accentText = isParticular ? "text-amber-600" : isViolet ? "text-violet-600" : isEmerald ? "text-emerald-600" : "text-blue-600";
+    const accentDot = isParticular ? "bg-amber-500" : isViolet ? "bg-violet-500" : isEmerald ? "bg-emerald-500" : "bg-[#00213f]";
+    const accentText = isParticular ? "text-amber-600" : isViolet ? "text-violet-600" : isEmerald ? "text-emerald-600" : "text-[#00213f]/70";
     const buttonHover = isParticular
       ? "group-hover:bg-amber-600 group-hover:border-amber-600 group-hover:text-white"
       : isViolet
@@ -58,28 +57,20 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
     return (
       <Link
         href={`${basePath}/${entidad.slug}`}
-        className="group relative block bg-white font-inter border-b border-slate-200/50 last:border-b-0 transition-all duration-500 hover:bg-slate-50/40"
+        className="group relative block bg-white font-inter border-b border-[#191c1e]/6 last:border-b-0 transition-all duration-500 hover:bg-[#f7f9fb]"
       >
         {/* Hairline accent izquierda */}
-        <span className={`absolute left-0 top-0 bottom-0 w-px ${indicatorLine} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+        <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${indicatorLine} opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-r-sm`} />
 
-        <div className="grid grid-cols-[auto_1fr] md:grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-5 md:gap-8 px-6 md:px-8 py-6">
-          {/* Logo — marco delicado, circular for particulares */}
-          <div className={`relative w-16 h-16 md:w-20 md:h-20 overflow-hidden bg-white ring-1 transition-all duration-500 ${
-            isParticular
-              ? "rounded-full ring-amber-200/70 group-hover:ring-amber-300"
-              : "rounded-md ring-slate-200/70 group-hover:ring-slate-300"
+        <div className="grid grid-cols-[auto_1fr] md:grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-5 md:gap-8 px-6 md:px-8 py-5">
+          {/* Logo */}
+          <div className={`relative w-14 h-14 md:w-[60px] md:h-[60px] overflow-hidden flex items-center justify-center font-manrope font-black text-2xl ${bgLogo} ${
+            isParticular ? "rounded-full ring-1 ring-amber-200/60" : "rounded-md"
           }`}>
             {entidad.logoUrl ? (
-              <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="80px" />
+              <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="60px" />
             ) : (
-              <div className={`w-full h-full flex items-center justify-center font-manrope font-black text-2xl md:text-3xl tracking-tight ${
-                isParticular
-                  ? 'text-amber-700 bg-gradient-to-br from-amber-50 to-orange-50'
-                  : isEmerald ? 'text-emerald-700 bg-emerald-50/60' : 'text-[#00213f] bg-slate-50'
-              }`}>
-                {entidad.logo}
-              </div>
+              entidad.logo
             )}
           </div>
 
@@ -87,24 +78,18 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
           <div className="min-w-0 md:pr-6">
             <div className="flex items-center gap-2 mb-1.5">
               <span className={`inline-block w-1 h-1 rounded-full ${accentDot}`} />
-              {isParticular ? (
-                <span className={`text-[9px] font-bold uppercase tracking-[0.22em] ${accentText}`}>
-                  Particular
-                </span>
-              ) : (
-                <span className={`text-[9px] font-bold uppercase tracking-[0.22em] ${accentText}`}>
-                  Verificado UIAB
-                </span>
-              )}
+              <span className={`text-[9px] font-bold uppercase tracking-[0.22em] ${accentText}`}>
+                {isParticular ? "Particular" : "Verificado UIAB"}
+              </span>
               {(entidad.rating && entidad.rating > 0) ? (
                 <>
                   <span className="w-1 h-1 rounded-full bg-slate-200" />
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-50/60 rounded-sm text-[10px] font-black text-amber-700 transition-colors duration-300 group-hover:bg-amber-50">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 rounded-[2px] text-[10px] font-black text-amber-700">
                     <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                     {entidad.rating.toFixed(1)}
                     {entidad.reviews && (
                       <span className="text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1.5 ml-0.5">
-                         {entidad.reviews}
+                        {entidad.reviews}
                       </span>
                     )}
                   </span>
@@ -114,28 +99,28 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
             <h3 className={`font-manrope text-[17px] md:text-[19px] font-bold text-[#191c1e] leading-[1.25] tracking-tight transition-colors duration-500 line-clamp-2 break-words ${hoverText}`}>
               {entidad.nombre}
             </h3>
-            <p className="text-slate-500 text-[13px] leading-relaxed font-normal line-clamp-1 mt-1.5">
+            <p className="text-slate-500 text-[13px] leading-relaxed font-normal line-clamp-1 mt-1">
               {entidad.descripcionCorta}
             </p>
           </div>
 
           {/* Metadata editorial */}
-          <div className="hidden md:flex flex-col gap-2 w-[170px] lg:w-[200px] shrink-0 pl-6 lg:pl-8 border-l border-slate-200/50">
+          <div className="hidden md:flex flex-col gap-2 w-[170px] lg:w-[200px] shrink-0 pl-6 lg:pl-8 border-l border-[#191c1e]/6">
             <div>
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.22em]">Sector</span>
-              <p className="text-sm font-semibold text-[#191c1e] leading-tight mt-1 line-clamp-1">{entidad.categoria}</p>
+              <p className="text-sm font-semibold text-[#191c1e] leading-tight mt-0.5 line-clamp-1">{entidad.categoria}</p>
             </div>
             {entidad.ubicacion && (
-              <div className="flex items-start gap-1.5 text-slate-500 mt-1">
+              <div className="flex items-start gap-1.5 text-slate-500 mt-0.5">
                 <MapPin className="w-3 h-3 mt-0.5 shrink-0 text-slate-400" />
                 <span className="text-[11px] font-medium leading-tight line-clamp-1">{entidad.ubicacion}</span>
               </div>
             )}
           </div>
 
-          {/* Acción — ghost button editorial */}
+          {/* Acción */}
           <div className="hidden md:flex items-center shrink-0">
-            <div className={`inline-flex items-center justify-center whitespace-nowrap px-5 py-2.5 text-[12px] font-semibold tracking-wide text-slate-700 rounded-sm border border-slate-200/60 transition-all duration-500 ${buttonHover}`}>
+            <div className={`inline-flex items-center justify-center whitespace-nowrap px-5 py-2.5 text-[12px] font-semibold tracking-wide text-slate-700 rounded-sm border border-[#191c1e]/12 transition-all duration-500 ${buttonHover}`}>
               Ver expediente
               <ArrowRight className="w-3.5 h-3.5 ml-2 transition-transform duration-500 group-hover:translate-x-1" />
             </div>
@@ -145,103 +130,103 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
     );
   }
 
-  // Grid variant — editorial, tonal layering per DESIGN.md
-  const ghostBorder = isParticular ? "border-amber-200/40" : "border-slate-200/50";
-
+  // ─── GRID VARIANT ──────────────────────────────────────────────────────────
   return (
     <Link
       href={`${basePath}/${entidad.slug}`}
-      className={`group relative bg-white transition-all duration-500 border ${ghostBorder} p-7 font-inter rounded-md flex flex-col h-full overflow-hidden hover:-translate-y-1 hover:border-transparent ${glowHover}`}
+      className="group relative bg-white font-inter border border-[#191c1e]/10 rounded-md flex flex-col h-full overflow-hidden transition-all duration-500 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-12px_rgba(0,33,63,0.12)] hover:border-[#191c1e]/0"
     >
-      {/* Top indicator ribbon — animación de revelado al hover */}
+      {/* Top accent ribbon */}
       <div className={`absolute top-0 left-0 w-full h-[3px] ${indicatorLine} origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500`} />
 
-      {/* Header: Logo & Badges */}
-      <div className="flex justify-between items-start mb-6 relative z-10">
-        <div className={`w-14 h-14 flex items-center justify-center font-manrope font-black text-2xl transition-colors duration-500 overflow-hidden relative shrink-0 ${
-          isParticular
-            ? `rounded-full ring-1 ring-amber-200/50 ${bgLogo}`
-            : `rounded-sm ${bgLogo}`
-        }`}>
-          {entidad.logoUrl ? (
-            <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="56px" />
-          ) : (
-            entidad.logo
-          )}
-        </div>
-        <div className="flex flex-col items-end gap-2 ml-4">
-          {isParticular ? (
-            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm ${badgeClasses}`}>
-              <User className="w-3.5 h-3.5 shrink-0" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Particular</span>
+      {/* Header — fondo tonal levemente diferenciado */}
+      <div className="bg-[#f7f9fb] px-5 pt-6 pb-5">
+        <div className="flex items-start justify-between">
+          {/* Logo */}
+          <div className={`w-12 h-12 flex items-center justify-center font-manrope font-black text-xl overflow-hidden relative shrink-0 ${bgLogo} ${
+            isParticular ? "rounded-full ring-1 ring-amber-200/60" : "rounded-md"
+          }`}>
+            {entidad.logoUrl ? (
+              <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="48px" />
+            ) : (
+              entidad.logo
+            )}
+          </div>
+
+          {/* Badges: verificado (solo icono) + rating */}
+          <div className="flex flex-col items-end gap-1.5 ml-3">
+            {/* Verificado — solo ícono */}
+            <div
+              className={`w-7 h-7 rounded-sm flex items-center justify-center transition-colors duration-300 ${verifiedBg}`}
+              title={isParticular ? "Particular" : "Verificado UIAB"}
+            >
+              {isParticular
+                ? <User className="w-4 h-4" />
+                : <BadgeCheck className="w-4 h-4" />
+              }
             </div>
-          ) : (
-            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm ${badgeClasses}`}>
-              <BadgeCheck className="w-3.5 h-3.5 shrink-0" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Verificado</span>
-            </div>
-          )}
-          <div className="flex gap-2 items-center">
-            {(entidad.rating && entidad.rating > 0) ? (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-amber-50/60 animate-in fade-in slide-in-from-right-2 duration-700 group-hover:bg-amber-50 transition-colors">
-                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                <span className="text-[11px] font-black text-amber-800 leading-none">
-                  {entidad.rating.toFixed(1)}
-                </span>
+
+            {/* Rating */}
+            {(entidad.rating && entidad.rating > 0) && (
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-amber-50 text-amber-700 group-hover:bg-amber-100 transition-colors">
+                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                <span className="text-[10px] font-black leading-none">{entidad.rating.toFixed(1)}</span>
                 {entidad.reviews && (
-                  <span className="text-[9px] font-bold text-amber-500/60 leading-none border-l border-amber-200/60 pl-1.5 ml-0.5">
+                  <span className="text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1 ml-0.5">
                     {entidad.reviews}
                   </span>
                 )}
               </div>
-            ) : null}
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100/60 px-2 py-0.5 rounded-sm">
-              {entidad.categoria}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Body Core */}
-      <div className="flex-grow relative z-10 mb-6">
-        <h3 className={`font-manrope text-xl font-extrabold text-[#191c1e] tracking-tight leading-tight mb-3 transition-colors ${hoverText} line-clamp-2 break-words`}>
-          {entidad.nombre}
-        </h3>
-        <p className="text-slate-500 text-sm leading-relaxed font-medium line-clamp-4">
-          {entidad.descripcionCorta}
-        </p>
-      </div>
-
-      {/* Footer — tonal layering, sin border-divider */}
-      <div className="mt-auto space-y-3">
-        <div className={`flex items-start gap-2 w-full px-3 py-2 rounded-sm ${
-          isParticular ? "text-amber-700 bg-amber-50/40" : "text-slate-600 bg-slate-50/70"
-        }`}>
-          <MapPin className={`w-4 h-4 shrink-0 mt-0.5 ${isParticular ? "text-amber-400" : "text-slate-400"}`} />
-          <span className="text-xs font-bold uppercase tracking-wider leading-relaxed">
-            {entidad.ubicacion || "Sin ubicación"}
-          </span>
-        </div>
-
-        {entidad.servicios.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {entidad.servicios.slice(0, 3).map((servicio, idx) => (
-              <span key={idx} className="bg-slate-100/70 px-2 py-0.5 text-[10px] font-bold text-slate-600 rounded-sm whitespace-nowrap">
-                {servicio}
-              </span>
-            ))}
-            {entidad.servicios.length > 3 && (
-              <span className="bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-400 rounded-sm">
-                +{entidad.servicios.length - 3}
-              </span>
             )}
           </div>
-        )}
+        </div>
+
+        {/* Sector chip — Data Chip per design.md */}
+        <div className="mt-3">
+          <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-1 rounded-[2px] ${sectorChip}`}>
+            {entidad.categoria}
+          </span>
+        </div>
       </div>
 
-      {/* Action Arrow Float */}
-      <div className={`absolute bottom-6 right-6 w-9 h-9 rounded-sm flex items-center justify-center text-white opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-300 z-10 ${actionBg}`}>
-        <ArrowRight className="w-4 h-4" />
+      {/* Body */}
+      <div className="px-5 pt-4 pb-5 flex flex-col flex-1">
+        <h3 className={`font-manrope text-[18px] font-extrabold text-[#191c1e] tracking-tight leading-tight mb-2 transition-colors duration-300 ${hoverText} line-clamp-2 break-words`}>
+          {entidad.nombre}
+        </h3>
+        <p className="text-slate-500 text-[13px] leading-relaxed font-normal line-clamp-3 flex-grow">
+          {entidad.descripcionCorta}
+        </p>
+
+        {/* Footer */}
+        <div className="mt-4 space-y-2.5">
+          {/* Servicios / categorías secundarias */}
+          {entidad.servicios.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {entidad.servicios.slice(0, 3).map((servicio, idx) => (
+                <span key={idx} className="bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 rounded-[2px] whitespace-nowrap">
+                  {servicio}
+                </span>
+              ))}
+              {entidad.servicios.length > 3 && (
+                <span className="bg-[#f2f4f6] px-2 py-0.5 text-[10px] font-bold text-slate-400 rounded-[2px]">
+                  +{entidad.servicios.length - 3}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Ubicación + flecha CTA — misma fila */}
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-sm ${locationBg}`}>
+            <MapPin className={`w-3.5 h-3.5 shrink-0 ${locationIcon}`} />
+            <span className={`text-[11px] font-semibold uppercase tracking-wider truncate flex-1 ${locationText}`}>
+              {entidad.ubicacion || "Sin ubicación"}
+            </span>
+            <div className={`w-6 h-6 rounded-sm flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-300 shrink-0 ${actionBg}`}>
+              <ArrowRight className="w-3 h-3" />
+            </div>
+          </div>
+        </div>
       </div>
     </Link>
   );
