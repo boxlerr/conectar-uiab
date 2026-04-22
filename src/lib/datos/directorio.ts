@@ -173,7 +173,202 @@ export const entidades: Entidad[] = [
       telefono: "+54 11 7777-8888",
       sitioWeb: "https://logisticaexpress.com"
     }
-  }
+  },
+
+  // ─── Instituciones Bancarias (mock) ───
+  {
+    id: "banco-001",
+    tipo: "empresa",
+    slug: "banco-provincia-brown",
+    nombre: "Banco Provincia Suc. Brown",
+    categoria: "Banca PyME",
+    descripcionCorta: "Financiamiento productivo, cuentas corporativas y líneas de crédito para el sector industrial del Conurbano Sur.",
+    descripcionLarga: "Sucursal especializada en el acompañamiento al sector PyME industrial.",
+    logo: "BP",
+    ubicacion: "Adrogué, Almirante Brown",
+    servicios: ["Créditos PyME", "Comercio Exterior", "Leasing"],
+    destacado: true,
+    rating: 4.6,
+    reviews: 18,
+    esSocio: true,
+    contacto: {
+      email: "pyme@bancoprovincia.com.ar",
+      telefono: "+54 11 4294-1000",
+      sitioWeb: "https://bancoprovincia.com.ar"
+    }
+  },
+  {
+    id: "banco-002",
+    tipo: "empresa",
+    slug: "banco-nacion-brown",
+    nombre: "Banco Nación Suc. Industrial",
+    categoria: "Banca Corporativa",
+    descripcionCorta: "Líneas de financiamiento para capital de trabajo, inversión productiva y exportación para empresas radicadas.",
+    descripcionLarga: "Acompañamiento integral al sector productivo nacional.",
+    logo: "BN",
+    ubicacion: "Burzaco, Almirante Brown",
+    servicios: ["Capital de Trabajo", "Inversión Productiva", "Factoring"],
+    destacado: true,
+    rating: 4.4,
+    reviews: 12,
+    esSocio: true,
+    contacto: {
+      email: "empresas@bna.com.ar",
+      telefono: "+54 11 4238-5000",
+      sitioWeb: "https://bna.com.ar"
+    }
+  },
+  {
+    id: "banco-003",
+    tipo: "empresa",
+    slug: "financiera-conurbano",
+    nombre: "Financiera del Conurbano",
+    categoria: "Servicios Financieros",
+    descripcionCorta: "Soluciones de factoring, descuento de cheques y financiamiento de corto plazo para PyMEs industriales.",
+    descripcionLarga: "Entidad financiera especializada en el sector industrial.",
+    logo: "FC",
+    ubicacion: "Longchamps, Almirante Brown",
+    servicios: ["Factoring", "Descuento de Cheques", "SGR"],
+    destacado: false,
+    rating: 4.3,
+    reviews: 8,
+    esSocio: true,
+    contacto: {
+      email: "info@financieraconurbano.com.ar",
+      telefono: "+54 11 5555-6000",
+      sitioWeb: "https://financieraconurbano.com.ar"
+    }
+  },
+
+  // ─── Instituciones Educativas (mock) ───
+  {
+    id: "edu-001",
+    tipo: "empresa",
+    slug: "utn-frgp",
+    nombre: "UTN — FR Gral. Pacheco",
+    categoria: "Universidad Técnica",
+    descripcionCorta: "Formación de ingenieros industriales, mecánicos y electrónicos. Convenios de pasantías con empresas socias UIAB.",
+    descripcionLarga: "Universidad Tecnológica Nacional, formación de excelencia para el sector productivo.",
+    logo: "UTN",
+    ubicacion: "Gral. Pacheco, Buenos Aires",
+    servicios: ["Ingeniería Industrial", "Pasantías", "Investigación Aplicada"],
+    destacado: true,
+    rating: 4.9,
+    reviews: 34,
+    esSocio: true,
+    contacto: {
+      email: "info@frgp.utn.edu.ar",
+      telefono: "+54 11 4740-8000",
+      sitioWeb: "https://www.frgp.utn.edu.ar"
+    }
+  },
+  {
+    id: "edu-002",
+    tipo: "empresa",
+    slug: "centro-capacitacion-uiab",
+    nombre: "Centro de Capacitación UIAB",
+    categoria: "Formación Profesional",
+    descripcionCorta: "Cursos de soldadura, CNC, seguridad industrial y gestión de calidad certificados por la UIAB.",
+    descripcionLarga: "Centro de formación continua del sector industrial.",
+    logo: "CU",
+    ubicacion: "Burzaco, Almirante Brown",
+    servicios: ["Soldadura", "CNC", "Seguridad Industrial"],
+    destacado: true,
+    rating: 4.7,
+    reviews: 22,
+    esSocio: true,
+    contacto: {
+      email: "capacitacion@uiab.org",
+      telefono: "+54 11 4238-9000",
+      sitioWeb: "https://uiab.org/capacitacion"
+    }
+  },
+  {
+    id: "edu-003",
+    tipo: "empresa",
+    slug: "escuela-tecnica-brown",
+    nombre: "Escuela Técnica Nº5 A. Brown",
+    categoria: "Educación Técnica",
+    descripcionCorta: "Formación técnica secundaria en electromecánica y programación industrial con inserción laboral directa.",
+    descripcionLarga: "Escuela técnica de referencia en el distrito.",
+    logo: "ET",
+    ubicacion: "Glew, Almirante Brown",
+    servicios: ["Electromecánica", "Programación Industrial", "Prácticas Profesionalizantes"],
+    destacado: false,
+    rating: 4.5,
+    reviews: 15,
+    esSocio: true,
+    contacto: {
+      email: "et5@abc.gob.ar",
+      telefono: "+54 11 4296-3000",
+      sitioWeb: ""
+    }
+  },
+
+  // ─── Particulares (mock) ───
+  {
+    id: "part-001",
+    tipo: "proveedor",
+    slug: "electricidad-industrial-gomez",
+    nombre: "Ricardo Gómez — Electricidad Industrial",
+    categoria: "Servicio Eléctrico",
+    descripcionCorta: "Instalaciones eléctricas industriales, tableros de potencia y mantenimiento preventivo para plantas de producción.",
+    descripcionLarga: "Más de 15 años de experiencia en instalaciones eléctricas industriales.",
+    logo: "RG",
+    ubicacion: "Burzaco, Almirante Brown",
+    servicios: ["Tableros de Potencia", "Mantenimiento Preventivo"],
+    destacado: true,
+    rating: 4.9,
+    reviews: 26,
+    esSocio: false,
+    contacto: {
+      email: "rgomez.electrica@gmail.com",
+      telefono: "+54 11 6666-7777",
+      sitioWeb: ""
+    }
+  },
+  {
+    id: "part-002",
+    tipo: "proveedor",
+    slug: "contabilidad-fernandez",
+    nombre: "Estudio Fernández & Asoc.",
+    categoria: "Contabilidad",
+    descripcionCorta: "Asesoramiento contable e impositivo especializado en PyMEs industriales. Liquidación de sueldos y auditoría.",
+    descripcionLarga: "Estudio contable con foco en el sector industrial.",
+    logo: "EF",
+    ubicacion: "Adrogué, Almirante Brown",
+    servicios: ["Impuestos", "Sueldos", "Auditoría"],
+    destacado: true,
+    rating: 4.8,
+    reviews: 19,
+    esSocio: false,
+    contacto: {
+      email: "estudio@fernandezasoc.com",
+      telefono: "+54 11 4214-5000",
+      sitioWeb: "https://fernandezasoc.com"
+    }
+  },
+  {
+    id: "part-003",
+    tipo: "proveedor",
+    slug: "ingenieria-martinez",
+    nombre: "Ing. Martínez — Seguridad e Higiene",
+    categoria: "Ingeniería",
+    descripcionCorta: "Servicio de higiene y seguridad laboral para plantas industriales. Habilitaciones municipales y ART.",
+    descripcionLarga: "Ingeniero en seguridad e higiene industrial matriculado.",
+    logo: "IM",
+    ubicacion: "Longchamps, Almirante Brown",
+    servicios: ["Seguridad Laboral", "Habilitaciones", "ART"],
+    destacado: false,
+    rating: 4.7,
+    reviews: 14,
+    esSocio: false,
+    contacto: {
+      email: "ing.martinez@gmail.com",
+      telefono: "+54 11 3333-4444",
+      sitioWeb: ""
+    }
+  },
 ];
 
 export function getEmpresas(): Entidad[] {
@@ -223,4 +418,38 @@ export function getSectoresConRecuento() {
 
 export function getEntidadesDestacadas(): Entidad[] {
   return entidades.filter(e => e.destacado);
+}
+
+/** Socios industriales (empresas radicadas, excluye bancos y educativas) */
+export function getSociosIndustriales(): Entidad[] {
+  const excluirIds = new Set(["banco-001", "banco-002", "banco-003", "edu-001", "edu-002", "edu-003"]);
+  return entidades.filter(e => e.tipo === "empresa" && !excluirIds.has(e.id));
+}
+
+/** Instituciones bancarias mock */
+export function getInstitucionesBancarias(): Entidad[] {
+  return entidades.filter(e => e.id.startsWith("banco-"));
+}
+
+/** Instituciones educativas mock */
+export function getInstitucionesEducativas(): Entidad[] {
+  return entidades.filter(e => e.id.startsWith("edu-"));
+}
+
+/** Particulares (proveedores no socios) */
+export function getParticulares(): Entidad[] {
+  return entidades.filter(e => e.esSocio === false);
+}
+
+/** Categorías únicas de socios (empresas) */
+export function getCategoriasSocios(): string[] {
+  const excluirIds = new Set(["banco-001", "banco-002", "banco-003", "edu-001", "edu-002", "edu-003"]);
+  const socios = entidades.filter(e => e.tipo === "empresa" && !excluirIds.has(e.id));
+  return Array.from(new Set(socios.map(e => e.categoria))).sort();
+}
+
+/** Categorías únicas de particulares (proveedores) — no se repiten con socios */
+export function getCategoriasParticulares(): string[] {
+  const particulares = entidades.filter(e => e.esSocio === false);
+  return Array.from(new Set(particulares.map(e => e.categoria))).sort();
 }

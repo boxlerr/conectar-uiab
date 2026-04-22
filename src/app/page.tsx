@@ -19,8 +19,8 @@ import {
   Briefcase,
   CheckCircle2,
 } from "lucide-react";
-import { SectoresGrid } from "@/components/ui/directorio/grilla-sectores";
-import { EmpresasDestacadas } from "@/components/ui/directorio/empresas-destacadas";
+import { CategoriasDirectorio } from "@/components/ui/directorio/categorias-directorio";
+import { PreviewDirectorio } from "@/components/ui/directorio/preview-directorio";
 import { SeccionBeneficios } from "@/components/ui/directorio/seccion-beneficios";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { useRouter } from "next/navigation";
@@ -402,9 +402,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Existing components */}
-      <SectoresGrid />
-      <EmpresasDestacadas />
+      {/* Directory Categories & Preview */}
+      <CategoriasDirectorio />
+      <PreviewDirectorio />
       
       {/* ═══════════════════════════════════════════
           CORPORATE BENEFITS — SUBSCRIPTION VALUE
