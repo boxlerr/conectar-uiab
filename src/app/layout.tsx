@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 
+
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
@@ -132,6 +133,7 @@ export default async function RootLayout({
           </TourProvider>
         </AuthProvider>
         <Toaster />
+        <Analytics />
       </body>
     </html>
   );
