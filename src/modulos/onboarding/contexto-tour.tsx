@@ -51,13 +51,14 @@ const TourContext = createContext<TourContextValue | undefined>(undefined);
 import { pasosPerfil } from "./pasos/pasos-perfil";
 import { pasosDirectorio } from "./pasos/pasos-directorio";
 import { pasosOportunidades } from "./pasos/pasos-oportunidades";
+import { pasosDashboard } from "./pasos/pasos-dashboard";
 
 const CATALOGO_PASOS: Record<TourId, Step[]> = {
   pago_pendiente: [],
   perfil: pasosPerfil,
   directorio: pasosDirectorio,
   oportunidades: pasosOportunidades,
-  dashboard: [],
+  dashboard: pasosDashboard,
 };
 
 interface TourProviderProps {
@@ -448,6 +449,7 @@ function decidirTourPorRuta(pathname: string, role: string): TourId | null {
   // exacto para no re-disparar en sub-rutas tipo /empresas/[slug].
   if (pathname === "/empresas") return "directorio";
   if (pathname === "/oportunidades") return "oportunidades";
+  if (pathname === "/dashboard") return "dashboard";
   return null;
 }
 

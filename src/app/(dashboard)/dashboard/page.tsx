@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { BannerSuscripcion, DashboardBlurGate } from '@/components/ui/BannerSuscripcion';
+import { BotonReiniciarTour } from '@/modulos/onboarding/componentes/boton-reiniciar-tour';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -318,7 +319,7 @@ export default async function DashboardPage() {
         {/* ──────────────────────────────
             HEADER — hero editorial
         ────────────────────────────── */}
-        <header className="relative overflow-hidden rounded-3xl bg-[#021326] shadow-[0_30px_70px_-30px_rgba(0,33,63,0.5)] ring-1 ring-white/5">
+        <header data-tour="dash-hero" className="relative overflow-hidden rounded-3xl bg-[#021326] shadow-[0_30px_70px_-30px_rgba(0,33,63,0.5)] ring-1 ring-white/5">
           {/* Base Gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#001c38] via-[#052b50] to-[#0a355f]" />
 
@@ -434,6 +435,7 @@ export default async function DashboardPage() {
                 >
                   <Settings className="w-4 h-4" /> Editar Datos
                 </Link>
+                <BotonReiniciarTour tour="dashboard" label="Ver tutorial" variant="ghost" className="justify-center text-white/70 hover:text-white bg-white/5 border border-white/10 px-5 py-2.5 rounded-xl text-sm" />
               </div>
             </div>
 
@@ -559,7 +561,7 @@ export default async function DashboardPage() {
         {/* ──────────────────────────────
             KPIs — con barra de acento
         ────────────────────────────── */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <section data-tour="dash-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { icon: Building, value: empresasCount, label: 'Socios UIAB', sub: 'en el directorio', href: '/empresas', accent: 'bg-blue-50 text-blue-700', bar: 'from-blue-500 to-blue-700' },
             { icon: Users, value: proveedoresCount, label: 'Particulares', sub: 'verificados', href: '/empresas?categoria=proveedores', accent: 'bg-emerald-50 text-emerald-700', bar: 'from-emerald-500 to-teal-600' },
@@ -596,7 +598,7 @@ export default async function DashboardPage() {
           <div className="lg:col-span-8 space-y-8">
             {/* ── SMART MATCHES ── */}
             {(isCompany || isProvider) && (
-              <section className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
+              <section data-tour="dash-matches" className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
                 <div className="bg-slate-50/80 border-b border-slate-100 px-8 py-5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Activity className="w-5 h-5 text-[#00213f]" />
@@ -742,7 +744,7 @@ export default async function DashboardPage() {
 
             {/* ── PRODUCTS / SERVICES SUMMARY ── */}
             {(isCompany || isProvider) && (
-              <section className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
+              <section data-tour="dash-items" className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
                 <div className="bg-slate-50/80 border-b border-slate-100 px-8 py-5 flex items-center justify-between">
                   <h2 className="font-poppins text-base font-bold text-[#00213f] flex items-center gap-2.5">
                     <PackageSearch className="w-5 h-5 text-slate-600" />
@@ -809,7 +811,7 @@ export default async function DashboardPage() {
             )}
 
             {/* ── OPPORTUNITIES FEED ── */}
-            <section className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
+            <section data-tour="dash-feed" className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
               <div className="bg-slate-50/80 border-b border-slate-100 px-8 py-5 flex items-center justify-between">
                 <h2 className="font-poppins text-base font-bold text-[#00213f] flex items-center gap-2.5">
                   <Target className="w-5 h-5 text-amber-600/70" />
@@ -856,7 +858,7 @@ export default async function DashboardPage() {
           <div className="lg:col-span-4 space-y-6">
 
             {/* ── QUICK ACTIONS ── */}
-            <section className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
+            <section data-tour="dash-quick" className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
               <div className="bg-slate-50/80 border-b border-slate-100 px-6 py-5">
                 <h3 className="text-[11px] font-bold text-[#00213f] uppercase tracking-[0.15em]">Acciones Rápidas</h3>
               </div>
@@ -879,7 +881,7 @@ export default async function DashboardPage() {
             </section>
 
             {/* ── EXPLORE CTA ── */}
-            <section className="bg-gradient-to-135 from-[#00213f] to-[#10375c] rounded-xl p-7 text-white relative overflow-hidden ring-1 ring-[#00213f]" style={{ background: 'linear-gradient(135deg, #00213f, #10375c)' }}>
+            <section data-tour="dash-explore" className="bg-gradient-to-135 from-[#00213f] to-[#10375c] rounded-xl p-7 text-white relative overflow-hidden ring-1 ring-[#00213f]" style={{ background: 'linear-gradient(135deg, #00213f, #10375c)' }}>
               <div className="absolute top-0 right-0 w-36 h-36 bg-white/[0.04] rounded-full blur-2xl -translate-y-1/2 translate-x-1/4" />
               <div className="relative z-10">
                 <h3 className="font-poppins text-lg font-bold mb-2">
