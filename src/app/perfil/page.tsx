@@ -152,7 +152,7 @@ export default function MiPerfilPage() {
           </h1>
           <p className="text-slate-500 mt-1">Revisión general del estado de tu perfil y suscripción.</p>
         </div>
-        <Badge variant="secondary" className={estadoUI.className}>
+        <Badge variant="secondary" data-tour="perfil-estado" className={estadoUI.className}>
           Estado: {estadoUI.label}
         </Badge>
       </div>
@@ -170,7 +170,7 @@ export default function MiPerfilPage() {
       {/* Grid Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Datos y Contacto */}
-        <Card className="p-6 border-slate-100 shadow-sm relative overflow-hidden group">
+        <Card data-tour="perfil-datos" className="p-6 border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-[0.08] transition-opacity">
             {currentUser.role === "company" ? <Building className="w-24 h-24" /> : <Wrench className="w-24 h-24" />}
           </div>
@@ -196,7 +196,7 @@ export default function MiPerfilPage() {
         </Card>
 
         {/* Mis Servicios */}
-        <Card className="p-6 border-slate-100 shadow-sm">
+        <Card data-tour="perfil-servicios" className="p-6 border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
@@ -228,7 +228,7 @@ export default function MiPerfilPage() {
       </div>
 
       {/* Resumen de Reseñas */}
-      <Card className="p-6 border-slate-100 shadow-sm">
+      <Card data-tour="perfil-resenas" className="p-6 border-slate-100 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">

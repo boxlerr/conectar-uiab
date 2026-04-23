@@ -5,6 +5,7 @@ import { ShieldAlert, User, Briefcase, CreditCard, LayoutDashboard, PackageSearc
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utilidades";
+import { BotonReiniciarTour } from "@/modulos/onboarding/componentes/boton-reiniciar-tour";
 
 export default function PerfilLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, loading: authLoading } = useAuth();
@@ -49,19 +50,22 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
   }
 
   const profileNav = [
-    { name: "Mi Resumen", href: "/perfil", icon: LayoutDashboard },
-    { name: "Datos y Contacto", href: "/perfil/datos", icon: User },
-    { name: "Productos y Servicios", href: "/perfil/productos-servicios", icon: PackageSearch },
-    { name: "Rubros y Especialidades", href: "/perfil/servicios", icon: Briefcase },
-    { name: "Etiquetas de Match", href: "/perfil/etiquetas", icon: Tag },
-    { name: "Bandeja de Entrada", href: "/perfil/solicitudes", icon: Inbox },
-    { name: "Mi Suscripción", href: "/perfil/suscripcion", icon: CreditCard },
+    { name: "Mi Resumen", href: "/perfil", icon: LayoutDashboard, tourId: "nav-resumen" },
+    { name: "Datos y Contacto", href: "/perfil/datos", icon: User, tourId: "nav-datos" },
+    { name: "Productos y Servicios", href: "/perfil/productos-servicios", icon: PackageSearch, tourId: "nav-productos-servicios" },
+    { name: "Rubros y Especialidades", href: "/perfil/servicios", icon: Briefcase, tourId: "nav-servicios" },
+    { name: "Etiquetas de Match", href: "/perfil/etiquetas", icon: Tag, tourId: "nav-etiquetas" },
+    { name: "Bandeja de Entrada", href: "/perfil/solicitudes", icon: Inbox, tourId: "nav-solicitudes" },
+    { name: "Mi Suscripción", href: "/perfil/suscripcion", icon: CreditCard, tourId: "nav-suscripcion" },
   ];
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)]">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col flex-shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+      <aside
+        data-tour="perfil-nav"
+        className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col flex-shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto"
+      >
         <div className="py-6 px-4 space-y-6">
           <div className="px-2">
             <div className="flex items-center gap-2.5 mb-1">
@@ -83,6 +87,7 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
                 <Link
                   key={item.href}
                   href={item.href}
+                  data-tour={item.tourId}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                     isActive
@@ -96,6 +101,10 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
               );
             })}
           </nav>
+
+          <div className="pt-4 border-t border-slate-100">
+            <BotonReiniciarTour tour="perfil" label="Ver tutorial del perfil" className="w-full justify-center" />
+          </div>
         </div>
       </aside>
 

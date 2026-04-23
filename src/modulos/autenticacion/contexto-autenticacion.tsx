@@ -72,22 +72,25 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
 
       if (data) {
         let entityId = null;
+        let entidadEstado: string | null = null;
 
         // Fetch Business Layer ID mapping
         if (data.rol_sistema === 'company') {
           const { data: memberData } = await supabase
             .from('miembros_empresa')
-            .select('empresa_id')
+            .select('empresa_id, empresas:empresa_id(estado)')
             .eq('perfil_id', userId)
             .single();
           entityId = memberData?.empresa_id;
+          entidadEstado = (memberData as any)?.empresas?.estado ?? null;
         } else if (data.rol_sistema === 'provider') {
           const { data: memberData } = await supabase
             .from('miembros_proveedor')
-            .select('proveedor_id')
+            .select('proveedor_id, proveedores:proveedor_id(estado)')
             .eq('perfil_id', userId)
             .single();
           entityId = memberData?.proveedor_id;
+          entidadEstado = (memberData as any)?.proveedores?.estado ?? null;
         }
 
         // Fetch subscription estado for gating content sections
@@ -104,7 +107,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
           subscriptionEstado = sub?.estado ?? null;
         }
 
-        dbg('fetchProfile:done', { role: data.rol_sistema, entityId, subscriptionEstado });
+        dbg('fetchProfile:done', { role: data.rol_sistema, entityId, subscriptionEstado, entidadEstado });
         return {
           id: data.id,
           name: data.nombre_completo || email.split('@')[0],
@@ -113,6 +116,8 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
           isMember: data.activo || false,
           entityId: entityId,
           subscriptionEstado,
+          tutorialesVistos: (data.tutoriales_vistos ?? {}) as Record<string, string | null>,
+          entidadEstado,
         };
       }
     } catch (err) {

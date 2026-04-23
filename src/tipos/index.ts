@@ -12,6 +12,10 @@ export interface User {
   isMember: boolean; // Relevant if they are part of UIAB
   entityId?: string | null; // ID in 'empresas' or 'proveedores' table
   subscriptionEstado: string | null; // 'activa' | 'pendiente_pago' | 'en_mora' | 'suspendida' | 'cancelada' | null
+  /** Mapa seccion -> timestamp ISO (o null si no lo vio). Persistido en perfiles.tutoriales_vistos. */
+  tutorialesVistos?: Record<string, string | null>;
+  /** Estado de la entidad (empresa/proveedor) — 'pendiente_revision' | 'aprobada'/'aprobado' | 'rechazada'/'rechazado'. */
+  entidadEstado?: string | null;
 }
 
 export interface Review {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins, Open_Sans, Geist, Manrope, Inter } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next"
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -28,13 +29,14 @@ const inter = Inter({
 });
 
 import { AuthProvider } from "@/modulos/autenticacion/contexto-autenticacion";
+import { TourProvider } from "@/modulos/onboarding/contexto-tour";
 import { AppShell } from "@/components/plantillas/app-shell";
 import { cn } from "@/lib/utilidades";
 import { Toaster } from "@/components/ui/sonner";
 import { createClient } from "@/lib/supabase/servidor";
 import type { User } from "@/tipos";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
   title: "UIAB Conecta | Directorio Industrial",
@@ -54,28 +56,31 @@ async function getServerUser(): Promise<User | null> {
 
     const { data: profile } = await supabase
       .from('perfiles')
-      .select('id, nombre_completo, rol_sistema, activo')
+      .select('id, nombre_completo, rol_sistema, activo, tutoriales_vistos')
       .eq('id', user.id)
       .single();
 
     if (!profile) return null;
 
     let entityId: string | null = null;
+    let entidadEstado: string | null = null;
 
     if (profile.rol_sistema === 'company') {
       const { data: memberData } = await supabase
         .from('miembros_empresa')
-        .select('empresa_id')
+        .select('empresa_id, empresas:empresa_id(estado)')
         .eq('perfil_id', user.id)
         .single();
       entityId = memberData?.empresa_id ?? null;
+      entidadEstado = (memberData as any)?.empresas?.estado ?? null;
     } else if (profile.rol_sistema === 'provider') {
       const { data: memberData } = await supabase
         .from('miembros_proveedor')
-        .select('proveedor_id')
+        .select('proveedor_id, proveedores:proveedor_id(estado)')
         .eq('perfil_id', user.id)
         .single();
       entityId = memberData?.proveedor_id ?? null;
+      entidadEstado = (memberData as any)?.proveedores?.estado ?? null;
     }
 
     let subscriptionEstado: string | null = null;
@@ -99,6 +104,8 @@ async function getServerUser(): Promise<User | null> {
       isMember: profile.activo || false,
       entityId,
       subscriptionEstado,
+      tutorialesVistos: ((profile as any).tutoriales_vistos ?? {}) as Record<string, string | null>,
+      entidadEstado,
     };
   } catch {
     return null;
@@ -118,9 +125,11 @@ export default async function RootLayout({
         className={`${openSans.variable} ${poppins.variable} ${manrope.variable} ${inter.variable} font-sans antialiased min-h-screen bg-slate-50`}
       >
         <AuthProvider initialUser={initialUser}>
-          <Suspense>
-            <AppShell>{children}</AppShell>
-          </Suspense>
+          <TourProvider>
+            <Suspense>
+              <AppShell>{children}</AppShell>
+            </Suspense>
+          </TourProvider>
         </AuthProvider>
         <Toaster />
       </body>
