@@ -1,92 +1,184 @@
 import type { Step } from "react-joyride";
+import type { PasoData } from "../contexto-tour";
 
 /**
- * Tour guiado del Perfil. Los `target` apuntan a selectores `data-tour`
- * que agregamos directamente en los componentes de la sección. Si un
- * target no existe todavía en la página (por ej., el usuario no tiene
- * entidad creada aún), react-joyride simplemente lo salta sin romper.
+ * Tour completo del Perfil, con navegación entre rutas.
  *
- * Mantenemos los textos cortos y concretos: un usuario nuevo no quiere
- * leer párrafos, quiere entender rápido dónde está cada cosa.
+ * Convenciones por tipo de paso:
+ *  - target:"body" placement:"center" → modal centrado, skipScroll:true
+ *  - target selector               → apunta al elemento, scroll habilitado
+ *    scrollOffset:120              → margen generoso para no quedar tapado
+ *                                    por el header sticky de 64px
  */
-export const pasosPerfil: Step[] = [
-  {
-    target: "body",
-    placement: "center",
+type PasoConRuta = Step & { data: PasoData };
+
+const centro = (s: Omit<PasoConRuta, "target" | "placement" | "skipBeacon" | "skipScroll">): PasoConRuta => ({
+  ...s,
+  target: "body",
+  placement: "center",
+  skipBeacon: true,
+  // Los pasos centrados no deben scrollear (son overlays flotantes sin target real)
+  skipScroll: true,
+} as PasoConRuta);
+
+const apunta = (s: PasoConRuta): PasoConRuta => ({
+  scrollOffset: 120,
+  ...s,
+  // Los pasos que apuntan a un elemento SÍ hacen scroll para que el target
+  // quede visible. El scrollOffset compensa el header sticky de 64px.
+  skipScroll: false,
+});
+
+export const pasosPerfil: PasoConRuta[] = [
+  // ─── OVERVIEW en /perfil ──────────────────────────────────────────
+  centro({
     title: "Te damos la bienvenida a tu perfil",
     content:
-      "Acá configurás cómo te ven el resto de los socios en el directorio. Te muestro las secciones principales en menos de un minuto.",
-    skipBeacon: true,
-  },
-  {
+      "Te muestro en menos de dos minutos cómo está organizado tu panel y para qué sirve cada sección. Podés saltarlo cuando quieras.",
+    data: { ruta: "/perfil" },
+  }),
+  apunta({
     target: '[data-tour="perfil-nav"]',
     placement: "right",
-    title: "Menú lateral",
+    title: "Menú de tu panel",
     content:
-      "Este es el menú de tu panel. Desde acá accedés a tus datos, productos/servicios, rubros, bandeja de mensajes y tu suscripción.",
-  },
-  {
+      "Desde este menú accedés a tus datos, catálogo, rubros, etiquetas, mensajes y suscripción. Te vamos a recorrer cada sección.",
+    data: { ruta: "/perfil" },
+  }),
+  apunta({
     target: '[data-tour="perfil-estado"]',
     placement: "left",
     title: "Estado de tu cuenta",
     content:
-      "Acá ves si tu perfil está aprobado, en revisión o rechazado. Mientras esté en revisión no aparecés aún en el directorio público.",
-  },
-  {
+      "Acá ves si tu perfil está aprobado, en revisión o rechazado. Mientras esté en revisión no aparecés en el directorio público.",
+    data: { ruta: "/perfil" },
+  }),
+  apunta({
     target: '[data-tour="perfil-datos"]',
     placement: "bottom",
-    title: "Datos y Contacto",
+    title: "Tus datos en un vistazo",
     content:
-      "Tu información principal: razón social o nombre, email, teléfono, dirección y descripción. Es lo primero que ve un potencial cliente.",
-  },
-  {
+      "Resumen de tu información principal: email, teléfono, ubicación y sitio web. Es lo primero que ve un potencial cliente.",
+    data: { ruta: "/perfil" },
+  }),
+  apunta({
     target: '[data-tour="perfil-servicios"]',
     placement: "bottom",
-    title: "Rubros y especialidades",
+    title: "Tus rubros",
     content:
-      "Elegí las categorías en las que querés aparecer. Son la clave para que te encuentren cuando alguien busca un rubro específico.",
-  },
-  {
+      "Un vistazo rápido a las categorías en las que aparecés. Cuantos más rubros concretos cargues, más te encuentran.",
+    data: { ruta: "/perfil" },
+  }),
+  apunta({
     target: '[data-tour="perfil-resenas"]',
     placement: "top",
-    title: "Reseñas",
+    title: "Reseñas recibidas",
     content:
-      "Acá ves las reseñas que recibiste de otros socios. Promedio y comentarios aparecen públicos en tu ficha del directorio.",
-  },
-  {
-    target: '[data-tour="nav-productos-servicios"]',
+      "Las reseñas que te dejaron otros socios aparecen acá y en tu ficha pública. El promedio y los comentarios los ve todo el mundo.",
+    data: { ruta: "/perfil" },
+  }),
+
+  // ─── DATOS Y CONTACTO ─────────────────────────────────────────────
+  apunta({
+    target: '[data-tour="nav-datos"]',
     placement: "right",
-    title: "Productos y servicios",
+    title: "Vamos a Datos y Contacto →",
     content:
-      "En esta sección cargás tu catálogo: nombre, descripción y precio. Podés importar en lote con Excel. Los socios los ven al entrar a tu ficha.",
-  },
-  {
-    target: '[data-tour="nav-etiquetas"]',
+      "Al tocar Siguiente te llevo a la sección donde configurás toda tu información principal.",
+    data: { ruta: "/perfil" },
+  }),
+  apunta({
+    target: '[data-tour="datos-logo"]',
     placement: "right",
-    title: "Etiquetas de Match",
+    title: "Subí tu logotipo",
     content:
-      "Agregá palabras clave que describan lo que hacés. Se usan para el matching automático con oportunidades de otros socios.",
-  },
-  {
-    target: '[data-tour="nav-solicitudes"]',
-    placement: "right",
-    title: "Bandeja de entrada",
+      "Hacé click acá para subir tu logo o foto de perfil (PNG/JPG, hasta 2 MB). Es la cara visible de tu marca en el directorio.",
+    data: { ruta: "/perfil/datos" },
+  }),
+  apunta({
+    target: '[data-tour="datos-form"]',
+    placement: "top",
+    title: "Tu información principal",
     content:
-      "Acá te llegan las consultas de otros socios y también las reseñas que te dejan. Revisala seguido.",
-  },
-  {
-    target: '[data-tour="nav-suscripcion"]',
-    placement: "right",
-    title: "Mi suscripción",
+      "Razón social, CUIT, email, teléfono, dirección y descripción. Completar bien este formulario es clave para aparecer en búsquedas.",
+    data: { ruta: "/perfil/datos" },
+  }),
+  apunta({
+    target: '[data-tour="datos-guardar"]',
+    placement: "top",
+    title: "No te olvides de guardar",
     content:
-      "Tu plan, fecha del próximo cobro y comprobantes de pago. Desde acá también podés pausar o cancelar si hiciera falta.",
-  },
-  {
-    target: "body",
-    placement: "center",
-    title: "¡Listo!",
+      "Siempre que cambies algo, tocá acá para guardar. Si recién creás tu perfil, este botón lo registra en el directorio por primera vez.",
+    data: { ruta: "/perfil/datos" },
+  }),
+
+  // ─── PRODUCTOS Y SERVICIOS ────────────────────────────────────────
+  centro({
+    title: "Ahora tu catálogo →",
     content:
-      "Podés volver a ver este tutorial en cualquier momento con el botón “Ver tutorial” del encabezado. Empezá por completar tus Datos y Contacto.",
-    skipBeacon: true,
-  },
+      "Te llevo a Productos y Servicios, donde cargás lo que ofrecés. Los socios lo ven al entrar a tu ficha.",
+    data: { ruta: "/perfil/datos" },
+  }),
+  apunta({
+    target: '[data-tour="productos-agregar"]',
+    placement: "bottom",
+    title: "Añadir un ítem",
+    content:
+      "Con este botón agregás un producto o servicio: nombre, descripción, precio y foto. Cuanto más completo, mejor te encuentran.",
+    data: { ruta: "/perfil/productos-servicios" },
+  }),
+  apunta({
+    target: '[data-tour="productos-importar"]',
+    placement: "bottom",
+    title: "Importar desde Excel",
+    content:
+      "¿Tenés muchos productos? Cargalos en lote con una planilla Excel siguiendo el formato que te damos. Ahorrás mucho tiempo.",
+    data: { ruta: "/perfil/productos-servicios" },
+  }),
+
+  // ─── RUBROS Y ESPECIALIDADES ──────────────────────────────────────
+  centro({
+    title: "Rubros y especialidades →",
+    content:
+      "Ahora vamos a Rubros: las categorías donde querés aparecer cuando alguien busca tu sector.",
+    data: { ruta: "/perfil/productos-servicios" },
+  }),
+  centro({
+    title: "Elegí tus rubros",
+    content:
+      "Marcá todas las categorías en las que trabajás. Son la clave para aparecer cuando un socio filtra el directorio por industria o especialidad.",
+    data: { ruta: "/perfil/servicios" },
+  }),
+
+  // ─── ETIQUETAS DE MATCH ───────────────────────────────────────────
+  centro({
+    title: "Etiquetas de Match →",
+    content:
+      "Las etiquetas son palabras clave: capacidades, materiales, problemas que resolvés. Las usamos para cruzarte automáticamente con oportunidades.",
+    data: { ruta: "/perfil/etiquetas" },
+  }),
+
+  // ─── BANDEJA DE ENTRADA ───────────────────────────────────────────
+  centro({
+    title: "Bandeja de entrada →",
+    content:
+      "Acá te llegan las consultas de otros socios y las reseñas que te dejan. Revisala seguido para no perder oportunidades.",
+    data: { ruta: "/perfil/solicitudes" },
+  }),
+
+  // ─── MI SUSCRIPCIÓN ───────────────────────────────────────────────
+  centro({
+    title: "Tu suscripción →",
+    content:
+      "Tu plan actual, fecha del próximo cobro y comprobantes de pago. Desde acá también podés pausar o cancelar si hiciera falta.",
+    data: { ruta: "/perfil/suscripcion" },
+  }),
+
+  // ─── CIERRE ───────────────────────────────────────────────────────
+  centro({
+    title: "¡Listo! Ya conocés tu panel",
+    content:
+      'Te recomendamos empezar completando tus Datos y Contacto. Podés volver a ver este tutorial en cualquier momento desde el botón "Ver tutorial del perfil".',
+    data: { ruta: "/perfil/suscripcion" },
+  }),
 ];

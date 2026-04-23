@@ -134,6 +134,7 @@ export default function PerfilCatalogoPage() {
         </div>
         <div className="flex gap-2 shrink-0">
           <Button
+            data-tour="productos-importar"
             onClick={() => setIsImportOpen(true)}
             variant="outline"
             className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
@@ -142,6 +143,7 @@ export default function PerfilCatalogoPage() {
             Importar Excel
           </Button>
           <Button
+            data-tour="productos-agregar"
             onClick={() => {
               setItemToEdit(null);
               setIsFormOpen(true);

@@ -256,7 +256,7 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
       </div>
 
       {/* ─── Barra de identidad: logo + meta inline, sobria ─── */}
-      <div className="border-b border-slate-200 bg-white">
+      <div data-tour="ficha-identidad" className="border-b border-slate-200 bg-white">
         <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 py-6 flex flex-wrap items-center gap-6">
           <div className="w-20 h-20 bg-white border border-slate-200 flex items-center justify-center font-manrope font-black text-4xl text-[#00213f] shrink-0 overflow-hidden rounded-md shadow-sm">
             {empresa.logoUrl ? (
@@ -373,10 +373,12 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
               </section>
             )}
 
-            <ResenasPerfil resenasAprobadas={finalResenas} targetType="empresa" targetId={empresaDb.id} />
+            <div data-tour="ficha-resenas">
+              <ResenasPerfil resenasAprobadas={finalResenas} targetType="empresa" targetId={empresaDb.id} />
+            </div>
           </main>
 
-          <aside className="w-full lg:w-[28%]">
+          <aside data-tour="ficha-sidebar-contacto" className="w-full lg:w-[28%]">
             <div className="bg-white rounded-md border border-slate-200 sticky top-28 overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
                 <h3 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">

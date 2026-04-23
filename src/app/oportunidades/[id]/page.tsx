@@ -185,7 +185,7 @@ export default function OportunidadDetail({
       </div>
 
       {/* MASTHEAD — editorial */}
-      <header className="bg-[#00213f] text-white relative overflow-hidden border-t border-white/5">
+      <header data-tour="op-detalle-hero" className="bg-[#00213f] text-white relative overflow-hidden border-t border-white/5">
         <div
           className="absolute inset-0 opacity-[0.06] pointer-events-none"
           style={{
@@ -225,7 +225,7 @@ export default function OportunidadDetail({
           </h1>
 
           {/* Meta row */}
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-px bg-white/10 max-w-3xl">
+          <div data-tour="op-detalle-meta" className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-px bg-white/10 max-w-3xl">
             <MetaCell
               label="Solicitante"
               value={op.empresa?.razon_social || "Miembro del Parque"}
@@ -273,7 +273,7 @@ export default function OportunidadDetail({
             )}
 
             {/* Description block */}
-            <section>
+            <section data-tour="op-detalle-descripcion">
               <div className="flex items-baseline gap-4 mb-5">
                 <span className="text-[10px] font-bold text-[#10375c] uppercase tracking-[0.22em] font-inter tabular-nums">
                   01
@@ -334,7 +334,7 @@ export default function OportunidadDetail({
             <div className="lg:sticky lg:top-24 space-y-3">
               {/* Action card */}
               {puedePostularse && (
-                <div className="hidden lg:block bg-white p-6 rounded-sm">
+                <div data-tour="op-detalle-postular" className="hidden lg:block bg-white p-6 rounded-sm">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.22em] mb-4 font-inter">
                     Acción
                   </p>
@@ -359,7 +359,7 @@ export default function OportunidadDetail({
               )}
 
               {/* Ledger panel — facts stacked, separated by surface shift */}
-              <div className="bg-white rounded-sm overflow-hidden">
+              <div data-tour="op-detalle-ficha" className="bg-white rounded-sm overflow-hidden">
                 <div className="bg-[#10375c] px-6 py-4">
                   <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.22em] font-inter">
                     Ficha técnica

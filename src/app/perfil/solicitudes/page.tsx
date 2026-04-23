@@ -85,7 +85,7 @@ type FiltroEstado = "todas" | "activas" | "enviada" | "vista" | "respondida" | "
 
 export default function BandejaEntradaPage() {
   const { currentUser, loading: authLoading } = useAuth();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [isPending, startTransition] = useTransition();
 
   const [seccion, setSeccion] = useState<Seccion>("solicitudes");
@@ -159,7 +159,7 @@ export default function BandejaEntradaPage() {
 
     load();
     return () => { cancel = true; };
-  }, [authLoading, currentUser?.entityId, currentUser?.role, supabase, tick]);
+  }, [authLoading, currentUser?.entityId, currentUser?.role, tick]);
 
   const filtradas = useMemo(() => {
     if (filtro === "todas") return solicitudes;

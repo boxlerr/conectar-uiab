@@ -320,7 +320,7 @@ export default function DirectorioPage() {
   return (
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-20">
       {/* ─── Hero Header ─── */}
-      <div className="relative h-[48vh] min-h-[460px] flex items-center justify-center overflow-hidden -mt-24 pt-44 pb-24 mb-16">
+      <div data-tour="directorio-hero" className="relative h-[48vh] min-h-[460px] flex items-center justify-center overflow-hidden -mt-24 pt-44 pb-24 mb-16">
         <motion.div
           style={{ y: headerY, opacity: headerOpacity }}
           className="absolute inset-0 z-0"
@@ -371,6 +371,7 @@ export default function DirectorioPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
+          data-tour="directorio-stats"
           className="bg-white rounded-2xl p-6 shadow-xl shadow-primary/5 border border-slate-200/60 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden -mt-24 z-20"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3" />
@@ -443,7 +444,7 @@ export default function DirectorioPage() {
 
         <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
           {/* Sidebar */}
-          <aside className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
+          <aside data-tour="directorio-sidebar" className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
             <FilterSidebar
               categorias={categoriasActivas}
               categoriaSeleccionada={categoriaSeleccionada}
@@ -457,7 +458,7 @@ export default function DirectorioPage() {
           {/* Main Grid */}
           <main className="w-full lg:w-9/12 xl:w-3/4">
             {/* Toolbar */}
-            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
+            <div data-tour="directorio-toolbar" className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
               <div>
                 <h3 className="font-manrope text-lg font-bold text-slate-800">
                   {entidadesFiltradas.length}{" "}
@@ -465,7 +466,7 @@ export default function DirectorioPage() {
                 </h3>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div data-tour="directorio-vista" className="flex items-center gap-3">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   Vista:
                 </span>
@@ -539,6 +540,7 @@ export default function DirectorioPage() {
             ) : entidadesFiltradas.length > 0 ? (
               <div
                 key={`${viewMode}-${activeTab}`}
+                data-tour="directorio-resultados"
                 className={
                   viewMode === "grid"
                     ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"

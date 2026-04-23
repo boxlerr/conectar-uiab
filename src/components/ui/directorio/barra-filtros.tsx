@@ -36,7 +36,7 @@ export function FilterSidebar({
     <div className="bg-white/80 backdrop-blur-xl rounded-xl border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] font-inter flex flex-col overflow-hidden">
 
       {/* ── Búsqueda ── */}
-      <div className="px-6 pt-6 pb-4 shrink-0">
+      <div data-tour="directorio-buscador" className="px-6 pt-6 pb-4 shrink-0">
         <div className="flex items-center space-x-2 mb-4">
           <div className={`w-1.5 h-5 rounded-sm ${themeAccent}`} />
           <h3 className="font-manrope font-extrabold text-slate-800 uppercase tracking-widest text-[11px]">
@@ -66,7 +66,7 @@ export function FilterSidebar({
       </div>
 
       {/* ── Lista scrolleable ── */}
-      <ul className="px-4 pb-3 space-y-1 overflow-y-auto flex-1 min-h-0 max-h-[46vh] custom-scrollbar">
+      <ul data-tour="directorio-categorias" className="px-4 pb-3 space-y-1 overflow-y-auto flex-1 min-h-0 max-h-[46vh] custom-scrollbar">
         <li>
           <button
             onClick={() => onCategoriaChange(null)}

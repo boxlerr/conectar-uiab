@@ -13,6 +13,7 @@ import { oportunidadesService, Oportunidad, Match } from "@/modulos/oportunidade
 import { PublicOportunidadesLanding } from "./landing-oportunidades-publica";
 import { AccesoRequerido } from "@/components/ui/acceso-requerido";
 import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
+import { BotonReiniciarTour } from "@/modulos/onboarding/componentes/boton-reiniciar-tour";
 // Remove MOCK_OPORTUNIDADES
 
 
@@ -77,7 +78,7 @@ export default function OportunidadesPage() {
   return (
     <div className="min-h-screen bg-slate-50 pt-24 pb-16">
       {/* Hero / Header Section */}
-      <div className="bg-slate-900 text-white py-16 mb-12 -mt-24 pt-32">
+      <div data-tour="op-hero" className="bg-slate-900 text-white py-16 mb-12 -mt-24 pt-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="max-w-2xl">
@@ -104,7 +105,7 @@ export default function OportunidadesPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Search and Filters Bar */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div data-tour="op-buscador" className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             <Input 
@@ -128,6 +129,7 @@ export default function OportunidadesPage() {
               <h2 className="font-manrope text-2xl font-bold text-slate-900 tracking-tight">
                 {filtrados.length} {filtrados.length === 1 ? "oportunidad disponible" : "oportunidades disponibles"}
               </h2>
+              <BotonReiniciarTour tour="oportunidades" label="Ver tutorial" />
             </div>
 
             {loading ? (
@@ -137,56 +139,51 @@ export default function OportunidadesPage() {
                 ))}
               </div>
             ) : filtrados.length > 0 ? (
-              filtrados.map((op) => {
+              filtrados.map((op, idx) => {
                 const match = matches.find(m => m.oportunidad_id === op.id);
                 const isRecommended = !!match;
 
                 return (
-                  <Link key={op.id} href={`/oportunidades/${op.id}`}>
-                    <Card className={`transition-all duration-300 border-none rounded-sm overflow-hidden group mb-6 relative ${
-                      isRecommended ? 'bg-white ring-2 ring-primary-100 shadow-lg shadow-primary-900/5' : 'bg-white shadow-sm'
+                  <Link key={op.id} href={`/oportunidades/${op.id}`} data-tour={idx === 0 ? "op-tarjeta" : undefined}>
+                    <Card className={`transition-all duration-300 rounded-sm overflow-hidden group mb-3 relative bg-white hover:shadow-md hover:-translate-y-0.5 ${
+                      isRecommended
+                        ? 'border border-primary-200 shadow-sm shadow-primary-900/5'
+                        : 'border border-slate-200/80 shadow-sm'
                     }`}>
                       {isRecommended && (
-                        <div className="absolute top-0 right-0 bg-[#00213f] text-white px-3 py-1 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 z-10">
-                          <Sparkles className="w-3 h-3" /> Recomendado ({Math.round(match.puntaje)}%)
+                        <div className="absolute top-0 right-0 bg-[#00213f] text-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5 z-10">
+                          <Sparkles className="w-2.5 h-2.5" /> Recomendado ({Math.round(match.puntaje)}%)
                         </div>
                       )}
-                      <CardContent className="p-8">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2 text-primary-600 font-bold text-xs uppercase tracking-widest">
-                              <span className={`flex h-2.5 w-2.5 rounded-full ${op.estado === 'abierta' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
-                              {op.estado}
-                            </div>
-                            <h3 className="text-2xl font-manrope font-bold text-slate-900 group-hover:text-primary-600 transition-colors leading-tight">{op.titulo}</h3>
-                            <p className="text-sm font-inter text-slate-500 flex items-center mt-2 font-medium">
-                              <Building2 className="w-4 h-4 mr-2 opacity-60" />
-                              {op.empresa?.razon_social || "Empresa del parque"}
-                            </p>
-                          </div>
+                      <CardContent className="p-5">
+                        <div className="flex items-center gap-2 mb-1.5 text-primary-600 font-bold text-[10px] uppercase tracking-widest">
+                          <span className={`flex h-2 w-2 rounded-full ${op.estado === 'abierta' ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
+                          {op.estado}
                         </div>
-                        
-                        <p className="text-slate-600 mb-8 line-clamp-2 text-base font-inter leading-relaxed">
+                        <h3 className="text-lg font-manrope font-bold text-slate-900 group-hover:text-primary-600 transition-colors leading-snug">{op.titulo}</h3>
+                        <p className="text-xs font-inter text-slate-500 flex items-center mt-1 font-medium">
+                          <Building2 className="w-3.5 h-3.5 mr-1.5 opacity-60" />
+                          {op.empresa?.razon_social || "Empresa del parque"}
+                        </p>
+
+                        <p className="text-slate-600 mt-3 mb-3 line-clamp-2 text-sm font-inter leading-relaxed">
                           {op.descripcion}
                         </p>
 
-                        <div className="flex flex-wrap gap-2 mb-8">
-                          {op.categoria && (
-                            <Badge className="bg-[#f2f4f6] text-[#10375c] hover:bg-slate-200 border-none px-4 py-1.5 rounded-sm font-bold text-[10px] uppercase tracking-wider">
-                              {op.categoria.nombre}
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between pt-6 border-t border-slate-50 text-sm font-inter text-slate-400">
-                          <div className="flex items-center gap-6">
-                            <span className="flex items-center gap-2 font-medium">
-                              <MapPin className="w-4 h-4 opacity-50" />
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs font-inter text-slate-400">
+                          <div className="flex items-center gap-4 flex-wrap">
+                            {op.categoria && (
+                              <Badge className="bg-[#f2f4f6] text-[#10375c] hover:bg-slate-200 border-none px-2.5 py-0.5 rounded-sm font-bold text-[9px] uppercase tracking-wider">
+                                {op.categoria.nombre}
+                              </Badge>
+                            )}
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <MapPin className="w-3.5 h-3.5 opacity-50" />
                               {op.localidad}
                             </span>
                           </div>
-                          <span className="font-bold text-primary-600 flex items-center gap-1.5 transition-all group-hover:translate-x-1">
-                            Ver detalles <ArrowRight className="w-4 h-4" />
+                          <span className="font-bold text-primary-600 flex items-center gap-1 transition-all group-hover:translate-x-1">
+                            Ver detalles <ArrowRight className="w-3.5 h-3.5" />
                           </span>
                         </div>
                       </CardContent>
@@ -206,7 +203,7 @@ export default function OportunidadesPage() {
 
           {/* Sidebar / Info */}
           <div className="lg:col-span-1 space-y-8">
-            <Card className="bg-[#00213f] text-white border-none shadow-2xl rounded-sm overflow-hidden relative">
+            <Card data-tour="op-sidebar-publicar" className="bg-[#00213f] text-white border-none shadow-2xl rounded-sm overflow-hidden relative">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 -mr-16 -mt-16 rounded-full blur-2xl" />
               <CardHeader className="p-8">
                 <CardTitle className="font-manrope text-2xl font-bold tracking-tight">¿Tienes una necesidad?</CardTitle>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CreditCard, CheckCircle2, History, ShieldCheck, Loader2, AlertCircle, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { toast } from "sonner";
@@ -24,7 +24,7 @@ const formatARS = (n: number) =>
 export default function MiPerfilSuscripcionPage() {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [payments, setPayments] = useState<any[]>([]);
   const [empresa, setEmpresa] = useState<{
@@ -95,7 +95,7 @@ export default function MiPerfilSuscripcionPage() {
       setLoading(false);
     }
     loadData();
-  }, [authLoading, currentUser?.entityId, currentUser?.role, supabase]);
+  }, [authLoading, currentUser?.entityId, currentUser?.role]);
 
   const montoMensual = currentUser?.role === 'company'
     ? (empresa && empresa.tarifa ? precios[empresa.tarifa] ?? 0 : 0)

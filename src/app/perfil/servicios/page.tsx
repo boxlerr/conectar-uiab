@@ -4,14 +4,14 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Briefcase, Loader2, Search, CheckCircle2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { saveCategories } from "../acciones";
 import { toast } from "sonner";
 
 export default function MiPerfilServiciosPage() {
   const { currentUser, loading: authLoading } = useAuth();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   
   const [allCategories, setAllCategories] = useState<{ id: string; nombre: string; categoria_padre_id: string | null }[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -45,7 +45,7 @@ export default function MiPerfilServiciosPage() {
       setFetching(false);
     }
     init();
-  }, [authLoading, currentUser?.entityId, currentUser?.role, supabase]);
+  }, [authLoading, currentUser?.entityId, currentUser?.role]);
 
   if (!currentUser) return null;
 

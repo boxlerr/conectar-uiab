@@ -14,9 +14,12 @@ import {
   Star,
   MessageSquare,
   Inbox,
+  Phone,
+  Globe,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { cn } from "@/lib/utilidades";
 
@@ -46,7 +49,7 @@ export default function MiPerfilPage() {
   const [services, setServices] = useState<any[]>([]);
   const [resenas, setResenas] = useState<Resena[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -93,7 +96,7 @@ export default function MiPerfilPage() {
       setIsLoading(false);
     }
     loadData();
-  }, [authLoading, currentUser?.entityId, currentUser?.role, supabase]);
+  }, [authLoading, currentUser?.entityId, currentUser?.role]);
 
   if (!currentUser) return null;
 
@@ -174,55 +177,130 @@ export default function MiPerfilPage() {
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-[0.08] transition-opacity">
             {currentUser.role === "company" ? <Building className="w-24 h-24" /> : <Wrench className="w-24 h-24" />}
           </div>
-          <div className="flex items-center gap-3 mb-6 relative z-10">
+          <div className="flex items-center gap-3 mb-5 relative z-10">
             <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100">
               <User className="w-5 h-5" />
             </div>
             <h2 className="text-lg font-bold text-slate-900">Datos y Contacto</h2>
           </div>
-          <div className="space-y-4 mb-6 relative z-10">
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase">Correo de Contacto</p>
-              <p className="text-sm font-medium text-slate-800">{profileDetails.email || "No especificado"}</p>
+
+          <div className="space-y-3 mb-5 relative z-10">
+            {/* Email */}
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 text-slate-400 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Email</p>
+                <p className="text-sm font-medium text-slate-800 truncate">{profileDetails.email || <span className="text-slate-400 italic font-normal">Sin especificar</span>}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase">Teléfono Publicado</p>
-              <p className="text-sm font-medium text-slate-800">{profileDetails.telefono || "No especificado"}</p>
+
+            {/* Teléfono / WhatsApp */}
+            <div className="flex items-start gap-2.5">
+              <Phone className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Teléfono de contacto</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-slate-800">
+                    {profileDetails.whatsapp || profileDetails.telefono || <span className="text-slate-400 italic font-normal">Sin especificar</span>}
+                  </p>
+                  {(profileDetails.whatsapp || profileDetails.telefono) && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded border border-emerald-100">
+                      <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-emerald-600" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                      WA
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Sitio web */}
+            {profileDetails.sitio_web && (
+              <div className="flex items-start gap-2.5">
+                <Globe className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Sitio web</p>
+                  <a
+                    href={profileDetails.sitio_web}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-primary-600 hover:underline truncate block"
+                  >
+                    {profileDetails.sitio_web.replace(/^https?:\/\//, "")}
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Ubicación */}
+            {(profileDetails.localidad || profileDetails.provincia) && (
+              <div className="flex items-start gap-2.5">
+                <MapPin className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Ubicación</p>
+                  <p className="text-sm font-medium text-slate-800">
+                    {[profileDetails.localidad, profileDetails.provincia].filter(Boolean).join(", ")}
+                    {profileDetails.direccion ? ` · ${profileDetails.direccion}` : ""}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
+
           <Link href="/perfil/datos" className="inline-flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700 transition relative z-10">
-            Actualizar mi información <ArrowRight className="w-4 h-4 ml-1" />
+            Editar información <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
         </Card>
 
-        {/* Mis Servicios */}
-        <Card data-tour="perfil-servicios" className="p-6 border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
+        {/* Mis Rubros y Especialidades */}
+        <Card data-tour="perfil-servicios" className="p-6 border-slate-100 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
-              <h2 className="text-lg font-bold text-slate-900">Mis Servicios</h2>
+              <h2 className="text-lg font-bold text-slate-900">
+                {currentUser.role === "company" ? "Rubros y Servicios" : "Especialidades"}
+              </h2>
             </div>
-            <Badge variant="outline" className="bg-slate-50">{currentUser.role === "company" ? "Servicios" : "Especialidad"}</Badge>
+            <Badge variant="outline" className="bg-slate-50 text-xs">
+              {services.length} {services.length === 1 ? "rubro" : "rubros"}
+            </Badge>
           </div>
-          <div className="space-y-3 mb-6">
-            <div className="flex flex-wrap gap-2">
-              {services.length > 0
-                ? services.slice(0, 3).map((s: string, i: number) => (
-                    <span key={i} className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs rounded-md border border-slate-200">{s}</span>
-                  ))
-                : <span className="text-sm text-slate-400 italic">No hay servicios definidos aún</span>}
-              {services.length > 3 && (
-                <span className="px-2.5 py-1 bg-slate-50 text-slate-500 text-xs rounded-md">+{services.length - 3} más</span>
-              )}
-            </div>
-            <p className="text-xs text-slate-500 line-clamp-2 mt-3">
-              {profileDetails.descripcion || "Dirígete a Datos y Contacto para escribir un resumen sobre ti."}
-            </p>
+
+          <div className="flex-1 mb-5">
+            {services.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {services.slice(0, 6).map((s: string, i: number) => (
+                  <span key={i} className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs rounded-md border border-slate-200 font-medium">
+                    {s}
+                  </span>
+                ))}
+                {services.length > 6 && (
+                  <span className="px-2.5 py-1 bg-slate-50 text-slate-400 text-xs rounded-md border border-slate-100">
+                    +{services.length - 6} más
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <CheckCircle2 className="w-8 h-8 text-slate-200 mb-2" />
+                <p className="text-sm text-slate-400">Todavía no cargaste rubros.</p>
+                <p className="text-xs text-slate-400 mt-0.5">Agregá categorías para aparecer en el directorio.</p>
+              </div>
+            )}
+
+            {/* Descripción debajo de los rubros, solo si existe */}
+            {profileDetails.descripcion && (
+              <p className="text-xs text-slate-500 mt-4 line-clamp-3 italic border-t border-slate-100 pt-3">
+                "{profileDetails.descripcion}"
+              </p>
+            )}
           </div>
-          <Link href="/perfil/servicios" className="inline-flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700 transition">
-            Gestionar mis especialidades <ArrowRight className="w-4 h-4 ml-1" />
+
+          <Link href="/perfil/servicios" className="inline-flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700 transition mt-auto">
+            Gestionar rubros <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
         </Card>
       </div>

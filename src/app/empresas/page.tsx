@@ -21,6 +21,7 @@ import Image from "next/image";
 import { createClient, resetClient } from "@/lib/supabase/cliente";
 
 import { crearSlug } from "@/lib/utilidades";
+import { BotonReiniciarTour } from "@/modulos/onboarding/componentes/boton-reiniciar-tour";
 
 // Timeout para queries browser: si Supabase cuelga (lock huérfano, red caída),
 // rechazamos en Nms para que la UI muestre error en vez de skeleton infinito.
@@ -313,7 +314,7 @@ export default function EmpresasPage() {
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-20">
       
       {/* ─── Premium Parallax Header ─── */}
-      <div className="relative h-[48vh] min-h-[460px] flex items-center justify-center overflow-hidden -mt-24 pt-44 pb-24 mb-16">
+      <div data-tour="directorio-hero" className="relative h-[48vh] min-h-[460px] flex items-center justify-center overflow-hidden -mt-24 pt-44 pb-24 mb-16">
         <motion.div style={{ y: headerY, opacity: headerOpacity }} className="absolute inset-0 z-0">
           <Image
             src="/landing/hero-industrial.png"
@@ -389,6 +390,7 @@ export default function EmpresasPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
+          data-tour="directorio-stats"
           className="bg-white rounded-2xl p-6 shadow-xl shadow-primary/5 border border-slate-200/60 mb-12 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden -mt-24 z-20"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3" />
@@ -478,16 +480,17 @@ export default function EmpresasPage() {
           <main className="w-full lg:w-9/12 xl:w-3/4">
             
             {/* Toolbar */}
-            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
-              <div>
+            <div data-tour="directorio-toolbar" className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
+              <div className="flex items-center gap-3">
                 <h3 className="font-manrope text-lg font-bold text-slate-800">
                   {cargandoDatos
                     ? "Buscando..."
                     : `${empresasFiltradas.length} resultados encontrados`}
                 </h3>
+                <BotonReiniciarTour tour="directorio" label="Ver tutorial" />
               </div>
-              
-              <div className="flex items-center gap-3">
+
+              <div data-tour="directorio-vista" className="flex items-center gap-3">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vista:</span>
                 <div className="bg-slate-100 p-1 rounded-lg flex gap-1 border border-slate-200">
                   <button 
@@ -546,6 +549,7 @@ export default function EmpresasPage() {
             ) : empresasFiltradas.length > 0 ? (
               <div
                 key={viewMode}
+                data-tour="directorio-resultados"
                 className={viewMode === 'grid'
                   ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
                   : "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_32px_-12px_rgba(15,23,42,0.08)] overflow-hidden divide-y divide-slate-200/70"

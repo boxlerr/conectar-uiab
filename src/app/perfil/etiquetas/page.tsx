@@ -29,7 +29,7 @@ const TIPO_TAG_ORDEN = ["capacidad", "material", "industria", "modalidad_servici
 
 export default function MiPerfilEtiquetasPage() {
   const { currentUser, loading: authLoading } = useAuth();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [allTags, setAllTags] = useState<TagRow[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -67,7 +67,7 @@ export default function MiPerfilEtiquetasPage() {
       setFetching(false);
     }
     init();
-  }, [authLoading, currentUser?.entityId, currentUser?.role, supabase]);
+  }, [authLoading, currentUser?.entityId, currentUser?.role]);
 
   const tagsPorTipo = useMemo(() => {
     const term = search.trim().toLowerCase();
