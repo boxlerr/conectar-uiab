@@ -313,104 +313,88 @@ export default async function DashboardPage() {
     <>
     <BannerSuscripcion />
     <DashboardBlurGate>
-    <main className="min-h-screen bg-[#f7f9fb]">
-      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-28 space-y-10">
+    <main className="min-h-screen bg-[#f2f5f8]">
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-5">
 
-        {/* ──────────────────────────────
-            HEADER — hero editorial
-        ────────────────────────────── */}
-        <header data-tour="dash-hero" className="relative overflow-hidden rounded-3xl bg-[#021326] shadow-[0_30px_70px_-30px_rgba(0,33,63,0.5)] ring-1 ring-white/5">
-          {/* Base Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#001c38] via-[#052b50] to-[#0a355f]" />
+        {/* ── HERO HEADER ── */}
+        <header
+          data-tour="dash-hero"
+          className="relative overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,33,63,0.4)] ring-1 ring-white/5 animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-fill-mode:both]"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-[#00182f] via-[#042848] to-[#0c3260]" />
+          <div aria-hidden className="absolute inset-0 opacity-[0.045]" style={{
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+          }} />
+          <div aria-hidden className="absolute -top-28 right-10 w-[480px] h-[480px] bg-sky-400/12 rounded-full blur-[100px] pointer-events-none" />
+          <div aria-hidden className="absolute bottom-0 left-1/3 w-[280px] h-[180px] bg-cyan-300/8 rounded-full blur-[70px] pointer-events-none" />
 
-          {/* Subtle grid pattern */}
-          <div
-            aria-hidden
-            className="absolute inset-0 opacity-[0.07]"
-            style={{
-              backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
-              backgroundSize: '44px 44px',
-              maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
-            }}
-          />
+          <div className="relative px-6 sm:px-10 py-8">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-7">
 
-          {/* Ambient glows */}
-          <div aria-hidden className="absolute -top-40 -right-20 w-[520px] h-[520px] bg-sky-500/20 rounded-full blur-[120px]" />
-          <div aria-hidden className="absolute -bottom-40 -left-20 w-[420px] h-[420px] bg-cyan-400/15 rounded-full blur-[110px]" />
-
-          <div className="relative px-6 sm:px-10 py-8 sm:py-10">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
-              <div className="flex items-center gap-5 sm:gap-6 min-w-0 w-full">
-                {/* Avatar circular con ring gradiente */}
-                <Link
-                  href="/perfil/datos"
-                  className="group relative flex-shrink-0"
-                  aria-label="Editar logo"
-                >
-                  <div className="absolute -inset-0.5 rounded-full bg-gradient-to-br from-sky-400 via-cyan-300 to-blue-500 opacity-60 group-hover:opacity-100 blur-sm transition-opacity" />
-                  <div className="relative w-[88px] h-[88px] sm:w-[104px] sm:h-[104px] rounded-full bg-white flex items-center justify-center overflow-hidden ring-1 ring-white/20 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.45)]">
+              {/* Avatar + Info */}
+              <div className="flex items-center gap-5 sm:gap-6 min-w-0 flex-1">
+                <Link href="/perfil/datos" className="group relative flex-shrink-0" aria-label="Editar logo">
+                  <div className="absolute -inset-0.5 rounded-full bg-gradient-to-br from-sky-400 via-cyan-300 to-blue-500 opacity-50 group-hover:opacity-95 blur-sm transition-opacity duration-300" />
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white flex items-center justify-center overflow-hidden ring-1 ring-white/20 shadow-2xl">
                     {logoUrl ? (
                       <Image src={logoUrl} alt="" width={120} height={120} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="font-manrope font-black text-[34px] sm:text-[40px] text-[#00213f] tracking-tight">
+                      <span className="font-poppins font-black text-3xl sm:text-4xl text-[#00213f]">
                         {displayName.charAt(0).toUpperCase()}
                       </span>
                     )}
-                    {/* Overlay cámara en hover */}
                     <div className="absolute inset-0 bg-[#001c38]/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Camera className="w-6 h-6 text-white" strokeWidth={2} />
+                      <Camera className="w-5 h-5 text-white" />
                     </div>
                   </div>
-                  {/* Badge verificado */}
                   {(entityData?.estado === 'aprobada' || entityData?.estado === 'aprobado') && (
-                    <span className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-emerald-400 ring-4 ring-[#052b50] flex items-center justify-center">
-                      <ShieldCheck className="w-4 h-4 text-[#00213f]" strokeWidth={2.5} />
+                    <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-emerald-400 ring-[3px] ring-[#042848] flex items-center justify-center shadow-lg">
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#003020]" strokeWidth={2.5} />
                     </span>
                   )}
                 </Link>
 
-                {/* Info */}
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <span className="bg-white/10 backdrop-blur text-white/80 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-white/10">
+                  <div className="flex flex-wrap items-center gap-2 mb-2.5">
+                    <span className="bg-white/10 text-white/70 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-white/10">
                       {isCompany ? 'Empresa' : isProvider ? 'Particular' : isAdmin ? 'Admin' : 'Invitado'}
                     </span>
                     {(entityData?.estado === 'aprobada' || entityData?.estado === 'aprobado') && (
-                      <span className="flex items-center gap-1.5 bg-emerald-400/10 border border-emerald-400/20 text-emerald-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                      <span className="flex items-center gap-1.5 bg-emerald-400/15 border border-emerald-400/25 text-emerald-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                         <ShieldCheck className="w-3 h-3" /> Verificado
                       </span>
                     )}
                   </div>
-
-                  <h1 className="font-poppins text-[26px] sm:text-[34px] lg:text-[38px] font-extrabold text-white tracking-tight leading-[1.1] truncate">
+                  <h1 className="font-poppins text-2xl sm:text-[32px] lg:text-[36px] font-extrabold text-white tracking-tight leading-none truncate">
                     {displayName}
                   </h1>
-
-                  <p className="text-blue-200/60 text-[13px] font-medium mt-1.5">
-                    Gestionado por <span className="text-white/85 font-semibold">{profile?.nombre_completo}</span> · <span className="capitalize">{formattedDate}</span>
+                  <p className="text-white/40 text-xs font-medium mt-2">
+                    Gestionado por <span className="text-white/70 font-semibold">{profile?.nombre_completo}</span>
+                    <span className="mx-2 text-white/20">·</span>
+                    <span className="capitalize">{formattedDate}</span>
                   </p>
-
-                  {/* Meta chips */}
                   {(entityData?.email || entityData?.localidad || entityData?.sitio_web || entityData?.telefono) && (
-                    <div className="flex flex-wrap items-center gap-1.5 mt-4">
+                    <div className="flex flex-wrap items-center gap-1.5 mt-3">
                       {entityData?.email && (
-                        <span className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors">
-                          <Mail className="w-3 h-3 text-sky-300" /> {entityData.email}
+                        <span className="inline-flex items-center gap-1.5 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.08] text-white/65 text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors">
+                          <Mail className="w-3 h-3 text-sky-400" /> {entityData.email}
                         </span>
                       )}
                       {entityData?.localidad && (
-                        <span className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors">
-                          <MapPin className="w-3 h-3 text-sky-300" /> {entityData.localidad}
+                        <span className="inline-flex items-center gap-1.5 bg-white/[0.07] border border-white/[0.08] text-white/65 text-[11px] font-medium px-2.5 py-1 rounded-lg">
+                          <MapPin className="w-3 h-3 text-sky-400" /> {entityData.localidad}
                         </span>
                       )}
                       {entityData?.sitio_web && (
-                        <span className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors max-w-[220px] truncate">
-                          <Globe className="w-3 h-3 text-sky-300 shrink-0" /> <span className="truncate">{entityData.sitio_web.replace(/^https?:\/\//, '')}</span>
+                        <span className="inline-flex items-center gap-1.5 bg-white/[0.07] border border-white/[0.08] text-white/65 text-[11px] font-medium px-2.5 py-1 rounded-lg max-w-[200px] truncate">
+                          <Globe className="w-3 h-3 text-sky-400 shrink-0" />
+                          <span className="truncate">{entityData.sitio_web.replace(/^https?:\/\//, '')}</span>
                         </span>
                       )}
                       {entityData?.telefono && (
-                        <span className="inline-flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors">
-                          <Phone className="w-3 h-3 text-sky-300" /> {entityData.telefono}
+                        <span className="inline-flex items-center gap-1.5 bg-white/[0.07] border border-white/[0.08] text-white/65 text-[11px] font-medium px-2.5 py-1 rounded-lg">
+                          <Phone className="w-3 h-3 text-sky-400" /> {entityData.telefono}
                         </span>
                       )}
                     </div>
@@ -419,91 +403,70 @@ export default async function DashboardPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col sm:flex-row items-stretch gap-2.5 w-full lg:w-auto lg:self-start">
+              <div className="flex flex-wrap items-center gap-2">
                 {publicProfileUrl && (
-                  <Link
-                    href={publicProfileUrl}
-                    target="_blank"
-                    className="flex items-center justify-center gap-2 bg-white text-[#00213f] hover:bg-blue-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-black/20 whitespace-nowrap"
-                  >
-                    <Eye className="w-4 h-4" /> Ver Perfil Público
+                  <Link href={publicProfileUrl} target="_blank"
+                    className="flex items-center gap-2 bg-white text-[#00213f] hover:bg-sky-50 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:shadow-xl shadow-black/15 whitespace-nowrap">
+                    <Eye className="w-4 h-4" /> Ver Perfil
                   </Link>
                 )}
-                <Link
-                  href="/perfil/datos"
-                  className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-xl text-sm font-bold border border-white/15 transition-all whitespace-nowrap"
-                >
+                <Link href="/perfil/datos"
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/18 text-white px-4 py-2.5 rounded-xl text-sm font-bold border border-white/15 transition-all whitespace-nowrap">
                   <Settings className="w-4 h-4" /> Editar Datos
                 </Link>
-                <BotonReiniciarTour tour="dashboard" label="Ver tutorial" variant="ghost" className="justify-center text-white/70 hover:text-white bg-white/5 border border-white/10 px-5 py-2.5 rounded-xl text-sm" />
+                <BotonReiniciarTour tour="dashboard" label="Tutorial" variant="ghost"
+                  className="justify-center text-white/55 hover:text-white bg-white/5 border border-white/10 px-4 py-2.5 rounded-xl text-sm" />
               </div>
             </div>
 
-            {/* Progreso de completitud */}
+            {/* Profile completion bar */}
             {profilePct < 100 && (
-              <div className="mt-7 pt-5 border-t border-white/10">
+              <div className="mt-6 pt-5 border-t border-white/[0.07]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-white/35 uppercase tracking-[0.14em] flex items-center gap-1.5">
                     <Sparkles className="w-3 h-3" /> Completitud del Perfil
                   </span>
-                  <span className="text-[11px] font-bold text-sky-300 tabular-nums">{profilePct}%</span>
+                  <span className="text-[11px] font-black text-sky-300 tabular-nums">{profilePct}%</span>
                 </div>
-                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-sky-400 via-cyan-300 to-emerald-400 transition-all duration-1000"
-                    style={{ width: `${profilePct}%` }}
-                  />
+                <div className="h-[3px] bg-white/[0.07] rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-sky-400 to-emerald-400 transition-all duration-1000 rounded-full" style={{ width: `${profilePct}%` }} />
                 </div>
               </div>
             )}
           </div>
         </header>
 
-        {/* ──────────────────────────────
-            ADMIN BANNER
-        ────────────────────────────── */}
+        {/* ── ADMIN BANNER ── */}
         {isAdmin && totalPending > 0 && (
-          <section className="bg-amber-50/70 rounded-md px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-sm bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="w-5 h-5 text-amber-600" />
+          <section className="bg-amber-50 border border-amber-200/80 rounded-2xl px-6 py-4 flex items-center justify-between gap-4 animate-in fade-in duration-500 [animation-fill-mode:both]">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-4 h-4 text-amber-600" />
               </div>
               <div>
-                <p className="text-sm font-bold text-amber-900">
-                  {totalPending} solicitud{totalPending !== 1 ? 'es' : ''} pendiente{totalPending !== 1 ? 's' : ''}
-                </p>
-                <p className="text-[10px] text-amber-700/60 mt-0.5">
-                  {pendingEmpresas} empresas · {pendingProveedores} particulares · {pendingResenas} reseñas
-                </p>
+                <p className="text-sm font-bold text-amber-900">{totalPending} solicitud{totalPending !== 1 ? 'es' : ''} pendiente{totalPending !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-amber-600/70 mt-0.5">{pendingEmpresas} empresas · {pendingProveedores} particulares · {pendingResenas} reseñas</p>
               </div>
             </div>
-            <Link href="/admin" className="inline-flex items-center gap-1.5 text-sm font-bold text-amber-800 hover:text-amber-900 transition-colors">
+            <Link href="/admin" className="flex items-center gap-1.5 text-sm font-bold text-amber-800 hover:text-amber-900 transition-colors whitespace-nowrap">
               Panel Admin <ArrowRight className="w-4 h-4" />
             </Link>
           </section>
         )}
 
-        {/* ──────────────────────────────
-            ONBOARDING (if incomplete) — con progress ring
-        ────────────────────────────── */}
+        {/* ── ONBOARDING (if incomplete) ── */}
         {showOnboarding && !isAdmin && (() => {
           const pct = Math.round((stepsCompleted / onboardingSteps.length) * 100);
           const ringCircumference = 2 * Math.PI * 34;
           const ringOffset = ringCircumference - (pct / 100) * ringCircumference;
           return (
-            <section className="bg-white rounded-2xl shadow-[0_16px_40px_-16px_rgba(0,33,63,0.08)] overflow-hidden ring-1 ring-slate-200/70">
+            <section className="bg-white rounded-2xl shadow-[0_4px_24px_-8px_rgba(0,33,63,0.1)] overflow-hidden ring-1 ring-slate-200/50 animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:120ms] [animation-fill-mode:both]">
               <div className="flex items-center gap-6 px-8 py-6 border-b border-slate-100">
-                {/* Progress ring */}
                 <div className="relative w-[86px] h-[86px] flex-shrink-0">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
                     <circle cx="40" cy="40" r="34" stroke="#e2e8f0" strokeWidth="6" fill="none" />
-                    <circle
-                      cx="40" cy="40" r="34"
-                      stroke="url(#onbGrad)" strokeWidth="6" fill="none"
-                      strokeLinecap="round"
-                      strokeDasharray={ringCircumference}
-                      strokeDashoffset={ringOffset}
-                    />
+                    <circle cx="40" cy="40" r="34" stroke="url(#onbGrad)" strokeWidth="6" fill="none"
+                      strokeLinecap="round" strokeDasharray={ringCircumference} strokeDashoffset={ringOffset} />
                     <defs>
                       <linearGradient id="onbGrad" x1="0" y1="0" x2="1" y2="1">
                         <stop offset="0%" stopColor="#3b82f6" />
@@ -516,9 +479,7 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="font-poppins text-lg font-bold text-[#00213f] flex items-center gap-2">
-                    Completá tu perfil
-                  </h2>
+                  <h2 className="font-poppins text-lg font-bold text-[#00213f]">Completá tu perfil</h2>
                   <p className="text-sm text-slate-500 mt-0.5">
                     <span className="font-semibold text-[#00213f]">{stepsCompleted}</span> de {onboardingSteps.length} pasos listos · te faltan {onboardingSteps.length - stepsCompleted} para aparecer en el directorio
                   </p>
@@ -526,31 +487,25 @@ export default async function DashboardPage() {
               </div>
               <div className="px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {onboardingSteps.map((step) => (
-                  <Link
-                    key={step.label}
-                    href={step.href}
+                  <Link key={step.label} href={step.href}
                     className={`group flex items-center gap-3.5 px-4 py-3.5 rounded-xl transition-all duration-200 border ${
                       step.done
                         ? 'bg-emerald-50/50 border-emerald-100 hover:bg-emerald-50'
-                        : 'bg-white border-slate-200 hover:border-[#00213f]/30 hover:bg-slate-50 hover:shadow-sm'
+                        : 'bg-white border-slate-200 hover:border-[#00213f]/25 hover:bg-slate-50/80 hover:shadow-sm'
                     }`}
                   >
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
                       step.done ? 'bg-emerald-500 text-white shadow-[0_4px_12px_-2px_rgba(16,185,129,0.4)]' : 'bg-slate-100 text-slate-500 group-hover:bg-[#00213f] group-hover:text-white'
                     }`}>
-                      {step.done
-                        ? <CheckCircle2 className="w-5 h-5" strokeWidth={2.5} />
-                        : <step.icon className="w-4 h-4" />}
+                      {step.done ? <CheckCircle2 className="w-5 h-5" strokeWidth={2.5} /> : <step.icon className="w-4 h-4" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-semibold leading-tight ${step.done ? 'text-emerald-800' : 'text-[#00213f]'}`}>
-                        {step.label}
-                      </p>
-                      <p className={`text-[11px] mt-0.5 ${step.done ? 'text-emerald-600/80' : 'text-slate-500'}`}>
+                      <p className={`text-sm font-semibold leading-tight ${step.done ? 'text-emerald-800' : 'text-[#00213f]'}`}>{step.label}</p>
+                      <p className={`text-[11px] mt-0.5 ${step.done ? 'text-emerald-600/80' : 'text-slate-400'}`}>
                         {step.done ? 'Listo' : 'Pendiente · tocá para completar'}
                       </p>
                     </div>
-                    {!step.done && <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-[#00213f] transition-colors" />}
+                    {!step.done && <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-[#00213f] transition-colors" />}
                   </Link>
                 ))}
               </div>
@@ -558,140 +513,126 @@ export default async function DashboardPage() {
           );
         })()}
 
-        {/* ──────────────────────────────
-            KPIs — con barra de acento
-        ────────────────────────────── */}
-        <section data-tour="dash-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { icon: Building, value: empresasCount, label: 'Socios UIAB', sub: 'en el directorio', href: '/empresas', accent: 'bg-blue-50 text-blue-700', bar: 'from-blue-500 to-blue-700' },
-            { icon: Users, value: proveedoresCount, label: 'Particulares', sub: 'verificados', href: '/empresas?categoria=proveedores', accent: 'bg-emerald-50 text-emerald-700', bar: 'from-emerald-500 to-teal-600' },
-            { icon: Target, value: oportunidadesCount, label: 'Oportunidades', sub: 'abiertas ahora', href: '/oportunidades', accent: 'bg-amber-50 text-amber-700', bar: 'from-amber-500 to-orange-500' },
-            { icon: isAdmin ? AlertCircle : Zap, value: isAdmin ? totalPending : fourthStatCount, label: isAdmin ? 'Pendientes' : isCompany ? 'Oportunidades Publicadas' : 'Mis Matches', sub: isAdmin ? 'a revisar' : 'activas', href: isAdmin ? '/admin' : '/oportunidades', accent: 'bg-violet-50 text-violet-700', bar: 'from-violet-500 to-purple-600' },
-          ].map((stat) => (
-            <Link
-              key={stat.label}
-              href={stat.href}
-              className="group relative bg-white rounded-xl p-6 ring-1 ring-slate-200/70 shadow-[0_4px_16px_-8px_rgba(0,33,63,0.08)] hover:shadow-[0_24px_48px_-16px_rgba(0,33,63,0.18)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+        {/* ── KPI CARDS ── */}
+        <section data-tour="dash-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:180ms] [animation-fill-mode:both]">
+          {([
+            { icon: Building, value: empresasCount, label: 'Socios UIAB', sub: 'en el directorio', href: '/empresas', iconBg: 'bg-blue-50', iconColor: 'text-blue-500', accentColor: 'from-blue-500 to-blue-700' },
+            { icon: Users, value: proveedoresCount, label: 'Particulares', sub: 'verificados', href: '/empresas?categoria=proveedores', iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500', accentColor: 'from-emerald-500 to-teal-500' },
+            { icon: Target, value: oportunidadesCount, label: 'Oportunidades', sub: 'abiertas ahora', href: '/oportunidades', iconBg: 'bg-amber-50', iconColor: 'text-amber-500', accentColor: 'from-amber-500 to-orange-500' },
+            { icon: isAdmin ? AlertCircle : Zap, value: isAdmin ? totalPending : fourthStatCount, label: isAdmin ? 'Pendientes' : isCompany ? 'Ops. Publicadas' : 'Mis Matches', sub: isAdmin ? 'a revisar' : 'activas', href: isAdmin ? '/admin' : '/oportunidades', iconBg: 'bg-violet-50', iconColor: 'text-violet-500', accentColor: 'from-violet-500 to-purple-600' },
+          ] as const).map((stat, i) => (
+            <Link key={stat.label} href={stat.href}
+              className="group bg-white rounded-2xl p-5 lg:p-6 border border-slate-200/50 hover:border-slate-200 hover:shadow-[0_12px_32px_-8px_rgba(0,33,63,0.1)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden relative"
+              style={{ animationDelay: `${180 + i * 50}ms` }}
             >
-              <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${stat.bar} opacity-0 group-hover:opacity-100 transition-opacity`} />
-              <div className="flex items-center justify-between mb-5">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${stat.accent}`}>
-                  <stat.icon className="w-5 h-5" strokeWidth={2} />
+              <div className={`absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r ${stat.accentColor} opacity-0 group-hover:opacity-100 transition-all duration-300`} />
+              <div className="flex items-start justify-between mb-4">
+                <div className={`w-10 h-10 rounded-xl ${stat.iconBg} flex items-center justify-center flex-shrink-0`}>
+                  <stat.icon className={`w-5 h-5 ${stat.iconColor}`} strokeWidth={1.75} />
                 </div>
-                <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-[#00213f] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                <ArrowUpRight className="w-4 h-4 text-slate-200 group-hover:text-[#00213f] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200" />
               </div>
-              <p className="font-poppins text-[34px] font-extrabold text-[#00213f] leading-none tracking-tight">{stat.value}</p>
-              <div className="mt-2 space-y-0.5">
-                <p className="text-[11px] text-[#00213f] font-bold uppercase tracking-[0.1em]">{stat.label}</p>
-                <p className="text-[11px] text-slate-500 font-medium">{stat.sub}</p>
-              </div>
+              <p className="font-poppins text-[32px] lg:text-[38px] font-black text-[#00213f] leading-none tracking-tight">{stat.value}</p>
+              <p className="text-[10px] font-bold text-[#00213f]/50 uppercase tracking-[0.11em] mt-2">{stat.label}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{stat.sub}</p>
             </Link>
           ))}
         </section>
 
-        {/* ──────────────────────────────
-            MAIN GRID
-        ────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* ── MAIN GRID ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
-          {/* ═══ LEFT (8 cols) ═══ */}
-          <div className="lg:col-span-8 space-y-8">
-            {/* ── SMART MATCHES ── */}
+          {/* LEFT (8 cols) */}
+          <div className="lg:col-span-8 space-y-5">
+
+            {/* SMART MATCHES */}
             {(isCompany || isProvider) && (
-              <section data-tour="dash-matches" className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
-                <div className="bg-slate-50/80 border-b border-slate-100 px-8 py-5 flex items-center justify-between">
+              <section data-tour="dash-matches" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:280ms] [animation-fill-mode:both]">
+                <div className="px-7 py-5 flex items-center justify-between border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <Activity className="w-5 h-5 text-[#00213f]" />
-                    <h2 className="font-poppins text-base font-bold text-[#00213f]">
+                    <div className="w-[3px] h-5 bg-gradient-to-b from-sky-500 to-blue-600 rounded-full" />
+                    <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">
                       {isCompany ? 'Particulares Recomendados' : 'Oportunidades para Vos'}
                     </h2>
                   </div>
-                  <Link href="/oportunidades" className="text-xs font-bold text-slate-500 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
+                  <Link href="/oportunidades" className="text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors">
                     Ver todo <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
-
-                <div className="p-8">
-                {dashboardMatches.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {dashboardMatches.map((match: any) => {
-                      const score = Math.round(match.puntaje);
-                      return (
-                        <Link key={match.id} href={`/oportunidades/${match.oportunidad_id}`}>
-                          <div className="bg-white rounded-md p-6 shadow-[0_8px_24px_-8px_rgba(0,33,63,0.06)] hover:shadow-[0_24px_48px_-12px_rgba(0,33,63,0.1)] transition-all duration-300 group h-full flex flex-col">
-                            <div className="flex items-center justify-between mb-4">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[10px] font-bold ${scoreColor(score)}`}>
-                                <TrendingUp className="w-3 h-3" />{score}%
-                              </span>
-                              <ChevronRight className="w-4 h-4 text-[#d8dadc] group-hover:text-[#10375c] group-hover:translate-x-0.5 transition-all" />
+                <div className="p-6">
+                  {dashboardMatches.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {dashboardMatches.map((match: any) => {
+                        const score = Math.round(match.puntaje);
+                        return (
+                          <Link key={match.id} href={`/oportunidades/${match.oportunidad_id}`}>
+                            <div className="bg-[#f8fafc] hover:bg-slate-100/70 rounded-xl p-4 transition-all duration-200 group h-full flex flex-col border border-slate-100/80 hover:border-slate-200 hover:shadow-sm">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black ${scoreColor(score)}`}>
+                                  <TrendingUp className="w-3 h-3" />{score}%
+                                </span>
+                                <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#00213f] transition-colors" />
+                              </div>
+                              <h4 className="font-poppins font-bold text-[#00213f] leading-snug text-sm flex-1">
+                                {isProvider ? match.oportunidad?.titulo : match.proveedor?.nombre_comercial || match.proveedor?.nombre}
+                              </h4>
+                              {(isProvider ? match.oportunidad?.localidad : match.proveedor?.localidad) && (
+                                <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-2.5">
+                                  <MapPin className="w-3 h-3" />
+                                  {isProvider ? match.oportunidad?.localidad : match.proveedor?.localidad}
+                                </p>
+                              )}
                             </div>
-                            <h4 className="font-poppins font-bold text-[#00213f] leading-snug mb-2 group-hover:text-[#10375c] transition-colors text-sm">
-                              {isProvider ? match.oportunidad?.titulo : match.proveedor?.nombre_comercial || match.proveedor?.nombre}
-                            </h4>
-                            {(isProvider ? match.oportunidad?.localidad : match.proveedor?.localidad) && (
-                              <p className="text-[10px] text-slate-500 flex items-center gap-1 mb-3">
-                                <MapPin className="w-3 h-3" />
-                                {isProvider ? match.oportunidad?.localidad : match.proveedor?.localidad}
-                              </p>
-                            )}
-                            <div className="mt-auto pt-4">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
-                                {isProvider ? 'Oportunidad' : 'Particular'}
-                              </span>
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-md shadow-[0_16px_32px_-12px_rgba(0,33,63,0.06)] p-12 text-center">
-                    <Activity className="w-10 h-10 text-[#d8dadc] mx-auto mb-4" />
-                    <p className="text-sm font-medium text-slate-500 max-w-sm mx-auto leading-relaxed">
-                      {isCompany
-                        ? 'Publicá una oportunidad para recibir particulares recomendados por el algoritmo.'
-                        : 'Completá tu perfil para que el algoritmo te conecte con oportunidades relevantes.'}
-                    </p>
-                    <Link href={isCompany ? '/oportunidades' : '/perfil/datos'} className="inline-flex items-center gap-1 text-sm font-bold text-slate-600 hover:text-[#00213f] mt-4 transition-colors">
-                      {isCompany ? 'Publicar oportunidad' : 'Completar perfil'} <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-10 text-center">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                        <Activity className="w-5 h-5 text-slate-300" />
+                      </div>
+                      <p className="text-sm text-slate-400 max-w-xs mx-auto leading-relaxed">
+                        {isCompany ? 'Publicá una oportunidad para recibir particulares recomendados.' : 'Completá tu perfil para recibir oportunidades relevantes.'}
+                      </p>
+                      <Link href={isCompany ? '/oportunidades' : '/perfil/datos'} className="inline-flex items-center gap-1 text-sm font-bold text-[#00213f] hover:underline mt-4 transition-colors">
+                        {isCompany ? 'Publicar oportunidad' : 'Completar perfil'} <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </section>
             )}
 
-            {/* ── COMPANY: MY OPPORTUNITIES ── */}
+            {/* MY OPPORTUNITIES */}
             {isCompany && myOps.length > 0 && (
-              <section className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
-                <div className="bg-slate-50/80 border-b border-slate-100 px-8 py-5 flex items-center justify-between">
-                  <h2 className="font-poppins text-base font-bold text-[#00213f] flex items-center gap-2.5">
-                    <Briefcase className="w-5 h-5 text-slate-600" />
-                    Tus Oportunidades Publicadas
-                  </h2>
-                  <Link href="/oportunidades" className="text-xs font-bold text-slate-500 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
+              <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:330ms] [animation-fill-mode:both]">
+                <div className="px-7 py-5 flex items-center justify-between border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-[3px] h-5 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full" />
+                    <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">Tus Oportunidades</h2>
+                  </div>
+                  <Link href="/oportunidades" className="text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors">
                     Ver todas <ArrowRight className="w-3 h-3" />
                   </Link>
                 </div>
-                <div className="divide-y divide-[#f7f9fb]">
+                <div className="divide-y divide-slate-50">
                   {myOps.map((op: any) => {
-                    const est = ESTADO_OP[op.estado] || { label: op.estado, style: 'bg-[#f2f4f6] text-slate-600' };
+                    const est = ESTADO_OP[op.estado] || { label: op.estado, style: 'bg-slate-50 text-slate-500' };
                     return (
-                      <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-4 px-8 py-4 hover:bg-[#f7f9fb] transition-colors group">
-                        <div className="w-9 h-9 rounded-sm bg-[#f2f4f6] flex items-center justify-center flex-shrink-0">
-                          <CircleDot className="w-4 h-4 text-slate-500" />
+                      <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-4 px-7 py-3.5 hover:bg-[#f8fafc] transition-colors group">
+                        <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                          <CircleDot className="w-3.5 h-3.5 text-amber-500" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#00213f] truncate group-hover:text-[#10375c] transition-colors">{op.titulo}</p>
+                          <p className="text-sm font-semibold text-[#00213f] truncate">{op.titulo}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            {(op.categoria as any)?.nombre && (
-                              <span className="text-[10px] text-slate-500">{(op.categoria as any).nombre}</span>
-                            )}
-                            <span className="text-[10px] text-slate-400">·</span>
-                            <span className="text-[10px] text-slate-500">{timeAgo(op.creado_en)}</span>
+                            {(op.categoria as any)?.nombre && <span className="text-[10px] text-slate-400">{(op.categoria as any).nombre}</span>}
+                            <span className="text-[10px] text-slate-300">·</span>
+                            <span className="text-[10px] text-slate-400">{timeAgo(op.creado_en)}</span>
                           </div>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider flex-shrink-0 ${est.style}`}>{est.label}</span>
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${est.style}`}>{est.label}</span>
                       </Link>
                     );
                   })}
@@ -699,41 +640,34 @@ export default async function DashboardPage() {
               </section>
             )}
 
-            {/* ── QUOTE REQUESTS (company OR provider) ── */}
+            {/* QUOTE REQUESTS */}
             {(isCompany || isProvider) && solicitudes.length > 0 && (
-              <section className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
-                <div className="bg-slate-50/80 border-b border-slate-100 px-8 py-5 flex items-center justify-between">
-                  <h2 className="font-poppins text-base font-bold text-[#00213f] flex items-center gap-2.5">
-                    <MessageSquare className="w-5 h-5 text-slate-600" />
-                    Solicitudes Recibidas
-                  </h2>
-                  <Link href="/perfil/solicitudes" className="text-xs font-bold text-slate-500 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
-                    Ver bandeja
-                  </Link>
+              <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:380ms] [animation-fill-mode:both]">
+                <div className="px-7 py-5 flex items-center justify-between border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-[3px] h-5 bg-gradient-to-b from-violet-400 to-purple-500 rounded-full" />
+                    <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">Solicitudes Recibidas</h2>
+                  </div>
+                  <Link href="/perfil/solicitudes" className="text-[11px] font-bold text-slate-400 hover:text-[#00213f] transition-colors">Ver bandeja</Link>
                 </div>
-                <div className="divide-y divide-[#f7f9fb]">
+                <div className="divide-y divide-slate-50">
                   {solicitudes.map((sol: any) => {
                     const origenNombre =
                       sol.empresa_origen?.nombre_comercial || sol.empresa_origen?.razon_social ||
-                      sol.proveedor_origen?.nombre_comercial || sol.proveedor_origen?.nombre ||
-                      'Solicitante';
+                      sol.proveedor_origen?.nombre_comercial || sol.proveedor_origen?.nombre || 'Solicitante';
                     return (
-                      <Link
-                        href="/perfil/solicitudes"
-                        key={sol.id}
-                        className="flex items-center gap-4 px-8 py-4 hover:bg-slate-50/60 transition-colors"
-                      >
-                        <div className="w-9 h-9 rounded-sm bg-amber-50/80 flex items-center justify-center flex-shrink-0">
-                          <MessageSquare className="w-4 h-4 text-amber-600/70" />
+                      <Link href="/perfil/solicitudes" key={sol.id} className="flex items-center gap-4 px-7 py-3.5 hover:bg-[#f8fafc] transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+                          <MessageSquare className="w-3.5 h-3.5 text-violet-500" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#00213f] truncate">
-                            {origenNombre}
-                          </p>
-                          <p className="text-[10px] text-slate-500 mt-0.5">{timeAgo(sol.creado_en)}</p>
+                          <p className="text-sm font-semibold text-[#00213f] truncate">{origenNombre}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(sol.creado_en)}</p>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider flex-shrink-0 ${
-                          sol.estado === 'enviada' ? 'bg-amber-50 text-amber-700' : sol.estado === 'respondida' ? 'bg-emerald-50 text-emerald-700' : sol.estado === 'vista' ? 'bg-blue-50 text-blue-700' : 'bg-[#f2f4f6] text-slate-600'
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${
+                          sol.estado === 'enviada' ? 'bg-amber-50 text-amber-600' :
+                          sol.estado === 'respondida' ? 'bg-emerald-50 text-emerald-600' :
+                          sol.estado === 'vista' ? 'bg-sky-50 text-sky-600' : 'bg-slate-50 text-slate-500'
                         }`}>{sol.estado}</span>
                       </Link>
                     );
@@ -742,66 +676,54 @@ export default async function DashboardPage() {
               </section>
             )}
 
-            {/* ── PRODUCTS / SERVICES SUMMARY ── */}
+            {/* PRODUCTS / SERVICES */}
             {(isCompany || isProvider) && (
-              <section data-tour="dash-items" className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
-                <div className="bg-slate-50/80 border-b border-slate-100 px-8 py-5 flex items-center justify-between">
-                  <h2 className="font-poppins text-base font-bold text-[#00213f] flex items-center gap-2.5">
-                    <PackageSearch className="w-5 h-5 text-slate-600" />
-                    Mis Productos y Servicios
-                  </h2>
-                  <Link href="/perfil/productos-servicios" className="text-xs font-bold text-slate-500 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
+              <section data-tour="dash-items" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:430ms] [animation-fill-mode:both]">
+                <div className="px-7 py-5 flex items-center justify-between border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-[3px] h-5 bg-gradient-to-b from-emerald-400 to-teal-500 rounded-full" />
+                    <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">Mis Productos y Servicios</h2>
+                  </div>
+                  <Link href="/perfil/productos-servicios" className="text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors">
                     Gestionar <ArrowRight className="w-3 h-3" />
                   </Link>
                 </div>
-                <div className="divide-y divide-slate-100">
-                  {myItems.length > 0 ? (
-                    myItems.map((item: any) => {
-                      const itemImg = Array.isArray(item.imagenes) && item.imagenes.length > 0
-                        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${item.imagenes[0].bucket}/${item.imagenes[0].ruta_archivo}`
-                        : null;
-
-                      return (
-                        <Link key={item.id} href="/perfil/productos-servicios" className="flex items-center justify-between px-8 py-4 hover:bg-slate-50 transition-all group">
-                          <div className="flex items-center gap-4 min-w-0">
-                            <div className="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden flex items-center justify-center flex-shrink-0 group-hover:shadow-sm transition-all border border-slate-200/50">
-                              {itemImg ? (
-                                <Image 
-                                  src={itemImg} 
-                                  alt={item.nombre} 
-                                  width={40} 
-                                  height={40} 
-                                  className="w-full h-full object-cover"
-                                  unoptimized
-                                />
-                              ) : (
-                                item.tipo_item === 'servicio' ? <Wrench className="w-4 h-4 text-slate-500" /> : <PackageSearch className="w-4 h-4 text-slate-400" />
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold text-[#00213f] truncate group-hover:text-primary-700 transition-colors uppercase tracking-tight">{item.nombre}</p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{item.tipo_item || 'Producto'}</span>
-                                {item.precio && (
-                                  <>
-                                    <span className="text-slate-300">·</span>
-                                    <p className="text-[10px] text-emerald-600 font-extrabold flex items-center gap-1">
-                                      $ {Number(item.precio).toLocaleString('es-AR')}
-                                    </p>
-                                  </>
-                                )}
-                              </div>
-                            </div>
+                <div className="divide-y divide-slate-50">
+                  {myItems.length > 0 ? myItems.map((item: any) => {
+                    const itemImg = Array.isArray(item.imagenes) && item.imagenes.length > 0
+                      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${item.imagenes[0].bucket}/${item.imagenes[0].ruta_archivo}`
+                      : null;
+                    return (
+                      <Link key={item.id} href="/perfil/productos-servicios" className="flex items-center gap-4 px-7 py-3.5 hover:bg-[#f8fafc] transition-all group">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center flex-shrink-0 border border-slate-200/50">
+                          {itemImg ? (
+                            <Image src={itemImg} alt={item.nombre} width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                          ) : (
+                            item.tipo_item === 'servicio' ? <Wrench className="w-4 h-4 text-slate-400" /> : <PackageSearch className="w-4 h-4 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-[#00213f] truncate">{item.nombre}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-slate-400 uppercase tracking-wider">{item.tipo_item || 'Producto'}</span>
+                            {item.precio && (
+                              <>
+                                <span className="text-slate-300">·</span>
+                                <span className="text-[10px] text-emerald-600 font-bold">$ {Number(item.precio).toLocaleString('es-AR')}</span>
+                              </>
+                            )}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
-                        </Link>
-                      );
-                    })
-                  ) : (
-                    <div className="px-8 py-8 text-center bg-white flex flex-col items-center">
-                      <PackageSearch className="w-8 h-8 text-slate-300 mb-3" />
-                      <p className="text-sm text-slate-500 font-medium">Aún no tienes productos o servicios en tu catálogo.</p>
-                      <Link href="/perfil/productos-servicios" className="mt-4 text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors uppercase tracking-wider flex items-center gap-1">
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-slate-400 transition-colors" />
+                      </Link>
+                    );
+                  }) : (
+                    <div className="px-7 py-10 text-center">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                        <PackageSearch className="w-5 h-5 text-slate-300" />
+                      </div>
+                      <p className="text-sm text-slate-400">Aún no tenés productos o servicios en tu catálogo.</p>
+                      <Link href="/perfil/productos-servicios" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#00213f] hover:underline">
                         Crear tu primer ítem <ArrowRight className="w-3 h-3" />
                       </Link>
                     </div>
@@ -810,136 +732,141 @@ export default async function DashboardPage() {
               </section>
             )}
 
-            {/* ── OPPORTUNITIES FEED ── */}
-            <section data-tour="dash-feed" className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
-              <div className="bg-slate-50/80 border-b border-slate-100 px-8 py-5 flex items-center justify-between">
-                <h2 className="font-poppins text-base font-bold text-[#00213f] flex items-center gap-2.5">
-                  <Target className="w-5 h-5 text-amber-600/70" />
-                  {isProvider ? 'Últimas Oportunidades' : 'Actividad Reciente'}
-                </h2>
-                <Link href="/oportunidades" className="text-xs font-bold text-slate-500 hover:text-[#00213f] flex items-center gap-1 transition-colors uppercase tracking-wider">
+            {/* OPPORTUNITIES FEED */}
+            <section data-tour="dash-feed" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:480ms] [animation-fill-mode:both]">
+              <div className="px-7 py-5 flex items-center justify-between border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-[3px] h-5 bg-gradient-to-b from-amber-400 to-amber-600 rounded-full" />
+                  <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">
+                    {isProvider ? 'Últimas Oportunidades' : 'Actividad Reciente'}
+                  </h2>
+                </div>
+                <Link href="/oportunidades" className="text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors">
                   Ver todas <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
               {recentOps.length > 0 ? (
-                <div className="divide-y divide-[#f7f9fb]">
+                <div className="divide-y divide-slate-50">
                   {recentOps.map((op: any) => (
-                    <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-4 px-8 py-4 hover:bg-[#f7f9fb] transition-colors group">
-                      <div className="w-9 h-9 rounded-sm bg-amber-50/80 flex items-center justify-center flex-shrink-0">
-                        <Target className="w-4 h-4 text-amber-600/70" />
+                    <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-4 px-7 py-3.5 hover:bg-[#f8fafc] transition-colors group">
+                      <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                        <Target className="w-3.5 h-3.5 text-amber-500" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#00213f] truncate group-hover:text-[#10375c] transition-colors">{op.titulo}</p>
+                        <p className="text-sm font-semibold text-[#00213f] truncate">{op.titulo}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {(op.categoria as any)?.nombre && (
-                            <span className="bg-[#f2f4f6] text-slate-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-sm">{(op.categoria as any).nombre}</span>
+                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">{(op.categoria as any).nombre}</span>
                           )}
                           {op.localidad && (
-                            <span className="text-[10px] text-slate-500 flex items-center gap-0.5"><MapPin className="w-3 h-3" />{op.localidad}</span>
+                            <span className="text-[10px] text-slate-400 flex items-center gap-0.5"><MapPin className="w-3 h-3" />{op.localidad}</span>
                           )}
                         </div>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 flex-shrink-0">
+                      <span className="text-[10px] text-slate-300 font-medium flex items-center gap-1 flex-shrink-0">
                         <Clock className="w-3 h-3" />{timeAgo(op.creado_en)}
                       </span>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <div className="p-12 text-center">
-                  <Target className="w-10 h-10 text-[#d8dadc] mx-auto mb-3" />
-                  <p className="text-sm text-slate-500 font-medium">No hay oportunidades abiertas.</p>
+                <div className="py-10 text-center">
+                  <Target className="w-9 h-9 text-slate-200 mx-auto mb-3" />
+                  <p className="text-sm text-slate-400">No hay oportunidades abiertas.</p>
                 </div>
               )}
             </section>
+
           </div>
 
-          {/* ═══ RIGHT (4 cols) ═══ */}
-          <div className="lg:col-span-4 space-y-6">
+          {/* RIGHT SIDEBAR (4 cols) */}
+          <div className="lg:col-span-4 space-y-4">
 
-            {/* ── QUICK ACTIONS ── */}
-            <section data-tour="dash-quick" className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
-              <div className="bg-slate-50/80 border-b border-slate-100 px-6 py-5">
-                <h3 className="text-[11px] font-bold text-[#00213f] uppercase tracking-[0.15em]">Acciones Rápidas</h3>
+            {/* QUICK ACTIONS */}
+            <section data-tour="dash-quick" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:230ms] [animation-fill-mode:both]">
+              <div className="px-6 py-5 border-b border-slate-100">
+                <h3 className="text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em]">Acciones Rápidas</h3>
               </div>
-              <div className="p-6">
-              <div className="space-y-1">
+              <div className="p-3 space-y-0.5">
                 {quickActions.map((a) => (
-                  <Link key={a.href} href={a.href} className="flex items-center gap-3.5 p-3 rounded-md hover:bg-[#f7f9fb] transition-colors group">
-                    <div className="w-10 h-10 rounded-sm bg-[#f2f4f6] group-hover:bg-[#00213f]/5 flex items-center justify-center transition-colors flex-shrink-0">
-                      <a.icon className="w-5 h-5 text-slate-500 group-hover:text-[#00213f] transition-colors" />
+                  <Link key={a.href} href={a.href} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f2f5f8] transition-colors group">
+                    <div className="w-9 h-9 rounded-xl bg-slate-50 group-hover:bg-[#00213f] flex items-center justify-center transition-all duration-200 flex-shrink-0 border border-slate-100 group-hover:border-transparent group-hover:shadow-[0_4px_12px_-2px_rgba(0,33,63,0.3)]">
+                      <a.icon className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-[#00213f]">{a.label}</p>
-                      <p className="text-[10px] text-slate-500">{a.sub}</p>
+                      <p className="text-[10px] text-slate-400">{a.sub}</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-[#d8dadc] group-hover:text-slate-500 flex-shrink-0 transition-colors" />
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-200 group-hover:text-slate-400 transition-colors" />
                   </Link>
                 ))}
               </div>
-              </div>
             </section>
 
-            {/* ── EXPLORE CTA ── */}
-            <section data-tour="dash-explore" className="bg-gradient-to-135 from-[#00213f] to-[#10375c] rounded-xl p-7 text-white relative overflow-hidden ring-1 ring-[#00213f]" style={{ background: 'linear-gradient(135deg, #00213f, #10375c)' }}>
-              <div className="absolute top-0 right-0 w-36 h-36 bg-white/[0.04] rounded-full blur-2xl -translate-y-1/2 translate-x-1/4" />
-              <div className="relative z-10">
-                <h3 className="font-poppins text-lg font-bold mb-2">
+            {/* EXPLORE CTA */}
+            <section data-tour="dash-explore" className="relative rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:310ms] [animation-fill-mode:both]"
+              style={{ background: 'linear-gradient(145deg, #001829 0%, #00213f 55%, #0b3268 100%)' }}>
+              <div aria-hidden className="absolute inset-0 opacity-[0.04]" style={{
+                backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)',
+                backgroundSize: '22px 22px',
+              }} />
+              <div aria-hidden className="absolute -top-12 right-0 w-36 h-36 bg-sky-400/12 rounded-full blur-3xl" />
+              <div className="relative z-10 p-7">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-5 border border-white/10">
+                  {isCompany ? <Users className="w-5 h-5 text-sky-300" /> : <Building className="w-5 h-5 text-sky-300" />}
+                </div>
+                <h3 className="font-poppins text-[15px] font-bold text-white mb-2">
                   {isCompany ? 'Encontrá Particulares' : isProvider ? 'Explorá Empresas' : 'Directorio UIAB'}
                 </h3>
-                <p className="text-sm text-white/70 leading-relaxed mb-6">
+                <p className="text-[13px] text-white/50 leading-relaxed mb-5">
                   {isCompany
-                    ? 'Particulares verificados para necesidades industriales de tu empresa.'
-                    : 'Empresas que buscan tus servicios en Almirante Brown y alrededores.'}
+                    ? 'Particulares verificados para las necesidades de tu empresa.'
+                    : 'Empresas que buscan tus servicios en Almirante Brown.'}
                 </p>
-                <Link href={isCompany ? '/empresas?categoria=proveedores' : '/empresas'} className="inline-flex items-center gap-2 bg-white text-[#00213f] hover:bg-white/95 px-6 py-3 rounded-lg text-sm font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-black/20">
+                <Link href={isCompany ? '/empresas?categoria=proveedores' : '/empresas'}
+                  className="inline-flex items-center gap-2 bg-white text-[#00213f] hover:bg-sky-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:shadow-lg shadow-black/20">
                   {isCompany ? 'Ver Particulares' : 'Ver Empresas'} <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </section>
 
-            {/* ── NETWORK PULSE ── */}
-            <section className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
-              <div className="bg-slate-50/80 border-b border-slate-100 px-6 py-5">
-                <h3 className="text-[11px] font-bold text-[#00213f] uppercase tracking-[0.15em] flex items-center gap-2">
+            {/* NETWORK STATS */}
+            <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:390ms] [animation-fill-mode:both]">
+              <div className="px-6 py-5 border-b border-slate-100">
+                <h3 className="text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em] flex items-center gap-2">
                   <BarChart3 className="w-3.5 h-3.5" /> Red Industrial
                 </h3>
               </div>
-              <div className="p-6">
-              <div className="space-y-4">
+              <div className="p-5 space-y-3">
                 {[
-                  { label: 'Empresas socias', value: empresasCount },
-                  { label: 'Particulares verificados', value: proveedoresCount },
-                  { label: 'Oportunidades abiertas', value: oportunidadesCount },
-                ].map((s, i) => (
-                  <div key={s.label}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-500">{s.label}</span>
-                      <span className="font-poppins text-lg font-bold text-[#00213f]">{s.value}</span>
-                    </div>
-                    {i < 2 && <div className="h-px bg-[#f2f4f6] mt-4" />}
+                  { label: 'Empresas socias', value: empresasCount, dot: 'bg-blue-500' },
+                  { label: 'Particulares verificados', value: proveedoresCount, dot: 'bg-emerald-500' },
+                  { label: 'Oportunidades abiertas', value: oportunidadesCount, dot: 'bg-amber-500' },
+                ].map((s) => (
+                  <div key={s.label} className="flex items-center gap-3">
+                    <div className={`w-1.5 h-1.5 rounded-full ${s.dot} flex-shrink-0`} />
+                    <span className="text-[13px] text-slate-500 flex-1">{s.label}</span>
+                    <span className="font-poppins text-[15px] font-black text-[#00213f]">{s.value}</span>
                   </div>
                 ))}
               </div>
-              </div>
             </section>
 
-            {/* ── NOTIFICATIONS ── */}
-            <section className="bg-white rounded-xl border border-slate-200/60 shadow-[0_12px_24px_-10px_rgba(0,33,63,0.08)] overflow-hidden">
-              <div className="bg-slate-50/80 border-b border-slate-100 px-6 py-5">
-                <h3 className="text-[11px] font-bold text-[#00213f] uppercase tracking-[0.15em] flex items-center gap-2">
+            {/* NOTIFICATIONS */}
+            <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:470ms] [animation-fill-mode:both]">
+              <div className="px-6 py-5 border-b border-slate-100">
+                <h3 className="text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em] flex items-center gap-2">
                   <Bell className="w-3.5 h-3.5" /> Notificaciones
                 </h3>
               </div>
-              <div className="p-6">
-              <div className="flex flex-col items-center py-5 text-center">
-                <div className="w-10 h-10 rounded-sm bg-[#f7f9fb] flex items-center justify-center mb-3">
-                  <CheckCircle2 className="w-5 h-5 text-[#d8dadc]" />
+              <div className="p-6 flex flex-col items-center py-8 text-center">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center mb-3 border border-emerald-100">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                 </div>
-                <p className="text-xs text-slate-500 font-medium">Tu cuenta está al día</p>
-              </div>
+                <p className="text-xs text-slate-400 font-medium">Tu cuenta está al día</p>
               </div>
             </section>
+
           </div>
         </div>
 

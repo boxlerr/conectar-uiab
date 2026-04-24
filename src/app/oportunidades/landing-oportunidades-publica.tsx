@@ -80,7 +80,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
   const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
 
   return (
-    <div className="bg-[#f7f9fb] min-h-screen pt-0 overflow-x-hidden">
+    <div className="bg-white min-h-screen pt-0 overflow-x-hidden">
       
       {/* ═══════════════════════════════════════════
           SECTION 1: HERO (DARK MULTIMEDIA B2B)
@@ -208,6 +208,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
             </motion.div>
           </div>
         </div>
+
       </section>
 
       {/* Floating stats row */}
