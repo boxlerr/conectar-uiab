@@ -109,52 +109,57 @@ export default function BandejaEntradaPage() {
       const entityId = currentUser!.entityId!;
       const role = currentUser!.role;
 
-      // Solicitudes
-      const destinoCol = role === "company" ? "empresa_destino_id" : "proveedor_destino_id";
-      const { data: solData } = await supabase
-        .from("solicitudes_presupuesto")
-        .select(
-          `id, oportunidad_id, mensaje, estado, enviada_en, vista_en, respondida_en, cerrada_en,
-           cantidad, unidad, empresa_origen_id, proveedor_origen_id,
-           empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social, nombre_comercial, localidad, email, telefono, sitio_web),
-           proveedor_origen:proveedores!solicitudes_presupuesto_proveedor_origen_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, email, telefono, fecha_inicio_experiencia),
-           oportunidad:oportunidades(id, titulo)`
-        )
-        .eq(destinoCol, entityId)
-        .order("enviada_en", { ascending: false });
+      try {
+        // Solicitudes
+        const destinoCol = role === "company" ? "empresa_destino_id" : "proveedor_destino_id";
+        const { data: solData } = await supabase
+          .from("solicitudes_presupuesto")
+          .select(
+            `id, oportunidad_id, mensaje, estado, enviada_en, vista_en, respondida_en, cerrada_en,
+             cantidad, unidad, empresa_origen_id, proveedor_origen_id,
+             empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social, nombre_comercial, localidad, email, telefono, sitio_web),
+             proveedor_origen:proveedores!solicitudes_presupuesto_proveedor_origen_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, email, telefono, fecha_inicio_experiencia),
+             oportunidad:oportunidades(id, titulo)`
+          )
+          .eq(destinoCol, entityId)
+          .order("enviada_en", { ascending: false });
 
-      // Reseñas recibidas (sobre mi entidad, estado aprobada)
-      const resenadaCol = role === "company" ? "empresa_resenada_id" : "proveedor_resenado_id";
-      const { data: recibidas } = await supabase
-        .from("resenas")
-        .select(
-          `id, calificacion, comentario, creada_en,
-           empresa_autora:empresa_autora_id(id, razon_social, nombre_comercial),
-           proveedor_autor:proveedor_autor_id(id, nombre, nombre_comercial)`
-        )
-        .eq(resenadaCol, entityId)
-        .eq("estado", "aprobada")
-        .order("creada_en", { ascending: false });
+        // Reseñas recibidas (sobre mi entidad, estado aprobada)
+        const resenadaCol = role === "company" ? "empresa_resenada_id" : "proveedor_resenado_id";
+        const { data: recibidas } = await supabase
+          .from("resenas")
+          .select(
+            `id, calificacion, comentario, creada_en,
+             empresa_autora:empresa_autora_id(id, razon_social, nombre_comercial),
+             proveedor_autor:proveedor_autor_id(id, nombre, nombre_comercial)`
+          )
+          .eq(resenadaCol, entityId)
+          .eq("estado", "aprobada")
+          .order("creada_en", { ascending: false });
 
-      // Reseñas enviadas por mi entidad, ya aprobadas
-      const autoraCol = role === "company" ? "empresa_autora_id" : "proveedor_autor_id";
-      const { data: enviadas } = await supabase
-        .from("resenas")
-        .select(
-          `id, calificacion, comentario, creada_en,
-           empresa_resenada:empresa_resenada_id(id, razon_social, nombre_comercial),
-           proveedor_resenado:proveedor_resenado_id(id, nombre, nombre_comercial)`
-        )
-        .eq(autoraCol, entityId)
-        .eq("estado", "aprobada")
-        .order("creada_en", { ascending: false });
+        // Reseñas enviadas por mi entidad, ya aprobadas
+        const autoraCol = role === "company" ? "empresa_autora_id" : "proveedor_autor_id";
+        const { data: enviadas } = await supabase
+          .from("resenas")
+          .select(
+            `id, calificacion, comentario, creada_en,
+             empresa_resenada:empresa_resenada_id(id, razon_social, nombre_comercial),
+             proveedor_resenado:proveedor_resenado_id(id, nombre, nombre_comercial)`
+          )
+          .eq(autoraCol, entityId)
+          .eq("estado", "aprobada")
+          .order("creada_en", { ascending: false });
 
-      if (cancel) return;
+        if (cancel) return;
 
-      setSolicitudes((solData ?? []) as unknown as Solicitud[]);
-      setResenasRecibidas((recibidas ?? []) as unknown as Resena[]);
-      setResenasEnviadas((enviadas ?? []) as unknown as Resena[]);
-      setFetching(false);
+        setSolicitudes((solData ?? []) as unknown as Solicitud[]);
+        setResenasRecibidas((recibidas ?? []) as unknown as Resena[]);
+        setResenasEnviadas((enviadas ?? []) as unknown as Resena[]);
+      } catch (err) {
+        console.error("[perfil/solicitudes] load falló:", err);
+      } finally {
+        if (!cancel) setFetching(false);
+      }
     }
 
     load();

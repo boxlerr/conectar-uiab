@@ -46,17 +46,22 @@ function useSubscriptionState() {
       setCargando(false);
       return;
     }
+    let cancelado = false;
     const fk = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
-    supabase
-      .from("suscripciones")
-      .select("estado, gracia_hasta")
-      .eq(fk, currentUser.entityId)
-      .order("creado_en", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }: { data: { estado: string; gracia_hasta: string | null } | null }) => {
-        const est = data?.estado as EstadoSus;
-        const gracia = data?.gracia_hasta ? new Date(data.gracia_hasta) : null;
+
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("suscripciones")
+          .select("estado, gracia_hasta")
+          .eq(fk, currentUser.entityId!)
+          .order("creado_en", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cancelado) return;
+        const row = data as { estado: string; gracia_hasta: string | null } | null;
+        const est = row?.estado as EstadoSus;
+        const gracia = row?.gracia_hasta ? new Date(row.gracia_hasta) : null;
         const bloqueado =
           !est ||
           est === "suspendida" ||
@@ -64,8 +69,15 @@ function useSubscriptionState() {
           est === "pendiente_pago" ||
           (est === "en_mora" && (!gracia || gracia < new Date()));
         setEstado(bloqueado ? (est || "pendiente_pago") : "activa");
-        setCargando(false);
-      });
+      } catch (err) {
+        console.error("[BannerSuscripcion] error consultando suscripción:", err);
+        if (!cancelado) setEstado(null);
+      } finally {
+        if (!cancelado) setCargando(false);
+      }
+    })();
+
+    return () => { cancelado = true; };
   }, [authLoading, currentUser?.entityId, currentUser?.role]);
 
   return { estado, cargando };

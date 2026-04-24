@@ -31,18 +31,29 @@ export default function BloqueadoPage() {
       setCargando(false);
       return;
     }
+    let cancelado = false;
     const fk = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
-    supabase
-      .from("suscripciones")
-      .select("estado")
-      .eq(fk, currentUser.entityId)
-      .order("creado_en", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }: { data: { estado: string } | null }) => {
-        setSubEstado(data?.estado ?? null);
-        setCargando(false);
-      });
+
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("suscripciones")
+          .select("estado")
+          .eq(fk, currentUser.entityId!)
+          .order("creado_en", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cancelado) return;
+        setSubEstado((data as { estado: string } | null)?.estado ?? null);
+      } catch (err) {
+        console.error("[bloqueado] error consultando suscripción:", err);
+        if (!cancelado) setSubEstado(null);
+      } finally {
+        if (!cancelado) setCargando(false);
+      }
+    })();
+
+    return () => { cancelado = true; };
   }, [authLoading, currentUser]);
 
   if (authLoading || cargando) {

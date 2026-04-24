@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { ShieldAlert, User, Briefcase, CreditCard, LayoutDashboard, PackageSearch, Loader2, Tag, Inbox } from "lucide-react";
+import { ShieldAlert, User, Briefcase, CreditCard, LayoutDashboard, PackageSearch, Loader2, Tag, Inbox, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utilidades";
@@ -11,11 +12,42 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
   const { currentUser, loading: authLoading } = useAuth();
   const pathname = usePathname();
 
+  // Safety timeout: si auth queda colgado >20s (lock huérfano, fetch muerto),
+  // mostramos un fallback accionable en vez de spinner infinito.
+  const [authTimedOut, setAuthTimedOut] = useState(false);
+  useEffect(() => {
+    if (!authLoading) {
+      setAuthTimedOut(false);
+      return;
+    }
+    const t = setTimeout(() => setAuthTimedOut(true), 20_000);
+    return () => clearTimeout(t);
+  }, [authLoading]);
+
   // Mientras auth está resolviendo, no mostrar "Acceso Requerido" (flash incorrecto)
-  if (authLoading) {
+  if (authLoading && !authTimedOut) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      </div>
+    );
+  }
+
+  if (authLoading && authTimedOut) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 gap-4">
+        <ShieldAlert className="w-12 h-12 text-amber-500" />
+        <h2 className="text-xl font-bold text-slate-900">Tardó más de lo esperado</h2>
+        <p className="text-slate-500 text-center max-w-md text-sm">
+          No pudimos validar tu sesión. Recargá la página para reintentar.
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-semibold"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Recargar
+        </button>
       </div>
     );
   }

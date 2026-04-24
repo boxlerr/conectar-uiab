@@ -42,29 +42,31 @@ export default function MiPerfilEtiquetasPage() {
     if (authLoading) return;
 
     async function init() {
-      const { data: dbTags } = await supabase
-        .from("tags")
-        .select("id, nombre, tipo_tag")
-        .eq("activo", true)
-        .order("nombre");
-      if (dbTags) setAllTags(dbTags as TagRow[]);
+      try {
+        const { data: dbTags } = await supabase
+          .from("tags")
+          .select("id, nombre, tipo_tag")
+          .eq("activo", true)
+          .order("nombre");
+        if (dbTags) setAllTags(dbTags as TagRow[]);
 
-      if (!currentUser?.entityId) {
+        if (!currentUser?.entityId) return;
+
+        const relationTable = currentUser.role === "company" ? "empresas_tags" : "proveedores_tags";
+        const relationKey = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
+
+        const { data: current } = await supabase
+          .from(relationTable)
+          .select("tag_id")
+          .eq(relationKey, currentUser.entityId);
+        if (current) {
+          setSelectedIds(new Set((current as { tag_id: string }[]).map((x) => x.tag_id)));
+        }
+      } catch (err) {
+        console.error("[perfil/etiquetas] init falló:", err);
+      } finally {
         setFetching(false);
-        return;
       }
-
-      const relationTable = currentUser.role === "company" ? "empresas_tags" : "proveedores_tags";
-      const relationKey = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
-
-      const { data: current } = await supabase
-        .from(relationTable)
-        .select("tag_id")
-        .eq(relationKey, currentUser.entityId);
-      if (current) {
-        setSelectedIds(new Set((current as { tag_id: string }[]).map((x) => x.tag_id)));
-      }
-      setFetching(false);
     }
     init();
   }, [authLoading, currentUser?.entityId, currentUser?.role]);

@@ -173,6 +173,7 @@ export default function InstitucionesEducativasPage() {
     setCargandoDatos(true);
     setEmpresas([]);
 
+    try {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("vista_directorio")
@@ -181,7 +182,6 @@ export default function InstitucionesEducativasPage() {
 
     if (error || !data) {
       console.error("Error fetching instituciones educativas:", error);
-      setCargandoDatos(false);
       return;
     }
 
@@ -249,7 +249,11 @@ export default function InstitucionesEducativasPage() {
     });
 
     setEmpresas(mapped);
-    setCargandoDatos(false);
+    } catch (err) {
+      console.error("[instituciones-educativas] fetch falló:", err);
+    } finally {
+      setCargandoDatos(false);
+    }
   }, [currentUser, fetchInstitucionesCount]);
 
   useEffect(() => {

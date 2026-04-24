@@ -25,24 +25,26 @@ export default function MiPerfilServiciosPage() {
     if (authLoading) return;
 
     async function init() {
-      // Always fetch master categories so UI doesn't look broken
-      const { data: dbCategorias } = await supabase.from('categorias').select('id, nombre, categoria_padre_id').eq('activa', true).order('nombre');
-      if (dbCategorias) setAllCategories(dbCategorias);
+      try {
+        // Always fetch master categories so UI doesn't look broken
+        const { data: dbCategorias } = await supabase.from('categorias').select('id, nombre, categoria_padre_id').eq('activa', true).order('nombre');
+        if (dbCategorias) setAllCategories(dbCategorias);
 
-      if (!currentUser?.entityId) {
-         setFetching(false);
-         return;
+        if (!currentUser?.entityId) return;
+
+        // 2. Fetch User's current categories
+        const relationTable = currentUser.role === "company" ? "empresas_categorias" : "proveedores_categorias";
+        const relationKey = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
+
+        const { data: userCurrent } = await supabase.from(relationTable).select('categoria_id').eq(relationKey, currentUser.entityId);
+        if (userCurrent) {
+          setSelectedIds(userCurrent.map((x: any) => x.categoria_id));
+        }
+      } catch (err) {
+        console.error("[perfil/servicios] init falló:", err);
+      } finally {
+        setFetching(false);
       }
-
-      // 2. Fetch User's current categories
-      const relationTable = currentUser.role === "company" ? "empresas_categorias" : "proveedores_categorias";
-      const relationKey = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
-
-      const { data: userCurrent } = await supabase.from(relationTable).select('categoria_id').eq(relationKey, currentUser.entityId);
-      if (userCurrent) {
-        setSelectedIds(userCurrent.map((x: any) => x.categoria_id));
-      }
-      setFetching(false);
     }
     init();
   }, [authLoading, currentUser?.entityId, currentUser?.role]);

@@ -153,6 +153,7 @@ export default function InstitucionesBancariasPage() {
     setCargandoDatos(true);
     setEmpresas([]);
 
+    try {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("vista_directorio")
@@ -161,7 +162,6 @@ export default function InstitucionesBancariasPage() {
 
     if (error || !data) {
       console.error("Error fetching instituciones bancarias:", error);
-      setCargandoDatos(false);
       return;
     }
 
@@ -229,7 +229,11 @@ export default function InstitucionesBancariasPage() {
     });
 
     setEmpresas(mapped);
-    setCargandoDatos(false);
+    } catch (err) {
+      console.error("[instituciones-bancarias] fetch falló:", err);
+    } finally {
+      setCargandoDatos(false);
+    }
   }, [currentUser]);
 
   useEffect(() => {

@@ -40,12 +40,17 @@ export default function PerfilCatalogoPage() {
       return;
     }
     setFetching(true);
-    const data = await getUserItems(
-      currentUser.role as "company" | "provider",
-      currentUser.entityId
-    );
-    setItems(data);
-    setFetching(false);
+    try {
+      const data = await getUserItems(
+        currentUser.role as "company" | "provider",
+        currentUser.entityId
+      );
+      setItems(data);
+    } catch (err) {
+      console.error("[perfil/productos-servicios] fetchItems falló:", err);
+    } finally {
+      setFetching(false);
+    }
   };
 
   useEffect(() => {
