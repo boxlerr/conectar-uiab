@@ -13,24 +13,6 @@ function adminClient() {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = adminClient();
-
-  const [{ data: empresas }, { data: proveedores }, { data: oportunidades }] =
-    await Promise.all([
-      supabase
-        .from("empresas")
-        .select("razon_social, actualizado_en")
-        .eq("estado", "aprobada"),
-      supabase
-        .from("proveedores")
-        .select("razon_social, actualizado_en")
-        .eq("estado", "aprobado"),
-      supabase
-        .from("oportunidades")
-        .select("id, creado_en")
-        .eq("estado", "abierta"),
-    ]);
-
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${BASE_URL}/`, lastModified: new Date(), changeFrequency: "daily", priority: 1.0 },
     { url: `${BASE_URL}/directorio`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
@@ -44,26 +26,45 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/cookies`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  const empresaRoutes: MetadataRoute.Sitemap = (empresas ?? []).map((e) => ({
-    url: `${BASE_URL}/empresas/${crearSlug(e.razon_social)}`,
-    lastModified: e.actualizado_en ? new Date(e.actualizado_en) : new Date(),
-    changeFrequency: "weekly",
-    priority: 0.8,
-  }));
+  try {
+    const supabase = adminClient();
 
-  const proveedorRoutes: MetadataRoute.Sitemap = (proveedores ?? []).map((p) => ({
-    url: `${BASE_URL}/proveedores/${crearSlug(p.razon_social)}`,
-    lastModified: p.actualizado_en ? new Date(p.actualizado_en) : new Date(),
-    changeFrequency: "weekly",
-    priority: 0.8,
-  }));
+    const [{ data: empresas }, { data: proveedores }, { data: oportunidades }] =
+      await Promise.all([
+        supabase.from("empresas").select("razon_social, creado_en").eq("estado", "aprobada"),
+        supabase.from("proveedores").select("razon_social, creado_en").eq("estado", "aprobado"),
+        supabase.from("oportunidades").select("id, creado_en").eq("estado", "abierta"),
+      ]);
 
-  const oportunidadRoutes: MetadataRoute.Sitemap = (oportunidades ?? []).map((o) => ({
-    url: `${BASE_URL}/oportunidades/${o.id}`,
-    lastModified: o.creado_en ? new Date(o.creado_en) : new Date(),
-    changeFrequency: "weekly",
-    priority: 0.7,
-  }));
+    const empresaRoutes: MetadataRoute.Sitemap = (empresas ?? [])
+      .filter((e) => e.razon_social)
+      .map((e) => ({
+        url: `${BASE_URL}/empresas/${crearSlug(e.razon_social)}`,
+        lastModified: e.creado_en ? new Date(e.creado_en) : new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      }));
 
-  return [...staticRoutes, ...empresaRoutes, ...proveedorRoutes, ...oportunidadRoutes];
+    const proveedorRoutes: MetadataRoute.Sitemap = (proveedores ?? [])
+      .filter((p) => p.razon_social)
+      .map((p) => ({
+        url: `${BASE_URL}/proveedores/${crearSlug(p.razon_social)}`,
+        lastModified: p.creado_en ? new Date(p.creado_en) : new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      }));
+
+    const oportunidadRoutes: MetadataRoute.Sitemap = (oportunidades ?? [])
+      .filter((o) => o.id)
+      .map((o) => ({
+        url: `${BASE_URL}/oportunidades/${o.id}`,
+        lastModified: o.creado_en ? new Date(o.creado_en) : new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+      }));
+
+    return [...staticRoutes, ...empresaRoutes, ...proveedorRoutes, ...oportunidadRoutes];
+  } catch {
+    return staticRoutes;
+  }
 }
