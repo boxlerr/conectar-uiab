@@ -127,6 +127,7 @@ export async function POST(request: Request) {
             razon_social: razonSocial || null,
             nombre_comercial: nombreComercial || null,
             cuit: cuit,
+            tipo_proveedor: 'particular',
             estado: estadoEntidadProvider,
             email: email,
             telefono: telefono,
