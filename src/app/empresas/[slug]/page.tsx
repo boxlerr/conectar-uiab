@@ -5,10 +5,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
 import { CatalogoPublico, type CatalogoItem } from "@/components/ui/directorio/catalogo-publico";
-import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock } from "lucide-react";
+import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock } from "lucide-react";
 import Image from "next/image";
 
-// Fetch items publicados + imagenes y mapea al shape del componente publico.
 async function fetchCatalogoItems(
   supabase: any,
   role: "company" | "provider",
@@ -58,11 +57,51 @@ async function fetchCatalogoItems(
   });
 }
 
-// Helper: create admin client that bypasses RLS (safe in server components)
 function createAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+// ── Gate overlay shown to unauthenticated visitors ──
+function LoginGate({ currentPath }: { currentPath: string }) {
+  return (
+    <div className="relative">
+      {/* Blurred preview rows */}
+      <div className="pointer-events-none select-none" aria-hidden>
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-14 rounded-md bg-slate-100 mb-3 blur-sm opacity-60" />
+        ))}
+      </div>
+
+      {/* CTA card */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-lg px-8 py-7 text-center max-w-sm w-full mx-4">
+          <div className="w-10 h-10 bg-[#00213f]/8 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Lock className="w-5 h-5 text-[#00213f]" />
+          </div>
+          <h3 className="font-manrope font-bold text-[#00213f] text-base mb-1">
+            Contenido exclusivo para miembros
+          </h3>
+          <p className="text-slate-500 text-[13px] mb-5 leading-relaxed">
+            Ingresá para ver el catálogo completo, reseñas y datos de contacto.
+          </p>
+          <Link
+            href={`/login?redirect=${encodeURIComponent(currentPath)}`}
+            className="flex items-center justify-center w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-2.5 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase mb-2"
+          >
+            Ingresar
+          </Link>
+          <Link
+            href={`/register?redirect=${encodeURIComponent(currentPath)}`}
+            className="flex items-center justify-center w-full border border-slate-200 hover:border-[#00213f] px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-[#00213f] rounded transition-colors tracking-[0.15em] uppercase"
+          >
+            Crear cuenta gratis
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -74,9 +113,13 @@ export default async function EmpresaProfilePage({
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
+  // Check authentication (cookie-based, no RLS bypass needed)
+  const serverClient = await createServerClient();
+  const { data: { user } } = await serverClient.auth.getUser();
+  const isAuthenticated = !!user;
+
   const supabase = createAdminClient();
 
-  // ── Step 1: Try to find in empresas table ──
   const { data: empresasData } = await supabase
     .from('empresas')
     .select(`
@@ -100,7 +143,6 @@ export default async function EmpresaProfilePage({
 
   const empresaDb = empresasData?.find((emp: any) => crearSlug(emp.razon_social) === slug);
 
-  // ── Step 2: If not found in empresas, try proveedores table ──
   if (!empresaDb) {
     const { data: provData } = await supabase
       .from('proveedores')
@@ -138,72 +180,96 @@ export default async function EmpresaProfilePage({
       notFound();
     }
 
-    // ── Render PROVEEDOR / PARTICULAR profile ──
-    return <ProveedorProfile provDb={provDb} supabase={supabase} />;
+    return (
+      <ProveedorProfile
+        provDb={provDb}
+        supabase={supabase}
+        isAuthenticated={isAuthenticated}
+        currentPath={`/empresas/${slug}`}
+      />
+    );
   }
 
-  // ── Render EMPRESA (socio verificado) profile ──
-  return <EmpresaProfile empresaDb={empresaDb} supabase={supabase} />;
+  return (
+    <EmpresaProfile
+      empresaDb={empresaDb}
+      supabase={supabase}
+      isAuthenticated={isAuthenticated}
+      currentPath={`/empresas/${slug}`}
+    />
+  );
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// EMPRESA PROFILE (Socio Verificado UIAB)
+// EMPRESA PROFILE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabase: any }) {
+async function EmpresaProfile({
+  empresaDb,
+  supabase,
+  isAuthenticated,
+  currentPath,
+}: {
+  empresaDb: any;
+  supabase: any;
+  isAuthenticated: boolean;
+  currentPath: string;
+}) {
   const cats = empresaDb.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
   const mainCat = cats.length > 0 ? cats[0] : "General";
   const logoUrl = empresaDb.bucket_logo && empresaDb.ruta_logo
     ? supabase.storage.from(empresaDb.bucket_logo).getPublicUrl(empresaDb.ruta_logo).data.publicUrl
     : null;
 
-  const { data: resenasData } = await supabase
-    .from('resenas')
-    .select(`
-      id,
-      calificacion,
-      comentario,
-      creada_en,
-      empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
-      proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
-    `)
-    .eq('empresa_resenada_id', empresaDb.id)
-    .eq('estado', 'aprobada')
-    .order('creada_en', { ascending: false });
+  // Only fetch heavy data when authenticated to avoid wasted DB calls
+  let finalResenas: any[] = [];
+  let oportunidadesActivas: any[] = [];
+  let catalogoItems: CatalogoItem[] = [];
 
-  let finalResenas: any[] = resenasData || [];
-  if (!resenasData) {
-    const { data: fallbackData } = await supabase
+  if (isAuthenticated) {
+    const { data: resenasData } = await supabase
       .from('resenas')
-      .select('id, calificacion, comentario, creada_en')
+      .select(`
+        id,
+        calificacion,
+        comentario,
+        creada_en,
+        empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
+        proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
+      `)
       .eq('empresa_resenada_id', empresaDb.id)
       .eq('estado', 'aprobada')
       .order('creada_en', { ascending: false });
-    finalResenas = fallbackData || [];
+
+    if (!resenasData) {
+      const { data: fallbackData } = await supabase
+        .from('resenas')
+        .select('id, calificacion, comentario, creada_en')
+        .eq('empresa_resenada_id', empresaDb.id)
+        .eq('estado', 'aprobada')
+        .order('creada_en', { ascending: false });
+      finalResenas = fallbackData || [];
+    } else {
+      finalResenas = resenasData;
+    }
+
+    const { data: opsData } = await supabase
+      .from('oportunidades')
+      .select(`
+        id,
+        titulo,
+        descripcion,
+        localidad,
+        creado_en,
+        categoria:categorias(nombre)
+      `)
+      .eq('empresa_solicitante_id', empresaDb.id)
+      .eq('estado', 'abierta')
+      .order('creado_en', { ascending: false });
+
+    oportunidadesActivas = opsData || [];
+    catalogoItems = await fetchCatalogoItems(supabase, "company", empresaDb.id);
   }
 
-  // Fetch Opportunities
-  const { data: opsData } = await supabase
-    .from('oportunidades')
-    .select(`
-      id,
-      titulo,
-      descripcion,
-      localidad,
-      creado_en,
-      categoria:categorias(nombre)
-    `)
-    .eq('empresa_solicitante_id', empresaDb.id)
-    .eq('estado', 'abierta')
-    .order('creado_en', { ascending: false });
-
-  const oportunidadesActivas = opsData || [];
-
-  // Catálogo público de productos/servicios
-  const catalogoItems = await fetchCatalogoItems(supabase, "company", empresaDb.id);
-
-  // Solo mostramos la descripción si hay actividad real — evitamos cards
-  // con texto genérico tipo "Empresa verificada y registrada..." que no
-  // aporta nada al visitante.
   const tieneActividadReal = Boolean(empresaDb.actividad && empresaDb.actividad.trim().length > 8);
   const serviciosExtra = cats.slice(1);
   const tieneServiciosReales = serviciosExtra.length > 0;
@@ -225,7 +291,7 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
 
   return (
     <div className="min-h-screen bg-slate-50 font-inter pb-20">
-      {/* ─── Header: más compacto, acento lateral en lugar de card flotante ─── */}
+      {/* Hero — always visible for SEO */}
       <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24">
         <div className="absolute inset-0 z-0">
           <Image src="/landing/hero-industrial.png" alt="" fill className="object-cover object-center" priority />
@@ -255,7 +321,7 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
         </div>
       </div>
 
-      {/* ─── Barra de identidad: logo + meta inline, sobria ─── */}
+      {/* Identity bar — always visible */}
       <div data-tour="ficha-identidad" className="border-b border-slate-200 bg-white">
         <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 py-6 flex flex-wrap items-center gap-6">
           <div className="w-20 h-20 bg-white border border-slate-200 flex items-center justify-center font-manrope font-black text-4xl text-[#00213f] shrink-0 overflow-hidden rounded-md shadow-sm">
@@ -284,20 +350,30 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
               </a>
             )}
           </div>
-          <a
-            href={`mailto:${empresa.contacto.email}`}
-            className="inline-flex items-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-2.5 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase"
-          >
-            <Mail className="w-3.5 h-3.5" />
-            Contactar
-          </a>
+          {isAuthenticated ? (
+            <a
+              href={`mailto:${empresa.contacto.email}`}
+              className="inline-flex items-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-2.5 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              Contactar
+            </a>
+          ) : (
+            <Link
+              href={`/login?redirect=${encodeURIComponent(currentPath)}`}
+              className="inline-flex items-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-2.5 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              Ver contacto
+            </Link>
+          )}
         </div>
       </div>
 
       <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 mt-10 relative z-10">
         <div className="flex flex-col lg:flex-row gap-8">
           <main className="w-full lg:w-[72%] space-y-6">
-            {/* Solo mostramos "Sobre la empresa" si hay actividad real cargada */}
+            {/* Always visible for SEO */}
             {empresa.actividad && (
               <section className="bg-white p-7 rounded-md border border-slate-200">
                 <div className="flex items-center gap-2.5 mb-4">
@@ -329,53 +405,68 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
               </section>
             )}
 
-            {catalogoItems.length > 0 && (
-              <CatalogoPublico items={catalogoItems} colorScheme="blue" />
-            )}
+            {/* Gated content */}
+            {isAuthenticated ? (
+              <>
+                {catalogoItems.length > 0 && (
+                  <CatalogoPublico items={catalogoItems} colorScheme="blue" />
+                )}
 
-            {oportunidadesActivas.length > 0 && (
-              <section className="bg-white rounded-md border border-slate-200 overflow-hidden">
-                <div className="flex items-center justify-between px-7 py-5 border-b border-slate-200">
-                  <div className="flex items-center gap-2.5">
-                    <Briefcase className="w-4 h-4 text-blue-600" />
-                    <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
-                      Oportunidades publicadas · {oportunidadesActivas.length}
-                    </h2>
-                  </div>
-                  <Link href="/oportunidades" className="text-[11px] font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-[0.15em] flex items-center gap-1.5 group">
-                    Ver todas
-                    <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                  </Link>
-                </div>
-
-                <ul className="divide-y divide-slate-100">
-                  {oportunidadesActivas.map((op: any) => (
-                    <li key={op.id}>
-                      <Link href={`/oportunidades/${op.id}`} className="group flex items-center justify-between gap-4 px-7 py-4 hover:bg-slate-50 transition-colors">
-                        <div className="min-w-0 flex-1">
-                          <h4 className="text-[#00213f] font-bold text-[15px] leading-snug group-hover:text-blue-700 transition-colors truncate">{op.titulo}</h4>
-                          <p className="text-slate-500 text-[12px] font-medium mt-0.5">
-                            <span className="text-slate-600">{(op.categoria as any)?.nombre || "Industrial"}</span>
-                            <span className="mx-1.5 text-slate-300">·</span>
-                            <span>{new Date(op.creado_en).toLocaleDateString("es-AR", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-sm border border-emerald-200">
-                            Abierta
-                          </span>
-                          <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                        </div>
+                {oportunidadesActivas.length > 0 && (
+                  <section className="bg-white rounded-md border border-slate-200 overflow-hidden">
+                    <div className="flex items-center justify-between px-7 py-5 border-b border-slate-200">
+                      <div className="flex items-center gap-2.5">
+                        <Briefcase className="w-4 h-4 text-blue-600" />
+                        <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
+                          Oportunidades publicadas · {oportunidadesActivas.length}
+                        </h2>
+                      </div>
+                      <Link href="/oportunidades" className="text-[11px] font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-[0.15em] flex items-center gap-1.5 group">
+                        Ver todas
+                        <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
                       </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+                    </div>
 
-            <div data-tour="ficha-resenas">
-              <ResenasPerfil resenasAprobadas={finalResenas} targetType="empresa" targetId={empresaDb.id} />
-            </div>
+                    <ul className="divide-y divide-slate-100">
+                      {oportunidadesActivas.map((op: any) => (
+                        <li key={op.id}>
+                          <Link href={`/oportunidades/${op.id}`} className="group flex items-center justify-between gap-4 px-7 py-4 hover:bg-slate-50 transition-colors">
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-[#00213f] font-bold text-[15px] leading-snug group-hover:text-blue-700 transition-colors truncate">{op.titulo}</h4>
+                              <p className="text-slate-500 text-[12px] font-medium mt-0.5">
+                                <span className="text-slate-600">{(op.categoria as any)?.nombre || "Industrial"}</span>
+                                <span className="mx-1.5 text-slate-300">·</span>
+                                <span>{new Date(op.creado_en).toLocaleDateString("es-AR", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-sm border border-emerald-200">
+                                Abierta
+                              </span>
+                              <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                            </div>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                <div data-tour="ficha-resenas">
+                  <ResenasPerfil resenasAprobadas={finalResenas} targetType="empresa" targetId={empresaDb.id} />
+                </div>
+              </>
+            ) : (
+              <div className="bg-white p-7 rounded-md border border-slate-200">
+                <div className="flex items-center gap-2.5 mb-5">
+                  <Briefcase className="w-4 h-4 text-blue-600" />
+                  <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
+                    Catálogo, oportunidades y reseñas
+                  </h2>
+                </div>
+                <LoginGate currentPath={currentPath} />
+              </div>
+            )}
           </main>
 
           <aside data-tour="ficha-sidebar-contacto" className="w-full lg:w-[28%]">
@@ -386,56 +477,87 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
                 </h3>
               </div>
 
-              <ul className="p-6 space-y-5">
-                {empresa.ubicacion && (
-                  <li className="flex items-start gap-3">
-                    <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
-                      <p className="text-slate-700 font-semibold text-[14px] leading-snug">{empresa.ubicacion}</p>
-                    </div>
-                  </li>
-                )}
+              {isAuthenticated ? (
+                <>
+                  <ul className="p-6 space-y-5">
+                    {empresa.ubicacion && (
+                      <li className="flex items-start gap-3">
+                        <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
+                          <p className="text-slate-700 font-semibold text-[14px] leading-snug">{empresa.ubicacion}</p>
+                        </div>
+                      </li>
+                    )}
 
-                <li className="flex items-start gap-3">
-                  <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo</p>
-                    <a href={`mailto:${empresa.contacto.email}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
-                      {empresa.contacto.email}
+                    <li className="flex items-start gap-3">
+                      <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo</p>
+                        <a href={`mailto:${empresa.contacto.email}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
+                          {empresa.contacto.email}
+                        </a>
+                      </div>
+                    </li>
+
+                    <li className="flex items-start gap-3">
+                      <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
+                        <p className="text-slate-600 font-medium text-[14px] italic">{empresa.contacto.telefono}</p>
+                      </div>
+                    </li>
+
+                    {empresa.contacto.sitioWeb && (
+                      <li className="flex items-start gap-3">
+                        <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
+                          <a href={empresa.contacto.sitioWeb.match(/^https?:\/\//) ? empresa.contacto.sitioWeb : `https://${empresa.contacto.sitioWeb}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
+                            {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                          </a>
+                        </div>
+                      </li>
+                    )}
+                  </ul>
+
+                  <div className="px-6 pb-6">
+                    <a
+                      href={`mailto:${empresa.contacto.email}`}
+                      className="flex items-center justify-center w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-3 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase"
+                    >
+                      Enviar Mensaje
                     </a>
                   </div>
-                </li>
-
-                <li className="flex items-start gap-3">
-                  <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
-                    <p className="text-slate-600 font-medium text-[14px] italic">{empresa.contacto.telefono}</p>
-                  </div>
-                </li>
-
-                {empresa.contacto.sitioWeb && (
-                  <li className="flex items-start gap-3">
-                    <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
-                      <a href={empresa.contacto.sitioWeb.match(/^https?:\/\//) ? empresa.contacto.sitioWeb : `https://${empresa.contacto.sitioWeb}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
-                        {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                      </a>
+                </>
+              ) : (
+                <div className="p-6">
+                  {empresa.ubicacion && (
+                    <div className="flex items-start gap-3 mb-5">
+                      <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
+                        <p className="text-slate-700 font-semibold text-[14px] leading-snug">{empresa.ubicacion}</p>
+                      </div>
                     </div>
-                  </li>
-                )}
-              </ul>
+                  )}
 
-              <div className="px-6 pb-6">
-                <a
-                  href={`mailto:${empresa.contacto.email}`}
-                  className="flex items-center justify-center w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-3 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase"
-                >
-                  Enviar Mensaje
-                </a>
-              </div>
+                  {/* Blurred locked rows */}
+                  <div className="space-y-3 mb-5">
+                    {[...Array(2)].map((_, i) => (
+                      <div key={i} className="h-10 bg-slate-100 rounded blur-sm opacity-60" />
+                    ))}
+                  </div>
+
+                  <Link
+                    href={`/login?redirect=${encodeURIComponent(currentPath)}`}
+                    className="flex items-center justify-center gap-2 w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-3 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase"
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    Ver datos de contacto
+                  </Link>
+                </div>
+              )}
             </div>
           </aside>
         </div>
@@ -447,8 +569,17 @@ async function EmpresaProfile({ empresaDb, supabase }: { empresaDb: any; supabas
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // PROVEEDOR / PARTICULAR PROFILE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: any }) {
-  const isParticular = true;
+async function ProveedorProfile({
+  provDb,
+  supabase,
+  isAuthenticated,
+  currentPath,
+}: {
+  provDb: any;
+  supabase: any;
+  isAuthenticated: boolean;
+  currentPath: string;
+}) {
   const displayName =
     provDb.nombre_comercial ||
     [provDb.nombre, provDb.apellido].filter(Boolean).join(" ") ||
@@ -460,43 +591,47 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
     ? supabase.storage.from(provDb.bucket_logo).getPublicUrl(provDb.ruta_logo).data.publicUrl
     : null;
 
-  // Fetch Reseñas
-  const { data: resenasData } = await supabase
-    .from('resenas')
-    .select(`
-      id,
-      calificacion,
-      comentario,
-      creada_en,
-      empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
-      proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
-    `)
-    .eq('proveedor_resenada_id', provDb.id)
-    .eq('estado', 'aprobada')
-    .order('creada_en', { ascending: false });
+  let finalResenas: any[] = [];
+  let catalogoItems: CatalogoItem[] = [];
 
-  let finalResenas: any[] = resenasData || [];
-  if (!resenasData) {
-    const { data: fallbackData } = await supabase
+  if (isAuthenticated) {
+    const { data: resenasData } = await supabase
       .from('resenas')
-      .select('id, calificacion, comentario, creada_en')
-      .eq('proveedor_resenado_id', provDb.id)
+      .select(`
+        id,
+        calificacion,
+        comentario,
+        creada_en,
+        empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
+        proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
+      `)
+      .eq('proveedor_resenada_id', provDb.id)
       .eq('estado', 'aprobada')
       .order('creada_en', { ascending: false });
-    finalResenas = fallbackData || [];
-  }
 
-  // Catálogo público de productos/servicios
-  const catalogoItems = await fetchCatalogoItems(supabase, "provider", provDb.id);
+    if (!resenasData) {
+      const { data: fallbackData } = await supabase
+        .from('resenas')
+        .select('id, calificacion, comentario, creada_en')
+        .eq('proveedor_resenado_id', provDb.id)
+        .eq('estado', 'aprobada')
+        .order('creada_en', { ascending: false });
+      finalResenas = fallbackData || [];
+    } else {
+      finalResenas = resenasData;
+    }
+
+    catalogoItems = await fetchCatalogoItems(supabase, "provider", provDb.id);
+  }
 
   const proveedor = {
     nombre: displayName,
     nombrePersonal: personalName,
     categoria: mainCat,
-    descripcionCorta: provDb.descripcion || (isParticular ? "Prestador de servicios particular" : "Prestador verificado UIAB"),
+    descripcionCorta: provDb.descripcion || "Prestador de servicios particular",
     descripcionLarga: provDb.descripcion
       ? provDb.descripcion
-      : `Profesional ${isParticular ? "independiente" : "verificado"} registrado en el ecosistema de UIAB.${mainCat ? ` Especialista en ${mainCat.toLowerCase()}.` : ''}`,
+      : `Profesional independiente registrado en el ecosistema de UIAB.${mainCat ? ` Especialista en ${mainCat.toLowerCase()}.` : ''}`,
     logo: displayName.charAt(0).toUpperCase(),
     logoUrl,
     ubicacion: [provDb.localidad, provDb.provincia].filter(Boolean).join(", ") || "Sin ubicación",
@@ -504,14 +639,12 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
     contacto: {
       email: provDb.email || "No disponible",
       telefono: provDb.telefono || "",
-      sitioWeb: ""
     }
   };
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-24">
-
-      {/* ─── Hero — gradiente navy profesional, sin naranja ─── */}
+      {/* Hero */}
       <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24">
         <div className="absolute inset-0 z-0">
           <Image src="/landing/hero-industrial.png" alt="Fondo" fill className="object-cover object-center" priority />
@@ -544,7 +677,7 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
         </div>
       </div>
 
-      {/* ─── Barra de identidad ─── */}
+      {/* Identity bar */}
       <div className="border-b border-slate-200 bg-white">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 flex flex-wrap items-center gap-6">
           <div className="w-20 h-20 bg-white border border-slate-200 flex items-center justify-center font-manrope font-black text-4xl text-[#10375c] shrink-0 overflow-hidden rounded-full shadow-sm">
@@ -562,23 +695,30 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
               </span>
             )}
           </div>
-          <a
-            href={`mailto:${proveedor.contacto.email}`}
-            className="inline-flex items-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-2.5 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase"
-          >
-            <Mail className="w-3.5 h-3.5" />
-            Contactar
-          </a>
+          {isAuthenticated ? (
+            <a
+              href={`mailto:${proveedor.contacto.email}`}
+              className="inline-flex items-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-2.5 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              Contactar
+            </a>
+          ) : (
+            <Link
+              href={`/login?redirect=${encodeURIComponent(currentPath)}`}
+              className="inline-flex items-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-2.5 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              Ver contacto
+            </Link>
+          )}
         </div>
       </div>
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-10 relative z-10">
         <div className="flex flex-col lg:flex-row gap-8">
-
-          {/* ─── Main ─── */}
           <main className="w-full lg:w-[65%] space-y-6">
-
-            {/* Perfil profesional */}
+            {/* Always visible for SEO */}
             <section className="bg-white p-7 rounded-md border border-[#191c1e]/8">
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-8 h-8 rounded-sm bg-[#bf7035]/8 flex items-center justify-center">
@@ -590,7 +730,6 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
               <p className="text-slate-500 font-medium leading-relaxed text-[15px]">{proveedor.descripcionLarga}</p>
             </section>
 
-            {/* Servicios */}
             <section className="bg-white p-7 rounded-md border border-[#191c1e]/8">
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-8 h-8 rounded-sm bg-[#bf7035]/8 flex items-center justify-center">
@@ -610,14 +749,28 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
               </div>
             </section>
 
-            {catalogoItems.length > 0 && (
-              <CatalogoPublico items={catalogoItems} colorScheme="blue" />
+            {/* Gated content */}
+            {isAuthenticated ? (
+              <>
+                {catalogoItems.length > 0 && (
+                  <CatalogoPublico items={catalogoItems} colorScheme="blue" />
+                )}
+                <ResenasPerfil resenasAprobadas={finalResenas} targetType="proveedor" targetId={provDb.id} />
+              </>
+            ) : (
+              <div className="bg-white p-7 rounded-md border border-[#191c1e]/8">
+                <div className="flex items-center gap-2.5 mb-5">
+                  <Briefcase className="w-4 h-4 text-[#bf7035]" />
+                  <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
+                    Catálogo y reseñas
+                  </h2>
+                </div>
+                <LoginGate currentPath={currentPath} />
+              </div>
             )}
-
-            <ResenasPerfil resenasAprobadas={finalResenas} targetType="proveedor" targetId={provDb.id} />
           </main>
 
-          {/* ─── Sidebar contacto ─── */}
+          {/* Sidebar */}
           <aside className="w-full lg:w-[35%]">
             <div className="bg-white rounded-md border border-[#191c1e]/8 sticky top-28 overflow-hidden">
               <div className="px-6 py-4 border-b border-[#191c1e]/6 bg-[#f7f9fb]">
@@ -626,62 +779,89 @@ async function ProveedorProfile({ provDb, supabase }: { provDb: any; supabase: a
                 </h3>
               </div>
 
-              <ul className="p-6 space-y-5">
-                <li className="flex items-start gap-3">
-                  <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
-                    <p className="text-[#191c1e] font-semibold text-[14px]">{proveedor.ubicacion}</p>
-                  </div>
-                </li>
-
-                {provDb.fecha_inicio_experiencia != null && (() => {
-                  const años = Math.floor((Date.now() - new Date(provDb.fecha_inicio_experiencia).getTime()) / (365.25 * 24 * 3600 * 1000));
-                  return (
+              {isAuthenticated ? (
+                <>
+                  <ul className="p-6 space-y-5">
                     <li className="flex items-start gap-3">
-                      <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Experiencia</p>
-                        <p className="text-[#191c1e] font-semibold text-[14px]">{años} año{años !== 1 ? 's' : ''}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
+                        <p className="text-[#191c1e] font-semibold text-[14px]">{proveedor.ubicacion}</p>
                       </div>
                     </li>
-                  );
-                })()}
 
-                <li className="flex items-start gap-3">
-                  <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo Electrónico</p>
-                    <a href={`mailto:${proveedor.contacto.email}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
-                      {proveedor.contacto.email}
+                    {provDb.fecha_inicio_experiencia != null && (() => {
+                      const años = Math.floor((Date.now() - new Date(provDb.fecha_inicio_experiencia).getTime()) / (365.25 * 24 * 3600 * 1000));
+                      return (
+                        <li className="flex items-start gap-3">
+                          <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Experiencia</p>
+                            <p className="text-[#191c1e] font-semibold text-[14px]">{años} año{años !== 1 ? 's' : ''}</p>
+                          </div>
+                        </li>
+                      );
+                    })()}
+
+                    <li className="flex items-start gap-3">
+                      <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo Electrónico</p>
+                        <a href={`mailto:${proveedor.contacto.email}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
+                          {proveedor.contacto.email}
+                        </a>
+                      </div>
+                    </li>
+
+                    {proveedor.contacto.telefono && (
+                      <li className="flex items-start gap-3">
+                        <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
+                          <a href={`tel:${proveedor.contacto.telefono.replace(/[^0-9+]/g, '')}`} className="text-[#191c1e] font-semibold text-[14px] hover:text-[#10375c] transition-colors">
+                            {proveedor.contacto.telefono}
+                          </a>
+                        </div>
+                      </li>
+                    )}
+                  </ul>
+
+                  <div className="px-6 pb-6">
+                    <a
+                      href={`mailto:${proveedor.contacto.email}`}
+                      className="flex items-center justify-center w-full bg-[#bf7035] hover:bg-[#a0622c] px-5 py-3 text-xs font-bold text-white rounded-sm transition-colors tracking-[0.15em] uppercase"
+                    >
+                      Contactar
                     </a>
                   </div>
-                </li>
-
-                {proveedor.contacto.telefono && (
-                  <li className="flex items-start gap-3">
-                    <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                </>
+              ) : (
+                <div className="p-6">
+                  <div className="flex items-start gap-3 mb-5">
+                    <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
-                      <a href={`tel:${proveedor.contacto.telefono.replace(/[^0-9+]/g, '')}`} className="text-[#191c1e] font-semibold text-[14px] hover:text-[#10375c] transition-colors">
-                        {proveedor.contacto.telefono}
-                      </a>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
+                      <p className="text-[#191c1e] font-semibold text-[14px]">{proveedor.ubicacion}</p>
                     </div>
-                  </li>
-                )}
-              </ul>
+                  </div>
 
-              <div className="px-6 pb-6">
-                <a
-                  href={`mailto:${proveedor.contacto.email}`}
-                  className="flex items-center justify-center w-full bg-[#bf7035] hover:bg-[#a0622c] px-5 py-3 text-xs font-bold text-white rounded-sm transition-colors tracking-[0.15em] uppercase"
-                >
-                  Contactar
-                </a>
-              </div>
+                  <div className="space-y-3 mb-5">
+                    {[...Array(2)].map((_, i) => (
+                      <div key={i} className="h-10 bg-slate-100 rounded blur-sm opacity-60" />
+                    ))}
+                  </div>
+
+                  <Link
+                    href={`/login?redirect=${encodeURIComponent(currentPath)}`}
+                    className="flex items-center justify-center gap-2 w-full bg-[#bf7035] hover:bg-[#a0622c] px-5 py-3 text-xs font-bold text-white rounded-sm transition-colors tracking-[0.15em] uppercase"
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    Ver datos de contacto
+                  </Link>
+                </div>
+              )}
             </div>
           </aside>
-
         </div>
       </div>
     </div>
