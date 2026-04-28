@@ -386,14 +386,16 @@ export function PreviewDirectorio() {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className="w-12 h-12 shrink-0 rounded-xl flex items-center justify-center font-black text-[16px] tracking-tight"
-                        style={{
-                          background: active.accentSoft,
-                          color: active.accent,
-                          fontFamily: "var(--font-manrope, 'Manrope', sans-serif)",
-                        }}
+                        className="w-12 h-12 shrink-0 rounded-xl flex items-center justify-center p-2"
+                        style={{ background: active.accentSoft }}
                       >
-                        {active.demo.initials}
+                        <Image
+                          src="/icono-uiab.svg"
+                          alt="Logo UIAB Conecta"
+                          width={32}
+                          height={32}
+                          className="w-full h-full object-contain"
+                        />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">

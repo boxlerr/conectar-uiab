@@ -39,21 +39,21 @@ export function SeccionBeneficios() {
             className="lg:col-span-7"
           >
             <motion.div variants={fadeUp} custom={0} className="flex items-center gap-4 mb-4">
-              <div className="relative w-8 h-8 flex-shrink-0">
+              <div className="relative w-6 h-6 flex-shrink-0">
                 <Image
                   src="/icono-uiab.svg"
-                  alt="Ícono UIAB Conecta — Unión Industrial de Almirante Brown"
+                  alt="Ícono UIAB — Unión Industrial de Almirante Brown"
                   width={32}
                   height={32}
-                  className="object-contain opacity-80"
+                  className="object-contain opacity-75"
                 />
               </div>
-              <div className="h-[1px] w-6 bg-primary-600/30" />
+              <div className="h-[1px] w-8 bg-primary-600/30" />
               <span className="text-[10px] font-bold text-primary-600 tracking-[0.25em] uppercase">
                 Membresía Corporativa
               </span>
             </motion.div>
-            
+
             <motion.h2
               variants={fadeUp}
               custom={1}
@@ -88,23 +88,21 @@ export function SeccionBeneficios() {
             </div>
             
             {/* Technical Detail Anchor */}
-            <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#f8fafc] border border-slate-200 p-4 hidden lg:flex flex-col items-center justify-between rounded-sm shadow-xl">
+            <div className="absolute -bottom-6 -right-6 w-44 bg-[#f8fafc] border border-slate-200 px-5 py-4 hidden lg:flex flex-col items-center gap-3 rounded-sm shadow-xl">
               <div className="w-full flex justify-start">
                 <div className="w-6 h-[1px] bg-primary-600/30" />
               </div>
-              
-              <div className="relative w-12 h-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-                <Image
-                  src="/icono-uiab.svg"
-                  alt="Ícono UIAB — Sector Industrial Almirante Brown"
-                  width={48}
-                  height={48}
-                  className="object-contain"
-                />
-              </div>
+
+              <Image
+                src="/logo-uiab-original.svg"
+                alt="Logo UIAB — Unión Industrial de Almirante Brown, directorio industrial y comercial de Almirante Brown"
+                width={400}
+                height={200}
+                className="w-3/4 h-auto mx-auto opacity-65 hover:opacity-100 transition-opacity duration-500"
+              />
 
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none text-center">
-                Sector <br /> Industrial
+                Sector Industrial
               </span>
             </div>
           </motion.div>

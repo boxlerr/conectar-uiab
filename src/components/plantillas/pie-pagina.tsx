@@ -51,7 +51,7 @@ export function Footer() {
           <div className="md:col-span-4 space-y-6">
             <div className="space-y-2">
               <Image
-                src="/logo-uiab-conecta.svg"
+                src="/logo-uiab-conecta-header.svg"
                 alt="UIAB Conecta"
                 width={1112}
                 height={191}

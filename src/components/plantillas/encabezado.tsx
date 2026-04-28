@@ -301,7 +301,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
               <Link href="/" className="flex items-center group" aria-label="UIAB Conecta">
                 {/* Logo completo (UIAB | Conecta) en desktop */}
                 <Image
-                  src="/logo-uiab-conecta.svg"
+                  src="/logo-uiab-conecta-header.svg"
                   alt="UIAB Conecta"
                   width={1112}
                   height={191}
