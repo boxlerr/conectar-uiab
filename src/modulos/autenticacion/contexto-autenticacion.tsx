@@ -73,24 +73,36 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
       if (data) {
         let entityId = null;
         let entidadEstado: string | null = null;
+        let logoUrl: string | null = null;
 
-        // Fetch Business Layer ID mapping
+        // Helper para resolver la URL pública del logo desde (bucket, ruta).
+        const resolverLogoUrl = (bucket?: string | null, ruta?: string | null): string | null => {
+          if (!bucket || !ruta) return null;
+          const { data: pub } = supabase.storage.from(bucket).getPublicUrl(ruta);
+          return pub?.publicUrl ?? null;
+        };
+
+        // Fetch Business Layer ID mapping + logo de la entidad
         if (data.rol_sistema === 'company') {
           const { data: memberData } = await supabase
             .from('miembros_empresa')
-            .select('empresa_id, empresas:empresa_id(estado)')
+            .select('empresa_id, empresas:empresa_id(estado, ruta_logo, bucket_logo)')
             .eq('perfil_id', userId)
             .single();
           entityId = memberData?.empresa_id;
-          entidadEstado = (memberData as any)?.empresas?.estado ?? null;
+          const ent = (memberData as any)?.empresas;
+          entidadEstado = ent?.estado ?? null;
+          logoUrl = resolverLogoUrl(ent?.bucket_logo, ent?.ruta_logo);
         } else if (data.rol_sistema === 'provider') {
           const { data: memberData } = await supabase
             .from('miembros_proveedor')
-            .select('proveedor_id, proveedores:proveedor_id(estado)')
+            .select('proveedor_id, proveedores:proveedor_id(estado, ruta_logo, bucket_logo)')
             .eq('perfil_id', userId)
             .single();
           entityId = memberData?.proveedor_id;
-          entidadEstado = (memberData as any)?.proveedores?.estado ?? null;
+          const ent = (memberData as any)?.proveedores;
+          entidadEstado = ent?.estado ?? null;
+          logoUrl = resolverLogoUrl(ent?.bucket_logo, ent?.ruta_logo);
         }
 
         // Fetch subscription estado for gating content sections
@@ -118,6 +130,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
           subscriptionEstado,
           tutorialesVistos: (data.tutoriales_vistos ?? {}) as Record<string, string | null>,
           entidadEstado,
+          logoUrl,
         };
       }
     } catch (err) {

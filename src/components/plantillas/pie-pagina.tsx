@@ -49,24 +49,17 @@ export function Footer() {
 
           {/* Brand Column */}
           <div className="md:col-span-4 space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 flex items-center justify-center">
-                <Image
-                  src="/logo-prueba.png"
-                  alt="UIAB Logo"
-                  width={44}
-                  height={44}
-                  className="object-contain filter brightness-0 invert opacity-90"
-                />
-              </div>
-              <div>
-                <span className="font-bold text-xl text-white tracking-tight">
-                  UIAB<span className="text-primary-400">Conecta</span>
-                </span>
-                <p className="text-[11px] text-slate-500 tracking-[0.08em] uppercase leading-none mt-0.5">
-                  Directorio Comercial
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Image
+                src="/logo-uiab-conecta.svg"
+                alt="UIAB Conecta"
+                width={1112}
+                height={191}
+                className="h-14 w-auto object-contain filter brightness-0 invert opacity-95"
+              />
+              <p className="text-[11px] text-slate-500 tracking-[0.08em] uppercase leading-none">
+                Directorio Comercial
+              </p>
             </div>
 
             <p className="text-[13px] text-slate-500 leading-relaxed max-w-xs">

@@ -16,6 +16,8 @@ export interface User {
   tutorialesVistos?: Record<string, string | null>;
   /** Estado de la entidad (empresa/proveedor) — 'pendiente_revision' | 'aprobada'/'aprobado' | 'rechazada'/'rechazado'. */
   entidadEstado?: string | null;
+  /** URL pública del logo/avatar de la entidad. Se muestra en el avatar del header. */
+  logoUrl?: string | null;
 }
 
 export interface Review {

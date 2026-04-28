@@ -44,6 +44,29 @@ interface TourContextValue {
   iniciarTour: (id: TourId) => Promise<void>;
   terminarTour: () => void;
   tourVisto: (id: TourId) => boolean;
+  /** True si el usuario cerró el tour a la mitad (ESC / X) y quedó pendiente. */
+  tourIncompleto: (id: TourId) => boolean;
+}
+
+const PROGRESO_KEY = "uiab.tour.progreso";
+
+function leerProgreso(): Partial<Record<TourId, number>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(PROGRESO_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function escribirProgreso(p: Partial<Record<TourId, number>>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(PROGRESO_KEY, JSON.stringify(p));
+  } catch {
+    // ignore
+  }
 }
 
 const TourContext = createContext<TourContextValue | undefined>(undefined);
@@ -90,6 +113,35 @@ export function TourProvider({ children }: TourProviderProps) {
   // una navegación). `tourActivo` no-nulo = seguimos en un tour, aunque
   // esté pausado mid-navegación.
   const [corriendo, setCorriendo] = useState(false);
+
+  // Progreso (paso donde el usuario cerró con ESC/X) por tour. Persistido en
+  // localStorage para que el botón "Tutorial" pueda titilar al volver.
+  const [progreso, setProgreso] = useState<Partial<Record<TourId, number>>>(
+    () => leerProgreso()
+  );
+
+  const guardarProgreso = useCallback((id: TourId, idx: number) => {
+    setProgreso((prev) => {
+      const next = { ...prev, [id]: idx };
+      escribirProgreso(next);
+      return next;
+    });
+  }, []);
+
+  const limpiarProgreso = useCallback((id: TourId) => {
+    setProgreso((prev) => {
+      if (prev[id] === undefined) return prev;
+      const next = { ...prev };
+      delete next[id];
+      escribirProgreso(next);
+      return next;
+    });
+  }, []);
+
+  const tourIncompleto = useCallback(
+    (id: TourId) => progreso[id] !== undefined,
+    [progreso]
+  );
 
   const [vistosLocal, setVistosLocal] = useState<Record<string, string | null>>(
     () => currentUser?.tutorialesVistos ?? {}
@@ -175,13 +227,23 @@ export function TourProvider({ children }: TourProviderProps) {
         const res = await resetearTour(id);
         if (res.ok) setVistosLocal(res.tutorialesVistos);
       }
-      setTourActivo(id);
-      setStepIndex(0);
-
-      // Si el primer paso vive en otra ruta, navegamos primero.
+      // Si el usuario había cerrado el tour a la mitad, reanudamos desde
+      // ese paso. Si no, arrancamos de cero.
       const pasosNuevos = CATALOGO_PASOS[id];
+      const guardado = progreso[id];
+      const inicio =
+        typeof guardado === "number" &&
+        guardado >= 0 &&
+        guardado < pasosNuevos.length
+          ? guardado
+          : 0;
+
+      setTourActivo(id);
+      setStepIndex(inicio);
+
+      // Si el paso (inicial o reanudado) vive en otra ruta, navegamos primero.
       const rutaInicial = resolverRuta(
-        (pasosNuevos[0]?.data as PasoData | undefined)?.ruta
+        (pasosNuevos[inicio]?.data as PasoData | undefined)?.ruta
       );
       if (rutaInicial && rutaInicial !== pathname) {
         setCorriendo(false);
@@ -190,7 +252,7 @@ export function TourProvider({ children }: TourProviderProps) {
         setCorriendo(true);
       }
     },
-    [vistosLocal, pathname, router, resolverRuta]
+    [vistosLocal, pathname, router, resolverRuta, progreso]
   );
 
   const terminarTour = useCallback(() => {
@@ -213,6 +275,22 @@ export function TourProvider({ children }: TourProviderProps) {
     async (data: EventData, _controls: Controls) => {
       const { status, type, action, index } = data;
 
+      // ── Cierre con ESC / botón X ───────────────────────────────────
+      // Joyride dispara action="close" (dismissKeyAction y closeButtonAction
+      // están en 'close' por default). Lo tratamos como pausa: guardamos
+      // el paso actual para que el botón "Tutorial" titile y al reabrirlo
+      // retomemos desde ahí. NO marcamos el tour como visto.
+      if (action === "close") {
+        const idActual = tourActivo;
+        setCorriendo(false);
+        if (idActual) guardarProgreso(idActual, index);
+        setTimeout(() => {
+          setTourActivo(null);
+          setStepIndex(0);
+        }, 120);
+        return;
+      }
+
       // ── Fin del tour ────────────────────────────────────────────────
       const terminado = status === STATUS_FINISHED || status === STATUS_SKIPPED;
       if (terminado || type === "tour:end") {
@@ -222,6 +300,7 @@ export function TourProvider({ children }: TourProviderProps) {
         // en el mismo tick, el overlay gris queda congelado.
         setCorriendo(false);
         if (idActual) {
+          limpiarProgreso(idActual);
           const res = await marcarTourVisto(idActual);
           if (res.ok) setVistosLocal(res.tutorialesVistos);
         }
@@ -246,6 +325,7 @@ export function TourProvider({ children }: TourProviderProps) {
             const idActual = tourActivo;
             setCorriendo(false);
             if (idActual) {
+              limpiarProgreso(idActual);
               const res = await marcarTourVisto(idActual);
               if (res.ok) setVistosLocal(res.tutorialesVistos);
             }
@@ -282,7 +362,7 @@ export function TourProvider({ children }: TourProviderProps) {
         }
       }
     },
-    [tourActivo, pasos, pathname, router, resolverRuta]
+    [tourActivo, pasos, pathname, router, resolverRuta, guardarProgreso, limpiarProgreso]
   );
 
   // ── Resume post-navegación ─────────────────────────────────────────
@@ -322,8 +402,8 @@ export function TourProvider({ children }: TourProviderProps) {
   }, [pathname, currentUser, tourActivo, tourVisto]);
 
   const valor = useMemo<TourContextValue>(
-    () => ({ tourActivo, iniciarTour, terminarTour, tourVisto }),
-    [tourActivo, iniciarTour, terminarTour, tourVisto]
+    () => ({ tourActivo, iniciarTour, terminarTour, tourVisto, tourIncompleto }),
+    [tourActivo, iniciarTour, terminarTour, tourVisto, tourIncompleto]
   );
 
   // ── Pasos vacíos para cuando no hay tour activo ───────────────────

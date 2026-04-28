@@ -250,6 +250,43 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
       </div>
 
       {/* ═══════════════════════════════════════════
+          SECTION 1.5: BRAND BAND — Logo institucional minimalista
+          Continúa el fondo oscuro del hero. Logo centrado + tagline corto.
+          SEO: <h2> con keywords + alt rico + alrededor texto indexable.
+      ═══════════════════════════════════════════ */}
+      <section
+        aria-labelledby="brand-band-heading"
+        className="relative bg-white pt-3 pb-10"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] as const }}
+          className="max-w-3xl mx-auto px-6"
+        >
+          <div className="bg-white rounded-2xl shadow-[0_8px_40px_-8px_rgba(0,0,0,0.18)] border border-slate-200 px-12 py-12 flex flex-col items-center text-center">
+            <Image
+              src="/logo-uiab-conecta-completo.svg"
+              alt="Logo UIAB Conecta — Plataforma de vinculación comercial B2B de la Unión Industrial de Almirante Brown"
+              width={1612}
+              height={279}
+              className="w-full max-w-2xl h-auto mx-auto"
+              priority
+            />
+            <h2
+              id="brand-band-heading"
+              className="mt-6 text-sm lg:text-base font-medium text-slate-500 tracking-wide"
+              style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+            >
+              La red privada B2B con aval institucional de la{" "}
+              <span className="text-slate-800 font-semibold">Unión Industrial de Almirante Brown</span>.
+            </h2>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
           SECTION 2: COMO FUNCIONA (VISUAL SPLIT)
       ═══════════════════════════════════════════ */}
       <section className="bg-white py-24 relative">

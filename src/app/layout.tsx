@@ -65,23 +65,34 @@ async function getServerUser(): Promise<User | null> {
 
     let entityId: string | null = null;
     let entidadEstado: string | null = null;
+    let logoUrl: string | null = null;
+
+    const resolverLogoUrl = (bucket?: string | null, ruta?: string | null): string | null => {
+      if (!bucket || !ruta) return null;
+      const { data: pub } = supabase.storage.from(bucket).getPublicUrl(ruta);
+      return pub?.publicUrl ?? null;
+    };
 
     if (profile.rol_sistema === 'company') {
       const { data: memberData } = await supabase
         .from('miembros_empresa')
-        .select('empresa_id, empresas:empresa_id(estado)')
+        .select('empresa_id, empresas:empresa_id(estado, ruta_logo, bucket_logo)')
         .eq('perfil_id', user.id)
         .single();
       entityId = memberData?.empresa_id ?? null;
-      entidadEstado = (memberData as any)?.empresas?.estado ?? null;
+      const ent = (memberData as any)?.empresas;
+      entidadEstado = ent?.estado ?? null;
+      logoUrl = resolverLogoUrl(ent?.bucket_logo, ent?.ruta_logo);
     } else if (profile.rol_sistema === 'provider') {
       const { data: memberData } = await supabase
         .from('miembros_proveedor')
-        .select('proveedor_id, proveedores:proveedor_id(estado)')
+        .select('proveedor_id, proveedores:proveedor_id(estado, ruta_logo, bucket_logo)')
         .eq('perfil_id', user.id)
         .single();
       entityId = memberData?.proveedor_id ?? null;
-      entidadEstado = (memberData as any)?.proveedores?.estado ?? null;
+      const ent = (memberData as any)?.proveedores;
+      entidadEstado = ent?.estado ?? null;
+      logoUrl = resolverLogoUrl(ent?.bucket_logo, ent?.ruta_logo);
     }
 
     let subscriptionEstado: string | null = null;
@@ -107,6 +118,7 @@ async function getServerUser(): Promise<User | null> {
       subscriptionEstado,
       tutorialesVistos: ((profile as any).tutoriales_vistos ?? {}) as Record<string, string | null>,
       entidadEstado,
+      logoUrl,
     };
   } catch {
     return null;

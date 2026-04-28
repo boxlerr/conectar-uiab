@@ -258,12 +258,12 @@ export default function Home() {
                 >
                   <div className="flex items-center gap-4">
                     <div className="relative w-11 h-11 flex items-center justify-center bg-white/10 rounded-sm p-1.5">
-                       <Image 
-                         src="/logo-prueba.png" 
-                         alt="UIAB Logo" 
-                         width={44} 
-                         height={44}
-                         className="object-contain brightness-110 contrast-125"
+                       <Image
+                         src="/icono-uiab.svg"
+                         alt="UIAB Conecta"
+                         width={1536}
+                         height={1536}
+                         className="object-contain"
                        />
                     </div>
                     <div>

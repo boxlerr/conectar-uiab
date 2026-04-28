@@ -47,9 +47,17 @@ function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType,
         className="flex items-center gap-2 bg-white/50 backdrop-blur-sm border border-slate-200/50 pl-2 pr-3 py-1.5 rounded-full shadow-sm hover:shadow-md hover:bg-white transition-all group"
       >
         <div className="relative">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-100 to-indigo-100 flex items-center justify-center text-primary-700 font-bold shadow-inner uppercase">
-            {currentUser.name.charAt(0)}
-          </div>
+          {currentUser.logoUrl ? (
+            <img
+              src={currentUser.logoUrl}
+              alt={currentUser.name}
+              className="w-8 h-8 rounded-full object-cover bg-white border border-slate-200 shadow-inner"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-100 to-indigo-100 flex items-center justify-center text-primary-700 font-bold shadow-inner uppercase">
+              {currentUser.name.charAt(0)}
+            </div>
+          )}
           <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></div>
         </div>
         <span className="text-sm font-semibold text-slate-800 max-w-[120px] truncate">
@@ -283,28 +291,32 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
         )}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 sm:h-20 items-center justify-between">
+          <div className="flex h-20 lg:h-24 items-center justify-between">
             {/* Logo */}
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               className="flex-shrink-0 flex items-center gap-2.5"
             >
-              <Link href="/" className="flex items-center gap-2.5 group">
-                <div className="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                  <Image 
-                    src="/logo-prueba.png" 
-                    alt="UIAB Logo" 
-                    width={44} 
-                    height={44}
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-                <div className="font-bold text-xl sm:text-2xl text-slate-900 tracking-tight hidden sm:flex items-center gap-1">
-                  UIAB
-                  <span className="text-primary-600">Conecta</span>
-                </div>
+              <Link href="/" className="flex items-center group" aria-label="UIAB Conecta">
+                {/* Logo completo (UIAB | Conecta) en desktop */}
+                <Image
+                  src="/logo-uiab-conecta.svg"
+                  alt="UIAB Conecta"
+                  width={1112}
+                  height={191}
+                  className="hidden sm:block h-12 lg:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                  priority
+                />
+                {/* Solo isotipo en mobile */}
+                <Image
+                  src="/icono-uiab.svg"
+                  alt="UIAB Conecta"
+                  width={1536}
+                  height={1536}
+                  className="sm:hidden h-14 w-14 object-contain transition-transform duration-300 group-hover:scale-105"
+                  priority
+                />
               </Link>
             </motion.div>
 
@@ -563,9 +575,17 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                   {currentUser ? (
                     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary-100 to-indigo-100 flex items-center justify-center text-primary-700 font-bold shadow-inner text-lg uppercase">
-                          {currentUser.name.charAt(0)}
-                        </div>
+                        {currentUser.logoUrl ? (
+                          <img
+                            src={currentUser.logoUrl}
+                            alt={currentUser.name}
+                            className="w-12 h-12 rounded-full object-cover bg-white border border-slate-200 shadow-inner"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary-100 to-indigo-100 flex items-center justify-center text-primary-700 font-bold shadow-inner text-lg uppercase">
+                            {currentUser.name.charAt(0)}
+                          </div>
+                        )}
                         <div>
                           <p className="font-bold text-slate-900">{currentUser.name}</p>
                           <p className="text-xs font-medium text-slate-500 capitalize">{currentUser.role}</p>
