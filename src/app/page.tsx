@@ -327,13 +327,19 @@ export default function Home() {
           >
             {/* Left — Connection illustration */}
             <motion.div variants={fadeUp} custom={0} className="hidden lg:flex justify-center">
-              <Image
-                src="/landing/hero-connection.png"
-                alt="Esquema de conexión B2B: empresa de Almirante Brown conectada con particulares verificados a través de UIAB Conecta"
-                width={500}
-                height={380}
-                className="w-full max-w-md h-auto drop-shadow-lg"
-              />
+              <div className="relative w-full max-w-xl">
+                <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-[0_32px_80px_-20px_rgba(0,33,63,0.35),0_8px_24px_-8px_rgba(0,33,63,0.15)] ring-1 ring-white/60">
+                  <Image
+                    src="/landing/uiab-conecta-red-industrial.png"
+                    alt="Red industrial B2B de UIAB Conecta — empresas y proveedores conectados en Almirante Brown"
+                    width={700}
+                    height={530}
+                    className="w-full h-auto block"
+                  />
+                </div>
+                {/* reflection glow */}
+                <div className="absolute -bottom-6 left-8 right-8 h-10 bg-[#00213f]/15 blur-2xl rounded-full" />
+              </div>
             </motion.div>
 
             {/* Right — Steps */}
