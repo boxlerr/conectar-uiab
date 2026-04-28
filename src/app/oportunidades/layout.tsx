@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://uiabconecta.com";
-const LOGO_URL = `${SITE_URL}/logo-uiab-conecta-completo.svg`;
+const LOGO_URL = `${SITE_URL}/logo-uiab-conecta-header.svg`;
 
 export const metadata: Metadata = {
   title: "Oportunidades UIAB Conecta | Licitaciones B2B en Almirante Brown",

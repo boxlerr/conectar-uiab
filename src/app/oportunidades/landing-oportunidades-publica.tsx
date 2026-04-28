@@ -267,7 +267,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
         >
           <div className="bg-white rounded-2xl shadow-[0_8px_40px_-8px_rgba(0,0,0,0.18)] border border-slate-200 px-12 py-12 flex flex-col items-center text-center">
             <Image
-              src="/logo-uiab-conecta-completo.svg"
+              src="/logo-uiab-conecta-header.svg"
               alt="Logo UIAB Conecta — Plataforma de vinculación comercial B2B de la Unión Industrial de Almirante Brown"
               width={1612}
               height={279}
