@@ -168,7 +168,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                   <div className="relative z-10 w-full h-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50">
                      <Image
                        src="/landing/platform-preview.png"
-                       alt="Dashboard de Oportunidades Comerciales"
+                       alt="Dashboard de licitaciones y oportunidades comerciales B2B en Almirante Brown — UIAB Conecta"
                        fill
                        className="object-cover"
                        priority
@@ -303,7 +303,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                 <div className="relative aspect-square sm:aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl bg-slate-100">
                   <Image 
                     src="/landing/b2b-trust-partnership.png" 
-                    alt="Trabajo en conjunto y acuerdos industriales" 
+                    alt="Empresas de Almirante Brown cerrando acuerdos B2B verificados por UIAB Conecta" 
                     fill 
                     className="object-cover" 
                   />

@@ -40,11 +40,11 @@ export function SeccionBeneficios() {
           >
             <motion.div variants={fadeUp} custom={0} className="flex items-center gap-4 mb-4">
               <div className="relative w-8 h-8 flex-shrink-0">
-                <Image 
-                  src="/logo-prueba.png" 
-                  alt="UIAB" 
-                  width={32} 
-                  height={32} 
+                <Image
+                  src="/icono-uiab.svg"
+                  alt="Ícono UIAB Conecta — Unión Industrial de Almirante Brown"
+                  width={32}
+                  height={32}
                   className="object-contain opacity-80"
                 />
               </div>
@@ -80,7 +80,7 @@ export function SeccionBeneficios() {
             <div className="relative aspect-[4/3] rounded-sm overflow-hidden shadow-2xl shadow-primary-900/10 border border-slate-200/50">
               <Image
                 src="/industrial-b2b-header.png"
-                alt="Industrial Infrastructure"
+                alt="Planta industrial en Almirante Brown — Directorio de empresas y proveedores B2B UIAB Conecta"
                 fill
                 className="object-cover transition-transform duration-700 hover:scale-105"
               />
@@ -94,11 +94,11 @@ export function SeccionBeneficios() {
               </div>
               
               <div className="relative w-12 h-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-                <Image 
-                  src="/logo-prueba.png" 
-                  alt="UIAB" 
-                  width={48} 
-                  height={48} 
+                <Image
+                  src="/icono-uiab.svg"
+                  alt="Ícono UIAB — Sector Industrial Almirante Brown"
+                  width={48}
+                  height={48}
                   className="object-contain"
                 />
               </div>

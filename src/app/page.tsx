@@ -203,7 +203,7 @@ export default function Home() {
                 <div className="relative z-10 w-full aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
                   <Image
                     src="/landing/hero-industrial.png"
-                    alt="Ecosistema Industrial Conectado"
+                    alt="Ecosistema industrial conectado — Directorio B2B UIAB Conecta, empresas y proveedores de Almirante Brown"
                     fill
                     className="object-cover"
                     priority
@@ -260,7 +260,7 @@ export default function Home() {
                     <div className="relative w-11 h-11 flex items-center justify-center bg-white/10 rounded-sm p-1.5">
                        <Image
                          src="/icono-uiab.svg"
-                         alt="UIAB Conecta"
+                         alt="Logo UIAB Conecta — Aval institucional Unión Industrial de Almirante Brown"
                          width={1536}
                          height={1536}
                          className="object-contain"
@@ -329,7 +329,7 @@ export default function Home() {
             <motion.div variants={fadeUp} custom={0} className="hidden lg:flex justify-center">
               <Image
                 src="/landing/hero-connection.png"
-                alt="Ecosistema: Empresa → UIAB → Particular"
+                alt="Esquema de conexión B2B: empresa de Almirante Brown conectada con particulares verificados a través de UIAB Conecta"
                 width={500}
                 height={380}
                 className="w-full max-w-md h-auto drop-shadow-lg"
