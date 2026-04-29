@@ -14,10 +14,9 @@ import { PublicEmpresasLanding } from "@/components/ui/directorio/landing-empres
 import { PublicProveedoresParticularesLanding } from "@/components/ui/directorio/landing-proveedores-particulares-publica";
 import { AccesoRequerido } from "@/components/ui/acceso-requerido";
 import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
-import { Building2, LayoutGrid, List, CheckCircle2, LockOpen, User } from "lucide-react";
+import { Building2, LayoutGrid, List, User } from "lucide-react";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import { createClient, resetClient } from "@/lib/supabase/cliente";
 
 import { crearSlug } from "@/lib/utilidades";
@@ -63,10 +62,6 @@ export default function EmpresasPage() {
   // Tabs solo aplican cuando la vista mezcla socios + particulares
   const mezclaParticulares = categoriaSocio === 'proveedores_servicios_productos';
   const [activeTab, setActiveTab] = useState<'socios' | 'particulares'>('socios');
-
-  const { scrollY } = useScroll();
-  const headerY = useTransform(scrollY, [0, 600], ["0%", "50%"]);
-  const headerOpacity = useTransform(scrollY, [0, 400], [1, 0]);
 
   // Helper: ejecuta la query principal con 1 retry automático. Supabase a
   // veces tiene cold-start lento (>10s) en la primera query del Turbopack dev
@@ -313,117 +308,58 @@ export default function EmpresasPage() {
   return (
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-20">
       
-      {/* ─── Premium Parallax Header ─── */}
-      <div data-tour="directorio-hero" className="relative h-[48vh] min-h-[460px] flex items-center justify-center overflow-hidden -mt-24 pt-44 pb-24 mb-16">
-        <motion.div style={{ y: headerY, opacity: headerOpacity }} className="absolute inset-0 z-0">
-          <Image
-            src="/landing/hero-industrial.png"
-            alt="Polo Industrial"
-            fill
-            className="object-cover object-center"
-            priority
-          />
-          <div className={`absolute inset-0 bg-gradient-to-t ${metaSocio?.heroGradient ?? "from-[#00182e] via-[#00213f]/80 to-[#10375c]/60"} mix-blend-multiply`} />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent opacity-90" />
-        </motion.div>
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-16">
 
-        <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pb-12 mt-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-3xl"
-          >
-            <div className={`inline-flex items-center gap-2 backdrop-blur-md rounded border px-3 py-1.5 mb-6 shadow-xl ${metaSocio?.accentBadge ?? "bg-white/10 border-white/20 text-white"}`}>
-              <LockOpen className="w-4 h-4" />
-              <span className="text-xs font-bold tracking-widest uppercase">
-                {metaSocio?.eyebrow ?? "Acceso B2B Premium"}
-              </span>
-            </div>
+        {/* ─── Hero estilo "Directorio activo" ─── */}
+        {(() => {
+          const accent = categoriaSocio === 'instituciones_bancarias'
+            ? { bar: 'bg-emerald-600', eyebrow: 'text-emerald-700', title: 'text-emerald-700' }
+            : categoriaSocio === 'instituciones_educativas'
+              ? { bar: 'bg-violet-600', eyebrow: 'text-violet-700', title: 'text-violet-700' }
+              : { bar: 'bg-blue-600', eyebrow: 'text-blue-700', title: 'text-blue-700' };
 
-            <h1 className="font-manrope text-4xl sm:text-5xl md:text-[3.5rem] font-black text-white leading-[1.05] tracking-tight mb-5 drop-shadow-xl">
-              {metaSocio ? (
-                <>
-                  <span className="block text-white/90 text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2">
-                    Socios UIAB
+          const tituloPrincipal = categoriaSocio === 'proveedores_servicios_productos'
+            ? 'Empresas y proveedores'
+            : metaSocio?.nombreCorto ?? 'Empresas y proveedores';
+          const tituloAccent = !metaSocio
+            ? 'del polo industrial.'
+            : categoriaSocio === 'proveedores_servicios_productos'
+              ? 'aliados a la UIAB.'
+              : 'aliadas a la UIAB.';
+
+          const conteoTexto = cargandoDatos
+            ? 'Cargando expedientes del directorio…'
+            : mezclaParticulares
+              ? `${countSocios} empresas socias · ${countParticulares} proveedores de servicios verificados.`
+              : `${empresas.length} ${metaSocio?.sustantivoPlural ?? 'empresas'} verificadas · ficha completa visible como socio UIAB.`;
+
+          return (
+            <motion.div
+              data-tour="directorio-hero"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] as const }}
+              className="mb-14 flex flex-col md:flex-row md:items-end md:justify-between gap-6"
+            >
+              <div className="max-w-2xl">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className={`w-10 h-[2px] ${accent.bar}`} />
+                  <span className={`text-[11px] font-black tracking-[0.3em] uppercase ${accent.eyebrow}`}>
+                    Directorio activo
                   </span>
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/70">
-                    {metaSocio.nombre}
-                  </span>
-                </>
-              ) : (
-                <>
-                  Ecosistema Industrial <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">
-                    Verificado UIAB
-                  </span>
-                </>
-              )}
-            </h1>
-
-            <p className="text-white/75 text-base md:text-lg font-medium max-w-2xl leading-relaxed">
-              {metaSocio
-                ? metaSocio.descripcion
-                : "Explora el directorio completo. Como usuario validado, tenes acceso a los datos de contacto y expedientes técnicos de toda la red."}
-            </p>
-
-            {mezclaParticulares && (
-              <div className="mt-5 flex flex-wrap gap-3">
-                <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded px-3 py-1.5 text-sm font-semibold text-white">
-                  <Building2 className="w-4 h-4 text-blue-300" />
-                  Empresas socias UIAB con oferta B2B
-                </span>
-                <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded px-3 py-1.5 text-sm font-semibold text-white">
-                  <User className="w-4 h-4 text-amber-300" />
-                  Proveedores de servicios: ingenieros, contadores, técnicos y más
-                </span>
+                </div>
+                <h1 className="font-manrope text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.05]">
+                  {tituloPrincipal}
+                  <span className={`block ${accent.title}`}>{tituloAccent}</span>
+                </h1>
               </div>
-            )}
-          </motion.div>
-        </div>
-      </div>
 
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-        
-        {/* User Dashboard Value Bar */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          data-tour="directorio-stats"
-          className="bg-white rounded-2xl p-6 shadow-xl shadow-primary/5 border border-slate-200/60 mb-12 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden -mt-24 z-20"
-        >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3" />
-          
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100 shadow-inner">
-               <Building2 className="w-7 h-7" />
-            </div>
-            <div>
-              <h2 className="font-manrope text-xl font-bold text-slate-800">
-                {metaSocio ? `Socios UIAB · ${metaSocio.nombreCorto}` : "Directorio Activo"}
-              </h2>
-              <p className="text-sm font-medium text-slate-500">
-                {cargandoDatos
-                  ? "Cargando..."
-                  : mezclaParticulares
-                    ? `${countSocios} empresas socias · ${countParticulares} proveedores de servicios`
-                    : `Conectando ${empresas.length} ${metaSocio?.sustantivoPlural ?? "empresas"} en la zona`}
+              <p data-tour="directorio-stats" className="text-slate-500 text-sm font-medium md:max-w-xs md:text-right">
+                {conteoTexto}
               </p>
-            </div>
-          </div>
-
-          <div className="flex gap-6 relative z-10 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-               <span className="text-sm font-bold text-slate-700 whitespace-nowrap">Contactos directos</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-               <span className="text-sm font-bold text-slate-700 whitespace-nowrap">Filtros técnicos</span>
-            </div>
-          </div>
-        </motion.div>
+            </motion.div>
+          );
+        })()}
 
         {/* ─── Tabs (cuando la vista mezcla socios + particulares) ─── */}
         {mezclaParticulares && (
