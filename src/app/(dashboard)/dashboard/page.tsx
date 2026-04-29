@@ -358,7 +358,7 @@ export default async function DashboardPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 mb-2.5">
                     <span className="bg-white/10 text-white/70 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-white/10">
-                      {isCompany ? 'Empresa' : isProvider ? 'Particular' : isAdmin ? 'Admin' : 'Invitado'}
+                      {isCompany ? 'Empresa' : isProvider ? 'Proveedor de servicios' : isAdmin ? 'Admin' : 'Invitado'}
                     </span>
                     {(entityData?.estado === 'aprobada' || entityData?.estado === 'aprobado') && (
                       <span className="flex items-center gap-1.5 bg-emerald-400/15 border border-emerald-400/25 text-emerald-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">

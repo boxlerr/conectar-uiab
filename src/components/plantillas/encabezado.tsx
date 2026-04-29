@@ -80,7 +80,7 @@ function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType,
                <p className="text-sm font-bold text-slate-900 truncate">{currentUser.name}</p>
                <p className="text-xs text-slate-500 capitalize flex items-center gap-1 mt-0.5">
                  <Sparkles className="w-3 h-3 text-emerald-500" />
-                 {currentUser.role === 'company' ? 'Empresa' : currentUser.role === 'provider' ? 'Particular' : 'Admin'}
+                 {currentUser.role === 'company' ? 'Empresa' : currentUser.role === 'provider' ? 'Proveedor de servicios' : 'Admin'}
                </p>
             </div>
             
