@@ -34,7 +34,7 @@ export default function ProvidersDirectory() {
                 Servicios Profesionales
               </Badge>
               <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight text-white">
-                Particulares
+                Proveedores de servicios
               </h1>
               <p className="text-lg text-emerald-100/90 font-medium leading-relaxed">
                 Encuentra técnicos matriculados, especialistas en mantenimiento e instaladores de confianza para las necesidades de tu industria.
@@ -72,7 +72,7 @@ export default function ProvidersDirectory() {
         {/* Results Info */}
         <div className="mb-8 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-slate-800">
-            {filteredProviders.length} particulares verificados
+            {filteredProviders.length} proveedores de servicios verificados
           </h2>
         </div>
 

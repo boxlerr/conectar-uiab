@@ -54,12 +54,12 @@ export function PreviewDirectorio() {
   const branches: BranchTheme[] = [
     {
       id: "empresas",
-      title: "Empresas y particulares",
+      title: "Empresas y proveedores de servicios",
       short: "Empresas",
       tagline: "Industria, servicios y profesionales del partido",
       icon: Package,
       href: "/empresas?categoria=proveedores",
-      ctaLabel: "Explorar empresas y particulares",
+      ctaLabel: "Explorar empresas y proveedores de servicios",
       accent: "#10375c",
       accentSoft: "rgba(16,55,92,0.06)",
       accentInk: "#00213f",

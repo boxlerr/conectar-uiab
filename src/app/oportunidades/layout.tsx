@@ -7,7 +7,7 @@ const LOGO_URL = `${SITE_URL}/logo-uiab-conecta-header.svg`;
 export const metadata: Metadata = {
   title: "Oportunidades UIAB Conecta | Licitaciones B2B en Almirante Brown",
   description:
-    "Plataforma B2B de la Unión Industrial de Almirante Brown. Licitaciones verificadas, conexión directa entre empresas y particulares de la región, sin comisiones.",
+    "Plataforma B2B de la Unión Industrial de Almirante Brown. Licitaciones verificadas, conexión directa entre empresas y proveedores de servicios de la región, sin comisiones.",
   keywords: [
     "UIAB Conecta",
     "Unión Industrial Almirante Brown",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     "directorio industrial",
     "Almirante Brown",
     "empresas Almirante Brown",
-    "particulares industriales",
+    "proveedores de servicios industriales",
   ],
   alternates: {
     canonical: `${SITE_URL}/oportunidades`,

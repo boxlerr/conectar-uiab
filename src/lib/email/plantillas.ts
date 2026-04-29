@@ -289,7 +289,7 @@ export function plantillaAprobacion(d: DatosAprobacion): {
 
     <p style="margin: 0 0 8px 0; font-weight: 700; color: ${BRAND.onSurface};">Lo que vas a encontrar al ingresar</p>
     <ul style="margin: 0 0 16px 0; padding-left: 20px; color: ${BRAND.onSurface};">
-      <li style="margin-bottom: 6px;"><strong>Directorio industrial</strong> con empresas, particulares y proveedores verificados.</li>
+      <li style="margin-bottom: 6px;"><strong>Directorio industrial</strong> con empresas y proveedores de servicios verificados.</li>
       <li style="margin-bottom: 6px;"><strong>Oportunidades comerciales</strong> publicadas por la red para ofertar o captar servicios.</li>
       <li style="margin-bottom: 6px;"><strong>Perfil institucional</strong> para mostrar tu actividad, rubros y datos de contacto.</li>
       <li style="margin-bottom: 6px;"><strong>Capacitaciones y eventos</strong> organizados por la UIAB y sus socios.</li>

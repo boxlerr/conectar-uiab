@@ -89,7 +89,7 @@ const valueProps = [
   {
     icon: Handshake,
     title: "Conexiones B2B Directas",
-    description: "Sin intermediarios. Conecte directamente con compradores, particulares y clientes verificados. Cada contacto es real y relevante para su sector y localidad.",
+    description: "Sin intermediarios. Conecte directamente con compradores, proveedores de servicios y clientes verificados. Cada contacto es real y relevante para su sector y localidad.",
   },
   {
     icon: BarChart3,
@@ -116,7 +116,7 @@ const journey = [
   {
     step: "03",
     title: "Conexión con la Red",
-    description: "Comience a recibir oportunidades, conecte con otras empresas y particulares. Acceda al ecosistema completo de herramientas B2B.",
+    description: "Comience a recibir oportunidades, conecte con otras empresas y proveedores de servicios. Acceda al ecosistema completo de herramientas B2B.",
     icon: Users,
     detail: "Red activa • +60 empresas",
   },
@@ -227,7 +227,7 @@ export function PublicEmpresasLanding() {
           >
             {[
               { val: "+60", label: "Empresas Registradas" },
-              { val: "50+", label: "Particulares Activos" },
+              { val: "50+", label: "Proveedores Activos" },
               { val: "26", label: "Sectores Comerciales" },
               { val: "+600", label: "Conexiones B2B" },
             ].map((s, i) => (
@@ -678,7 +678,7 @@ export function PublicEmpresasLanding() {
                 </div>
                 <h3 className="text-2xl lg:text-3xl font-bold mb-4" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Directorio Industrial Completo</h3>
                 <p className="text-primary-100/70 text-base lg:text-lg leading-relaxed max-w-xl mb-10">
-                  Acceso a la base de datos de +60 empresas e industrias verificadas del partido. Busque particulares por sector o servicio y contacte de forma directa.
+                  Acceso a la base de datos de +60 empresas e industrias verificadas del partido. Busque proveedores de servicios por sector o servicio y contacte de forma directa.
                 </p>
                 <div className="flex flex-wrap gap-2 mt-auto">
                   {["Base de Datos +60", "Filtros Técnicos", "Contacto Sin Intermediarios"].map((tag) => (

@@ -81,7 +81,7 @@ export function PanelOportunidades({ oportunidades }: { oportunidades: Oportunid
           <Briefcase className="w-8 h-8 text-violet-600" />
           Gestión de Oportunidades
         </h1>
-        <p className="text-slate-500 mt-1">Administrá las oportunidades publicadas por empresas y particulares.</p>
+        <p className="text-slate-500 mt-1">Administrá las oportunidades publicadas por empresas y proveedores de servicios.</p>
       </div>
 
       <Card className="p-4 flex flex-col sm:flex-row gap-3 items-center shadow-sm border-slate-100">

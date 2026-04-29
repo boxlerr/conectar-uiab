@@ -61,13 +61,13 @@ export function DirectoryShowcase() {
                   <Zap className="w-8 h-8 text-accent-600 group-hover:text-white transition-colors duration-500" />
                 </div>
                 <div>
-                  <h2 className="font-poppins text-3xl font-bold text-slate-900 group-hover:text-accent-700 transition-colors">Particulares</h2>
+                  <h2 className="font-poppins text-3xl font-bold text-slate-900 group-hover:text-accent-700 transition-colors">Proveedores de servicios</h2>
                   <span className="text-sm font-medium text-slate-500">Red de Servicios</span>
                 </div>
               </div>
 
               <p className="text-slate-600 mb-10 text-lg leading-relaxed relative z-10 flex-grow">
-                Acceda instantáneamente a particulares de servicios B2B auditados que garantizan la continuidad de su línea de producción.
+                Acceda instantáneamente a proveedores de servicios B2B auditados que garantizan la continuidad de su línea de producción.
               </p>
               
               <div className="inline-flex items-center justify-between w-full text-accent-600 font-semibold relative z-10 bg-white px-6 py-4 rounded-xl border border-slate-100 group-hover:border-accent-200 shadow-sm transition-colors">
@@ -113,7 +113,7 @@ export function DirectoryShowcase() {
         isOpen={activeModal === "proveedores"}
         onClose={() => setActiveModal(null)}
         title="Categorías de Servicio"
-        description="Encuentre el servicio exacto que su industria necesita seleccionando una de nuestras categorías de particulares auditados."
+        description="Encuentre el servicio exacto que su industria necesita seleccionando una de nuestras categorías de proveedores de servicios auditados."
         icon={<Zap className="w-8 h-8 text-accent-600" />}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
@@ -131,7 +131,7 @@ export function DirectoryShowcase() {
         </div>
         <div className="text-center pt-4 border-t border-slate-100">
           <Link href="/empresas?categoria=proveedores" onClick={() => setActiveModal(null)} className="inline-flex items-center justify-center bg-accent-500 hover:bg-accent-600 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-accent-500/20 w-full sm:w-auto">
-            Explorar todos los particulares
+            Explorar todos los proveedores de servicios
             <ArrowRight className="w-5 h-5 ml-2" />
           </Link>
         </div>

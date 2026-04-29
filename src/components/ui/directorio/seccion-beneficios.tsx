@@ -125,7 +125,7 @@ export function SeccionBeneficios() {
               </div>
               <h3 className="text-2xl lg:text-3xl font-bold mb-4" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Directorio Industrial Completo</h3>
               <p className="text-primary-100/70 text-base lg:text-lg leading-relaxed max-w-xl mb-10">
-                Acceso a la base de datos de +60 empresas e industrias verificadas del partido. Busque particulares por sector o servicio y contacte de forma directa.
+                Acceso a la base de datos de +60 empresas e industrias verificadas del partido. Busque proveedores de servicios por sector o servicio y contacte de forma directa.
               </p>
               <div className="flex flex-wrap gap-2 mt-auto">
                 {["Base de Datos +60", "Filtros Técnicos", "Contacto Sin Intermediarios"].map((tag) => (

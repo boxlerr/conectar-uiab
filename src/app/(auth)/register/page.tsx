@@ -382,7 +382,7 @@ function RegisterContent() {
       ]
     }
     return [
-      { icon: Megaphone, label: "Visibilidad en la Red", desc: "Aparecé en el directorio oficial de particulares." },
+      { icon: Megaphone, label: "Visibilidad en la Red", desc: "Aparecé en el directorio oficial de proveedores de servicios." },
       { icon: Target, label: "Oportunidades Comerciales", desc: "Ofrecé tus productos y servicios a los socios." },
       { icon: Award, label: "Contacto con Empresas", desc: "Accedé a industrias, comercios y potenciales clientes." }
     ]
@@ -1022,7 +1022,7 @@ function RegisterContent() {
                               <p className="text-slate-500 font-inter text-xs">
                                 {esEmpresa
                                   ? `Calculada según empleados declarados (${rangoEmpleados}).`
-                                  : 'Membresía fija para particulares y profesionales.'}
+                                  : 'Membresía fija para proveedores de servicios y profesionales.'}
                               </p>
                             </div>
 

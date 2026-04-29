@@ -77,8 +77,8 @@ const beneficiosRed = [
   },
   {
     icon: Users,
-    titulo: "Red de particulares verificados",
-    copy: "Mas de 50 particulares auditados por la UIAB. Servicios profesionales, insumos industriales, logistica y mas.",
+    titulo: "Red de proveedores de servicios verificados",
+    copy: "Mas de 50 proveedores de servicios auditados por la UIAB. Servicios profesionales, insumos industriales, logistica y mas.",
   },
   {
     icon: Target,
@@ -102,7 +102,7 @@ const comoFunciona = [
   {
     paso: "02",
     icon: Globe,
-    titulo: "Visibilidad ante empresas y particulares",
+    titulo: "Visibilidad ante empresas y proveedores de servicios",
     copy: "Tu ficha queda expuesta en el directorio. Empresas y profesionales de la red pueden consultarte directamente.",
   },
   {
@@ -115,7 +115,7 @@ const comoFunciona = [
 
 const cifrasRed = [
   { valor: "60+", label: "Socios UIAB", sublabel: "en el directorio activo" },
-  { valor: "50+", label: "Particulares verificados", sublabel: "auditados por UIAB" },
+  { valor: "50+", label: "Proveedores de servicios verificados", sublabel: "auditados por UIAB" },
   { valor: "100%", label: "Cobertura territorial", sublabel: "Almirante Brown y Conurbano Sur" },
   { valor: "24/7", label: "Directorio online", sublabel: "acceso permanente" },
 ];
@@ -330,7 +330,7 @@ export default function InstitucionesBancariasPage() {
                 className="text-slate-600 text-base md:text-lg leading-relaxed mb-8 max-w-lg"
               >
                 Suma tu banco al directorio de la UIAB y accede a más de 60 Socios
-                UIAB y 50 particulares verificados del Conurbano Sur.
+                UIAB y 50 proveedores de servicios verificados del Conurbano Sur.
                 Una red comercial curada, con respaldo institucional.
               </motion.p>
 
@@ -954,7 +954,7 @@ export default function InstitucionesBancariasPage() {
             </h2>
 
             <p className="text-slate-600 text-lg leading-relaxed max-w-2xl mx-auto mb-10">
-              Más de 60 socios UIAB y 50 particulares verificados esperan conocer
+              Más de 60 socios UIAB y 50 proveedores de servicios verificados esperan conocer
               los servicios financieros de tu entidad. Sumarte es simple y la visibilidad es inmediata.
             </p>
 

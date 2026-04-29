@@ -21,7 +21,7 @@ export function EmpresasDestacadas() {
         <div className="text-center mb-16">
           <h2 className="font-poppins text-4xl font-bold text-slate-900 mb-4">Empresas Destacadas</h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-            Particulares mejor evaluados por nuestros socios industriales
+            Proveedores de servicios mejor evaluados por nuestros socios industriales
           </p>
         </div>
 

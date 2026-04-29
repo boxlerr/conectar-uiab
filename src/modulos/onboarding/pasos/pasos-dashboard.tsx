@@ -50,7 +50,7 @@ export const pasosDashboard: PasoConRuta[] = [
     placement: "bottom",
     title: "El pulso de la red, de un vistazo",
     content:
-      "Socios activos, particulares verificados, oportunidades abiertas y tus propias métricas (publicadas o matches, según tu rol). Cada número es un link — tocalo y te lleva al detalle.",
+      "Socios activos, proveedores de servicios verificados, oportunidades abiertas y tus propias métricas (publicadas o matches, según tu rol). Cada número es un link — tocalo y te lleva al detalle.",
     data: { ruta: "/dashboard" },
   }),
 
@@ -60,7 +60,7 @@ export const pasosDashboard: PasoConRuta[] = [
     placement: "top",
     title: "Matches inteligentes",
     content:
-      "Nuestro algoritmo te sugiere oportunidades (o particulares, si sos empresa) en base a tu categoría, etiquetas y ubicación. El porcentaje arriba a la izquierda es el puntaje de afinidad.",
+      "Nuestro algoritmo te sugiere oportunidades (o proveedores de servicios, si sos empresa) en base a tu categoría, etiquetas y ubicación. El porcentaje arriba a la izquierda es el puntaje de afinidad.",
     data: { ruta: "/dashboard" },
   }),
 
@@ -90,7 +90,7 @@ export const pasosDashboard: PasoConRuta[] = [
     placement: "left",
     title: "Acciones rápidas",
     content:
-      "Los atajos más usados según tu rol: publicar oportunidad, buscar particulares, editar perfil, subir documentos. Un click y estás adentro.",
+      "Los atajos más usados según tu rol: publicar oportunidad, buscar proveedores de servicios, editar perfil, subir documentos. Un click y estás adentro.",
     data: { ruta: "/dashboard" },
   }),
 
@@ -100,7 +100,7 @@ export const pasosDashboard: PasoConRuta[] = [
     placement: "left",
     title: "Explorá la red",
     content:
-      "Si sos empresa, desde acá filtrás particulares; si sos particular, mirás empresas. El directorio completo a un click — usalo cuando andes buscando a alguien específico.",
+      "Si sos empresa, desde acá filtrás proveedores de servicios; si sos proveedor de servicios, mirás empresas. El directorio completo a un click — usalo cuando andes buscando a alguien específico.",
     data: { ruta: "/dashboard" },
   }),
 

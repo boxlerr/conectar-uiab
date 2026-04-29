@@ -236,7 +236,7 @@ export default async function AdminDashboardPage() {
       href: "/admin/empresas",
     },
     {
-      nombre: "Particulares",
+      nombre: "Proveedores de servicios",
       valor: data.totalProveedores,
       delta: data.proveedoresNuevos24h,
       deltaLabel: "nuevos 24h",
@@ -273,7 +273,7 @@ export default async function AdminDashboardPage() {
       href: "/admin/empresas",
     },
     {
-      label: "Particulares por revisar",
+      label: "Proveedores de servicios por revisar",
       count: data.proveedoresPendientes,
       icon: Wrench,
       accent: "bg-emerald-50 text-emerald-700",
@@ -291,7 +291,7 @@ export default async function AdminDashboardPage() {
   const accesosRapidos = [
     { label: "Suscripciones", href: "/admin/suscripciones", icon: DollarSign },
     { label: "Empresas", href: "/admin/empresas", icon: Building },
-    { label: "Particulares", href: "/admin/proveedores", icon: Wrench },
+    { label: "Proveedores de servicios", href: "/admin/proveedores", icon: Wrench },
     { label: "Oportunidades", href: "/admin/oportunidades", icon: Briefcase },
     { label: "Reseñas", href: "/admin/resenas", icon: Star },
     { label: "Usuarios", href: "/admin/usuarios", icon: Users },

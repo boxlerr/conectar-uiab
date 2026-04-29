@@ -373,7 +373,7 @@ export default async function PendienteAprobacionPage({
                 {[
                   { icon: Building2, text: 'Tu perfil aparece en el directorio comercial UIAB' },
                   { icon: Zap, text: 'Acceso completo a oportunidades de negocio' },
-                  { icon: ShieldCheck, text: 'Red verificada de empresas y particulares' },
+                  { icon: ShieldCheck, text: 'Red verificada de empresas y proveedores de servicios' },
                 ].map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">

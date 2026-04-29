@@ -198,13 +198,13 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
         {
           name: "Directorio",
           icon: Building,
-          description: "Organizaciones y particulares",
+          description: "Organizaciones y proveedores de servicios",
           items: [
             {
-              name: "Empresas y particulares",
+              name: "Empresas y proveedores de servicios",
               href: "/empresas?categoria=proveedores",
               icon: Package,
-              description: "Ecosistema industrial y particulares",
+              description: "Ecosistema industrial y proveedores de servicios",
             },
             {
               name: "Instituciones educativas",

@@ -158,7 +158,7 @@ export function CategoriasDirectorio() {
               custom={2}
               className="text-[15px] text-[#191c1e]/50 leading-relaxed"
             >
-              La red UIAB nuclea empresas radicadas y particulares profesionales en categorías
+              La red UIAB nuclea empresas radicadas y proveedores de servicios profesionales en categorías
               diferenciadas. Cada tipo tiene su propio directorio, rubros y criterios de verificación.
             </motion.p>
           </div>
@@ -171,7 +171,7 @@ export function CategoriasDirectorio() {
             </div>
             <div className="bg-white rounded-[3px] px-5 py-4 text-center" style={{ boxShadow: "0 1px 2px rgba(0,33,63,0.04)" }}>
               <div className="text-2xl font-black text-[#bf7035] font-manrope">{totalParticulares}+</div>
-              <div className="text-[10px] font-bold text-[#191c1e]/40 uppercase tracking-wider mt-0.5">Particulares</div>
+              <div className="text-[10px] font-bold text-[#191c1e]/40 uppercase tracking-wider mt-0.5">Proveedores de servicios</div>
             </div>
           </motion.div>
         </motion.div>
@@ -246,7 +246,7 @@ export function CategoriasDirectorio() {
                 </div>
                 <div>
                   <span className="text-[15px] font-bold text-[#191c1e] leading-tight block">
-                    Particulares Profesionales
+                    Proveedores de servicios profesionales
                   </span>
                   <span className="text-[11px] text-[#191c1e]/40">
                     {CATEGORIAS_PARTICULARES.length} especialidades · Auditados
@@ -275,7 +275,7 @@ export function CategoriasDirectorio() {
                 href="/empresas?categoria=proveedores"
                 className="inline-flex items-center gap-2 text-[13px] font-bold text-[#bf7035] hover:text-[#a05e28] transition-colors group"
               >
-                Ver directorio de particulares
+                Ver directorio de proveedores de servicios
                 <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </motion.div>

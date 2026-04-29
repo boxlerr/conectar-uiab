@@ -358,8 +358,8 @@ export default function DirectorioPage() {
             </h1>
 
             <p className="text-blue-100/80 text-lg md:text-xl font-medium max-w-2xl leading-relaxed">
-              Accedé al ecosistema completo: empresas socias, particulares y
-              prestadores de servicios verificados de la red UIAB.
+              Accedé al ecosistema completo: empresas socias y proveedores de servicios
+              verificados de la red UIAB.
             </p>
           </motion.div>
         </div>

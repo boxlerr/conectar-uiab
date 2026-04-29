@@ -22,7 +22,7 @@ export default function BienvenidoPage() {
     {
       icono: Building2,
       titulo: 'Directorio industrial',
-      desc: 'Acceso al listado de empresas, particulares y proveedores verificados por la UIAB.',
+      desc: 'Acceso al listado de empresas y proveedores de servicios verificados por la UIAB.',
     },
     {
       icono: Briefcase,

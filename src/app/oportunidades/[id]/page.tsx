@@ -441,7 +441,7 @@ export default function OportunidadDetail({
                 )}
                 {proveedoresCandidatos.length > 0 && (
                   <CandidatosSection
-                    titulo="Particulares y Proveedores"
+                    titulo="Proveedores de servicios"
                     icono={<User className="w-4 h-4 text-[#10375c]" />}
                     items={proveedoresCandidatos}
                     tipo="proveedor"

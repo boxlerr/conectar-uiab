@@ -47,7 +47,7 @@ export const pasosDirectorio: PasoConRuta[] = [
     placement: "bottom",
     title: "Un ecosistema B2B verificado",
     content:
-      "Todas las fichas que ves pasaron revisión de la UIAB. Arriba a la derecha ves cuántas empresas y particulares están activos hoy.",
+      "Todas las fichas que ves pasaron revisión de la UIAB. Arriba a la derecha ves cuántas empresas y proveedores de servicios están activos hoy.",
     data: { ruta: "/empresas" },
   }),
 

@@ -95,9 +95,9 @@ export function PanelProveedores({ proveedores: particulares }: { proveedores: P
       <div>
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
           <Wrench className="w-8 h-8 text-emerald-600" />
-          Gestión de Particulares
+          Gestión de Proveedores de servicios
         </h1>
-        <p className="text-slate-500 mt-1">Aprobá o rechazá los perfiles de particulares.</p>
+        <p className="text-slate-500 mt-1">Aprobá o rechazá los perfiles de proveedores de servicios.</p>
       </div>
 
       <Card className="p-4 flex flex-col sm:flex-row gap-3 items-center shadow-sm border-slate-100">
@@ -124,7 +124,7 @@ export function PanelProveedores({ proveedores: particulares }: { proveedores: P
         {filtrados.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
             <Wrench className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No hay particulares con este filtro.</p>
+            <p className="text-slate-500 font-medium">No hay proveedores de servicios con este filtro.</p>
           </div>
         ) : filtrados.map((prov) => {
           const badge = BADGE[prov.estado] ?? { label: prov.estado, className: "bg-slate-100 text-slate-600" };

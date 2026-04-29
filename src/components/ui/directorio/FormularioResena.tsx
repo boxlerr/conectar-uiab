@@ -48,7 +48,7 @@ export function FormularioResena({ targetType, targetId }: FormularioResenaProps
     return (
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 flex gap-3 text-amber-800 text-sm">
         <Info className="w-5 h-5 shrink-0 mt-0.5" />
-        <p>Solo las empresas y particulares registrados pueden dejar reseñas públicas. (Tu rol actual es: {currentUser.role}).</p>
+        <p>Solo las empresas y proveedores de servicios registrados pueden dejar reseñas públicas. (Tu rol actual es: {currentUser.role}).</p>
       </div>
     );
   }

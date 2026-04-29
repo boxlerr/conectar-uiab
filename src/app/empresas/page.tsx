@@ -375,7 +375,7 @@ export default function EmpresasPage() {
                 </span>
                 <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded px-3 py-1.5 text-sm font-semibold text-white">
                   <User className="w-4 h-4 text-amber-300" />
-                  Particulares: ingenieros, contadores, técnicos y más
+                  Proveedores de servicios: ingenieros, contadores, técnicos y más
                 </span>
               </div>
             )}
@@ -407,7 +407,7 @@ export default function EmpresasPage() {
                 {cargandoDatos
                   ? "Cargando..."
                   : mezclaParticulares
-                    ? `${countSocios} empresas socias · ${countParticulares} particulares`
+                    ? `${countSocios} empresas socias · ${countParticulares} proveedores de servicios`
                     : `Conectando ${empresas.length} ${metaSocio?.sustantivoPlural ?? "empresas"} en la zona`}
               </p>
             </div>
@@ -452,7 +452,7 @@ export default function EmpresasPage() {
                 }`}
               >
                 <User className="w-4 h-4" />
-                Particulares
+                Proveedores de servicios
                 {!cargandoDatos && (
                   <span className="ml-1 text-xs font-black text-slate-400">{countParticulares}</span>
                 )}

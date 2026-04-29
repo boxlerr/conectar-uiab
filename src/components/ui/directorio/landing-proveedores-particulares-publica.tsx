@@ -213,7 +213,7 @@ export function PublicProveedoresParticularesLanding() {
               style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
             >
               Empresas socias UIAB con oferta industrial B2B,{" "}
-              <strong className="text-white">junto con</strong> profesionales particulares matriculados
+              <strong className="text-white">junto con</strong> proveedores de servicios matriculados
               — electricistas, gasistas, contadores, programadores y más.
               Directo, sin intermediarios.
             </motion.p>
@@ -268,7 +268,7 @@ export function PublicProveedoresParticularesLanding() {
         >
           {[
             { val: "+60", label: "Empresas socias" },
-            { val: "50+", label: "Particulares activos" },
+            { val: "50+", label: "Proveedores activos" },
             { val: "24h", label: "Tiempo de contacto" },
             { val: "20+", label: "Rubros & oficios" },
           ].map((s, i) => (
@@ -326,7 +326,7 @@ export function PublicProveedoresParticularesLanding() {
             >
               Cuando hablamos de <em className="text-[#191c1e] font-semibold">servicios y productos</em>,
               no nos referimos a un único tipo de perfil. En el partido conviven —y se necesitan mutuamente—
-              las empresas socias UIAB y los profesionales particulares.
+              las empresas socias UIAB y los proveedores de servicios.
             </motion.p>
           </motion.div>
 
@@ -399,7 +399,7 @@ export function PublicProveedoresParticularesLanding() {
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-gradient-to-r from-amber-500 to-orange-500 text-white">
                   <User className="w-3.5 h-3.5" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Particulares</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Proveedores de servicios</span>
                 </div>
               </div>
 
@@ -412,7 +412,7 @@ export function PublicProveedoresParticularesLanding() {
                 Ingenieros, técnicos, contadores, diseñadores, programadores, asesores y oficios
                 habilitados que trabajan por cuenta propia. Son personas físicas con matrícula o
                 habilitación individual, no empresas. Por eso los llamamos{" "}
-                <strong className="text-[#191c1e]">particulares</strong>: individuos que ofrecen
+                <strong className="text-[#191c1e]">proveedores de servicios</strong>: individuos que ofrecen
                 servicios de manera autónoma, en paralelo a las empresas socias.
               </p>
 
@@ -421,7 +421,7 @@ export function PublicProveedoresParticularesLanding() {
                   "Matrícula profesional verificada",
                   "Perfil personal con especialidad y oficio",
                   "Contacto directo por WhatsApp / email",
-                  "Sello de Particular UIAB",
+                  "Sello de Proveedor de servicios UIAB",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2.5 text-[13px] text-slate-600">
                     <CheckCircle2 className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
@@ -450,7 +450,7 @@ export function PublicProveedoresParticularesLanding() {
             <p className="text-[13px] text-slate-600 leading-relaxed">
               <strong className="text-[#191c1e]">Dentro del directorio</strong> vas a encontrar los dos en
               pestañas separadas: <span className="font-semibold text-[#00213f]">Empresas socias</span> y{" "}
-              <span className="font-semibold text-amber-700">Particulares</span>. Buscá por rubro, oficio
+              <span className="font-semibold text-amber-700">Proveedores de servicios</span>. Buscá por rubro, oficio
               o localidad — y contactá sin intermediarios.
             </p>
           </motion.div>
@@ -518,7 +518,7 @@ export function PublicProveedoresParticularesLanding() {
             <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-6">
               <div className="w-10 h-[2px] bg-amber-500" />
               <span className="text-[11px] font-black tracking-[0.22em] uppercase text-amber-700">
-                Oficios · Particulares matriculados
+                Oficios · Proveedores de servicios matriculados
               </span>
             </motion.div>
             <motion.h2
@@ -594,7 +594,7 @@ export function PublicProveedoresParticularesLanding() {
                 num: "+60",
                 label: "Empresas industriales",
                 heading: "Empresas y comercios del partido necesitan tu servicio",
-                body: "Cientos de empresas y emprendimientos en Almirante Brown necesitan productos, servicios, profesionales, técnicos y oficios todas las semanas. Cada fábrica, cada negocio y cada PyME del partido es un cliente potencial tanto para empresas socias como para particulares.",
+                body: "Cientos de empresas y emprendimientos en Almirante Brown necesitan productos, servicios, profesionales, técnicos y oficios todas las semanas. Cada fábrica, cada negocio y cada PyME del partido es un cliente potencial tanto para empresas socias como para proveedores de servicios.",
                 icon: Users,
                 tone: "blue" as const,
               },
@@ -804,7 +804,7 @@ export function PublicProveedoresParticularesLanding() {
               className="text-[15px] text-[#191c1e]/60 leading-relaxed"
             >
               Tres pasos para entrar al directorio y empezar a recibir trabajos reales,
-              tanto para empresas socias como para particulares.
+              tanto para empresas socias como para proveedores de servicios.
             </motion.p>
           </motion.div>
 
@@ -892,7 +892,7 @@ export function PublicProveedoresParticularesLanding() {
               </div>
               <div className="flex-1">
                 <p className="text-[13px] font-black text-[#191c1e] uppercase tracking-wide mb-0.5">
-                  Soy particular
+                  Soy proveedor de servicios
                 </p>
                 <p className="text-[12px] text-slate-500">Registro personal con matrícula</p>
               </div>
@@ -928,7 +928,7 @@ export function PublicProveedoresParticularesLanding() {
                 className="text-3xl lg:text-4xl font-bold text-[#191c1e] tracking-tight"
                 style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
               >
-                Empresas y particulares que ya trabajan con la red
+                Empresas y proveedores de servicios que ya trabajan con la red
               </motion.h2>
             </div>
             <motion.p
@@ -1064,7 +1064,7 @@ export function PublicProveedoresParticularesLanding() {
                   custom={2}
                   className="text-[14px] text-[#191c1e]/40 leading-relaxed"
                 >
-                  Empresas socias y particulares, conviviendo en el mismo directorio.
+                  Empresas socias y proveedores de servicios, conviviendo en el mismo directorio.
                   Accedé al catálogo completo con datos de contacto.
                 </motion.p>
               </div>

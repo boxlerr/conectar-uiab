@@ -77,7 +77,7 @@ export const pasosOportunidades: PasoConRuta[] = [
     placement: "left",
     title: "¿Tenés una necesidad?",
     content:
-      "Si necesitás contratar algo, publicalo desde acá. Nuestro algoritmo te va a sugerir particulares y empresas del parque que matcheen con tu pedido.",
+      "Si necesitás contratar algo, publicalo desde acá. Nuestro algoritmo te va a sugerir proveedores de servicios y empresas del parque que matcheen con tu pedido.",
     data: { ruta: "/oportunidades" },
   }),
 

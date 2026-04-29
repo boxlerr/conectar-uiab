@@ -76,7 +76,7 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
     { key: "all",      label: `Todos (${counts.all})` },
     { key: "admin",    label: `Admin (${counts.admin})` },
     { key: "company",  label: `Empresas (${counts.company})` },
-    { key: "provider", label: `Particulares (${counts.provider})` },
+    { key: "provider", label: `Proveedores de servicios (${counts.provider})` },
   ];
 
   return (

@@ -342,7 +342,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                     className="text-slate-500 text-lg leading-relaxed"
                     style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
                    >
-                    Olvidate de comisiones ocultas o intermediarios. La UIAB actúa como validador para que empresas de Brown contraten particulares de Brown, potenciando la región.
+                    Olvidate de comisiones ocultas o intermediarios. La UIAB actúa como validador para que empresas de Brown contraten proveedores de servicios de Brown, potenciando la región.
                    </p>
                 </motion.div>
 
