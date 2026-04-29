@@ -16,7 +16,7 @@ interface TagRow {
 }
 
 const TIPO_TAG_LABELS: Record<string, string> = {
-  capacidad: "Capacidades",
+  capacidad: "Servicios",
   material: "Materiales",
   modalidad_servicio: "Modalidad",
   industria: "Industria",
