@@ -22,10 +22,6 @@ import {
   Building2,
   Award,
   MapPin,
-  Wrench,
-  Cog,
-  Zap,
-  Briefcase,
   Star,
   ChevronRight,
 } from "lucide-react";
@@ -101,15 +97,6 @@ const journey = [
     copy:
       "Diseñen pasantías, cursos a medida o proyectos de I+D. La UIAB acompaña la implementación con su red de empresas socias.",
   },
-];
-
-const especialidades = [
-  { nombre: "Metalurgia", icon: Wrench, cantidad: "8" },
-  { nombre: "Electromecánica", icon: Cog, cantidad: "12" },
-  { nombre: "Química Industrial", icon: FlaskConical, cantidad: "5" },
-  { nombre: "Automatización", icon: Zap, cantidad: "6" },
-  { nombre: "Gestión Industrial", icon: Briefcase, cantidad: "4" },
-  { nombre: "Electricidad", icon: Sparkles, cantidad: "9" },
 ];
 
 const beneficios = [
@@ -508,104 +495,6 @@ export default function InstitucionesEducativasPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════════
-          ESPECIALIDADES TÉCNICAS
-      ═══════════════════════════════════════════════════════════════════════════ */}
-      <section className="max-w-[1440px] mx-auto px-6 lg:px-12 mt-28">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-12"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-[2px] bg-violet-600" />
-            <span className="text-[10px] font-black tracking-[0.25em] uppercase text-violet-600">
-              Orientaciones disponibles
-            </span>
-          </div>
-          <h2 className="font-manrope text-2xl md:text-4xl font-black text-slate-900 tracking-tight">
-            Especialidades técnicas mapeadas
-          </h2>
-          <p className="text-slate-500 text-sm md:text-base font-medium mt-3 max-w-2xl">
-            Encontrá instituciones por su orientación académica. Cada especialidad conecta
-            directamente con las necesidades del sector productivo local.
-          </p>
-        </motion.div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {especialidades.map((esp, idx) => (
-            <motion.div
-              key={esp.nombre}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.05 }}
-              className="group bg-white border border-slate-200 p-5 hover:border-violet-300 hover:shadow-lg transition-all duration-300 cursor-pointer"
-            >
-              <div className="w-10 h-10 bg-violet-50 flex items-center justify-center mb-4 group-hover:bg-violet-100 transition-colors">
-                <esp.icon className="w-5 h-5 text-violet-600" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm mb-1">{esp.nombre}</h3>
-              <p className="text-xs text-slate-500">{esp.cantidad} instituciones</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════════════
-          VISUAL SHOWCASE - Two Images
-      ═══════════════════════════════════════════════════════════════════════════ */}
-      <section className="max-w-[1440px] mx-auto px-6 lg:px-12 mt-28">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="relative aspect-[4/3] overflow-hidden group"
-          >
-            <Image
-              src="/landing/instituciones-taller.jpg"
-              alt="Taller técnico industrial"
-              fill
-              className="object-cover transition-transform duration-700 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-violet-950/80 via-transparent to-transparent" />
-            <div className="absolute bottom-0 left-0 p-6">
-              <span className="text-[10px] font-black tracking-[0.2em] uppercase text-violet-300 mb-2 block">
-                Formación práctica
-              </span>
-              <h3 className="font-manrope text-xl font-bold text-white">
-                Talleres equipados con tecnología industrial
-              </h3>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="relative aspect-[4/3] overflow-hidden group"
-          >
-            <Image
-              src="/landing/instituciones-laboratorio.jpg"
-              alt="Laboratorio de investigación"
-              fill
-              className="object-cover transition-transform duration-700 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-violet-950/80 via-transparent to-transparent" />
-            <div className="absolute bottom-0 left-0 p-6">
-              <span className="text-[10px] font-black tracking-[0.2em] uppercase text-violet-300 mb-2 block">
-                Innovación abierta
-              </span>
-              <h3 className="font-manrope text-xl font-bold text-white">
-                Laboratorios de I+D para la industria
-              </h3>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════════════
           PILARES - Qué vas a encontrar
       ═══════════════════════════════════════════════════════════════════════════ */}
       <section className="max-w-[1440px] mx-auto px-6 lg:px-12 mt-28">
@@ -674,6 +563,59 @@ export default function InstitucionesEducativasPage() {
             </motion.article>
           ))}
         </motion.div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
+          VISUAL SHOWCASE - Two Images
+      ═══════════════════════════════════════════════════════════════════════════ */}
+      <section className="max-w-[1440px] mx-auto px-6 lg:px-12 mt-28">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="relative aspect-[4/3] overflow-hidden group"
+          >
+            <Image
+              src="/landing/instituciones-taller.jpg"
+              alt="Taller técnico industrial"
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-violet-950/80 via-transparent to-transparent" />
+            <div className="absolute bottom-0 left-0 p-6">
+              <span className="text-[10px] font-black tracking-[0.2em] uppercase text-violet-300 mb-2 block">
+                Formación práctica
+              </span>
+              <h3 className="font-manrope text-xl font-bold text-white">
+                Talleres equipados con tecnología industrial
+              </h3>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="relative aspect-[4/3] overflow-hidden group"
+          >
+            <Image
+              src="/landing/instituciones-laboratorio.jpg"
+              alt="Laboratorio de investigación"
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-violet-950/80 via-transparent to-transparent" />
+            <div className="absolute bottom-0 left-0 p-6">
+              <span className="text-[10px] font-black tracking-[0.2em] uppercase text-violet-300 mb-2 block">
+                Innovación abierta
+              </span>
+              <h3 className="font-manrope text-xl font-bold text-white">
+                Laboratorios de I+D para la industria
+              </h3>
+            </div>
+          </motion.div>
+        </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════════════
