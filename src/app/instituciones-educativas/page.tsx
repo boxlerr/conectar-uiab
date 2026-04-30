@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   GraduationCap,
   BookOpen,
@@ -125,7 +125,6 @@ const beneficios = [
 /* ─── Main page ─── */
 export default function InstitucionesEducativasPage() {
   const { currentUser, loading } = useAuth();
-  const heroRef = useRef<HTMLDivElement>(null);
 
   const [empresas, setEmpresas] = useState<Entidad[]>([]);
   const [totalInstituciones, setTotalInstituciones] = useState<string>("—");
@@ -133,10 +132,6 @@ export default function InstitucionesEducativasPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
-  const { scrollY } = useScroll();
-  const headerY = useTransform(scrollY, [0, 600], ["0%", "35%"]);
-  const headerOpacity = useTransform(scrollY, [0, 900], [1, 1]);
 
   const fetchInstitucionesCount = useCallback(async () => {
     const supabase = createClient();
@@ -267,9 +262,12 @@ export default function InstitucionesEducativasPage() {
   }, [empresas, categoriaSeleccionada, searchTerm]);
 
   const tieneAcceso        = currentUser?.role === 'admin' || currentUser?.subscriptionEstado === 'activa';
-  const mostrarInformativo = !loading && !currentUser;
-  const mostrarBloqueado   = !loading && !!currentUser && !tieneAcceso;
-  const mostrarDirectorio  = !loading && !!currentUser && tieneAcceso;
+  // No dependemos de `loading`: en SSR loading=true y en el primer render del
+  // cliente es false → eso producía un mismatch de hidratación. Branchamos
+  // únicamente por currentUser, que el AuthProvider hidrata con initialUser.
+  const mostrarInformativo = !currentUser;
+  const mostrarBloqueado   = !!currentUser && !tieneAcceso;
+  const mostrarDirectorio  = !!currentUser && tieneAcceso;
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-24">
@@ -278,9 +276,9 @@ export default function InstitucionesEducativasPage() {
       {/* ═══════════════════════════════════════════════════════════════════════════
           HERO SECTION - Industrial Academic Design
       ═══════════════════════════════════════════════════════════════════════════ */}
-      <section ref={heroRef} className="relative min-h-[calc(100vh-5rem)] flex items-center overflow-hidden">
-        {/* Background with Parallax */}
-        <motion.div style={{ y: headerY, opacity: headerOpacity }} className="absolute inset-0 z-0">
+      <section className="relative min-h-[calc(100vh-5rem)] flex items-center overflow-hidden">
+        {/* Background (estático) */}
+        <div className="absolute inset-0 z-0">
           <Image
             src="/landing/instituciones-hero.jpg"
             alt="Campus universitario industrial"
@@ -291,11 +289,7 @@ export default function InstitucionesEducativasPage() {
           {/* Violet academic overlay - clean, no grid */}
           <div className="absolute inset-0 bg-gradient-to-b from-violet-950/80 via-violet-900/70 to-[#1a0d2e]/95" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#1a0d2e]/90 via-transparent to-transparent" />
-        </motion.div>
-
-        {/* Ambient light orbs */}
-        <div className="absolute top-20 right-[15%] w-[400px] h-[400px] rounded-full bg-violet-500/20 blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-40 left-[10%] w-[300px] h-[300px] rounded-full bg-indigo-500/15 blur-[120px] pointer-events-none" />
+        </div>
 
         {/* Content Container */}
         <div className="relative z-10 w-full max-w-[1440px] mx-auto px-6 lg:px-12 pt-16 sm:pt-24 pb-28 sm:pb-32">
@@ -380,10 +374,8 @@ export default function InstitucionesEducativasPage() {
             <motion.div variants={fadeUp} custom={3} className="lg:col-span-5 hidden lg:block">
               <div className="relative">
                 {/* Glow */}
-                <div className="absolute -inset-8 bg-violet-500/10 blur-3xl" />
-
                 {/* Card */}
-                <div className="relative bg-white/[0.03] backdrop-blur-xl border border-white/10">
+                <div className="relative bg-violet-950/50 border border-white/10">
                   {/* Header */}
                   <div className="flex items-center justify-between p-6 border-b border-white/10">
                     <div className="flex items-center gap-3">
@@ -668,10 +660,6 @@ export default function InstitucionesEducativasPage() {
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-violet-950 via-violet-900 to-[#2a1454]" />
 
-          {/* Ambient orbs */}
-          <div className="absolute top-0 left-[10%] w-[400px] h-[400px] rounded-full bg-violet-500/15 blur-[150px] pointer-events-none" />
-          <div className="absolute bottom-0 right-[5%] w-[350px] h-[350px] rounded-full bg-indigo-500/15 blur-[120px] pointer-events-none" />
-
           <div className="relative max-w-[1440px] mx-auto px-6 lg:px-12 py-24 md:py-32">
             <motion.div
               variants={stagger}
@@ -717,7 +705,7 @@ export default function InstitucionesEducativasPage() {
                     <div className="hidden md:block absolute top-14 -right-4 lg:-right-5 w-8 lg:w-10 h-px bg-gradient-to-r from-violet-400/40 to-transparent" />
                   )}
 
-                  <div className="relative h-full backdrop-blur-sm bg-white/[0.04] border border-white/10 p-8 transition-all duration-300 group-hover:bg-white/[0.06] group-hover:border-violet-400/30">
+                  <div className="relative h-full bg-white/[0.05] border border-white/10 p-8 transition-colors duration-300 group-hover:bg-white/[0.08] group-hover:border-violet-400/30">
                     <div className="flex items-baseline justify-between mb-8">
                       <span className="font-manrope text-[52px] font-black text-transparent bg-clip-text bg-gradient-to-br from-violet-300 to-white/20 leading-none tracking-tighter">
                         {j.paso}
@@ -883,8 +871,6 @@ export default function InstitucionesEducativasPage() {
           transition={{ duration: 0.7 }}
           className="relative overflow-hidden bg-gradient-to-br from-violet-950 via-violet-900 to-[#3b2a6b] p-10 md:p-16"
         >
-          <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-violet-500/25 blur-[120px] translate-x-1/3 -translate-y-1/3" />
-
           <div className="relative grid grid-cols-1 md:grid-cols-[1fr_auto] gap-10 items-center">
             <div className="max-w-xl">
               <div className="inline-flex items-center gap-2 mb-6 text-violet-200">
@@ -974,8 +960,6 @@ function AccesoBloqueadoCard() {
       className="relative overflow-hidden border border-violet-200/40 bg-white p-10 md:p-16"
     >
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-600 to-indigo-500" />
-      <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-violet-100/40 blur-[100px] translate-x-1/3 -translate-y-1/3 pointer-events-none" />
-
       <div className="relative grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-8 items-center">
         <div className="w-16 h-16 bg-violet-50 text-violet-700 flex items-center justify-center">
           <Lock className="w-7 h-7" />

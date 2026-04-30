@@ -1,7 +1,7 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef, useEffect } from "react";
+import { motion } from "framer-motion";
+import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -61,19 +61,11 @@ const float = {
 export default function Home() {
   const { openAuthModal, currentUser, loading } = useAuth();
   const router = useRouter();
-  const heroRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!loading && currentUser) {
       router.replace('/dashboard');
     }
   }, [currentUser, loading, router]);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
-  const dashY = useTransform(scrollYProgress, [0, 1], ["0%", "10%"]);
 
   return (
     <main className="min-h-screen bg-[#f7f9fb] overflow-x-hidden selection:bg-primary-200">
@@ -81,20 +73,16 @@ export default function Home() {
       {/* ═══════════════════════════════════════════
           HERO — Split layout: Copy left + Platform visual right
       ═══════════════════════════════════════════ */}
-      <section ref={heroRef} className="relative overflow-hidden min-h-[100vh] flex items-center">
-        {/* Background */}
-        <motion.div className="absolute inset-0" style={{ y: bgY }}>
+      <section className="relative overflow-hidden min-h-[100vh] flex items-center">
+        {/* Background (estático — sin parallax para mejor performance) */}
+        <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-[#00213f] via-[#10375c] to-[#0c2d4a]" />
           {/* Dot grid texture */}
           <div className="absolute inset-0 opacity-[0.025]" style={{
             backgroundImage: "radial-gradient(circle at 1px 1px, white 0.5px, transparent 0)",
             backgroundSize: "32px 32px",
           }} />
-          {/* Ambient glow - left */}
-          <div className="absolute top-1/2 -left-40 w-[500px] h-[500px] rounded-full bg-primary-400/[0.06] blur-[100px]" />
-          {/* Ambient glow - right */}
-          <div className="absolute bottom-0 right-0 w-[600px] h-[600px] rounded-full bg-primary-300/[0.04] blur-[120px]" />
-        </motion.div>
+        </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-0 w-full">
           <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
@@ -110,7 +98,7 @@ export default function Home() {
               <motion.div
                 variants={fadeUp}
                 custom={0}
-                className="inline-flex items-center gap-2 bg-white/[0.07] backdrop-blur-md rounded-sm px-4 py-2 mb-8 border border-white/[0.06]"
+                className="inline-flex items-center gap-2 bg-white/[0.08] rounded-sm px-4 py-2 mb-8 border border-white/[0.08]"
               >
                 <ShieldCheck className="w-4 h-4 text-primary-300" />
                 <span className="text-[12px] font-semibold text-white/60 tracking-[0.08em] uppercase">
@@ -198,7 +186,7 @@ export default function Home() {
               variants={slideInRight}
               className="lg:col-span-5 xl:col-span-7 relative hidden lg:block"
             >
-              <motion.div style={{ y: dashY }} className="relative max-w-2xl ml-auto">
+              <div className="relative max-w-2xl ml-auto">
                 {/* Main Industrial Illustration */}
                 <div className="relative z-10 w-full aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
                   <Image
@@ -216,7 +204,7 @@ export default function Home() {
                   variants={float}
                   initial="initial"
                   animate="animate"
-                  className="absolute -left-6 top-1/4 bg-white/[0.08] backdrop-blur-xl rounded-sm px-4 py-3 border border-white/[0.08] shadow-2xl shadow-black/20 z-20"
+                  className="absolute -left-6 top-1/4 bg-[#0c2d4a]/85 rounded-sm px-4 py-3 border border-white/10 shadow-xl shadow-black/30 z-20"
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-sm bg-primary-500/20 flex items-center justify-center">
@@ -234,7 +222,7 @@ export default function Home() {
                   variants={float}
                   initial="initial"
                   animate="animate"
-                  className="absolute -right-4 top-[0%] bg-white/[0.08] backdrop-blur-xl rounded-sm px-4 py-3 border border-white/[0.08] shadow-2xl shadow-black/20 z-20"
+                  className="absolute -right-4 top-[0%] bg-[#0c2d4a]/85 rounded-sm px-4 py-3 border border-white/10 shadow-xl shadow-black/30 z-20"
                   style={{ animationDelay: "1.5s" }}
                 >
                   <div className="flex items-center gap-2.5">
@@ -253,7 +241,7 @@ export default function Home() {
                   variants={float}
                   initial="initial"
                   animate="animate"
-                  className="absolute -left-10 bottom-[15%] bg-white/[0.12] backdrop-blur-2xl rounded-sm px-5 py-4 border border-white/[0.15] shadow-2xl shadow-black/30 z-20"
+                  className="absolute -left-10 bottom-[15%] bg-[#10375c]/90 rounded-sm px-5 py-4 border border-white/15 shadow-xl shadow-black/30 z-20"
                   style={{ animationDelay: "0.5s" }}
                 >
                   <div className="flex items-center gap-4">
@@ -278,7 +266,7 @@ export default function Home() {
                   variants={float}
                   initial="initial"
                   animate="animate"
-                  className="absolute -right-10 bottom-[10%] bg-white/[0.12] backdrop-blur-2xl rounded-sm px-5 py-5 border border-white/[0.15] shadow-2xl shadow-black/30 z-20 max-w-[260px]"
+                  className="absolute -right-10 bottom-[10%] bg-[#10375c]/90 rounded-sm px-5 py-5 border border-white/15 shadow-xl shadow-black/30 z-20 max-w-[260px]"
                   style={{ animationDelay: "2s" }}
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -302,7 +290,7 @@ export default function Home() {
                     </div>
                   </div>
                 </motion.div>
-              </motion.div>
+              </div>
             </motion.div>
           </div>
         </div>
@@ -502,7 +490,6 @@ export default function Home() {
           backgroundSize: "32px 32px",
         }} />
         {/* Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-primary-400/[0.05] rounded-full blur-[100px]" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <motion.div

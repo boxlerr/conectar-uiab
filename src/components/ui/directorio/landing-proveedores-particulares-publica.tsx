@@ -1,7 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -134,41 +133,30 @@ export function PublicProveedoresParticularesLanding() {
   const empresasPreview = getEmpresas().slice(0, 1);
   const particularesPreview = getProveedores().slice(0, 2);
 
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
-
   return (
     <div className="bg-[#f7f9fb] overflow-x-hidden">
       {/* ═══════════════════════════════════════════
           SECTION 1: HERO — FULL BLEED CINEMATIC
       ═══════════════════════════════════════════ */}
       <section
-        ref={heroRef}
         className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-16 sm:-mt-20"
       >
-        {/* Background Image w/ Parallax */}
-        <motion.div style={{ y: heroY }} className="absolute inset-0 z-0 overflow-hidden scale-[1.08]">
+        {/* Background Image (static — sin parallax para mejor performance) */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
           <Image
             src="/landing/hero-industrial.png"
             alt="Parque industrial de Almirante Brown"
             fill
-            quality={100}
+            quality={85}
             className="object-cover object-left"
             priority
             sizes="100vw"
           />
-        </motion.div>
+        </div>
 
         {/* Dark Gradient Overlays */}
         <div className="absolute inset-0 z-[1] bg-gradient-to-tr from-[#00182e] via-[#00213f]/80 to-transparent" />
         <div className="absolute inset-0 z-[1] bg-gradient-to-r from-[#00182e]/90 via-[#00182e]/50 to-transparent" />
-        {/* Amber accent glow — señal de la dualidad */}
-        <div className="absolute bottom-0 right-0 z-[2] w-[600px] h-[400px] bg-amber-500/10 blur-[140px] pointer-events-none" />
-
         {/* Subtle grid pattern */}
         <div className="absolute inset-0 z-[2] opacity-[0.02]" style={{
           backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
@@ -185,7 +173,7 @@ export function PublicProveedoresParticularesLanding() {
             <motion.div
               variants={fadeUp}
               custom={0}
-              className="inline-flex items-center gap-2.5 bg-white/10 backdrop-blur-md rounded-sm px-4 py-1.5 mb-5 border border-white/20 shadow-xl shadow-black/10"
+              className="inline-flex items-center gap-2.5 bg-white/15 rounded-sm px-4 py-1.5 mb-5 border border-white/20 shadow-lg shadow-black/10"
             >
               <Wrench className="w-3.5 h-3.5 text-primary-200" />
               <span className="text-[12px] font-medium text-white tracking-[0.06em] uppercase">
@@ -276,7 +264,7 @@ export function PublicProveedoresParticularesLanding() {
               key={s.label}
               variants={fadeUp}
               custom={i}
-              className="bg-[#00182e]/60 backdrop-blur-xl rounded-xl px-5 py-4 border border-white/10 shadow-2xl shadow-black/20 hover:bg-[#00182e]/80 transition-all duration-300 group"
+              className="bg-[#00182e]/85 rounded-xl px-5 py-4 border border-white/10 shadow-xl shadow-black/20 hover:bg-[#00182e] transition-colors duration-300 group"
             >
               <div className="text-xl lg:text-3xl font-bold text-white mb-0.5 tracking-tight">
                 {s.val}
@@ -1135,9 +1123,6 @@ export function PublicProveedoresParticularesLanding() {
             backgroundSize: "32px 32px",
           }}
         />
-        {/* Amber accent glow */}
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-amber-500/10 blur-[120px] pointer-events-none" />
-
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <motion.div
             initial="hidden"

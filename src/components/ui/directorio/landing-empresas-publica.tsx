@@ -1,7 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -127,40 +126,28 @@ export function PublicEmpresasLanding() {
   const { openAuthModal } = useAuth();
   const empresasPreview = getEmpresas().slice(0, 3);
 
-  /* Parallax refs */
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress: heroProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const heroImageY = useTransform(heroProgress, [0, 1], ["0%", "15%"]);
-  const heroOverlayOpacity = useTransform(heroProgress, [0, 0.5], [0.75, 0.9]);
-
   return (
     <div className="bg-[#f7f9fb] overflow-x-hidden">
 
       {/* ═══════════════════════════════════════════
           SECTION 1: CINEMATIC HERO
       ═══════════════════════════════════════════ */}
-      <section ref={heroRef} className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-16 sm:-mt-20">
-        {/* Background Image w/ Parallax */}
-        <motion.div className="absolute inset-0 z-0 overflow-hidden">
+      <section className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-16 sm:-mt-20">
+        {/* Background Image (sin parallax para evitar reflows en notebooks) */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
           <Image
             src="/landing/hero-industrial.png"
             alt="Vista del Distrito de Almirante Brown"
             fill
-            quality={100}
-            className="object-cover object-left scale-[1.1]"
+            quality={85}
+            className="object-cover object-left"
             priority
             sizes="100vw"
           />
-        </motion.div>
+        </div>
 
         {/* Dark Gradient Overlays for Readability */}
-        <motion.div
-          className="absolute inset-0 z-[1] bg-gradient-to-tr from-[#00182e] via-[#00213f]/80 to-transparent"
-          style={{ opacity: heroOverlayOpacity }}
-        />
+        <div className="absolute inset-0 z-[1] bg-gradient-to-tr from-[#00182e] via-[#00213f]/80 to-transparent opacity-90" />
         <div className="absolute inset-0 z-[1] bg-gradient-to-r from-[#00182e]/90 via-[#00182e]/40 to-transparent" />
 
         {/* Subtle Pattern */}
@@ -176,7 +163,7 @@ export function PublicEmpresasLanding() {
             variants={stagger}
             className="max-w-xl"
           >
-            <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2.5 bg-white/10 backdrop-blur-md rounded-sm px-4 py-1.5 mb-4 border border-white/20 shadow-xl shadow-black/10">
+            <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2.5 bg-white/15 rounded-sm px-4 py-1.5 mb-4 border border-white/20 shadow-lg shadow-black/10">
               <Building2 className="w-4 h-4 text-primary-200" />
               <span className="text-[12px] font-medium text-white tracking-[0.06em] uppercase">Directorio Comercial Verificado</span>
             </motion.div>
@@ -208,7 +195,7 @@ export function PublicEmpresasLanding() {
               </Button>
               <a
                 href="#que-encontraras"
-                className="h-13 px-8 rounded-sm font-semibold text-[15px] border border-white/20 text-white hover:bg-white/10 transition-all inline-flex items-center justify-center backdrop-blur-md shadow-lg shadow-black/10"
+                className="h-13 px-8 rounded-sm font-semibold text-[15px] border border-white/20 text-white hover:bg-white/10 transition-colors inline-flex items-center justify-center shadow-lg shadow-black/10"
               >
                 Descubrir más
                 <ChevronRight className="w-4 h-4 ml-1.5" />
@@ -235,7 +222,7 @@ export function PublicEmpresasLanding() {
                 key={s.label}
                 variants={fadeUp}
                 custom={i}
-                className="bg-white/20 backdrop-blur-md rounded-xl px-5 py-5 border border-white/30 shadow-2xl shadow-black/10 hover:bg-white/25 transition-all duration-300 group"
+                className="bg-[#00213f]/70 rounded-xl px-5 py-5 border border-white/20 shadow-xl shadow-black/10 hover:bg-[#00213f]/85 transition-colors duration-300 group"
               >
                 <div className="text-xl lg:text-3xl font-bold text-white mb-0.5 tracking-tight group-hover:text-primary-200 transition-colors uppercase">{s.val}</div>
                 <div className="text-[10px] lg:text-[11px] text-white font-bold tracking-wider uppercase">{s.label}</div>

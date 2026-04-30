@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Landmark,
   Building2,
@@ -141,10 +141,6 @@ export default function InstitucionesBancariasPage() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const { scrollY } = useScroll();
-  const heroScale = useTransform(scrollY, [0, 600], [1, 1.1]);
-  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
-
   const fetchBancos = useCallback(async () => {
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa')) {
       setCargandoDatos(false);
@@ -278,7 +274,7 @@ export default function InstitucionesBancariasPage() {
 
         {/* Geometric accents */}
         <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-emerald-50/50 to-transparent" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-100/30 blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-100/40 rounded-full pointer-events-none" />
 
         {/* Grid pattern - very subtle */}
         <div
@@ -672,9 +668,6 @@ export default function InstitucionesBancariasPage() {
       <section className="relative py-24 md:py-32 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950" />
 
-        {/* Ambient glow */}
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-emerald-500/10 blur-[150px] pointer-events-none" />
-
         <div className="relative max-w-7xl mx-auto px-6">
           <motion.div
             variants={stagger}
@@ -720,7 +713,7 @@ export default function InstitucionesBancariasPage() {
                   <div className="hidden md:block absolute top-16 -right-4 w-8 h-px bg-gradient-to-r from-emerald-500/50 to-transparent" />
                 )}
 
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-8 h-full transition-all duration-300 hover:bg-white/10 hover:border-emerald-500/30">
+                <div className="bg-white/[0.06] border border-white/10 p-8 h-full transition-colors duration-300 hover:bg-white/10 hover:border-emerald-500/30">
                   <div className="flex items-start justify-between mb-8">
                     <span className="font-manrope text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 to-emerald-600/30">
                       {step.paso}
