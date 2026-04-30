@@ -277,16 +277,10 @@ export default function EmpresasPage() {
     setCategoriaSeleccionada(null);
   }, []);
 
-  // Solo bloqueamos si el auth aún resuelve (normalmente no pasa porque tenemos initialUser del server)
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-200 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   // Public landing for unauthenticated users — branch by categoria
+  // No mostramos spinner durante `loading`: SSR y cliente deben renderizar el
+  // mismo árbol para no romper hidratación. Si no hay currentUser (sea por
+  // loading inicial o por estar deslogueado), mostramos la landing.
   if (!currentUser) {
     if (categoriaSocio === 'proveedores_servicios_productos') {
       return <PublicProveedoresParticularesLanding />;
