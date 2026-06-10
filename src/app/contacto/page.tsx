@@ -11,7 +11,7 @@ export default function ContactoPage() {
   return (
     <div className="min-h-screen bg-[#f7f9fb] selection:bg-primary/10">
       {/* Header Section - Asymmetric and Editorial */}
-      <section className="relative pt-12 md:pt-16 pb-20 md:pb-24 overflow-hidden">
+      <section className="relative pt-20 md:pt-28 pb-20 md:pb-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
             <div className="lg:col-span-8">
@@ -22,7 +22,7 @@ export default function ContactoPage() {
                 Conecta con nosotros
               </span>
               <h1
-                className="text-4xl md:text-5xl lg:text-6xl font-black text-[#00213f] tracking-tighter leading-[0.95]"
+                className="text-4xl md:text-5xl lg:text-6xl font-black text-[#00213f] tracking-tighter leading-[1.05] pt-1"
                 style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
               >
                 Vías de <br />
