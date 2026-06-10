@@ -29,6 +29,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { LandingProfileCard } from "@/components/ui/directorio/tarjeta-perfil-landing";
+import { BannerLogosSocias } from "@/components/ui/directorio/banner-logos-socias";
 import { getEmpresas } from "@/lib/datos/directorio";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
@@ -232,7 +233,31 @@ export function PublicEmpresasLanding() {
         </div>
       </section>
 
-
+      {/* ═══════════════════════════════════════════
+          SECTION 1.5: BANNER LOGOS EMPRESAS SOCIAS
+      ═══════════════════════════════════════════ */}
+      <section className="py-14 lg:py-16 bg-white border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            variants={fadeIn}
+            className="text-center"
+          >
+            <span className="text-[11px] font-semibold text-primary-600 tracking-[0.14em] uppercase block mb-3">
+              Empresas socias
+            </span>
+            <h2
+              className="text-xl lg:text-2xl font-bold text-[#191c1e] tracking-tight"
+              style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+            >
+              Forman parte de la red UIAB
+            </h2>
+          </motion.div>
+        </div>
+        <BannerLogosSocias />
+      </section>
 
       {/* ═══════════════════════════════════════════
           SECTION 2: "¿QUÉ ENCONTRARÁS?" — EDITORIAL NARRATIVE
