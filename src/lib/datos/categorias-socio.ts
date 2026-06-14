@@ -2,6 +2,7 @@ export const CATEGORIAS_SOCIO = [
   "proveedores_servicios_productos",
   "instituciones_educativas",
   "instituciones_bancarias",
+  "cooperativas",
 ] as const;
 
 export type CategoriaSocio = (typeof CATEGORIAS_SOCIO)[number];
@@ -47,13 +48,24 @@ export const CATEGORIAS_SOCIO_META: Record<CategoriaSocio, CategoriaSocioMeta> =
   instituciones_bancarias: {
     valor: "instituciones_bancarias",
     slug: "bancarias",
-    nombre: "Instituciones bancarias",
-    nombreCorto: "Bancarias",
+    nombre: "Entidades financieras",
+    nombreCorto: "Financieras",
     descripcion: "Entidades financieras socias de la UIAB.",
     eyebrow: "Socios UIAB · Financiero",
     heroGradient: "from-[#042f2e] via-[#053d3b]/80 to-[#115e59]/60",
     accentBadge: "bg-emerald-500/15 text-emerald-200 border-emerald-300/30",
-    sustantivoPlural: "instituciones",
+    sustantivoPlural: "entidades",
+  },
+  cooperativas: {
+    valor: "cooperativas",
+    slug: "cooperativas",
+    nombre: "Cooperativas",
+    nombreCorto: "Cooperativas",
+    descripcion: "Cooperativas de trabajo y producción socias de la UIAB.",
+    eyebrow: "Socios UIAB · Cooperativas",
+    heroGradient: "from-[#451a03] via-[#5a2e0a]/80 to-[#92580e]/60",
+    accentBadge: "bg-amber-500/15 text-amber-200 border-amber-300/30",
+    sustantivoPlural: "cooperativas",
   },
 };
 

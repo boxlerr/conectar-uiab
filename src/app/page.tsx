@@ -20,6 +20,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { CategoriasDirectorio } from "@/components/ui/directorio/categorias-directorio";
+import { BannerLogosSocias } from "@/components/ui/directorio/banner-logos-socias";
 import { PreviewDirectorio } from "@/components/ui/directorio/preview-directorio";
 import { SeccionBeneficios } from "@/components/ui/directorio/seccion-beneficios";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
@@ -299,7 +300,10 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#f7f9fb] to-transparent z-10" />
       </section>
 
-
+      {/* ═══════════════════════════════════════════
+          BANNER — logos de empresas socias en movimiento
+      ═══════════════════════════════════════════ */}
+      <BannerLogosSocias />
 
       {/* ═══════════════════════════════════════════
           HOW IT WORKS — 3 step visual with isometric connection

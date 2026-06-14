@@ -8,6 +8,7 @@ import {
   Package,
   Landmark,
   GraduationCap,
+  Handshake,
   Lock,
   ArrowUpRight,
   MapPin,
@@ -116,9 +117,9 @@ export function PreviewDirectorio() {
     },
     {
       id: "bancarias",
-      title: "Instituciones bancarias",
-      short: "Bancarias",
-      tagline: "Entidades financieras socias",
+      title: "Entidades financieras",
+      short: "Financieras",
+      tagline: "Bancos y financieras aliadas",
       icon: Landmark,
       href: "/instituciones-bancarias",
       ctaLabel: "Explorar entidades financieras",
@@ -139,6 +140,32 @@ export function PreviewDirectorio() {
         certificacion: "Convenio UIAB",
       },
       tipos: ["Banca PyME", "Banca corporativa", "Servicios financieros"],
+    },
+    {
+      id: "cooperativas",
+      title: "Cooperativas",
+      short: "Cooperativas",
+      tagline: "Cooperativas de trabajo y producción",
+      icon: Handshake,
+      href: "/cooperativas",
+      ctaLabel: "Explorar cooperativas",
+      accent: "#b45309",
+      accentSoft: "rgba(180,83,9,0.07)",
+      accentInk: "#7c2d12",
+      glow: "rgba(180,83,9,0.18)",
+      image: "/landing/business-partnership.png",
+      imageAlt: "Cooperativa de trabajo de la red UIAB",
+      demo: {
+        badge: "Cooperativa socia",
+        initials: "TC",
+        nombrePlaceholder: "Tu Cooperativa Ltda.",
+        descPlaceholder:
+          "Producción y servicios cooperativos para la red industrial. Trabajo asociativo con respaldo UIAB.",
+        ubicacion: "Sede · Almirante Brown",
+        servicios: ["Producción", "Servicios", "Asociados", "Capacidad"],
+        certificacion: "Matrícula INAES",
+      },
+      tipos: ["Cooperativa de trabajo", "Cooperativa de producción", "Economía social"],
     },
   ];
 
@@ -178,11 +205,11 @@ export function PreviewDirectorio() {
               className="text-[26px] lg:text-[32px] leading-[1.1] font-bold text-[#191c1e] tracking-tight"
               style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
             >
-              Tres ramas, <span className="italic font-light text-[#10375c]">un mismo</span> ecosistema.
+              Distintas ramas, <span className="italic font-light text-[#10375c]">un mismo</span> ecosistema.
             </h2>
             <p className="mt-2 text-[13.5px] text-[#191c1e]/55 leading-relaxed">
-              Empresas, centros educativos y entidades financieras conectados en un mismo directorio.
-              Mire cómo se vería su perfil dentro de la red.
+              Empresas, centros educativos, entidades financieras y cooperativas conectados en un
+              mismo directorio. Mire cómo se vería su perfil dentro de la red.
             </p>
           </div>
 

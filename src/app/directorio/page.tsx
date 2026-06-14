@@ -358,8 +358,8 @@ export default function DirectorioPage() {
             </h1>
 
             <p className="text-blue-100/80 text-lg md:text-xl font-medium max-w-2xl leading-relaxed">
-              Accedé al ecosistema completo: empresas socias y proveedores de servicios
-              verificados de la red UIAB.
+              Accedé al ecosistema completo: empresas socias UIAB y prestadores de
+              productos y servicios (no socios) verificados de la red.
             </p>
           </motion.div>
         </div>
@@ -417,7 +417,7 @@ export default function DirectorioPage() {
             }`}
           >
             <Building2 className="w-4 h-4" />
-            Empresas
+            Empresas socias
             {!cargandoEmpresas && (
               <span className="ml-1 text-xs font-black text-slate-400">
                 {empresas.length}
@@ -433,7 +433,10 @@ export default function DirectorioPage() {
             }`}
           >
             <Wrench className="w-4 h-4" />
-            Prestadores de servicios
+            Prestadores de productos y servicios
+            <span className="ml-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
+              No socios
+            </span>
             {!cargandoPrestadores && (
               <span className="ml-1 text-xs font-black text-slate-400">
                 {prestadores.length}

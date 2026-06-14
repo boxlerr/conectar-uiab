@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { User, Shield, Building, Wrench, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase, BookOpen, GraduationCap, Landmark, Package, Users } from "lucide-react";
+import { User, Shield, Building, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase, BookOpen, GraduationCap, Landmark, Factory, Users } from "lucide-react";
 import { cn } from "@/lib/utilidades";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import type { User as UserType } from "@/tipos";
@@ -134,16 +134,20 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentCategoria = searchParams.get("categoria");
+  const currentTab = searchParams.get("tab");
 
-  // Compara un href (ej. "/empresas?categoria=educativas") contra
-  // pathname+query actuales para decidir si está activo.
+  // Compara un href (ej. "/directorio?tab=prestadores" o
+  // "/empresas?categoria=educativas") contra pathname+query actuales.
   const hrefEsActivo = (href: string) => {
     const [hrefPath, hrefQuery] = href.split("?");
     if (pathname !== hrefPath) return false;
-    if (!hrefQuery) return !currentCategoria;
-    const hrefParams = new URLSearchParams(hrefQuery);
-    const hrefCategoria = hrefParams.get("categoria");
-    return hrefCategoria === currentCategoria;
+    const hp = new URLSearchParams(hrefQuery ?? "");
+    // En /directorio distinguimos el tab (empresas por defecto vs prestadores).
+    if (hrefPath === "/directorio") {
+      return (hp.get("tab") ?? "empresas") === (currentTab ?? "empresas");
+    }
+    if (hp.has("categoria")) return hp.get("categoria") === currentCategoria;
+    return !currentCategoria && !currentTab;
   };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -198,25 +202,37 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
         {
           name: "Directorio",
           icon: Building,
-          description: "Organizaciones y proveedores de servicios",
+          description: "Las categorías de la red UIAB",
           items: [
             {
-              name: "Empresas y proveedores de servicios",
-              href: "/empresas?categoria=proveedores",
-              icon: Package,
-              description: "Ecosistema industrial y proveedores de servicios",
+              name: "Empresas industriales socias UIAB",
+              href: "/directorio",
+              icon: Factory,
+              description: "Ecosistema industrial socio de la UIAB",
             },
             {
-              name: "Instituciones educativas",
+              name: "Prestadores de productos y servicios",
+              href: "/directorio?tab=prestadores",
+              icon: Briefcase,
+              description: "Proveedores de servicios no socios",
+            },
+            {
+              name: "Entidades financieras",
+              href: "/instituciones-bancarias",
+              icon: Landmark,
+              description: "Bancos y financieras aliadas",
+            },
+            {
+              name: "Entidades educativas",
               href: "/instituciones-educativas",
               icon: GraduationCap,
               description: "Centros de formación aliados",
             },
             {
-              name: "Instituciones bancarias",
-              href: "/instituciones-bancarias",
-              icon: Landmark,
-              description: "Entidades financieras socias",
+              name: "Cooperativas",
+              href: "/cooperativas",
+              icon: Users,
+              description: "Cooperativas de trabajo y producción",
             },
           ],
         },
@@ -398,7 +414,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                               transition={{ type: "spring", stiffness: 400, damping: 30 }}
                               className={cn(
                                 "absolute left-1/2 -translate-x-1/2 top-full mt-3 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 origin-top",
-                                hasGroups ? "w-[22rem]" : "w-56"
+                                hasGroups ? "w-[25rem]" : "w-56"
                               )}
                             >
                               {hasGroups ? (
@@ -434,7 +450,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                                                     : "text-slate-700 hover:text-primary-700 hover:bg-primary-50"
                                                 )}
                                               >
-                                                <ChildIcon className={cn("w-4 h-4 mt-0.5 flex-shrink-0", childActive ? "text-primary-600" : "text-slate-400")} />
+                                                <ChildIcon className={cn("w-[18px] h-[18px] mt-0.5 flex-shrink-0", childActive ? "text-primary-600" : "text-slate-500")} />
                                                 <div className="min-w-0">
                                                   <p className="font-semibold leading-tight">{child.name}</p>
                                                   {child.description && (
@@ -661,7 +677,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                                             onClick={() => setIsMobileMenuOpen(false)}
                                           >
                                             <div className="flex items-center gap-3 min-w-0">
-                                              <ChildIcon className={cn("w-5 h-5 flex-shrink-0", childActive ? "text-primary-600" : "text-slate-400")} />
+                                              <ChildIcon className={cn("w-5 h-5 flex-shrink-0", childActive ? "text-primary-600" : "text-slate-500")} />
                                               <span className="truncate">{child.name}</span>
                                             </div>
                                             {!childActive && <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />}
