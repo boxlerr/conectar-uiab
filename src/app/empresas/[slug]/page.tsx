@@ -114,33 +114,35 @@ export default async function EmpresaProfilePage({
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
-  // Check authentication (cookie-based, no RLS bypass needed)
+  // Auth check and the empresas fetch are independent → run them in parallel
   const serverClient = await createServerClient();
-  const { data: { user } } = await serverClient.auth.getUser();
-  const isAuthenticated = !!user;
-
   const supabase = createAdminClient();
 
-  const { data: empresasData } = await supabase
-    .from('empresas')
-    .select(`
-      id,
-      razon_social,
-      direccion,
-      localidad,
-      actividad,
-      sitio_web,
-      email,
-      referente,
-      bucket_logo,
-      ruta_logo,
-      empresas_categorias (
-        categorias (
-          nombre
+  const [{ data: { user } }, { data: empresasData }] = await Promise.all([
+    serverClient.auth.getUser(),
+    supabase
+      .from('empresas')
+      .select(`
+        id,
+        razon_social,
+        direccion,
+        localidad,
+        actividad,
+        sitio_web,
+        email,
+        referente,
+        bucket_logo,
+        ruta_logo,
+        empresas_categorias (
+          categorias (
+            nombre
+          )
         )
-      )
-    `)
-    .eq('estado', 'aprobada');
+      `)
+      .eq('estado', 'aprobada'),
+  ]);
+
+  const isAuthenticated = !!user;
 
   const empresaDb = empresasData?.find((emp: any) => crearSlug(emp.razon_social) === slug);
 
@@ -227,21 +229,38 @@ async function EmpresaProfile({
   let catalogoItems: CatalogoItem[] = [];
 
   if (isAuthenticated) {
-    const { data: resenasData } = await supabase
-      .from('resenas')
-      .select(`
-        id,
-        calificacion,
-        comentario,
-        creada_en,
-        empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
-        proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
-      `)
-      .eq('empresa_resenada_id', empresaDb.id)
-      .eq('estado', 'aprobada')
-      .order('creada_en', { ascending: false });
+    // The three authenticated fetches are independent → run them in parallel
+    const [resenasRes, opsRes, catalogo] = await Promise.all([
+      supabase
+        .from('resenas')
+        .select(`
+          id,
+          calificacion,
+          comentario,
+          creada_en,
+          empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
+          proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
+        `)
+        .eq('empresa_resenada_id', empresaDb.id)
+        .eq('estado', 'aprobada')
+        .order('creada_en', { ascending: false }),
+      supabase
+        .from('oportunidades')
+        .select(`
+          id,
+          titulo,
+          descripcion,
+          localidad,
+          creado_en,
+          categoria:categorias(nombre)
+        `)
+        .eq('empresa_solicitante_id', empresaDb.id)
+        .eq('estado', 'abierta')
+        .order('creado_en', { ascending: false }),
+      fetchCatalogoItems(supabase, "company", empresaDb.id),
+    ]);
 
-    if (!resenasData) {
+    if (!resenasRes.data) {
       const { data: fallbackData } = await supabase
         .from('resenas')
         .select('id, calificacion, comentario, creada_en')
@@ -250,25 +269,11 @@ async function EmpresaProfile({
         .order('creada_en', { ascending: false });
       finalResenas = fallbackData || [];
     } else {
-      finalResenas = resenasData;
+      finalResenas = resenasRes.data;
     }
 
-    const { data: opsData } = await supabase
-      .from('oportunidades')
-      .select(`
-        id,
-        titulo,
-        descripcion,
-        localidad,
-        creado_en,
-        categoria:categorias(nombre)
-      `)
-      .eq('empresa_solicitante_id', empresaDb.id)
-      .eq('estado', 'abierta')
-      .order('creado_en', { ascending: false });
-
-    oportunidadesActivas = opsData || [];
-    catalogoItems = await fetchCatalogoItems(supabase, "company", empresaDb.id);
+    oportunidadesActivas = opsRes.data || [];
+    catalogoItems = catalogo;
   }
 
   const tieneActividadReal = Boolean(empresaDb.actividad && empresaDb.actividad.trim().length > 8);

@@ -90,7 +90,7 @@ export function FilterSidebar({
                   : `text-slate-600 font-medium border border-transparent hover:border-slate-200 ${hoverBg}`
               }`}
             >
-              <span>{cat}</span>
+              <span>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
               {categoriaSeleccionada === cat ? (
                 <div className="w-1.5 h-1.5 rounded-full bg-white/80" />
               ) : (
