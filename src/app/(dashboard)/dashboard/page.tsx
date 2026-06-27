@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { BannerSuscripcion, DashboardBlurGate } from '@/components/ui/BannerSuscripcion';
 import { BotonReiniciarTour } from '@/modulos/onboarding/componentes/boton-reiniciar-tour';
+import { TarjetaVisitas } from '@/components/ui/tarjeta-visitas';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -781,6 +782,9 @@ export default async function DashboardPage() {
 
           {/* RIGHT SIDEBAR (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
+
+            {/* VISITAS A TU FICHA */}
+            {!isAdmin && <TarjetaVisitas />}
 
             {/* QUICK ACTIONS */}
             <section data-tour="dash-quick" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:230ms] [animation-fill-mode:both]">

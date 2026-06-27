@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { User, Shield, Building, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase, BookOpen, GraduationCap, Landmark, Factory, Users } from "lucide-react";
+import { User, Shield, Building, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase, BookOpen, GraduationCap, Landmark, Factory, Users, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utilidades";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import type { User as UserType } from "@/tipos";
@@ -242,6 +242,11 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
     { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
     { name: "Contacto", href: "/contacto", icon: null },
   ];
+
+  // Visitantes sin sesión (socios que todavía no tienen acceso): CTA para sumarse.
+  if (!currentUser) {
+    navigation.splice(2, 0, { name: "Sumate", href: "/sumate", icon: UserPlus });
+  }
 
   if (currentUser?.role === "admin") {
     navigation.push({ name: "Panel Admin", href: "/admin", icon: Shield });

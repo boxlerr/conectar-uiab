@@ -8,6 +8,8 @@ import { CatalogoPublico, type CatalogoItem } from "@/components/ui/directorio/c
 import { ModalContacto } from "@/components/ui/directorio/modal-contacto";
 import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock } from "lucide-react";
 import Image from "next/image";
+import { BotonWhatsApp } from "@/components/ui/boton-whatsapp";
+import { RegistrarVisita } from "@/components/ui/registrar-visita";
 
 async function fetchCatalogoItems(
   supabase: any,
@@ -130,6 +132,8 @@ export default async function EmpresaProfilePage({
         actividad,
         sitio_web,
         email,
+        telefono,
+        whatsapp,
         referente,
         bucket_logo,
         ruta_logo,
@@ -291,12 +295,15 @@ async function EmpresaProfile({
     contacto: {
       email: empresaDb.email || "No disponible",
       telefono: "Protegido",
+      // El número real solo se expone a usuarios autenticados (para WhatsApp).
+      whatsapp: isAuthenticated ? (empresaDb.whatsapp || empresaDb.telefono || "") : "",
       sitioWeb: empresaDb.sitio_web || ""
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 font-inter pb-20">
+      <RegistrarVisita tipo="empresa" entidadId={empresaDb.id} />
       {/* Hero — always visible for SEO */}
       <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24">
         <div className="absolute inset-0 z-0">
@@ -516,6 +523,12 @@ async function EmpresaProfile({
                       </div>
                     </li>
 
+                    {empresa.contacto.whatsapp && (
+                      <li>
+                        <BotonWhatsApp telefono={empresa.contacto.whatsapp} nombre={empresa.nombre} variant="compact" />
+                      </li>
+                    )}
+
                     {empresa.contacto.sitioWeb && (
                       <li className="flex items-start gap-3">
                         <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
@@ -652,6 +665,7 @@ async function ProveedorProfile({
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-24">
+      <RegistrarVisita tipo="proveedor" entidadId={provDb.id} />
       {/* Hero */}
       <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24">
         <div className="absolute inset-0 z-0">
@@ -831,6 +845,12 @@ async function ProveedorProfile({
                             {proveedor.contacto.telefono}
                           </a>
                         </div>
+                      </li>
+                    )}
+
+                    {proveedor.contacto.telefono && (
+                      <li>
+                        <BotonWhatsApp telefono={proveedor.contacto.telefono} nombre={proveedor.nombre} variant="compact" />
                       </li>
                     )}
                   </ul>

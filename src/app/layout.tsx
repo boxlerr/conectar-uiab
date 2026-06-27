@@ -40,8 +40,35 @@ import type { User } from "@/tipos";
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: "UIAB Conecta | Directorio Industrial",
+  metadataBase: new URL("https://www.uiabconecta.com"),
+  title: {
+    default: "UIAB Conecta | Directorio Industrial",
+    template: "%s | UIAB Conecta",
+  },
   description: "Directorio Comercial de la Unión Industrial de Almirante Brown",
+  applicationName: "UIAB Conecta",
+  icons: {
+    icon: [
+      { url: "/icono-uiab.svg", type: "image/svg+xml" },
+      { url: "/icono-uiab.png", type: "image/png" },
+    ],
+    apple: "/icono-uiab.png",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "UIAB Conecta",
+    title: "UIAB Conecta | Directorio Industrial",
+    description: "Directorio Comercial de la Unión Industrial de Almirante Brown",
+    url: "https://www.uiabconecta.com",
+    locale: "es_AR",
+    images: [{ url: "/industrial-b2b-header.png", width: 1200, height: 630, alt: "UIAB Conecta" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "UIAB Conecta | Directorio Industrial",
+    description: "Directorio Comercial de la Unión Industrial de Almirante Brown",
+    images: ["/industrial-b2b-header.png"],
+  },
 };
 
 /**

@@ -1,6 +1,6 @@
-import { Mail, MapPin, Phone, Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
+import { FormularioContacto } from "./FormularioContacto";
 
 export const metadata = {
   title: "Contacto | UIAB Conecta",
@@ -122,78 +122,7 @@ export default function ContactoPage() {
               Envíanos una consulta
             </h3>
 
-            <form className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <label htmlFor="first-name" className="text-[10px] font-bold text-primary/50 uppercase tracking-widest ml-1">
-                    Nombre
-                  </label>
-                  <input
-                    type="text"
-                    id="first-name"
-                    className="block w-full bg-[#f2f4f6] text-[#00213f] rounded px-5 py-3 text-sm outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all font-medium border-none placeholder:text-slate-400"
-                    placeholder="Escribe tu nombre"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor="last-name" className="text-[10px] font-bold text-primary/50 uppercase tracking-widest ml-1">
-                    Apellido
-                  </label>
-                  <input
-                    type="text"
-                    id="last-name"
-                    className="block w-full bg-[#f2f4f6] text-[#00213f] rounded px-5 py-3 text-sm outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all font-medium border-none placeholder:text-slate-400"
-                    placeholder="Escribe tu apellido"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label htmlFor="email" className="text-[10px] font-bold text-primary/50 uppercase tracking-widest ml-1">
-                  Correo Electrónico
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  className="block w-full bg-[#f2f4f6] text-[#00213f] rounded px-5 py-3 text-sm outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all font-medium border-none placeholder:text-slate-400"
-                  placeholder="tucorreo@empresa.com"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label htmlFor="subject" className="text-[10px] font-bold text-primary/50 uppercase tracking-widest ml-1">
-                  Asunto
-                </label>
-                <input
-                  type="text"
-                  id="subject"
-                  className="block w-full bg-[#f2f4f6] text-[#00213f] rounded px-5 py-3 text-sm outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all font-medium border-none placeholder:text-slate-400"
-                  placeholder="¿En qué podemos ayudarte?"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label htmlFor="message" className="text-[10px] font-bold text-primary/50 uppercase tracking-widest ml-1">
-                  Mensaje
-                </label>
-                <textarea
-                  id="message"
-                  rows={4}
-                  className="block w-full bg-[#f2f4f6] text-[#00213f] rounded px-5 py-3 text-sm outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all font-medium border-none resize-none placeholder:text-slate-400"
-                  placeholder="Describe tu consulta aquí..."
-                />
-              </div>
-
-              <div className="pt-4 flex justify-end">
-                <Button
-                  type="button"
-                  className="bg-[#00213f] hover:bg-[#10375c] text-white h-12 px-8 rounded text-[13px] uppercase tracking-widest font-bold transition-all hover:translate-y-[-2px] active:translate-y-[0px] shadow-none"
-                >
-                  Confirmar Envío
-                  <Send className="w-3.5 h-3.5 ml-2.5" />
-                </Button>
-              </div>
-            </form>
+            <FormularioContacto />
           </div>
         </div>
 

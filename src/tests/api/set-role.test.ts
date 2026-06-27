@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Lo mockeamos antes de importar la ruta para que el módulo no intente
 // conectarse a Supabase real durante los tests.
 const mockUpdateUserById = vi.fn();
+const mockPerfilMaybeSingle = vi.fn();
 
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
@@ -12,6 +13,23 @@ vi.mock('@supabase/supabase-js', () => ({
         updateUserById: mockUpdateUserById,
       },
     },
+    // Usado para verificar que el actor es admin (perfiles.rol_sistema)
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: mockPerfilMaybeSingle,
+        })),
+      })),
+    })),
+  })),
+}));
+
+// ─── Mock del cliente de sesión (servidor) ────────────────────────────────────
+// El endpoint ahora exige un admin autenticado.
+const mockGetUser = vi.fn();
+vi.mock('@/lib/supabase/servidor', () => ({
+  createClient: vi.fn(async () => ({
+    auth: { getUser: mockGetUser },
   })),
 }));
 
@@ -41,6 +59,24 @@ describe('POST /api/auth/set-role', () => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake-service-role-key';
+    // Por defecto: el actor es un admin autenticado.
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'admin-1' } } });
+    mockPerfilMaybeSingle.mockResolvedValue({ data: { rol_sistema: 'admin' } });
+  });
+
+  // ── Autorización ───────────────────────────────────────────────────────────
+  it('devuelve 401 si no hay sesión', async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
+    const res = await POST(makeRequest({ userId: 'user-123', role: 'admin' }));
+    expect(res.status).toBe(401);
+    expect(mockUpdateUserById).not.toHaveBeenCalled();
+  });
+
+  it('devuelve 403 si el usuario autenticado no es admin', async () => {
+    mockPerfilMaybeSingle.mockResolvedValueOnce({ data: { rol_sistema: 'company' } });
+    const res = await POST(makeRequest({ userId: 'user-123', role: 'admin' }));
+    expect(res.status).toBe(403);
+    expect(mockUpdateUserById).not.toHaveBeenCalled();
   });
 
   // ── Validación de entrada ──────────────────────────────────────────────────

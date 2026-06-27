@@ -65,6 +65,7 @@ async function getDashboardData() {
     { data: ultimosPagos },
     { data: empresasTarifa },
     { data: tarifasPrecios },
+    { count: altasPendientes },
   ] = await Promise.all([
     supabase.from("empresas").select("*", { count: "exact", head: true }),
     supabase.from("proveedores").select("*", { count: "exact", head: true }),
@@ -104,6 +105,7 @@ async function getDashboardData() {
       .limit(6),
     supabase.from("empresas").select("tarifa").eq("estado", "aprobada"),
     supabase.from("tarifas_precios").select("nivel, precio_mensual"),
+    supabase.from("altas_socios").select("*", { count: "exact", head: true }).eq("estado", "pendiente"),
   ]);
 
   // Calcular ingreso mensual estimado
@@ -205,6 +207,7 @@ async function getDashboardData() {
     proveedoresNuevos24h: proveedoresNuevos24h ?? 0,
     usuariosNuevos7d: usuariosNuevos7d ?? 0,
     oportunidadesNuevas7d: oportunidadesNuevas7d ?? 0,
+    altasPendientes: altasPendientes ?? 0,
     ingresoMensual,
     actividad: actividad.slice(0, 30),
   };
@@ -266,6 +269,13 @@ export default async function AdminDashboardPage() {
 
   const pendientes = [
     {
+      label: "Altas de socios sin procesar",
+      count: data.altasPendientes,
+      icon: UserPlus,
+      accent: "bg-primary-50 text-primary-700",
+      href: "/admin/altas",
+    },
+    {
       label: "Empresas por revisar",
       count: data.empresasPendientes,
       icon: Building,
@@ -289,6 +299,7 @@ export default async function AdminDashboardPage() {
   ];
 
   const accesosRapidos = [
+    { label: "Altas de socios", href: "/admin/altas", icon: UserPlus },
     { label: "Suscripciones", href: "/admin/suscripciones", icon: DollarSign },
     { label: "Empresas", href: "/admin/empresas", icon: Building },
     { label: "Proveedores de servicios", href: "/admin/proveedores", icon: Wrench },

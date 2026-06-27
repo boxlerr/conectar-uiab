@@ -3,12 +3,16 @@
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Save, User, Building, MapPin, Phone, Mail, Globe, FileText, Loader2 } from "lucide-react";
+import { Save, User, Building, MapPin, Phone, Mail, Globe, FileText, Loader2, Users } from "lucide-react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { updateCompanyOrProvider } from "../acciones";
 import { toast } from "sonner";
 import Image from "next/image";
+import { PROVINCIAS_AR, LOCALIDADES_ALMIRANTE_BROWN } from "@/lib/datos/geografia-ar";
+
+const selectCls =
+  "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-primary-500";
 
 export default function MiPerfilDatosPage() {
   const { currentUser, refreshUser, loading: authLoading } = useAuth();
@@ -30,6 +34,7 @@ export default function MiPerfilDatosPage() {
     direccion: "",
     descripcion: "",
     cuit: "",
+    cantidad_empleados: "" as string,
     ruta_logo: "",
     bucket_logo: "",
     nombre_logo: "",
@@ -66,6 +71,7 @@ export default function MiPerfilDatosPage() {
           direccion: data.direccion || "",
           descripcion: data.descripcion || "",
           cuit: data.cuit || "",
+          cantidad_empleados: data.cantidad_empleados != null ? String(data.cantidad_empleados) : "",
           ruta_logo: data.ruta_logo || "",
           bucket_logo: data.bucket_logo || "",
           nombre_logo: data.nombre_logo || "",
@@ -159,7 +165,14 @@ export default function MiPerfilDatosPage() {
       // Filter data based on user role to avoid sending non-existent columns
       const dataToSave = { ...formData };
 
-      if (currentUser.role !== "company") {
+      if (currentUser.role === "company") {
+        // cantidad_empleados es entero en `empresas`; recalcula la tarifa vía trigger.
+        (dataToSave as any).cantidad_empleados = formData.cantidad_empleados
+          ? parseInt(formData.cantidad_empleados, 10)
+          : null;
+      } else {
+        // `proveedores` no tiene esta columna — la quitamos del payload.
+        delete (dataToSave as any).cantidad_empleados;
         (dataToSave as any).tipo_proveedor = "particular";
         const [primerNombre, ...restoNombre] = (currentUser.name || "").split(" ");
         (dataToSave as any).nombre = primerNombre || "";
@@ -291,6 +304,22 @@ export default function MiPerfilDatosPage() {
               </div>
             )}
 
+            {currentUser.role === "company" && (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><Users className="w-4 h-4 text-slate-400" /> Cantidad de empleados</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100000}
+                  value={formData.cantidad_empleados}
+                  onChange={e => setFormData({ ...formData, cantidad_empleados: e.target.value })}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                  placeholder="Ej: 45"
+                />
+                <p className="text-xs text-slate-400">Define tu nivel de tarifa de socio. Se recalcula automáticamente al guardar.</p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><Mail className="w-4 h-4 text-slate-400" /> Correo Público</label>
               <input
@@ -343,11 +372,27 @@ export default function MiPerfilDatosPage() {
                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600">Localidad</label>
-                    <input type="text" value={formData.localidad} onChange={e => setFormData({...formData, localidad: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-primary-500" placeholder="Ej: Burzaco..." />
+                    <select value={formData.localidad} onChange={e => setFormData({...formData, localidad: e.target.value})} className={selectCls}>
+                      <option value="">Seleccioná una localidad…</option>
+                      {formData.localidad && !LOCALIDADES_ALMIRANTE_BROWN.includes(formData.localidad as never) && (
+                        <option value={formData.localidad}>{formData.localidad}</option>
+                      )}
+                      {LOCALIDADES_ALMIRANTE_BROWN.map((l) => (
+                        <option key={l} value={l}>{l}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600">Provincia</label>
-                    <input type="text" value={formData.provincia} onChange={e => setFormData({...formData, provincia: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-primary-500" />
+                    <select value={formData.provincia} onChange={e => setFormData({...formData, provincia: e.target.value})} className={selectCls}>
+                      <option value="">Seleccioná una provincia…</option>
+                      {formData.provincia && !PROVINCIAS_AR.includes(formData.provincia as never) && (
+                        <option value={formData.provincia}>{formData.provincia}</option>
+                      )}
+                      {PROVINCIAS_AR.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600">Dirección</label>
