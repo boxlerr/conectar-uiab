@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
 import { CatalogoPublico, type CatalogoItem } from "@/components/ui/directorio/catalogo-publico";
+import { ModalContacto } from "@/components/ui/directorio/modal-contacto";
 import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock } from "lucide-react";
 import Image from "next/image";
 
@@ -351,13 +352,15 @@ async function EmpresaProfile({
             )}
           </div>
           {isAuthenticated ? (
-            <a
-              href={`mailto:${empresa.contacto.email}`}
+            <ModalContacto
+              nombre={empresa.nombre}
+              email={empresa.contacto.email}
+              telefono={empresa.contacto.telefono}
+              sitioWeb={empresa.contacto.sitioWeb}
+              ubicacion={empresa.ubicacion ?? undefined}
+              colorScheme="blue"
               className="inline-flex items-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-2.5 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase"
-            >
-              <Mail className="w-3.5 h-3.5" />
-              Contactar
-            </a>
+            />
           ) : (
             <Link
               href={`/login?redirect=${encodeURIComponent(currentPath)}`}
@@ -696,13 +699,14 @@ async function ProveedorProfile({
             )}
           </div>
           {isAuthenticated ? (
-            <a
-              href={`mailto:${proveedor.contacto.email}`}
+            <ModalContacto
+              nombre={proveedor.nombre}
+              email={proveedor.contacto.email}
+              telefono={proveedor.contacto.telefono}
+              ubicacion={proveedor.ubicacion ?? undefined}
+              colorScheme="amber"
               className="inline-flex items-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-2.5 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase"
-            >
-              <Mail className="w-3.5 h-3.5" />
-              Contactar
-            </a>
+            />
           ) : (
             <Link
               href={`/login?redirect=${encodeURIComponent(currentPath)}`}
