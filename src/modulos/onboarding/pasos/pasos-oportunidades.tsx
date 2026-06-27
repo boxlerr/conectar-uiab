@@ -68,7 +68,7 @@ export const pasosOportunidades: PasoConRuta[] = [
     title: "Anatomía de una oportunidad",
     content:
       "Cada tarjeta muestra estado, empresa, descripción y categoría. Si ves el sello 'Recomendado' arriba a la derecha es porque tu perfil matchea — cuanto más alto el porcentaje, más afín.",
-    data: { ruta: "/oportunidades" },
+    data: { ruta: "/oportunidades", requiereMuestra: true },
   }),
 
   // ─── SIDEBAR PUBLICAR ───────────────────────────────────────────
@@ -86,7 +86,7 @@ export const pasosOportunidades: PasoConRuta[] = [
     title: "Te muestro una por dentro",
     content:
       "Dale Siguiente y te llevo a una oportunidad de ejemplo para que veas qué información encontrás al hacer click.",
-    data: { ruta: "/oportunidades" },
+    data: { ruta: "/oportunidades", requiereMuestra: true },
   }),
 
   // ─── HERO DETALLE ───────────────────────────────────────────────
@@ -96,7 +96,7 @@ export const pasosOportunidades: PasoConRuta[] = [
     title: "La ficha en un pantallazo",
     content:
       "Arriba tenés el folio, el estado y el título. Si sos candidato afín, vas a ver 'Recomendado · X pts' a la derecha — es el puntaje de match.",
-    data: { ruta: RUTA_OP_MUESTRA },
+    data: { ruta: RUTA_OP_MUESTRA, requiereMuestra: true },
   }),
 
   // ─── META ───────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ export const pasosOportunidades: PasoConRuta[] = [
     title: "Los datos clave de un vistazo",
     content:
       "Solicitante, ubicación y fecha de necesidad. Tres celdas para decidir en 5 segundos si tiene sentido leer el resto.",
-    data: { ruta: RUTA_OP_MUESTRA },
+    data: { ruta: RUTA_OP_MUESTRA, requiereMuestra: true },
   }),
 
   // ─── DESCRIPCIÓN ────────────────────────────────────────────────
@@ -116,7 +116,7 @@ export const pasosOportunidades: PasoConRuta[] = [
     title: "El requerimiento en detalle",
     content:
       "Acá la empresa describe qué necesita con todo el detalle — especificaciones, alcance, condiciones. Leelo antes de postularte.",
-    data: { ruta: RUTA_OP_MUESTRA },
+    data: { ruta: RUTA_OP_MUESTRA, requiereMuestra: true },
   }),
 
   // ─── FICHA TÉCNICA ──────────────────────────────────────────────
@@ -126,7 +126,7 @@ export const pasosOportunidades: PasoConRuta[] = [
     title: "Ficha técnica al costado",
     content:
       "Cantidad, unidad, fecha, categoría, ubicación. Los datos duros que solés necesitar para cotizar, siempre visibles mientras scrolleás.",
-    data: { ruta: RUTA_OP_MUESTRA },
+    data: { ruta: RUTA_OP_MUESTRA, requiereMuestra: true },
   }),
 
   // ─── POSTULARSE ─────────────────────────────────────────────────
@@ -136,7 +136,7 @@ export const pasosOportunidades: PasoConRuta[] = [
     title: "Postularte es directo",
     content:
       "Tocando 'Postularse' se abre un formulario corto: mensaje, cantidad y unidad sugerida. La empresa recibe tu propuesta y te contacta si le interesa — sin intermediarios.",
-    data: { ruta: RUTA_OP_MUESTRA },
+    data: { ruta: RUTA_OP_MUESTRA, requiereMuestra: true },
   }),
 
   // ─── CIERRE (vuelve al listado) ─────────────────────────────────

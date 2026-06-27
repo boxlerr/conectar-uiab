@@ -37,6 +37,12 @@ const STATUS_SKIPPED = "skipped";
 export interface PasoData {
   /** Pathname exacto donde el target de este step existe. */
   ruta: string;
+  /**
+   * True si el paso depende de que exista una oportunidad de muestra (una
+   * tarjeta en el listado o la navegación a la ficha de detalle). En un tablero
+   * vacío estos pasos se descartan para no congelar el tour.
+   */
+  requiereMuestra?: boolean;
 }
 
 interface TourContextValue {
@@ -216,10 +222,19 @@ export function TourProvider({ children }: TourProviderProps) {
     [slugMuestra, opMuestra]
   );
 
-  const pasos = useMemo(
-    () => (tourActivo ? CATALOGO_PASOS[tourActivo] : []),
-    [tourActivo]
-  );
+  const pasos = useMemo(() => {
+    if (!tourActivo) return [];
+    const base = CATALOGO_PASOS[tourActivo];
+    // En un tablero sin oportunidad de muestra, los pasos que dependen de una
+    // tarjeta o de la ficha de detalle no tienen target / no se puede navegar.
+    // Los descartamos para que el tour no se congele en el paso de la tarjeta.
+    if (!opMuestra) {
+      return base.filter(
+        (p) => !(p.data as PasoData | undefined)?.requiereMuestra
+      );
+    }
+    return base;
+  }, [tourActivo, opMuestra]);
 
   const iniciarTour = useCallback(
     async (id: TourId) => {
@@ -263,6 +278,47 @@ export function TourProvider({ children }: TourProviderProps) {
     }, 120);
   }, []);
 
+  // Guard para no ejecutar el cierre dos veces: en modo controlado joyride puede
+  // emitir el último `step:after` y un `tour:end` casi a la vez.
+  const finalizandoRef = useRef(false);
+
+  /**
+   * Cierre "completo" de un tour (llegó al final o se saltó). A diferencia del
+   * cierre por ESC/X, acá SÍ lo marcamos como visto.
+   *
+   * Clave: desmontamos el tour (setTourActivo(null)) en un timer fijo de 120ms,
+   * desacoplado del server action. Antes el `setTourActivo(null)` vivía después
+   * de `await marcarTourVisto`, así que en redes lentas el tour seguía "activo
+   * pero pausado" >450ms y el efecto de resume lo volvía a mostrar. Además
+   * marcamos visto de forma optimista en local para que el auto-trigger no lo
+   * relance mientras el server action está en vuelo.
+   */
+  const finalizarTour = useCallback(
+    (idActual: TourId | null) => {
+      if (finalizandoRef.current) return;
+      finalizandoRef.current = true;
+      setCorriendo(false);
+      if (idActual) {
+        limpiarProgreso(idActual);
+        setVistosLocal((prev) => ({
+          ...prev,
+          [idActual]: new Date().toISOString(),
+        }));
+      }
+      setTimeout(() => {
+        setTourActivo(null);
+        setStepIndex(0);
+        finalizandoRef.current = false;
+      }, 120);
+      if (idActual) {
+        void marcarTourVisto(idActual).then((res) => {
+          if (res.ok) setVistosLocal(res.tutorialesVistos);
+        });
+      }
+    },
+    [limpiarProgreso]
+  );
+
   /**
    * Handler principal de joyride. En v3 `onEvent` recibe `data` + `controls`
    * y se dispara en cada transición (step:before, step:after, tour:end,
@@ -272,7 +328,7 @@ export function TourProvider({ children }: TourProviderProps) {
    *   - error:target_not_found → pausar y esperar que aparezca el target
    */
   const handleEvent = useCallback(
-    async (data: EventData, _controls: Controls) => {
+    (data: EventData, _controls: Controls) => {
       const { status, type, action, index } = data;
 
       // ── Cierre con ESC / botón X ───────────────────────────────────
@@ -294,20 +350,7 @@ export function TourProvider({ children }: TourProviderProps) {
       // ── Fin del tour ────────────────────────────────────────────────
       const terminado = status === STATUS_FINISHED || status === STATUS_SKIPPED;
       if (terminado || type === "tour:end") {
-        const idActual = tourActivo;
-        // Primero apagamos `run` manteniendo los steps reales. Joyride usa
-        // ese render para hacer fade-out del overlay. Si nuqueamos tourActivo
-        // en el mismo tick, el overlay gris queda congelado.
-        setCorriendo(false);
-        if (idActual) {
-          limpiarProgreso(idActual);
-          const res = await marcarTourVisto(idActual);
-          if (res.ok) setVistosLocal(res.tutorialesVistos);
-        }
-        setTimeout(() => {
-          setTourActivo(null);
-          setStepIndex(0);
-        }, 120);
+        finalizarTour(tourActivo);
         return;
       }
 
@@ -321,18 +364,8 @@ export function TourProvider({ children }: TourProviderProps) {
           const nextStep = pasos[nextIndex];
           if (!nextStep) {
             // Último paso. En modo controlado joyride no siempre dispara
-            // tour:end solo — limpiamos nosotros para que el overlay se vaya.
-            const idActual = tourActivo;
-            setCorriendo(false);
-            if (idActual) {
-              limpiarProgreso(idActual);
-              const res = await marcarTourVisto(idActual);
-              if (res.ok) setVistosLocal(res.tutorialesVistos);
-            }
-            setTimeout(() => {
-              setTourActivo(null);
-              setStepIndex(0);
-            }, 120);
+            // tour:end solo — cerramos nosotros para que el overlay se vaya.
+            finalizarTour(tourActivo);
             return;
           }
           const rutaSig = resolverRuta(
@@ -362,7 +395,7 @@ export function TourProvider({ children }: TourProviderProps) {
         }
       }
     },
-    [tourActivo, pasos, pathname, router, resolverRuta, guardarProgreso, limpiarProgreso]
+    [tourActivo, pasos, pathname, router, resolverRuta, guardarProgreso, finalizarTour]
   );
 
   // ── Resume post-navegación ─────────────────────────────────────────
