@@ -26,6 +26,9 @@ export default function DirectorioPage() {
   const { currentUser, loading } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const tabParam = searchParams.get("tab") as Tab | null;
   const [activeTab, setActiveTab] = useState<Tab>(
@@ -53,9 +56,9 @@ export default function DirectorioPage() {
 
   // Sync tab with URL param
   useEffect(() => {
-    if (tabParam === "prestadores" && activeTab !== "prestadores") {
+    if (tabParam === "prestadores") {
       setActiveTab("prestadores");
-    } else if (tabParam !== "prestadores" && activeTab !== "empresas" && !tabParam) {
+    } else if (!tabParam) {
       setActiveTab("empresas");
     }
   }, [tabParam]);
@@ -301,7 +304,7 @@ export default function DirectorioPage() {
     });
   }, [entidadesActivas, categoriaSeleccionada, searchTerm]);
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-blue-200 border-t-primary rounded-full animate-spin" />

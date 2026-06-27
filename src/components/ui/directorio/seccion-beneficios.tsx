@@ -158,9 +158,9 @@ export function SeccionBeneficios() {
           </motion.div>
 
           {/* Card 4 — Sello */}
-          <motion.div variants={fadeUp} custom={3} className="bg-[#f8fafc] rounded-md p-8 group transition-all duration-300 border border-primary-200/60 shadow-md shadow-primary-900/5">
-            <div className="w-12 h-12 rounded-sm bg-primary-600 flex items-center justify-center mb-6 shadow-sm">
-              <BadgeCheck className="w-6 h-6 text-white" />
+          <motion.div variants={fadeUp} custom={3} className="bg-white rounded-md p-8 group hover:bg-[#f8fafc] transition-all duration-300 border border-slate-200 hover:border-primary-200/60 shadow-sm hover:shadow-md hover:shadow-primary-900/5">
+            <div className="w-12 h-12 rounded-sm bg-primary-50 group-hover:bg-primary-600 flex items-center justify-center mb-6 border border-primary-100/50 group-hover:border-0 group-hover:shadow-sm transition-all duration-300">
+              <BadgeCheck className="w-6 h-6 text-primary-600 group-hover:text-white transition-colors duration-300" />
             </div>
             <h3 className="text-lg font-bold text-[#00213f] mb-3" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Empresa Verificada UIAB</h3>
             <p className="text-[14px] text-slate-500 leading-relaxed">

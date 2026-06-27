@@ -261,9 +261,12 @@ function RegisterContent() {
       const isValid = await form.trigger(fieldsToValidate)
       if (!isValid) {
         const errors = form.formState.errors
-        Object.values(errors).forEach(err => {
-          if (err?.message) toast.warning(err.message as string)
-        })
+        const errorMessages = Object.values(errors).filter(err => err?.message)
+        if (errorMessages.length > 1) {
+          toast.warning('Completá todos los campos obligatorios antes de continuar.')
+        } else if (errorMessages.length === 1) {
+          toast.warning(errorMessages[0]!.message as string)
+        }
         return
       }
 

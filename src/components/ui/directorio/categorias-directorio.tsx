@@ -185,6 +185,7 @@ export function CategoriasDirectorio() {
             whileInView="visible"
             viewport={{ once: true, margin: "-40px" }}
             variants={stagger}
+            className="flex flex-col"
           >
             {/* Column Header */}
             <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-5">
@@ -219,7 +220,7 @@ export function CategoriasDirectorio() {
               ))}
             </div>
 
-            <motion.div variants={fadeUp} custom={CATEGORIAS_SOCIOS.length + 1} className="mt-5">
+            <motion.div variants={fadeUp} custom={CATEGORIAS_SOCIOS.length + 1} className="mt-auto pt-5">
               <Link
                 href="/empresas"
                 className="inline-flex items-center gap-2 text-[13px] font-bold text-[#10375c] hover:text-[#00213f] transition-colors group"
@@ -236,6 +237,7 @@ export function CategoriasDirectorio() {
             whileInView="visible"
             viewport={{ once: true, margin: "-40px" }}
             variants={stagger}
+            className="flex flex-col"
           >
             {/* Column Header */}
             <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-5">
@@ -270,7 +272,7 @@ export function CategoriasDirectorio() {
               ))}
             </div>
 
-            <motion.div variants={fadeUp} custom={CATEGORIAS_PARTICULARES.length + 1} className="mt-5">
+            <motion.div variants={fadeUp} custom={CATEGORIAS_PARTICULARES.length + 1} className="mt-auto pt-5">
               <Link
                 href="/empresas?categoria=proveedores"
                 className="inline-flex items-center gap-2 text-[13px] font-bold text-[#bf7035] hover:text-[#a05e28] transition-colors group"

@@ -128,7 +128,7 @@ export default function RecoveryPage() {
                   className="w-full bg-primary-600 hover:bg-primary-700 text-white h-11"
                   disabled={isLoading}
                 >
-                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Envíame un Enlace Mágico'}
+                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Enviar instrucciones de recuperación'}
                 </Button>
               </form>
             </Form>
