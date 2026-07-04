@@ -18,6 +18,15 @@ export async function crearResena(
     return { error: "No se pudo identificar tu perfil. Volvé a iniciar sesión." };
   }
 
+  // 0. Regla de negocio: solo las empresas socias califican, y solo se califican
+  //    empresas. Los prestadores de servicios no califican ni son calificados.
+  if (authorType !== "company") {
+    return { error: "Solo las empresas socias de UIAB pueden dejar reseñas." };
+  }
+  if (targetType !== "empresa") {
+    return { error: "Los prestadores de servicios no reciben reseñas." };
+  }
+
   // 1. Verificar sesión activa
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();

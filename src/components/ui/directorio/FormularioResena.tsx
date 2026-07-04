@@ -43,12 +43,13 @@ export function FormularioResena({ targetType, targetId }: FormularioResenaProps
     );
   }
 
-  // 2. Must be a company or provider
-  if (currentUser.role !== "company" && currentUser.role !== "provider") {
+  // 2. Solo las empresas socias pueden calificar. Los prestadores de servicios
+  //    no califican ni son calificados.
+  if (currentUser.role !== "company") {
     return (
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 flex gap-3 text-amber-800 text-sm">
         <Info className="w-5 h-5 shrink-0 mt-0.5" />
-        <p>Solo las empresas y proveedores de servicios registrados pueden dejar reseñas públicas. (Tu rol actual es: {currentUser.role}).</p>
+        <p>Solo las empresas socias de UIAB pueden dejar reseñas. Los prestadores de servicios no califican.</p>
       </div>
     );
   }
@@ -91,7 +92,7 @@ export function FormularioResena({ targetType, targetId }: FormularioResenaProps
     const res = await crearResena(
       targetType,
       targetId,
-      currentUser.role as "company" | "provider",
+      "company",
       currentUser.entityId as string,
       { calificacion: rating, comentario }
     );

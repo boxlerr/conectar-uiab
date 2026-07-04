@@ -19,7 +19,7 @@ export interface DatosDirectorio {
 export async function obtenerDirectorio(): Promise<DatosDirectorio> {
   const supabase = createAdminClient();
 
-  const [empresasRes, proveedoresRes, resenasEmpRes, resenasProvRes] =
+  const [empresasRes, proveedoresRes, resenasEmpRes] =
     await Promise.all([
       supabase
         .from("empresas")
@@ -53,11 +53,6 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
         .select("empresa_resenada_id, calificacion")
         .eq("estado", "aprobada")
         .not("empresa_resenada_id", "is", null),
-      supabase
-        .from("resenas")
-        .select("proveedor_resenado_id, calificacion")
-        .eq("estado", "aprobada")
-        .not("proveedor_resenado_id", "is", null),
     ]);
 
   const empresas: Entidad[] = (empresasRes.data || []).map((emp: any) => {
@@ -133,9 +128,9 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
     };
   });
 
-  // Agregación de reseñas aprobadas → rating promedio + cantidad
+  // Agregación de reseñas aprobadas → rating promedio + cantidad.
+  // Solo las empresas se califican; los prestadores no reciben reseñas.
   aplicarResenas(empresas, resenasEmpRes.data, "empresa_resenada_id");
-  aplicarResenas(prestadores, resenasProvRes.data, "proveedor_resenado_id");
 
   return { empresas, prestadores };
 }

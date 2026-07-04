@@ -577,36 +577,10 @@ async function ProveedorProfile({
     ? supabase.storage.from(provDb.bucket_logo).getPublicUrl(provDb.ruta_logo).data.publicUrl
     : null;
 
-  let finalResenas: any[] = [];
+  // Los prestadores de servicios no son calificados: no se traen reseñas.
   let catalogoItems: CatalogoItem[] = [];
 
   if (isAuthenticated) {
-    const { data: resenasData } = await supabase
-      .from('resenas')
-      .select(`
-        id,
-        calificacion,
-        comentario,
-        creada_en,
-        empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
-        proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
-      `)
-      .eq('proveedor_resenada_id', provDb.id)
-      .eq('estado', 'aprobada')
-      .order('creada_en', { ascending: false });
-
-    if (!resenasData) {
-      const { data: fallbackData } = await supabase
-        .from('resenas')
-        .select('id, calificacion, comentario, creada_en')
-        .eq('proveedor_resenado_id', provDb.id)
-        .eq('estado', 'aprobada')
-        .order('creada_en', { ascending: false });
-      finalResenas = fallbackData || [];
-    } else {
-      finalResenas = resenasData;
-    }
-
     catalogoItems = await fetchCatalogoItems(supabase, "provider", provDb.id);
   }
 
@@ -727,20 +701,17 @@ async function ProveedorProfile({
               </div>
             </section>
 
-            {/* Gated content */}
+            {/* Gated content — los prestadores no reciben reseñas, solo catálogo */}
             {isAuthenticated ? (
-              <>
-                {catalogoItems.length > 0 && (
-                  <CatalogoPublico items={catalogoItems} colorScheme="blue" />
-                )}
-                <ResenasPerfil resenasAprobadas={finalResenas} targetType="proveedor" targetId={provDb.id} />
-              </>
+              catalogoItems.length > 0 && (
+                <CatalogoPublico items={catalogoItems} colorScheme="blue" />
+              )
             ) : (
               <div className="bg-white p-7 rounded-md border border-[#191c1e]/8">
                 <div className="flex items-center gap-2.5 mb-5">
                   <Briefcase className="w-4 h-4 text-[#bf7035]" />
                   <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
-                    Catálogo y reseñas
+                    Catálogo
                   </h2>
                 </div>
                 <LoginGate currentPath={currentPath} />
