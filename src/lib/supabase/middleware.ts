@@ -124,17 +124,16 @@ export async function updateSession(request: NextRequest) {
 
   // 3. Subscription gate: bloquea rutas pagantes si la suscripción no está activa.
   // Dashboard y /perfil son accesibles (el dashboard muestra un banner con blur).
-  // Bloqueados: directorio de empresas/proveedores, oportunidades y vistas internas
-  // de empresa/proveedor dentro del dashboard.
+  // El directorio público (/directorio, /empresas, /proveedores) NO se bloquea:
+  // se ve sin cuenta y también para socios sin suscripción — pagás para aparecer,
+  // no para mirar. Siguen bloqueados: oportunidades y las vistas internas de
+  // empresa/proveedor dentro del dashboard.
   const gatedRoute =
     user && !userError &&
     !isApiRoute &&
     !pathname.startsWith('/suscripcion') &&
     !pathname.startsWith('/admin') &&
     (
-      pathname.startsWith('/directorio') ||
-      pathname.startsWith('/empresas') ||
-      pathname.startsWith('/proveedores') ||
       pathname.startsWith('/oportunidades') ||
       pathname.startsWith('/empresa/') ||
       pathname.startsWith('/proveedor/')

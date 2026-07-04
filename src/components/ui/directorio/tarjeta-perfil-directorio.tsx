@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, MapPin, BadgeCheck, Star, User } from "lucide-react";
+import { ArrowRight, MapPin, BadgeCheck, Star, User, Mail, Phone } from "lucide-react";
 import { Entidad } from "@/lib/datos/directorio";
 
 interface ProfileCardProps {
@@ -102,6 +102,22 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
             <p className="text-slate-500 text-[13px] leading-relaxed font-normal line-clamp-1 mt-1">
               {entidad.descripcionCorta}
             </p>
+            {(entidad.contacto.email || entidad.contacto.telefono) && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
+                {entidad.contacto.email && (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500 min-w-0 max-w-full">
+                    <Mail className="w-3 h-3 shrink-0 text-slate-400" />
+                    <span className="truncate">{entidad.contacto.email}</span>
+                  </span>
+                )}
+                {entidad.contacto.telefono && (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500 whitespace-nowrap">
+                    <Phone className="w-3 h-3 shrink-0 text-slate-400" />
+                    {entidad.contacto.telefono}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Metadata editorial */}
@@ -212,6 +228,24 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
                 <span className="bg-[#f2f4f6] px-2 py-0.5 text-[10px] font-bold text-slate-400 rounded-[2px]">
                   +{entidad.servicios.length - 3}
                 </span>
+              )}
+            </div>
+          )}
+
+          {/* Contacto directo — mail + teléfono */}
+          {(entidad.contacto.email || entidad.contacto.telefono) && (
+            <div className="space-y-1">
+              {entidad.contacto.email && (
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 min-w-0">
+                  <Mail className="w-3 h-3 shrink-0 text-slate-400" />
+                  <span className="truncate">{entidad.contacto.email}</span>
+                </div>
+              )}
+              {entidad.contacto.telefono && (
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                  <Phone className="w-3 h-3 shrink-0 text-slate-400" />
+                  {entidad.contacto.telefono}
+                </div>
               )}
             </div>
           )}

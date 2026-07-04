@@ -294,9 +294,9 @@ async function EmpresaProfile({
     servicios: serviciosExtra,
     contacto: {
       email: empresaDb.email || "No disponible",
-      telefono: "Protegido",
-      // El número real solo se expone a usuarios autenticados (para WhatsApp).
-      whatsapp: isAuthenticated ? (empresaDb.whatsapp || empresaDb.telefono || "") : "",
+      // El contacto es público (se ve sin cuenta): ese es el valor de ser socio.
+      telefono: empresaDb.telefono || "",
+      whatsapp: empresaDb.whatsapp || empresaDb.telefono || "",
       sitioWeb: empresaDb.sitio_web || ""
     }
   };
@@ -363,25 +363,15 @@ async function EmpresaProfile({
               </a>
             )}
           </div>
-          {isAuthenticated ? (
-            <ModalContacto
-              nombre={empresa.nombre}
-              email={empresa.contacto.email}
-              telefono={empresa.contacto.telefono}
-              sitioWeb={empresa.contacto.sitioWeb}
-              ubicacion={empresa.ubicacion ?? undefined}
-              colorScheme="blue"
-              className="inline-flex items-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-2.5 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase"
-            />
-          ) : (
-            <Link
-              href={`/login?redirect=${encodeURIComponent(currentPath)}`}
-              className="inline-flex items-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-2.5 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              Ver contacto
-            </Link>
-          )}
+          <ModalContacto
+            nombre={empresa.nombre}
+            email={empresa.contacto.email}
+            telefono={empresa.contacto.telefono}
+            sitioWeb={empresa.contacto.sitioWeb}
+            ubicacion={empresa.ubicacion ?? undefined}
+            colorScheme="blue"
+            className="inline-flex items-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-2.5 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase"
+          />
         </div>
       </div>
 
@@ -492,93 +482,68 @@ async function EmpresaProfile({
                 </h3>
               </div>
 
-              {isAuthenticated ? (
-                <>
-                  <ul className="p-6 space-y-5">
-                    {empresa.ubicacion && (
-                      <li className="flex items-start gap-3">
-                        <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
-                          <p className="text-slate-700 font-semibold text-[14px] leading-snug">{empresa.ubicacion}</p>
-                        </div>
-                      </li>
-                    )}
-
-                    <li className="flex items-start gap-3">
-                      <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo</p>
-                        <a href={`mailto:${empresa.contacto.email}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
-                          {empresa.contacto.email}
-                        </a>
-                      </div>
-                    </li>
-
-                    <li className="flex items-start gap-3">
-                      <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
-                        <p className="text-slate-600 font-medium text-[14px] italic">{empresa.contacto.telefono}</p>
-                      </div>
-                    </li>
-
-                    {empresa.contacto.whatsapp && (
-                      <li>
-                        <BotonWhatsApp telefono={empresa.contacto.whatsapp} nombre={empresa.nombre} variant="compact" />
-                      </li>
-                    )}
-
-                    {empresa.contacto.sitioWeb && (
-                      <li className="flex items-start gap-3">
-                        <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
-                          <a href={empresa.contacto.sitioWeb.match(/^https?:\/\//) ? empresa.contacto.sitioWeb : `https://${empresa.contacto.sitioWeb}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
-                            {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                          </a>
-                        </div>
-                      </li>
-                    )}
-                  </ul>
-
-                  <div className="px-6 pb-6">
-                    <a
-                      href={`mailto:${empresa.contacto.email}`}
-                      className="flex items-center justify-center w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-3 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase"
-                    >
-                      Enviar Mensaje
-                    </a>
-                  </div>
-                </>
-              ) : (
-                <div className="p-6">
+              <>
+                <ul className="p-6 space-y-5">
                   {empresa.ubicacion && (
-                    <div className="flex items-start gap-3 mb-5">
+                    <li className="flex items-start gap-3">
                       <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
                         <p className="text-slate-700 font-semibold text-[14px] leading-snug">{empresa.ubicacion}</p>
                       </div>
-                    </div>
+                    </li>
                   )}
 
-                  {/* Blurred locked rows */}
-                  <div className="space-y-3 mb-5">
-                    {[...Array(2)].map((_, i) => (
-                      <div key={i} className="h-10 bg-slate-100 rounded blur-sm opacity-60" />
-                    ))}
-                  </div>
+                  <li className="flex items-start gap-3">
+                    <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo</p>
+                      <a href={`mailto:${empresa.contacto.email}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
+                        {empresa.contacto.email}
+                      </a>
+                    </div>
+                  </li>
 
-                  <Link
-                    href={`/login?redirect=${encodeURIComponent(currentPath)}`}
-                    className="flex items-center justify-center gap-2 w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-3 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase"
+                  {empresa.contacto.telefono && (
+                    <li className="flex items-start gap-3">
+                      <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
+                        <a href={`tel:${empresa.contacto.telefono.replace(/[^0-9+]/g, '')}`} className="text-slate-700 font-semibold text-[14px] hover:text-blue-900 transition-colors">
+                          {empresa.contacto.telefono}
+                        </a>
+                      </div>
+                    </li>
+                  )}
+
+                  {empresa.contacto.whatsapp && (
+                    <li>
+                      <BotonWhatsApp telefono={empresa.contacto.whatsapp} nombre={empresa.nombre} variant="compact" />
+                    </li>
+                  )}
+
+                  {empresa.contacto.sitioWeb && (
+                    <li className="flex items-start gap-3">
+                      <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
+                        <a href={empresa.contacto.sitioWeb.match(/^https?:\/\//) ? empresa.contacto.sitioWeb : `https://${empresa.contacto.sitioWeb}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
+                          {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                        </a>
+                      </div>
+                    </li>
+                  )}
+                </ul>
+
+                <div className="px-6 pb-6">
+                  <a
+                    href={`mailto:${empresa.contacto.email}`}
+                    className="flex items-center justify-center w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-3 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase"
                   >
-                    <Lock className="w-3.5 h-3.5" />
-                    Ver datos de contacto
-                  </Link>
+                    Enviar Mensaje
+                  </a>
                 </div>
-              )}
+              </>
             </div>
           </aside>
         </div>
@@ -717,24 +682,14 @@ async function ProveedorProfile({
               </span>
             )}
           </div>
-          {isAuthenticated ? (
-            <ModalContacto
-              nombre={proveedor.nombre}
-              email={proveedor.contacto.email}
-              telefono={proveedor.contacto.telefono}
-              ubicacion={proveedor.ubicacion ?? undefined}
-              colorScheme="amber"
-              className="inline-flex items-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-2.5 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase"
-            />
-          ) : (
-            <Link
-              href={`/login?redirect=${encodeURIComponent(currentPath)}`}
-              className="inline-flex items-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-2.5 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              Ver contacto
-            </Link>
-          )}
+          <ModalContacto
+            nombre={proveedor.nombre}
+            email={proveedor.contacto.email}
+            telefono={proveedor.contacto.telefono}
+            ubicacion={proveedor.ubicacion ?? undefined}
+            colorScheme="amber"
+            className="inline-flex items-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-2.5 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase"
+          />
         </div>
       </div>
 
@@ -802,93 +757,67 @@ async function ProveedorProfile({
                 </h3>
               </div>
 
-              {isAuthenticated ? (
-                <>
-                  <ul className="p-6 space-y-5">
-                    <li className="flex items-start gap-3">
-                      <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
-                        <p className="text-[#191c1e] font-semibold text-[14px]">{proveedor.ubicacion}</p>
-                      </div>
-                    </li>
-
-                    {provDb.fecha_inicio_experiencia != null && (() => {
-                      const años = Math.floor((Date.now() - new Date(provDb.fecha_inicio_experiencia).getTime()) / (365.25 * 24 * 3600 * 1000));
-                      return (
-                        <li className="flex items-start gap-3">
-                          <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                          <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Experiencia</p>
-                            <p className="text-[#191c1e] font-semibold text-[14px]">{años} año{años !== 1 ? 's' : ''}</p>
-                          </div>
-                        </li>
-                      );
-                    })()}
-
-                    <li className="flex items-start gap-3">
-                      <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo Electrónico</p>
-                        <a href={`mailto:${proveedor.contacto.email}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
-                          {proveedor.contacto.email}
-                        </a>
-                      </div>
-                    </li>
-
-                    {proveedor.contacto.telefono && (
-                      <li className="flex items-start gap-3">
-                        <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
-                          <a href={`tel:${proveedor.contacto.telefono.replace(/[^0-9+]/g, '')}`} className="text-[#191c1e] font-semibold text-[14px] hover:text-[#10375c] transition-colors">
-                            {proveedor.contacto.telefono}
-                          </a>
-                        </div>
-                      </li>
-                    )}
-
-                    {proveedor.contacto.telefono && (
-                      <li>
-                        <BotonWhatsApp telefono={proveedor.contacto.telefono} nombre={proveedor.nombre} variant="compact" />
-                      </li>
-                    )}
-                  </ul>
-
-                  <div className="px-6 pb-6">
-                    <a
-                      href={`mailto:${proveedor.contacto.email}`}
-                      className="flex items-center justify-center w-full bg-[#bf7035] hover:bg-[#a0622c] px-5 py-3 text-xs font-bold text-white rounded-sm transition-colors tracking-[0.15em] uppercase"
-                    >
-                      Contactar
-                    </a>
-                  </div>
-                </>
-              ) : (
-                <div className="p-6">
-                  <div className="flex items-start gap-3 mb-5">
+              <>
+                <ul className="p-6 space-y-5">
+                  <li className="flex items-start gap-3">
                     <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
                       <p className="text-[#191c1e] font-semibold text-[14px]">{proveedor.ubicacion}</p>
                     </div>
-                  </div>
+                  </li>
 
-                  <div className="space-y-3 mb-5">
-                    {[...Array(2)].map((_, i) => (
-                      <div key={i} className="h-10 bg-slate-100 rounded blur-sm opacity-60" />
-                    ))}
-                  </div>
+                  {provDb.fecha_inicio_experiencia != null && (() => {
+                    const años = Math.floor((Date.now() - new Date(provDb.fecha_inicio_experiencia).getTime()) / (365.25 * 24 * 3600 * 1000));
+                    return (
+                      <li className="flex items-start gap-3">
+                        <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Experiencia</p>
+                          <p className="text-[#191c1e] font-semibold text-[14px]">{años} año{años !== 1 ? 's' : ''}</p>
+                        </div>
+                      </li>
+                    );
+                  })()}
 
-                  <Link
-                    href={`/login?redirect=${encodeURIComponent(currentPath)}`}
-                    className="flex items-center justify-center gap-2 w-full bg-[#bf7035] hover:bg-[#a0622c] px-5 py-3 text-xs font-bold text-white rounded-sm transition-colors tracking-[0.15em] uppercase"
+                  <li className="flex items-start gap-3">
+                    <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo Electrónico</p>
+                      <a href={`mailto:${proveedor.contacto.email}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
+                        {proveedor.contacto.email}
+                      </a>
+                    </div>
+                  </li>
+
+                  {proveedor.contacto.telefono && (
+                    <li className="flex items-start gap-3">
+                      <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
+                        <a href={`tel:${proveedor.contacto.telefono.replace(/[^0-9+]/g, '')}`} className="text-[#191c1e] font-semibold text-[14px] hover:text-[#10375c] transition-colors">
+                          {proveedor.contacto.telefono}
+                        </a>
+                      </div>
+                    </li>
+                  )}
+
+                  {proveedor.contacto.telefono && (
+                    <li>
+                      <BotonWhatsApp telefono={proveedor.contacto.telefono} nombre={proveedor.nombre} variant="compact" />
+                    </li>
+                  )}
+                </ul>
+
+                <div className="px-6 pb-6">
+                  <a
+                    href={`mailto:${proveedor.contacto.email}`}
+                    className="flex items-center justify-center w-full bg-[#bf7035] hover:bg-[#a0622c] px-5 py-3 text-xs font-bold text-white rounded-sm transition-colors tracking-[0.15em] uppercase"
                   >
-                    <Lock className="w-3.5 h-3.5" />
-                    Ver datos de contacto
-                  </Link>
+                    Contactar
+                  </a>
                 </div>
-              )}
+              </>
             </div>
           </aside>
         </div>
