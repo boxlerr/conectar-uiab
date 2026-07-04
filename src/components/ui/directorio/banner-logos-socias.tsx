@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/cliente";
 
@@ -8,6 +8,16 @@ interface EmpresaSocia {
   id: string;
   nombre: string;
   logoUrl: string | null;
+}
+
+// Fisher-Yates: devuelve una copia mezclada, no muta el original.
+function mezclar<T>(arr: T[]): T[] {
+  const copia = [...arr];
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
 }
 
 export function BannerLogosSocias() {
@@ -62,11 +72,22 @@ export function BannerLogosSocias() {
 
   if (empresas.length === 0) return null;
 
-  // Aseguramos suficientes items para que la mitad del track sea más ancha que
-  // la pantalla — si no, el loop se ve "saltar" al resetear.
+  return <MarqueeEmpresas empresas={empresas} />;
+}
+
+function MarqueeEmpresas({ empresas }: { empresas: EmpresaSocia[] }) {
+  // Cada "pasada" es una mezcla independiente del set completo de empresas,
+  // así nunca se repite una empresa dentro de una misma pasada. Encadenamos
+  // varias pasadas distintas para que el recorrido no se sienta siempre
+  // igual, y además nos aseguramos de que la mitad del track sea más ancha
+  // que la pantalla (si no, el loop se ve "saltar" al resetear).
   const minItems = 8;
-  const veces = Math.max(1, Math.ceil(minItems / empresas.length));
-  const itemsBase = Array.from({ length: veces }, () => empresas).flat();
+  const pasadas = Math.max(4, Math.ceil(minItems / empresas.length));
+  const itemsBase = useMemo(
+    () => Array.from({ length: pasadas }, () => mezclar(empresas)).flat(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [empresas]
+  );
   // Duplicamos el set para que translateX(-50%) cierre el loop sin salto.
   const items = [...itemsBase, ...itemsBase];
 
@@ -80,7 +101,13 @@ export function BannerLogosSocias() {
           "linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)",
       }}
     >
-      <div className="marquee-track flex items-center gap-16 w-max">
+      <div
+        className="marquee-track flex items-center gap-16 w-max"
+        // 120s es el tiempo original pensado para una sola pasada; al
+        // encadenar varias pasadas mezcladas escalamos la duración para
+        // no acelerar visualmente el scroll.
+        style={{ animationDuration: `${pasadas * 120}s` }}
+      >
         {items.map((emp, i) => (
           <LogoSocia key={`${emp.id}-${i}`} empresa={emp} />
         ))}
