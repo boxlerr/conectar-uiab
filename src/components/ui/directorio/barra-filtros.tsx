@@ -8,7 +8,7 @@ interface FilterSidebarProps {
   onCategoriaChange: (cat: string | null) => void;
   searchTerm: string;
   onSearchChange: (term: string) => void;
-  colorScheme?: 'blue' | 'emerald' | 'amber' | 'violet';
+  colorScheme?: 'blue' | 'emerald' | 'amber' | 'violet' | 'teal';
 }
 
 export function FilterSidebar({
@@ -23,14 +23,15 @@ export function FilterSidebar({
   const isEmerald = colorScheme === 'emerald';
   const isAmber = colorScheme === 'amber';
   const isViolet = colorScheme === 'violet';
-  const themeAccent = isViolet ? "bg-violet-600" : isAmber ? "bg-[#bf7035]" : isEmerald ? "bg-emerald-600" : "bg-[#10375c]";
-  const themeText = isViolet ? "text-violet-700 hover:text-violet-800" : isAmber ? "text-[#bf7035] hover:text-[#a0622c]" : isEmerald ? "text-emerald-700 hover:text-emerald-800" : "text-[#10375c] hover:text-[#0d2d4a]";
-  const focusRing = isViolet ? "focus:ring-violet-500/20 group-focus-within:text-violet-600" : isAmber ? "focus:ring-[#bf7035]/20 group-focus-within:text-[#bf7035]" : isEmerald ? "focus:ring-emerald-500/20 group-focus-within:text-emerald-600" : "focus:ring-[#10375c]/20 group-focus-within:text-[#10375c]";
-  const activeBg = isViolet ? "bg-gradient-to-r from-violet-600 to-indigo-600 shadow-violet-900/10" : isAmber ? "bg-gradient-to-r from-[#bf7035] to-[#d4894a] shadow-[#bf7035]/20" : isEmerald ? "bg-emerald-600 shadow-emerald-900/10" : "bg-gradient-to-r from-[#10375c] to-[#1a6496] shadow-[#10375c]/20";
-  const hoverBg = isViolet ? "hover:bg-violet-50" : isAmber ? "hover:bg-[#bf7035]/5" : isEmerald ? "hover:bg-emerald-50" : "hover:bg-[#10375c]/5";
-  const hoverDot = isViolet ? "bg-violet-300" : isAmber ? "bg-[#d4894a]" : isEmerald ? "bg-emerald-300" : "bg-[#1a6496]";
-  const badgeBg = isViolet ? "bg-violet-50/50" : isAmber ? "bg-[#bf7035]/5" : isEmerald ? "bg-emerald-50/50" : "bg-[#10375c]/5";
-  const badgeIcon = isViolet ? "text-violet-500" : isAmber ? "text-[#bf7035]" : isEmerald ? "text-emerald-500" : "text-[#10375c]";
+  const isTeal = colorScheme === 'teal';
+  const themeAccent = isTeal ? "bg-teal-600" : isViolet ? "bg-violet-600" : isAmber ? "bg-[#bf7035]" : isEmerald ? "bg-emerald-600" : "bg-[#10375c]";
+  const themeText = isTeal ? "text-teal-700 hover:text-teal-800" : isViolet ? "text-violet-700 hover:text-violet-800" : isAmber ? "text-[#bf7035] hover:text-[#a0622c]" : isEmerald ? "text-emerald-700 hover:text-emerald-800" : "text-[#10375c] hover:text-[#0d2d4a]";
+  const focusRing = isTeal ? "focus:ring-teal-500/20 group-focus-within:text-teal-600" : isViolet ? "focus:ring-violet-500/20 group-focus-within:text-violet-600" : isAmber ? "focus:ring-[#bf7035]/20 group-focus-within:text-[#bf7035]" : isEmerald ? "focus:ring-emerald-500/20 group-focus-within:text-emerald-600" : "focus:ring-[#10375c]/20 group-focus-within:text-[#10375c]";
+  const activeBg = isTeal ? "bg-teal-600 shadow-teal-900/10" : isViolet ? "bg-gradient-to-r from-violet-600 to-indigo-600 shadow-violet-900/10" : isAmber ? "bg-gradient-to-r from-[#bf7035] to-[#d4894a] shadow-[#bf7035]/20" : isEmerald ? "bg-emerald-600 shadow-emerald-900/10" : "bg-gradient-to-r from-[#10375c] to-[#1a6496] shadow-[#10375c]/20";
+  const hoverBg = isTeal ? "hover:bg-teal-50" : isViolet ? "hover:bg-violet-50" : isAmber ? "hover:bg-[#bf7035]/5" : isEmerald ? "hover:bg-emerald-50" : "hover:bg-[#10375c]/5";
+  const hoverDot = isTeal ? "bg-teal-300" : isViolet ? "bg-violet-300" : isAmber ? "bg-[#d4894a]" : isEmerald ? "bg-emerald-300" : "bg-[#1a6496]";
+  const badgeBg = isTeal ? "bg-teal-50/50" : isViolet ? "bg-violet-50/50" : isAmber ? "bg-[#bf7035]/5" : isEmerald ? "bg-emerald-50/50" : "bg-[#10375c]/5";
+  const badgeIcon = isTeal ? "text-teal-500" : isViolet ? "text-violet-500" : isAmber ? "text-[#bf7035]" : isEmerald ? "text-emerald-500" : "text-[#10375c]";
   
   return (
     <div className="bg-white/80 backdrop-blur-xl rounded-xl border border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] font-inter flex flex-col overflow-hidden">

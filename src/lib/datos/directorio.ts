@@ -10,6 +10,7 @@ export interface Entidad {
   logoUrl?: string | null;
   ubicacion: string;
   servicios: string[];
+  tags: string[];
   certificaciones?: string[];
   destacado?: boolean;
   rating?: number;
@@ -28,6 +29,7 @@ export const entidades: Entidad[] = [
   {
     id: "emp-001",
     tipo: "empresa",
+    tags: [],
     slug: "metaltech-industrial",
     nombre: "MetalTech Industrial SA",
     categoria: "Metalúrgica",
@@ -50,6 +52,7 @@ export const entidades: Entidad[] = [
   {
     id: "emp-002",
     tipo: "empresa",
+    tags: [],
     slug: "quimicapro-solutions",
     nombre: "QuímicaPro Solutions",
     categoria: "Química",
@@ -72,6 +75,7 @@ export const entidades: Entidad[] = [
   {
     id: "emp-003",
     tipo: "empresa",
+    tags: [],
     slug: "maquinarias-precision",
     nombre: "MaquinariasPrecision",
     categoria: "Maquinaria Industrial",
@@ -93,6 +97,7 @@ export const entidades: Entidad[] = [
   {
     id: "emp-004",
     tipo: "empresa",
+    tags: [],
     slug: "alimentosplus-industrial",
     nombre: "AlimentosPlus Industrial",
     categoria: "Alimentaria",
@@ -114,6 +119,7 @@ export const entidades: Entidad[] = [
   {
     id: "emp-005",
     tipo: "empresa",
+    tags: [],
     slug: "autoparts-manufacturing",
     nombre: "AutoParts Manufacturing",
     categoria: "Automotriz",
@@ -136,6 +142,7 @@ export const entidades: Entidad[] = [
   {
     id: "prov-001",
     tipo: "proveedor",
+    tags: [],
     slug: "consultech-industrial",
     nombre: "ConsulTech Industrial",
     categoria: "Consultoría",
@@ -157,6 +164,7 @@ export const entidades: Entidad[] = [
   {
     id: "prov-002",
     tipo: "proveedor",
+    tags: [],
     slug: "logistica-express",
     nombre: "Logística Express",
     categoria: "Logística y Transporte",
@@ -179,6 +187,7 @@ export const entidades: Entidad[] = [
   {
     id: "banco-001",
     tipo: "empresa",
+    tags: [],
     slug: "banco-provincia-brown",
     nombre: "Banco Provincia Suc. Brown",
     categoria: "Banca PyME",
@@ -200,6 +209,7 @@ export const entidades: Entidad[] = [
   {
     id: "banco-002",
     tipo: "empresa",
+    tags: [],
     slug: "banco-nacion-brown",
     nombre: "Banco Nación Suc. Industrial",
     categoria: "Banca Corporativa",
@@ -221,6 +231,7 @@ export const entidades: Entidad[] = [
   {
     id: "banco-003",
     tipo: "empresa",
+    tags: [],
     slug: "financiera-conurbano",
     nombre: "Financiera del Conurbano",
     categoria: "Servicios Financieros",
@@ -244,6 +255,7 @@ export const entidades: Entidad[] = [
   {
     id: "edu-001",
     tipo: "empresa",
+    tags: [],
     slug: "utn-frgp",
     nombre: "UTN — FR Gral. Pacheco",
     categoria: "Universidad Técnica",
@@ -265,6 +277,7 @@ export const entidades: Entidad[] = [
   {
     id: "edu-002",
     tipo: "empresa",
+    tags: [],
     slug: "centro-capacitacion-uiab",
     nombre: "Centro de Capacitación UIAB",
     categoria: "Formación Profesional",
@@ -286,6 +299,7 @@ export const entidades: Entidad[] = [
   {
     id: "edu-003",
     tipo: "empresa",
+    tags: [],
     slug: "escuela-tecnica-brown",
     nombre: "Escuela Técnica Nº5 A. Brown",
     categoria: "Educación Técnica",
@@ -309,6 +323,7 @@ export const entidades: Entidad[] = [
   {
     id: "part-001",
     tipo: "proveedor",
+    tags: [],
     slug: "electricidad-industrial-gomez",
     nombre: "Ricardo Gómez — Electricidad Industrial",
     categoria: "Servicio Eléctrico",
@@ -330,6 +345,7 @@ export const entidades: Entidad[] = [
   {
     id: "part-002",
     tipo: "proveedor",
+    tags: [],
     slug: "contabilidad-fernandez",
     nombre: "Estudio Fernández & Asoc.",
     categoria: "Contabilidad",
@@ -351,6 +367,7 @@ export const entidades: Entidad[] = [
   {
     id: "part-003",
     tipo: "proveedor",
+    tags: [],
     slug: "ingenieria-martinez",
     nombre: "Ing. Martínez — Seguridad e Higiene",
     categoria: "Ingeniería",

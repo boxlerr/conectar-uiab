@@ -205,6 +205,7 @@ export default function EmpresasPage() {
         logoUrl,
         ubicacion: `${item.localidad || ''}, ${item.direccion || ''}`.replace(/^, | ,|, $/g, ''),
         servicios: cats.slice(1),
+        tags: [],
         contacto: {
           email: item.email || "",
           telefono: item.telefono || "",

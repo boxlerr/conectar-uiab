@@ -10,15 +10,22 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Directorio UIAB — Empresas y prestadores verificados",
   description:
-    "Directorio público de la Unión Industrial de Almirante Brown: empresas socias y prestadores de productos y servicios verificados de la red.",
+    "Directorio público de la Unión Industrial de Almirante Brown: empresas socias, prestadores de productos y servicios, entidades financieras y educativas, y cooperativas verificadas de la red.",
 };
 
 export default async function DirectorioPage() {
-  const { empresas, prestadores } = await obtenerDirectorio();
+  const { empresas, prestadores, financieras, educativas, cooperativas } =
+    await obtenerDirectorio();
 
   return (
     <Suspense fallback={null}>
-      <DirectorioCliente empresas={empresas} prestadores={prestadores} />
+      <DirectorioCliente
+        empresas={empresas}
+        prestadores={prestadores}
+        financieras={financieras}
+        educativas={educativas}
+        cooperativas={cooperativas}
+      />
     </Suspense>
   );
 }

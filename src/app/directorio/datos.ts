@@ -7,7 +7,25 @@ import type { Entidad } from "@/lib/datos/directorio";
 export interface DatosDirectorio {
   empresas: Entidad[];
   prestadores: Entidad[];
+  financieras: Entidad[];
+  educativas: Entidad[];
+  cooperativas: Entidad[];
 }
+
+// Defaults por tipo de socia (columna empresas.categoria_socio). Las empresas
+// industriales (null o 'proveedores_servicios_productos') conservan el default
+// histórico.
+const DESCRIPCION_DEFAULT_POR_TIPO: Record<string, string> = {
+  instituciones_bancarias: "Entidad financiera de la red UIAB",
+  instituciones_educativas: "Entidad educativa de la red UIAB",
+  cooperativas: "Cooperativa de la red UIAB",
+};
+
+const CATEGORIA_DEFAULT_POR_TIPO: Record<string, string> = {
+  instituciones_bancarias: "Entidad financiera",
+  instituciones_educativas: "Entidad educativa",
+  cooperativas: "Cooperativa",
+};
 
 /**
  * Trae el directorio completo (empresas socias + prestadores) para renderizar
@@ -15,6 +33,10 @@ export interface DatosDirectorio {
  * para saltear RLS igual que las fichas `/empresas/[slug]`. NO expone datos de
  * contacto sensibles: el teléfono/whatsapp real se resuelve en la ficha según
  * el estado de autenticación.
+ *
+ * Las empresas aprobadas se parten en cuatro listas según `categoria_socio`:
+ * empresas industriales, entidades financieras, entidades educativas y
+ * cooperativas. Los prestadores (tabla `proveedores`) van aparte.
  */
 export async function obtenerDirectorio(): Promise<DatosDirectorio> {
   const supabase = createAdminClient();
@@ -35,8 +57,14 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
           bucket_logo,
           ruta_logo,
           n_socio,
+          categoria_socio,
           empresas_categorias (
             categorias (
+              nombre
+            )
+          ),
+          empresas_tags (
+            tags (
               nombre
             )
           )
@@ -45,7 +73,7 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
       supabase
         .from("proveedores")
         .select(
-          "id, nombre, apellido, nombre_comercial, tipo_proveedor, email, telefono, localidad, provincia, descripcion, bucket_logo, ruta_logo"
+          "id, nombre, apellido, nombre_comercial, tipo_proveedor, email, telefono, localidad, provincia, descripcion, bucket_logo, ruta_logo, proveedores_tags ( tags ( nombre ) )"
         )
         .eq("estado", "aprobado"),
       supabase
@@ -55,10 +83,22 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
         .not("empresa_resenada_id", "is", null),
     ]);
 
-  const empresas: Entidad[] = (empresasRes.data || []).map((emp: any) => {
+  const empresasConTipo = (empresasRes.data || []).map((emp: any) => {
+    const categoriaSocio: string | null = emp.categoria_socio || null;
     const cats =
       emp.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
-    const mainCat = cats.length > 0 ? cats[0] : "Industrial General";
+    const tags: string[] = Array.from(
+      new Set(
+        (emp.empresas_tags || [])
+          .map((et: any) => et.tags?.nombre)
+          .filter((n: any): n is string => Boolean(n))
+      )
+    );
+    const mainCat =
+      cats.length > 0
+        ? cats[0]
+        : CATEGORIA_DEFAULT_POR_TIPO[categoriaSocio ?? ""] ||
+          "Industrial General";
     const logoUrl =
       emp.bucket_logo && emp.ruta_logo
         ? supabase.storage
@@ -66,13 +106,16 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
             .getPublicUrl(emp.ruta_logo).data.publicUrl
         : null;
 
-    return {
+    const entidad: Entidad = {
       id: emp.id,
       tipo: "empresa",
       slug: crearSlug(emp.razon_social),
       nombre: emp.razon_social,
       categoria: mainCat,
-      descripcionCorta: emp.actividad || "Sin descripción",
+      descripcionCorta:
+        emp.actividad ||
+        DESCRIPCION_DEFAULT_POR_TIPO[categoriaSocio ?? ""] ||
+        "Sin descripción",
       descripcionLarga: emp.actividad || "",
       logo: emp.razon_social.charAt(0).toUpperCase(),
       logoUrl,
@@ -81,6 +124,7 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
         ""
       ),
       servicios: cats.slice(1),
+      tags,
       rating: 0,
       reviews: 0,
       esSocio: true,
@@ -90,6 +134,8 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
         sitioWeb: emp.sitio_web || "",
       },
     };
+
+    return { categoriaSocio, entidad };
   });
 
   const prestadores: Entidad[] = (proveedoresRes.data || []).map((p: any) => {
@@ -98,6 +144,13 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
       [p.nombre, p.apellido].filter(Boolean).join(" ") ||
       "Sin nombre";
     const categoria = p.tipo_proveedor || "Prestador de servicios";
+    const tags: string[] = Array.from(
+      new Set(
+        (p.proveedores_tags || [])
+          .map((pt: any) => pt.tags?.nombre)
+          .filter((n: any): n is string => Boolean(n))
+      )
+    );
     const logoUrl =
       p.bucket_logo && p.ruta_logo
         ? supabase.storage
@@ -117,6 +170,7 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
       logoUrl,
       ubicacion: [p.localidad, p.provincia].filter(Boolean).join(", "),
       servicios: [],
+      tags,
       rating: 0,
       reviews: 0,
       esSocio: false,
@@ -129,10 +183,34 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
   });
 
   // Agregación de reseñas aprobadas → rating promedio + cantidad.
-  // Solo las empresas se califican; los prestadores no reciben reseñas.
-  aplicarResenas(empresas, resenasEmpRes.data, "empresa_resenada_id");
+  // Se aplica sobre TODAS las empresas (de cualquier categoría de socia)
+  // antes de partir en listas; los prestadores no reciben reseñas.
+  const todasLasEmpresas = empresasConTipo.map((e) => e.entidad);
+  aplicarResenas(todasLasEmpresas, resenasEmpRes.data, "empresa_resenada_id");
 
-  return { empresas, prestadores };
+  const empresas: Entidad[] = [];
+  const financieras: Entidad[] = [];
+  const educativas: Entidad[] = [];
+  const cooperativas: Entidad[] = [];
+
+  for (const { categoriaSocio, entidad } of empresasConTipo) {
+    switch (categoriaSocio) {
+      case "instituciones_bancarias":
+        financieras.push(entidad);
+        break;
+      case "instituciones_educativas":
+        educativas.push(entidad);
+        break;
+      case "cooperativas":
+        cooperativas.push(entidad);
+        break;
+      default:
+        // null o 'proveedores_servicios_productos' → empresa socia industrial
+        empresas.push(entidad);
+    }
+  }
+
+  return { empresas, prestadores, financieras, educativas, cooperativas };
 }
 
 function aplicarResenas(
