@@ -17,7 +17,21 @@ async function getAltas() {
   return data ?? [];
 }
 
+async function getEmpresas() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+  const { data, error } = await supabase
+    .from("empresas")
+    .select("id, razon_social, nombre_comercial, cuit, n_socio, estado")
+    .order("razon_social");
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 export default async function AdminAltasPage() {
-  const altas = await getAltas();
-  return <PanelAltas altas={altas as never} />;
+  const [altas, empresas] = await Promise.all([getAltas(), getEmpresas()]);
+  return <PanelAltas altas={altas as never} empresas={empresas as never} />;
 }

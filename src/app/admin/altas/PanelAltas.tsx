@@ -24,6 +24,8 @@ import {
   FileText,
   KeyRound,
   Loader2,
+  Link2,
+  Unlink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,7 @@ import {
   actualizarEstadoAlta,
   eliminarAlta,
   crearCuentaDesdeAlta,
+  vincularEmpresaAlta,
 } from "@/modulos/altas/acciones";
 import {
   CATEGORIA_ALTA_LABEL,
@@ -61,6 +64,15 @@ type Alta = {
   actualizado_en: string;
 };
 
+type EmpresaPadron = {
+  id: string;
+  razon_social: string;
+  nombre_comercial: string | null;
+  cuit: string | null;
+  n_socio: string | null;
+  estado: string;
+};
+
 type Filtro = "all" | "pendiente" | "contactado" | "cuenta_creada" | "descartado";
 
 const ESTADO_CONFIG: Record<string, { label: string; bg: string; text: string; icon: React.ElementType }> = {
@@ -74,16 +86,78 @@ function fecha(s: string) {
   return new Date(s).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export function PanelAltas({ altas }: { altas: Alta[] }) {
+function soloDigitos(s: string | null | undefined) {
+  return (s ?? "").replace(/\D/g, "");
+}
+
+export function PanelAltas({ altas, empresas }: { altas: Alta[]; empresas: EmpresaPadron[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [filtro, setFiltro] = useState<Filtro>("all");
   const [busqueda, setBusqueda] = useState("");
   const [seleccionada, setSeleccionada] = useState<Alta | null>(null);
   const [creando, setCreando] = useState(false);
+  const [filtroPadron, setFiltroPadron] = useState("");
+  const [empresaElegida, setEmpresaElegida] = useState("");
+  const [vinculando, setVinculando] = useState(false);
 
   function refresh() {
     startTransition(() => router.refresh());
+  }
+
+  function abrirDetalle(alta: Alta) {
+    setSeleccionada(alta);
+    setFiltroPadron("");
+    setEmpresaElegida("");
+  }
+
+  const empresaVinculada = useMemo(
+    () =>
+      seleccionada?.empresa_id
+        ? empresas.find((e) => e.id === seleccionada.empresa_id) ?? null
+        : null,
+    [seleccionada, empresas]
+  );
+
+  const sugerenciaCuit = useMemo(() => {
+    if (!seleccionada || seleccionada.empresa_id) return null;
+    const cuitAlta = soloDigitos(seleccionada.cuit);
+    if (!cuitAlta) return null;
+    const matches = empresas.filter((e) => {
+      const cuitEmpresa = soloDigitos(e.cuit);
+      return cuitEmpresa !== "" && cuitEmpresa === cuitAlta;
+    });
+    return matches.length === 1 ? matches[0] : null;
+  }, [seleccionada, empresas]);
+
+  const empresasFiltradas = useMemo(() => {
+    const term = filtroPadron.trim().toLowerCase();
+    if (!term) return empresas;
+    const termDigitos = soloDigitos(term);
+    return empresas.filter(
+      (e) =>
+        e.razon_social.toLowerCase().includes(term) ||
+        (e.nombre_comercial ?? "").toLowerCase().includes(term) ||
+        (termDigitos !== "" && soloDigitos(e.cuit).includes(termDigitos))
+    );
+  }, [empresas, filtroPadron]);
+
+  async function vincular(altaId: string, empresaId: string | null) {
+    setVinculando(true);
+    let res;
+    try {
+      res = await vincularEmpresaAlta(altaId, empresaId);
+    } catch {
+      return toast.error("No se pudo vincular. Probá de nuevo.");
+    } finally {
+      setVinculando(false);
+    }
+    if (res?.error) return toast.error(res.error);
+    toast.success(empresaId ? "Empresa vinculada al padrón" : "Empresa desvinculada del padrón");
+    setSeleccionada((prev) => (prev && prev.id === altaId ? { ...prev, empresa_id: empresaId } : prev));
+    setEmpresaElegida("");
+    setFiltroPadron("");
+    refresh();
   }
 
   async function darAcceso(alta: Alta) {
@@ -95,15 +169,31 @@ export function PanelAltas({ altas }: { altas: Alta[] }) {
     )
       return;
     setCreando(true);
-    const res = await crearCuentaDesdeAlta(alta.id);
-    setCreando(false);
+    let res;
+    try {
+      res = await crearCuentaDesdeAlta(alta.id);
+    } catch {
+      return toast.error("No se pudo crear la cuenta. Probá de nuevo.");
+    } finally {
+      setCreando(false);
+    }
     if (res?.error) return toast.error(res.error);
     toast.success(
       "emailEnviado" in res && res.emailEnviado
         ? "Cuenta creada. Le enviamos el email para definir su contraseña."
         : "Cuenta creada."
     );
-    setSeleccionada((prev) => (prev ? { ...prev, estado: "cuenta_creada" } : null));
+    const empresaIdCreada =
+      "empresaId" in res && res.empresaId ? res.empresaId : null;
+    setSeleccionada((prev) =>
+      prev
+        ? {
+            ...prev,
+            estado: "cuenta_creada",
+            empresa_id: empresaIdCreada ?? prev.empresa_id,
+          }
+        : null
+    );
     refresh();
   }
 
@@ -155,6 +245,14 @@ export function PanelAltas({ altas }: { altas: Alta[] }) {
     toast.success(`${label} copiado`);
   }
 
+  // El formulario /sumate no está en el menú público (es solo para socias): el
+  // admin comparte este link directo con cada empresa para que cargue sus datos.
+  function copiarLinkFormulario() {
+    const url = `${window.location.origin}/sumate`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link del formulario copiado. Compartíselo a la empresa socia.");
+  }
+
   function exportarCSV() {
     const cols = [
       "razon_social", "nombre_comercial", "cuit", "actividad", "categoria",
@@ -191,13 +289,25 @@ export function PanelAltas({ altas }: { altas: Alta[] }) {
             Altas de socios
           </h1>
           <p className="text-slate-500 mt-1">
-            Solicitudes enviadas desde el formulario público <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">/sumate</span>. Revisá los datos y dale acceso a cada empresa.
+            Solicitudes cargadas desde el formulario de alta de socios. Compartí el link con cada empresa, revisá los datos y dale acceso.
           </p>
         </div>
-        <Button variant="outline" onClick={exportarCSV} disabled={filtradas.length === 0} className="shrink-0">
-          <Download className="w-4 h-4 mr-2" />
-          Exportar CSV
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button onClick={copiarLinkFormulario} className="bg-primary-600 hover:bg-primary-700 text-white">
+            <Link2 className="w-4 h-4 mr-2" />
+            Compartir formulario
+          </Button>
+          <a href="/sumate" target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" className="shrink-0">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Ver formulario
+            </Button>
+          </a>
+          <Button variant="outline" onClick={exportarCSV} disabled={filtradas.length === 0} className="shrink-0">
+            <Download className="w-4 h-4 mr-2" />
+            Exportar CSV
+          </Button>
+        </div>
       </div>
 
       <Card className="p-4 flex flex-col sm:flex-row gap-3 items-center shadow-sm border-slate-100">
@@ -254,7 +364,7 @@ export function PanelAltas({ altas }: { altas: Alta[] }) {
                     <tr
                       key={a.id}
                       className="hover:bg-slate-50/50 transition-colors cursor-pointer"
-                      onClick={() => setSeleccionada(a)}
+                      onClick={() => abrirDetalle(a)}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -382,6 +492,106 @@ export function PanelAltas({ altas }: { altas: Alta[] }) {
                   <p className="text-sm text-slate-700 bg-slate-50 rounded-lg p-3 whitespace-pre-wrap">{seleccionada.mensaje}</p>
                 </section>
               )}
+
+              {/* Padrón UIAB */}
+              <section>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">Padrón UIAB</p>
+                {seleccionada.empresa_id ? (
+                  <div className="flex items-start justify-between gap-3 bg-emerald-50/60 border border-emerald-100 rounded-lg p-3">
+                    <div className="min-w-0">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full mb-1.5">
+                        <CheckCircle2 className="w-3 h-3" /> Vinculada al padrón
+                      </span>
+                      <p className="text-sm font-medium text-slate-900 truncate">
+                        {empresaVinculada?.razon_social ?? "Empresa del padrón"}
+                      </p>
+                      {empresaVinculada?.cuit && (
+                        <p className="text-xs text-slate-500">CUIT {empresaVinculada.cuit}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 text-rose-600 border-rose-200 hover:bg-rose-50"
+                      disabled={vinculando}
+                      onClick={() => vincular(seleccionada.id, null)}
+                    >
+                      {vinculando ? (
+                        <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                      ) : (
+                        <Unlink className="w-3.5 h-3.5 mr-1" />
+                      )}
+                      Desvincular
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {sugerenciaCuit && (
+                      <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-100 rounded-lg p-3">
+                        <p className="text-xs text-amber-800 min-w-0">
+                          Posible match por CUIT:{" "}
+                          <span className="font-semibold">{sugerenciaCuit.razon_social}</span>
+                          {sugerenciaCuit.cuit && <span className="text-amber-600"> · {sugerenciaCuit.cuit}</span>}
+                        </p>
+                        <Button
+                          size="sm"
+                          className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white"
+                          disabled={vinculando}
+                          onClick={() => vincular(seleccionada.id, sugerenciaCuit.id)}
+                        >
+                          <Link2 className="w-3.5 h-3.5 mr-1" /> Vincular
+                        </Button>
+                      </div>
+                    )}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <input
+                        value={filtroPadron}
+                        onChange={(e) => {
+                          setFiltroPadron(e.target.value);
+                          setEmpresaElegida("");
+                        }}
+                        placeholder="Filtrar por razón social, nombre o CUIT..."
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <select
+                        value={empresaElegida}
+                        onChange={(e) => setEmpresaElegida(e.target.value)}
+                        className="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="">
+                          Elegí una empresa del padrón ({empresasFiltradas.length})
+                        </option>
+                        {empresasFiltradas.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.razon_social}
+                            {emp.cuit ? ` — ${emp.cuit}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 self-stretch h-auto"
+                        disabled={!empresaElegida || vinculando}
+                        onClick={() => vincular(seleccionada.id, empresaElegida)}
+                      >
+                        {vinculando ? (
+                          <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                        ) : (
+                          <Link2 className="w-3.5 h-3.5 mr-1" />
+                        )}
+                        Vincular
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                <p className="text-[11px] text-slate-400 mt-2">
+                  Al crear la cuenta se usa la empresa vinculada; si no hay ninguna, se busca por CUIT o se crea una nueva.
+                </p>
+              </section>
 
               {/* Acciones */}
               <section className="space-y-2 pt-2">

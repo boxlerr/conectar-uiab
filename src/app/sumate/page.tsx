@@ -4,9 +4,9 @@ import { FormularioAlta } from "./FormularioAlta";
 import { CATEGORIA_ALTA_LABEL } from "@/modulos/altas/constantes";
 
 export const metadata = {
-  title: "Sumate a UIAB Conecta | Cargá los datos de tu empresa",
+  title: "Alta de socios UIAB | Cargá los datos de tu empresa",
   description:
-    "Completá el formulario para que tu empresa acceda al directorio comercial de la Unión Industrial de Almirante Brown.",
+    "Formulario exclusivo para organizaciones socias de la UIAB: verificamos tus datos contra el padrón y activamos el acceso de tu empresa a UIAB Conecta.",
 };
 
 // El listado se actualiza a medida que las empresas completan el formulario.
@@ -50,7 +50,7 @@ export default async function SumatePage() {
                 className="text-primary/60 font-semibold tracking-[0.2em] uppercase text-[10px] mb-3 block"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
               >
-                Sumate a la red industrial
+                Alta exclusiva para socios UIAB
               </span>
               <h1
                 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#00213f] tracking-tighter leading-[1.05] pt-1"
@@ -65,8 +65,9 @@ export default async function SumatePage() {
                 className="text-base md:text-lg text-slate-600 leading-relaxed font-medium"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
               >
-                Completá el formulario y el equipo de UIAB te va a contactar para activar el
-                acceso de tu empresa al directorio comercial de Almirante Brown.
+                Este formulario es exclusivo para organizaciones socias de la UIAB: lo usamos
+                para verificar tus datos contra el padrón y activar el acceso de tu empresa a
+                la plataforma.
               </p>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Send, Loader2, PartyPopper } from "lucide-react";
+import { CheckCircle2, Send, Loader2, PartyPopper, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ const ESTADO_INICIAL = {
   actividad: "",
   categoria: "empresa_socia",
   ya_es_socio: false,
-  n_socio: "",
   referente_nombre: "",
   referente_cargo: "",
   email: "",
@@ -50,6 +49,10 @@ export function FormularioAlta() {
     if (!form.razon_social.trim()) return toast.error("Ingresá la razón social de tu empresa.");
     if (!form.referente_nombre.trim()) return toast.error("Ingresá el nombre del referente.");
     if (!form.email.trim()) return toast.error("Ingresá un email de contacto.");
+    if (!form.ya_es_socio)
+      return toast.error(
+        "Este formulario es exclusivo para organizaciones socias de la UIAB. Si no sos socio, podés crear tu cuenta desde el registro."
+      );
     if (!consentimiento)
       return toast.error("Necesitamos tu consentimiento para tratar los datos.");
 
@@ -111,6 +114,22 @@ export function FormularioAlta() {
       onSubmit={handleSubmit}
       className="bg-white rounded-xl shadow-2xl shadow-primary/5 p-7 md:p-10 space-y-7"
     >
+      {/* Aviso: alta exclusiva para socias UIAB */}
+      <div className="flex items-start gap-3 bg-[#00213f]/[0.04] border border-[#00213f]/10 rounded-lg px-4 py-3.5">
+        <ShieldCheck className="w-5 h-5 text-[#00213f] shrink-0 mt-0.5" />
+        <p className="text-[13px] text-slate-600 leading-relaxed">
+          <span className="font-bold text-[#00213f]">
+            Este formulario es exclusivo para organizaciones socias de la UIAB.
+          </span>{" "}
+          Lo usamos para verificar tus datos contra el padrón y activar tu acceso a la
+          plataforma. ¿No sos socio y querés ofrecer tus productos o servicios?{" "}
+          <Link href="/register" className="text-primary font-semibold underline">
+            Creá tu cuenta acá
+          </Link>
+          .
+        </p>
+      </div>
+
       {/* Datos de la empresa */}
       <fieldset className="space-y-5">
         <legend
@@ -158,6 +177,9 @@ export function FormularioAlta() {
               value={form.cuit}
               onChange={(e) => set("cuit", e.target.value)}
             />
+            <p className="text-[11px] text-slate-400 mt-1.5 ml-1">
+              Si ya sos socio, tu CUIT nos ayuda a encontrarte en el padrón de la UIAB.
+            </p>
           </div>
         </div>
 
@@ -200,17 +222,11 @@ export function FormularioAlta() {
               checked={form.ya_es_socio}
               onChange={(e) => set("ya_es_socio", e.target.checked)}
             />
-            Ya soy socio de la UIAB
+            <span>
+              Confirmo que mi organización es socia de la UIAB{" "}
+              <span className="text-rose-500">*</span>
+            </span>
           </label>
-          {form.ya_es_socio && (
-            <input
-              aria-label="Número de socio"
-              className={`${inputCls} sm:max-w-[200px]`}
-              placeholder="N° de socio (opcional)"
-              value={form.n_socio}
-              onChange={(e) => set("n_socio", e.target.value)}
-            />
-          )}
         </div>
       </fieldset>
 

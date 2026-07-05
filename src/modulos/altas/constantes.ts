@@ -1,17 +1,21 @@
 // Constantes compartidas de "altas de socios". Módulo plano (no "use server")
 // para poder importarlo desde Client Components y Server Components por igual.
 
+// El alta es EXCLUSIVA para organizaciones socias de la UIAB (el formulario
+// recopila los datos de quienes ya están en el padrón para activarles el
+// acceso). Los prestadores no socios se registran por /register.
 export const CATEGORIAS_ALTA = [
   { value: "empresa_socia", label: "Empresa industrial socia UIAB" },
-  { value: "prestador_servicios", label: "Prestador de productos y servicios" },
   { value: "entidad_financiera", label: "Entidad financiera" },
   { value: "entidad_educativa", label: "Entidad educativa" },
   { value: "cooperativa", label: "Cooperativa" },
 ] as const;
 
-export const CATEGORIA_ALTA_LABEL: Record<string, string> = Object.fromEntries(
-  CATEGORIAS_ALTA.map((c) => [c.value, c.label])
-);
+export const CATEGORIA_ALTA_LABEL: Record<string, string> = {
+  ...Object.fromEntries(CATEGORIAS_ALTA.map((c) => [c.value, c.label])),
+  // etiqueta legacy: solicitudes viejas cargadas cuando la opción existía
+  prestador_servicios: "Prestador de productos y servicios",
+};
 
 export const ESTADOS_ALTA = [
   { value: "pendiente", label: "Pendiente" },

@@ -34,11 +34,22 @@ const AltaSchema = z.object({
   localidad: z.string().trim().max(120).optional().or(z.literal("")),
   direccion: z.string().trim().max(200).optional().or(z.literal("")),
   mensaje: z.string().trim().max(1000).optional().or(z.literal("")),
+}).refine((d) => d.ya_es_socio === true, {
+  message:
+    "Este formulario es exclusivo para organizaciones socias de la UIAB. Si no sos socio, podés crear tu cuenta desde el registro.",
+  path: ["ya_es_socio"],
 });
 
 function limpiar(v: string | undefined | null): string | null {
   const t = (v ?? "").trim();
   return t === "" ? null : t;
+}
+
+// Deja solo los dígitos del CUIT ("30-12345678-9" → "30123456789").
+// Con menos de 8 dígitos devuelve null para evitar matches basura con strings cortos.
+function normalizarCuit(v: string | null | undefined): string | null {
+  const digitos = (v ?? "").replace(/\D/g, "");
+  return digitos.length < 8 ? null : digitos;
 }
 
 // ─── Acción pública: enviar el formulario ──────────────────────────────────────
@@ -296,13 +307,20 @@ export async function crearCuentaDesdeAlta(altaId: string) {
     });
   } else {
     // Empresa: reutilizar la del padrón si ya está vinculada o si matchea por CUIT.
-    if (!empresaIdFinal && alta.cuit) {
-      const { data: match } = await db
+    // El padrón tiene CUITs con formatos mixtos (con y sin guiones), así que el
+    // match se hace normalizando a solo dígitos de los dos lados.
+    const cuitAlta = normalizarCuit(alta.cuit);
+    if (!empresaIdFinal && cuitAlta) {
+      const { data: candidatas } = await db
         .from("empresas")
-        .select("id")
-        .eq("cuit", alta.cuit)
-        .maybeSingle();
-      if (match?.id) empresaIdFinal = match.id;
+        .select("id, cuit")
+        .not("cuit", "is", null);
+      const coincidencias = (candidatas ?? []).filter(
+        (e) => normalizarCuit(e.cuit) === cuitAlta
+      );
+      // Si hay más de una coincidencia es un CUIT duplicado en el padrón:
+      // no vinculamos ninguna y dejamos que el admin lo resuelva a mano.
+      if (coincidencias.length === 1) empresaIdFinal = coincidencias[0].id;
     }
 
     if (!empresaIdFinal) {
@@ -387,5 +405,6 @@ export async function crearCuentaDesdeAlta(altaId: string) {
     success: true as const,
     emailEnviado: !!accionLink,
     reutilizada: !!alta.empresa_id || (!esProveedor && !!empresaIdFinal && empresaIdFinal !== null),
+    empresaId: empresaIdFinal,
   };
 }
