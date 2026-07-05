@@ -142,9 +142,11 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
     const [hrefPath, hrefQuery] = href.split("?");
     if (pathname !== hrefPath) return false;
     const hp = new URLSearchParams(hrefQuery ?? "");
-    // En /directorio distinguimos el tab (empresas por defecto vs prestadores).
+    // En /directorio: si el href apunta a un tab puntual se compara el tab;
+    // si no ("Directorio completo"), está activo en cualquier tab.
     if (hrefPath === "/directorio") {
-      return (hp.get("tab") ?? "empresas") === (currentTab ?? "empresas");
+      if (!hp.has("tab")) return true;
+      return hp.get("tab") === (currentTab ?? "empresas");
     }
     if (hp.has("categoria")) return hp.get("categoria") === currentCategoria;
     return !currentCategoria && !currentTab;
@@ -194,27 +196,37 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
 
   const navigation: NavItem[] = [
     { name: currentUser ? "Dashboard" : "Inicio", href: currentUser ? "/dashboard" : "/", icon: null },
-    {
-      name: "Directorio",
-      href: "/directorio",
-      icon: BookOpen,
+    { name: "Directorio", href: "/directorio", icon: BookOpen },
+    { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
+    { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
+    { name: "Contacto", href: "/contacto", icon: null },
+  ];
+
+  // Visitantes sin sesión: desplegable informativo con las categorías de la red.
+  // OJO: el formulario de alta (/sumate) NO se linkea acá — es solo para socias
+  // y el admin comparte el link directo desde /admin/altas.
+  if (!currentUser) {
+    navigation.splice(2, 0, {
+      name: "Sumate",
+      href: "/empresas",
+      icon: UserPlus,
       groups: [
         {
-          name: "Directorio",
-          icon: Building,
-          description: "Las categorías de la red UIAB",
+          name: "Conocé la red UIAB",
+          icon: UserPlus,
+          description: "Las categorías del directorio de la UIAB",
           items: [
             {
               name: "Empresas industriales socias UIAB",
-              href: "/directorio",
+              href: "/empresas",
               icon: Factory,
               description: "Ecosistema industrial socio de la UIAB",
             },
             {
               name: "Prestadores de productos y servicios",
-              href: "/directorio?tab=prestadores",
+              href: "/empresas?categoria=proveedores",
               icon: Briefcase,
-              description: "Proveedores de servicios no socios",
+              description: "Proveedores de productos y servicios",
             },
             {
               name: "Entidades financieras",
@@ -237,15 +249,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
           ],
         },
       ],
-    },
-    { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
-    { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
-    { name: "Contacto", href: "/contacto", icon: null },
-  ];
-
-  // Visitantes sin sesión (socios que todavía no tienen acceso): CTA para sumarse.
-  if (!currentUser) {
-    navigation.splice(2, 0, { name: "Sumate", href: "/sumate", icon: UserPlus });
+    });
   }
 
   if (currentUser?.role === "admin") {
