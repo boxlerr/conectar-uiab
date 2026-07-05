@@ -76,9 +76,12 @@
   .group:hover .marquee-track {
     animation-play-state: paused;
   }
+  /* Con "reducir movimiento" activo (macOS Accesibilidad) el marquee no se
+     frena del todo — solo va bien lento. Si estuviera en none, en esas
+     máquinas el banner parece roto/estático. */
   @media (prefers-reduced-motion: reduce) {
     .marquee-track {
-      animation: none;
+      animation-duration: 600s !important;
     }
   }
 }

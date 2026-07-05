@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/cliente";
+import { crearSlug } from "@/lib/utilidades";
 
 interface EmpresaSocia {
   id: string;
   nombre: string;
+  slug: string;
   logoUrl: string | null;
 }
 
@@ -39,14 +42,19 @@ export function BannerLogosSocias() {
         return;
       }
 
-      const mapped: EmpresaSocia[] = data.map((e: any) => ({
-        id: e.id,
-        nombre: e.razon_social,
-        logoUrl:
-          e.bucket_logo && e.ruta_logo
-            ? supabase.storage.from(e.bucket_logo).getPublicUrl(e.ruta_logo).data.publicUrl
-            : null,
-      }));
+      const mapped: EmpresaSocia[] = data
+        .map((e: any) => ({
+          id: e.id,
+          nombre: e.razon_social,
+          slug: crearSlug(e.razon_social),
+          logoUrl:
+            e.bucket_logo && e.ruta_logo
+              ? supabase.storage.from(e.bucket_logo).getPublicUrl(e.ruta_logo).data.publicUrl
+              : null,
+        }))
+        // Solo logos reales: si una empresa no tiene imagen no la mostramos como
+        // texto (queda feo junto a los logos). Aparecerá cuando cargue su logo.
+        .filter((e: EmpresaSocia) => !!e.logoUrl);
 
       setEmpresas(mapped);
       setCargando(false);
@@ -134,9 +142,14 @@ function LogoSocia({ empresa }: { empresa: EmpresaSocia }) {
   const wordmark = formatearWordmark(empresa.nombre);
 
   return (
-    <div
-      className="flex-shrink-0 w-[220px] h-[90px] flex items-center justify-center px-6 transition-transform duration-300 ease-out hover:scale-125"
-      title={empresa.nombre}
+    // Enlaza a la ficha de la empresa (el marquee se pausa en hover, así se
+    // puede clickear). También genera un enlace interno hacia cada perfil, que
+    // ayuda a que Google indexe y posicione las fichas del directorio.
+    <Link
+      href={`/empresas/${empresa.slug}`}
+      className="flex-shrink-0 w-[240px] h-[110px] flex items-center justify-center px-6 transition-transform duration-300 ease-out hover:scale-125"
+      title={`Ver el perfil de ${empresa.nombre} en UIAB Conecta`}
+      aria-label={`Ver el perfil de ${empresa.nombre}, empresa socia de la UIAB, en UIAB Conecta`}
     >
       {mostrarFallback ? (
         <span
@@ -148,13 +161,16 @@ function LogoSocia({ empresa }: { empresa: EmpresaSocia }) {
       ) : (
         <Image
           src={empresa.logoUrl!}
-          alt={empresa.nombre}
-          width={180}
-          height={70}
-          className="object-contain max-h-[70px] max-w-[180px] grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+          alt={`Logo de ${empresa.nombre} — empresa socia de la UIAB`}
+          width={200}
+          height={90}
+          // eager: dentro del track animado (transform) el lazy loading nativo
+          // nunca se dispara y los logos quedan en blanco mientras scrollea.
+          loading="eager"
+          className="object-contain max-h-[90px] max-w-[200px] transition-transform duration-300"
           onError={() => setErrorLogo(true)}
         />
       )}
-    </div>
+    </Link>
   );
 }

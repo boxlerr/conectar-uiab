@@ -7,48 +7,51 @@ interface ProfileCardProps {
   entidad: Entidad;
   basePath: string;
   variant?: 'grid' | 'list';
-  colorScheme?: 'blue' | 'emerald' | 'violet' | 'amber';
+  colorScheme?: 'blue' | 'emerald' | 'violet' | 'amber' | 'teal';
 }
 
 export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colorScheme = 'blue' }: ProfileCardProps) {
   const isParticular = entidad.esSocio === false;
   const isEmerald = colorScheme === 'emerald';
   const isViolet = colorScheme === 'violet';
+  const isTeal = colorScheme === 'teal';
 
   const hoverText = isParticular
     ? "group-hover:text-[#bf7035]"
-    : isViolet ? "group-hover:text-violet-700" : isEmerald ? "group-hover:text-emerald-700" : "group-hover:text-[#10375c]";
+    : isTeal ? "group-hover:text-teal-700" : isViolet ? "group-hover:text-violet-700" : isEmerald ? "group-hover:text-emerald-700" : "group-hover:text-[#10375c]";
 
   const indicatorLine = isParticular
     ? "bg-gradient-to-r from-[#bf7035] to-[#d4894a]"
-    : isViolet ? "bg-gradient-to-r from-violet-500 to-indigo-500" : isEmerald ? "bg-emerald-500" : "bg-gradient-to-r from-[#10375c] to-[#1a6496]";
+    : isTeal ? "bg-teal-500" : isViolet ? "bg-gradient-to-r from-violet-500 to-indigo-500" : isEmerald ? "bg-emerald-500" : "bg-gradient-to-r from-[#10375c] to-[#1a6496]";
 
   const bgLogo = isParticular
     ? "bg-[#bf7035]/8 text-[#bf7035]"
-    : isViolet ? "bg-violet-50 text-violet-800" : isEmerald ? "bg-emerald-50 text-emerald-800" : "bg-[#10375c]/8 text-[#10375c]";
+    : isTeal ? "bg-teal-50 text-teal-800" : isViolet ? "bg-violet-50 text-violet-800" : isEmerald ? "bg-emerald-50 text-emerald-800" : "bg-[#10375c]/8 text-[#10375c]";
 
   const verifiedBg = isParticular
     ? "bg-[#bf7035] text-white"
-    : isViolet ? "bg-violet-700 text-white" : isEmerald ? "bg-emerald-600 text-white" : "bg-[#10375c] text-white";
+    : isTeal ? "bg-teal-600 text-white" : isViolet ? "bg-violet-700 text-white" : isEmerald ? "bg-emerald-600 text-white" : "bg-[#10375c] text-white";
 
   const sectorChip = isParticular
     ? "bg-[#bf7035]/8 text-[#bf7035]"
-    : isViolet ? "bg-violet-50 text-violet-700" : isEmerald ? "bg-emerald-50 text-emerald-700" : "bg-[#10375c]/8 text-[#10375c]";
+    : isTeal ? "bg-teal-50 text-teal-700" : isViolet ? "bg-violet-50 text-violet-700" : isEmerald ? "bg-emerald-50 text-emerald-700" : "bg-[#10375c]/8 text-[#10375c]";
 
   const locationBg = isParticular ? "bg-[#bf7035]/6" : "bg-[#10375c]/6";
   const locationText = isParticular ? "text-[#bf7035]" : "text-[#10375c]";
   const locationIcon = isParticular ? "text-[#bf7035]/60" : "text-[#10375c]/60";
 
   const actionBg = isParticular
-    ? "bg-[#bf7035]" : isViolet ? "bg-violet-700" : isEmerald ? "bg-emerald-600" : "bg-[#10375c]";
+    ? "bg-[#bf7035]" : isTeal ? "bg-teal-600" : isViolet ? "bg-violet-700" : isEmerald ? "bg-emerald-600" : "bg-[#10375c]";
 
   // ─── LIST VARIANT ───────────────────────────────────────────────────────────
   if (variant === 'list') {
-    const accentDot = isParticular ? "bg-amber-500" : isViolet ? "bg-violet-500" : isEmerald ? "bg-emerald-500" : "bg-[#00213f]";
-    const accentText = isParticular ? "text-amber-600" : isViolet ? "text-violet-600" : isEmerald ? "text-emerald-600" : "text-[#00213f]/70";
+    const accentDot = isParticular ? "bg-amber-500" : isTeal ? "bg-teal-500" : isViolet ? "bg-violet-500" : isEmerald ? "bg-emerald-500" : "bg-[#00213f]";
+    const accentText = isParticular ? "text-amber-600" : isTeal ? "text-teal-600" : isViolet ? "text-violet-600" : isEmerald ? "text-emerald-600" : "text-[#00213f]/70";
     const buttonHover = isParticular
       ? "group-hover:bg-amber-600 group-hover:border-amber-600 group-hover:text-white"
-      : isViolet
+      : isTeal
+        ? "group-hover:bg-teal-600 group-hover:border-teal-600 group-hover:text-white"
+        : isViolet
         ? "group-hover:bg-violet-700 group-hover:border-violet-700 group-hover:text-white"
         : isEmerald
           ? "group-hover:bg-emerald-600 group-hover:border-emerald-600 group-hover:text-white"
@@ -68,7 +71,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
             isParticular ? "rounded-full ring-1 ring-amber-200/60" : "rounded-md"
           }`}>
             {entidad.logoUrl ? (
-              <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="60px" />
+              <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-contain p-1" sizes="60px" />
             ) : (
               entidad.logo
             )}
@@ -163,7 +166,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
             isParticular ? "rounded-full ring-1 ring-amber-200/60" : "rounded-md"
           }`}>
             {entidad.logoUrl ? (
-              <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="48px" />
+              <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-contain p-1" sizes="48px" />
             ) : (
               entidad.logo
             )}
