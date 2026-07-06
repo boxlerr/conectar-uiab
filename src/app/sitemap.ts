@@ -21,6 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/oportunidades`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
     { url: `${BASE_URL}/instituciones-bancarias`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },
     { url: `${BASE_URL}/instituciones-educativas`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },
+    { url: `${BASE_URL}/cooperativas`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },
     { url: `${BASE_URL}/contacto`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/privacidad`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE_URL}/cookies`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },

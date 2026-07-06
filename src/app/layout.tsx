@@ -39,14 +39,64 @@ import type { User } from "@/tipos";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
+const SITE_URL = "https://www.uiabconecta.com";
+
+// Datos estructurados del sitio (Organization + WebSite). Le da a Google la
+// identidad de la marca y habilita el cuadro de búsqueda en los resultados.
+const JSON_LD_SITIO = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organizacion`,
+      name: "UIAB Conecta",
+      alternateName: ["Unión Industrial de Almirante Brown", "UIAB"],
+      url: SITE_URL,
+      logo: `${SITE_URL}/icono-uiab.png`,
+      description:
+        "Directorio comercial B2B de la Unión Industrial de Almirante Brown: empresas socias, prestadores de servicios, entidades financieras y educativas y cooperativas verificadas.",
+      areaServed: {
+        "@type": "AdministrativeArea",
+        name: "Almirante Brown, Buenos Aires, Argentina",
+      },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: "UIAB Conecta",
+      inLanguage: "es-AR",
+      publisher: { "@id": `${SITE_URL}/#organizacion` },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${SITE_URL}/directorio?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.uiabconecta.com"),
   title: {
     default: "UIAB Conecta | Directorio Industrial",
     template: "%s | UIAB Conecta",
   },
-  description: "Directorio Comercial de la Unión Industrial de Almirante Brown",
+  description:
+    "Directorio comercial B2B de la Unión Industrial de Almirante Brown: empresas socias, prestadores de productos y servicios, entidades financieras y educativas y cooperativas verificadas de Almirante Brown.",
   applicationName: "UIAB Conecta",
+  alternates: { canonical: "/" },
+  keywords: [
+    "UIAB",
+    "UIAB Conecta",
+    "Unión Industrial de Almirante Brown",
+    "directorio industrial",
+    "empresas Almirante Brown",
+    "proveedores industriales",
+  ],
   icons: {
     icon: [
       { url: "/icono-uiab.svg", type: "image/svg+xml" },
@@ -164,6 +214,10 @@ export default async function RootLayout({
       <body
         className={`${openSans.variable} ${poppins.variable} ${manrope.variable} ${inter.variable} font-sans antialiased min-h-screen bg-slate-50`}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SITIO) }}
+        />
         <AuthProvider initialUser={initialUser}>
           <TourProvider>
             <Suspense>

@@ -206,8 +206,9 @@ export function DirectorioCliente({
   const tabActiva: ConfigTab =
     TABS.find((t) => t.key === tabParam) ?? TABS[0];
 
-  // Shared filter state
-  const [searchTerm, setSearchTerm] = useState("");
+  // Shared filter state. searchTerm se inicializa desde ?q= para que el cuadro
+  // de búsqueda de Google (SearchAction) lleve directo al término buscado.
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get("q") ?? "");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
