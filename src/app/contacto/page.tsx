@@ -52,7 +52,7 @@ export default function ContactoPage() {
             {/* Background Texture/Image Anchor */}
             <div className="absolute inset-0 opacity-15 pointer-events-none">
               <Image
-                src="/landing/hero-industrial.png"
+                src="/landing/hero-industrial.webp"
                 alt="Industrial Background"
                 fill
                 className="object-cover"

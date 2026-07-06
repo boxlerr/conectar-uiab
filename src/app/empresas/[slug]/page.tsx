@@ -479,7 +479,7 @@ async function EmpresaProfile({
       {/* Hero — always visible for SEO */}
       <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24">
         <div className="absolute inset-0 z-0">
-          <Image src="/landing/hero-industrial.png" alt="" fill className="object-cover object-center" priority />
+          <Image src="/landing/hero-industrial.webp" alt="" fill className="object-cover object-center" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#00213f] via-[#00213f]/60 to-transparent" />
         </div>
@@ -816,7 +816,7 @@ async function ProveedorProfile({
       {/* Hero */}
       <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24">
         <div className="absolute inset-0 z-0">
-          <Image src="/landing/hero-industrial.png" alt="Fondo" fill className="object-cover object-center" priority />
+          <Image src="/landing/hero-industrial.webp" alt="Fondo" fill className="object-cover object-center" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#00182e] via-[#00213f]/70 to-transparent" />
         </div>

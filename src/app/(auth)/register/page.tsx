@@ -430,7 +430,7 @@ function RegisterContent() {
         <div className="relative hidden lg:flex flex-col justify-between p-8 lg:p-12 bg-[#00213f] text-white pt-12 lg:pt-16">
           <AnimatePresence mode="wait">
             <motion.div key={selectedRole || 'intro'} initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 0.25, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 1 }} className="absolute inset-0 z-0">
-              {(!selectedRole) && <Image src="/landing/hero-industrial.png" alt="Industrial" fill className="object-cover grayscale" priority />}
+              {(!selectedRole) && <Image src="/landing/hero-industrial.webp" alt="Industrial" fill className="object-cover grayscale" priority />}
               {(selectedRole === 'company') && <Image src="/landing/hero-dashboard.png" alt="Analítica" fill className="object-cover" priority />}
               {(selectedRole === 'provider') && <Image src="/landing/provider-hero-v2.png" alt="Oficios" fill className="object-cover grayscale" priority />}
             </motion.div>

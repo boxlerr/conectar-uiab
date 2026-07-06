@@ -26,7 +26,7 @@ export default async function NuevaOportunidadPage() {
       <div className="relative h-[300px] flex items-center overflow-hidden -mt-24 pt-24 mb-12">
         <div className="absolute inset-0 z-0">
           <Image
-            src="/landing/hero-industrial.png"
+            src="/landing/hero-industrial.webp"
             alt="Fondo Industrial"
             fill
             className="object-cover object-center"

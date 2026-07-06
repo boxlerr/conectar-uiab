@@ -137,7 +137,7 @@ export function PublicEmpresasLanding() {
         {/* Background Image (sin parallax para evitar reflows en notebooks) */}
         <div className="absolute inset-0 z-0 overflow-hidden">
           <Image
-            src="/landing/hero-industrial.png"
+            src="/landing/hero-industrial.webp"
             alt="Vista del Distrito de Almirante Brown"
             fill
             quality={85}

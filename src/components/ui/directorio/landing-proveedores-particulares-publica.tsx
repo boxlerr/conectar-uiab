@@ -144,7 +144,7 @@ export function PublicProveedoresParticularesLanding() {
         {/* Background Image (static — sin parallax para mejor performance) */}
         <div className="absolute inset-0 z-0 overflow-hidden">
           <Image
-            src="/landing/hero-industrial.png"
+            src="/landing/hero-industrial.webp"
             alt="Parque industrial de Almirante Brown"
             fill
             quality={85}

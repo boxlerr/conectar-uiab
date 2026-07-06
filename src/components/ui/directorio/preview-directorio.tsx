@@ -66,7 +66,7 @@ export function PreviewDirectorio() {
       accentSoft: "rgba(16,55,92,0.06)",
       accentInk: "#00213f",
       glow: "rgba(16,55,92,0.18)",
-      image: "/landing/hero-industrial.png",
+      image: "/landing/hero-industrial.webp",
       imageAlt: "Industria en Almirante Brown",
       demo: {
         badge: "Empresa industrial",

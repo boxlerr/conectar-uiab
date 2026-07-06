@@ -308,7 +308,7 @@ export function DirectorioCliente({
             className="absolute -top-[14%] -bottom-[14%] left-0 right-0"
           >
             <Image
-              src="/landing/hero-industrial.png"
+              src="/landing/hero-industrial.webp"
               alt=""
               fill
               className="object-cover object-center opacity-[0.16] mix-blend-luminosity"

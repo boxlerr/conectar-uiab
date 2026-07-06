@@ -190,7 +190,7 @@ export default function Home() {
                 {/* Main Industrial Illustration */}
                 <div className="relative z-10 w-full aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
                   <Image
-                    src="/landing/hero-industrial.png"
+                    src="/landing/hero-industrial.webp"
                     alt="Ecosistema industrial conectado — Directorio B2B UIAB Conecta, empresas y proveedores de Almirante Brown"
                     fill
                     className="object-cover"
