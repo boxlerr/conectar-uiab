@@ -6,10 +6,13 @@ import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
 import { CatalogoPublico, type CatalogoItem } from "@/components/ui/directorio/catalogo-publico";
 import { ModalContacto } from "@/components/ui/directorio/modal-contacto";
-import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock } from "lucide-react";
+import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock, Tag } from "lucide-react";
 import Image from "next/image";
 import { BotonWhatsApp } from "@/components/ui/boton-whatsapp";
 import { RegistrarVisita } from "@/components/ui/registrar-visita";
+import type { Metadata } from "next";
+
+const SITE_URL = "https://www.uiabconecta.com";
 
 async function fetchCatalogoItems(
   supabase: any,
@@ -108,6 +111,141 @@ function LoginGate({ currentPath }: { currentPath: string }) {
   );
 }
 
+// ── SEO: datos mínimos por slug (empresa o proveedor) para metadata + JSON-LD ──
+async function datosSeoPorSlug(slug: string) {
+  const db = createAdminClient();
+
+  const { data: empresas } = await db
+    .from("empresas")
+    .select("razon_social, actividad, localidad, provincia, sitio_web, bucket_logo, ruta_logo")
+    .eq("estado", "aprobada");
+  const emp = empresas?.find((e: any) => crearSlug(e.razon_social) === slug);
+  if (emp) {
+    return {
+      esProveedor: false,
+      nombre: emp.razon_social as string,
+      descripcion: (emp.actividad as string) || null,
+      localidad: (emp.localidad as string) || null,
+      provincia: (emp.provincia as string) || null,
+      sitioWeb: (emp.sitio_web as string) || null,
+      logoUrl:
+        emp.bucket_logo && emp.ruta_logo
+          ? db.storage.from(emp.bucket_logo).getPublicUrl(emp.ruta_logo).data.publicUrl
+          : null,
+    };
+  }
+
+  const { data: provs } = await db
+    .from("proveedores")
+    .select("nombre, apellido, nombre_comercial, descripcion, localidad, provincia, sitio_web, bucket_logo, ruta_logo")
+    .eq("estado", "aprobado");
+  const prov = provs?.find((p: any) => {
+    const dn = p.nombre_comercial || [p.nombre, p.apellido].filter(Boolean).join(" ") || "";
+    return crearSlug(dn) === slug;
+  });
+  if (prov) {
+    const dn = prov.nombre_comercial || [prov.nombre, prov.apellido].filter(Boolean).join(" ");
+    return {
+      esProveedor: true,
+      nombre: dn as string,
+      descripcion: (prov.descripcion as string) || null,
+      localidad: (prov.localidad as string) || null,
+      provincia: (prov.provincia as string) || null,
+      sitioWeb: (prov.sitio_web as string) || null,
+      logoUrl:
+        prov.bucket_logo && prov.ruta_logo
+          ? db.storage.from(prov.bucket_logo).getPublicUrl(prov.ruta_logo).data.publicUrl
+          : null,
+    };
+  }
+  return null;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const d = await datosSeoPorSlug(slug);
+  if (!d) {
+    return { title: "Perfil no encontrado | UIAB Conecta", robots: { index: false, follow: true } };
+  }
+  const rolTitulo = d.esProveedor ? "Prestador verificado UIAB" : "Empresa socia UIAB";
+  const ubic = d.localidad ? ` en ${d.localidad}${d.provincia ? ", " + d.provincia : ""}` : "";
+  // El layout raíz agrega " | UIAB Conecta" vía template; `title` no debe repetirlo.
+  const title = `${d.nombre} — ${rolTitulo}`;
+  const tituloCompleto = `${title} | UIAB Conecta`;
+  const description = `${d.nombre}${d.descripcion ? ": " + d.descripcion : ""}. ${
+    d.esProveedor ? "Prestador de productos y servicios verificado" : "Empresa socia registrada"
+  } en la Unión Industrial de Almirante Brown (UIAB)${ubic}. Perfil oficial verificado en UIAB Conecta.`.slice(0, 300);
+  const url = `${SITE_URL}/empresas/${slug}`;
+
+  return {
+    title,
+    description,
+    keywords: [d.nombre, "UIAB", "UIAB Conecta", "Unión Industrial de Almirante Brown", d.localidad ?? ""].filter(Boolean),
+    alternates: { canonical: `/empresas/${slug}` },
+    openGraph: {
+      title: tituloCompleto,
+      description,
+      url,
+      siteName: "UIAB Conecta",
+      locale: "es_AR",
+      type: "profile",
+      images: d.logoUrl ? [{ url: d.logoUrl, alt: d.nombre }] : undefined,
+    },
+    twitter: {
+      card: "summary",
+      title: tituloCompleto,
+      description,
+      images: d.logoUrl ? [d.logoUrl] : undefined,
+    },
+  };
+}
+
+// JSON-LD Organization: le dice a Google que la empresa está registrada y es
+// miembro de la UIAB (memberOf). Ayuda a que al buscar su nombre aparezca su
+// ficha en UIAB Conecta con datos estructurados.
+function jsonLdOrganizacion(opts: {
+  nombre: string;
+  descripcion: string | null;
+  localidad: string | null;
+  provincia: string | null;
+  logoUrl: string | null;
+  sitioWeb: string | null;
+  url: string;
+}) {
+  const jsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: opts.nombre,
+    url: opts.url,
+    ...(opts.descripcion ? { description: opts.descripcion } : {}),
+    ...(opts.logoUrl ? { logo: opts.logoUrl, image: opts.logoUrl } : {}),
+    ...(opts.sitioWeb
+      ? { sameAs: [opts.sitioWeb.startsWith("http") ? opts.sitioWeb : `https://${opts.sitioWeb}`] }
+      : {}),
+    ...(opts.localidad
+      ? {
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: opts.localidad,
+            ...(opts.provincia ? { addressRegion: opts.provincia } : {}),
+            addressCountry: "AR",
+          },
+        }
+      : {}),
+    memberOf: {
+      "@type": "Organization",
+      name: "Unión Industrial de Almirante Brown",
+      alternateName: "UIAB",
+      url: SITE_URL,
+    },
+  };
+  return jsonLd;
+}
+
 export default async function EmpresaProfilePage({
   params,
 }: {
@@ -129,6 +267,7 @@ export default async function EmpresaProfilePage({
         razon_social,
         direccion,
         localidad,
+        provincia,
         actividad,
         sitio_web,
         email,
@@ -140,6 +279,12 @@ export default async function EmpresaProfilePage({
         empresas_categorias (
           categorias (
             nombre
+          )
+        ),
+        empresas_tags (
+          tags (
+            nombre,
+            tipo_tag
           )
         )
       `)
@@ -284,6 +429,17 @@ async function EmpresaProfile({
   const serviciosExtra = cats.slice(1);
   const tieneServiciosReales = serviciosExtra.length > 0;
 
+  // Tags de match (tabla tags via empresas_tags) — información pública que alimenta la búsqueda del directorio
+  const tagsEmpresa: { nombre: string; tipo_tag: string | null }[] = Array.from(
+    new Map<string, { nombre: string; tipo_tag: string | null }>(
+      (empresaDb.empresas_tags || [])
+        .map((et: any) => et.tags)
+        .filter((t: any) => t?.nombre)
+        .map((t: any) => [t.nombre, { nombre: t.nombre, tipo_tag: t.tipo_tag ?? null }])
+    ).values()
+  ).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  const tieneTags = tagsEmpresa.length > 0;
+
   const empresa = {
     nombre: empresaDb.razon_social,
     categoria: mainCat,
@@ -303,6 +459,22 @@ async function EmpresaProfile({
 
   return (
     <div className="min-h-screen bg-slate-50 font-inter pb-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            jsonLdOrganizacion({
+              nombre: empresa.nombre,
+              descripcion: empresa.actividad,
+              localidad: empresaDb.localidad || null,
+              provincia: empresaDb.provincia || null,
+              logoUrl: empresa.logoUrl,
+              sitioWeb: empresaDb.sitio_web || null,
+              url: `${SITE_URL}${currentPath}`,
+            })
+          ),
+        }}
+      />
       <RegistrarVisita tipo="empresa" entidadId={empresaDb.id} />
       {/* Hero — always visible for SEO */}
       <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24">
@@ -339,7 +511,7 @@ async function EmpresaProfile({
         <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 py-6 flex flex-wrap items-center gap-6">
           <div className="w-20 h-20 bg-white border border-slate-200 flex items-center justify-center font-manrope font-black text-4xl text-[#00213f] shrink-0 overflow-hidden rounded-md shadow-sm">
             {empresa.logoUrl ? (
-              <Image src={empresa.logoUrl} alt={empresa.nombre} width={80} height={80} className="object-cover w-full h-full" />
+              <Image src={empresa.logoUrl} alt={empresa.nombre} width={80} height={80} className="object-contain w-full h-full p-1.5" />
             ) : (
               empresa.logo
             )}
@@ -391,22 +563,42 @@ async function EmpresaProfile({
               </section>
             )}
 
-            {tieneServiciosReales && (
+            {(tieneServiciosReales || tieneTags) && (
               <section className="bg-white p-7 rounded-md border border-slate-200">
                 <div className="flex items-center gap-2.5 mb-5">
                   <Wrench className="w-4 h-4 text-blue-600" />
                   <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Rubros y especialidades</h2>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {empresa.servicios.map((servicio: string, idx: number) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-                    >
-                      {servicio}
-                    </span>
-                  ))}
-                </div>
+                {tieneServiciosReales && (
+                  <div className="flex flex-wrap gap-2">
+                    {empresa.servicios.map((servicio: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                      >
+                        {servicio}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {tieneTags && (
+                  <div className={tieneServiciosReales ? "mt-6 pt-5 border-t border-slate-100" : ""}>
+                    <p className="font-manrope text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase mb-3">
+                      Especialidades y capacidades
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {tagsEmpresa.map((tag) => (
+                        <span
+                          key={tag.nombre}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-dashed border-slate-300 text-slate-600 text-[11px] font-medium rounded-full"
+                        >
+                          <Tag className="w-3 h-3 text-slate-400" />
+                          {tag.nombre}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
             )}
 
@@ -604,6 +796,22 @@ async function ProveedorProfile({
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            jsonLdOrganizacion({
+              nombre: proveedor.nombre,
+              descripcion: provDb.descripcion || null,
+              localidad: provDb.localidad || null,
+              provincia: provDb.provincia || null,
+              logoUrl: proveedor.logoUrl,
+              sitioWeb: provDb.sitio_web || null,
+              url: `${SITE_URL}${currentPath}`,
+            })
+          ),
+        }}
+      />
       <RegistrarVisita tipo="proveedor" entidadId={provDb.id} />
       {/* Hero */}
       <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24">
@@ -643,7 +851,7 @@ async function ProveedorProfile({
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 flex flex-wrap items-center gap-6">
           <div className="w-20 h-20 bg-white border border-slate-200 flex items-center justify-center font-manrope font-black text-4xl text-[#10375c] shrink-0 overflow-hidden rounded-full shadow-sm">
             {proveedor.logoUrl ? (
-              <Image src={proveedor.logoUrl} alt={proveedor.nombre} width={80} height={80} className="object-cover w-full h-full" />
+              <Image src={proveedor.logoUrl} alt={proveedor.nombre} width={80} height={80} className="object-contain w-full h-full p-1.5" />
             ) : (
               proveedor.logo
             )}
