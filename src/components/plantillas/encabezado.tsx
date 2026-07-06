@@ -310,9 +310,9 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
       <header 
         className={cn(
           "fixed top-0 inset-x-0 z-50 transition-all duration-300 border-b",
-          scrolled 
-            ? "bg-white/85 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)] border-slate-200/50" 
-            : "bg-white/50 backdrop-blur-sm border-transparent"
+          scrolled
+            ? "bg-white/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)] border-slate-200/50"
+            : "bg-white/80 backdrop-blur-md border-transparent"
         )}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
