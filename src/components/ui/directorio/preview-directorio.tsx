@@ -182,10 +182,11 @@ export function PreviewDirectorio() {
       icon: Handshake,
       href: "/cooperativas",
       ctaLabel: "Explorar cooperativas",
-      accent: "#b45309",
-      accentSoft: "rgba(180,83,9,0.07)",
-      accentInk: "#7c2d12",
-      glow: "rgba(180,83,9,0.18)",
+      // Rosa/frambuesa: distinto del naranja de prestadores para no confundirlos.
+      accent: "#be123c",
+      accentSoft: "rgba(190,18,60,0.07)",
+      accentInk: "#881337",
+      glow: "rgba(190,18,60,0.18)",
       image: "/landing/business-partnership.png",
       imageAlt: "Cooperativa de trabajo de la red UIAB",
       demo: {
@@ -337,10 +338,10 @@ export function PreviewDirectorio() {
                   />
                   <div
                     aria-hidden
-                    className="absolute inset-0 opacity-[0.07] mix-blend-overlay"
+                    className="absolute inset-0 opacity-[0.035] mix-blend-overlay"
                     style={{
                       backgroundImage: `linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)`,
-                      backgroundSize: "28px 28px",
+                      backgroundSize: "40px 40px",
                     }}
                   />
                 </motion.div>
@@ -409,26 +410,16 @@ export function PreviewDirectorio() {
 
             {/* RIGHT — example profile anatomy */}
             <div className="relative p-5 sm:p-6 lg:p-7 flex flex-col">
-              <div className="flex items-center justify-between mb-3.5">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-[10px] font-bold uppercase tracking-[0.18em]"
-                    style={{ color: active.accent }}
-                  >
-                    Perfil de ejemplo
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#191c1e]/30">
-                    · vista pública
-                  </span>
-                </div>
-                <Link
-                  href={active.href}
-                  className="inline-flex items-center gap-1 text-[11.5px] font-bold group/link"
+              <div className="flex items-center gap-2 mb-3.5">
+                <span
+                  className="text-[10px] font-bold uppercase tracking-[0.18em]"
                   style={{ color: active.accent }}
                 >
-                  {active.ctaLabel}
-                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
-                </Link>
+                  Perfil de ejemplo
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#191c1e]/30">
+                  · vista pública
+                </span>
               </div>
 
               {/* Demo profile card */}
@@ -580,6 +571,16 @@ export function PreviewDirectorio() {
                   </motion.div>
                 </AnimatePresence>
               </div>
+
+              {/* CTA propia: registrarse en la red */}
+              <Link
+                href="/register"
+                className="mt-5 flex w-full items-center justify-center gap-2 h-11 rounded-xl font-bold text-[13px] text-white shadow-md active:scale-[0.98] hover:brightness-110 transition-all"
+                style={{ background: active.accent }}
+              >
+                Sumá tu organización a la red
+                <ArrowUpRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         </div>
