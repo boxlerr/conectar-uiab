@@ -19,7 +19,6 @@ import {
   Briefcase,
   CheckCircle2,
 } from "lucide-react";
-import { CategoriasDirectorio } from "@/components/ui/directorio/categorias-directorio";
 import { BannerLogosSocias } from "@/components/ui/directorio/banner-logos-socias";
 import { PreviewDirectorio } from "@/components/ui/directorio/preview-directorio";
 import { SeccionBeneficios } from "@/components/ui/directorio/seccion-beneficios";
@@ -400,8 +399,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Directory Categories & Preview */}
-      <CategoriasDirectorio />
+      {/* Directory Preview */}
       <PreviewDirectorio />
       
       {/* ═══════════════════════════════════════════
