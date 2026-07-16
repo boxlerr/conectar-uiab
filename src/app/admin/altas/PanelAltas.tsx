@@ -27,6 +27,8 @@ import {
   Link2,
   Unlink,
   Send,
+  LogIn,
+  GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -75,6 +77,16 @@ type EmpresaPadron = {
   estado: string;
 };
 
+type EstadoCuenta = {
+  email: string;
+  ultimo_ingreso: string | null;
+  invitacion_creada: string | null;
+  invitacion_expira: string | null;
+  invitacion_usada: string | null;
+  tutoriales_vistos: Record<string, string | null> | null;
+  onboarding_completado_en: string | null;
+};
+
 type Filtro = "all" | "pendiente" | "contactado" | "cuenta_creada" | "descartado";
 
 const ESTADO_CONFIG: Record<string, { label: string; bg: string; text: string; icon: React.ElementType }> = {
@@ -88,11 +100,110 @@ function fecha(s: string) {
   return new Date(s).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function fechaHora(s: string) {
+  return new Date(s).toLocaleString("es-AR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function soloDigitos(s: string | null | undefined) {
   return (s ?? "").replace(/\D/g, "");
 }
 
-export function PanelAltas({ altas, empresas }: { altas: Alta[]; empresas: EmpresaPadron[] }) {
+// Cuántos de los 4 tutoriales principales vio (perfil, directorio, oportunidades, dashboard).
+const TOURS_PRINCIPALES = ["perfil", "directorio", "oportunidades", "dashboard"];
+function toursVistos(vistos: Record<string, string | null> | null | undefined) {
+  if (!vistos) return 0;
+  return TOURS_PRINCIPALES.filter((t) => Boolean(vistos[t])).length;
+}
+
+const TONO_ESTADO: Record<"ok" | "warn" | "bad" | "muted", string> = {
+  ok: "text-emerald-700",
+  warn: "text-amber-700",
+  bad: "text-rose-600",
+  muted: "text-slate-500",
+};
+
+function EstadoCuentaCard({ estado }: { estado?: EstadoCuenta }) {
+  if (!estado) {
+    return (
+      <p className="text-sm text-slate-400">
+        Cuenta creada. Todavía no hay datos de activación (puede tardar unos segundos en reflejarse).
+      </p>
+    );
+  }
+
+  const usada = Boolean(estado.invitacion_usada);
+  const vencida =
+    !usada &&
+    !!estado.invitacion_expira &&
+    new Date(estado.invitacion_expira).getTime() < Date.now();
+  const vistos = toursVistos(estado.tutoriales_vistos);
+  const completoTutorial = Boolean(estado.onboarding_completado_en) || vistos >= 4;
+
+  const filas: { icon: React.ElementType; label: string; valor: string; tono: keyof typeof TONO_ESTADO }[] = [
+    {
+      icon: KeyRound,
+      label: "Contraseña",
+      ...(usada
+        ? { valor: `Definida · ${fechaHora(estado.invitacion_usada!)}`, tono: "ok" as const }
+        : vencida
+          ? { valor: "El enlace venció — reenviá la invitación", tono: "bad" as const }
+          : {
+              valor: `Pendiente · el enlace vence el ${estado.invitacion_expira ? fecha(estado.invitacion_expira) : "—"}`,
+              tono: "warn" as const,
+            }),
+    },
+    {
+      icon: LogIn,
+      label: "Primer ingreso",
+      ...(estado.ultimo_ingreso
+        ? { valor: fechaHora(estado.ultimo_ingreso), tono: "ok" as const }
+        : { valor: "Todavía no ingresó", tono: "muted" as const }),
+    },
+    {
+      icon: GraduationCap,
+      label: "Tutorial",
+      ...(completoTutorial
+        ? { valor: "Completado", tono: "ok" as const }
+        : vistos > 0
+          ? { valor: `${vistos} de 4 pasos vistos`, tono: "warn" as const }
+          : { valor: "No lo empezó", tono: "muted" as const }),
+    },
+  ];
+
+  return (
+    <dl className="space-y-3 text-sm">
+      {filas.map((f) => {
+        const Icon = f.icon;
+        return (
+          <div key={f.label} className="flex items-start gap-3">
+            <Icon className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                {f.label}
+              </span>
+              <span className={`font-medium ${TONO_ESTADO[f.tono]}`}>{f.valor}</span>
+            </div>
+          </div>
+        );
+      })}
+    </dl>
+  );
+}
+
+export function PanelAltas({
+  altas,
+  empresas,
+  estados,
+}: {
+  altas: Alta[];
+  empresas: EmpresaPadron[];
+  estados: Record<string, EstadoCuenta>;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [filtro, setFiltro] = useState<Filtro>("all");
@@ -415,6 +526,16 @@ export function PanelAltas({ altas, empresas }: { altas: Alta[]; empresas: Empre
                           <EstIcon className="w-3 h-3" />
                           {est.label}
                         </span>
+                        {a.estado === "cuenta_creada" && (() => {
+                          const ec = estados[a.email.toLowerCase()];
+                          if (!ec) return null;
+                          const activo = Boolean(ec.invitacion_usada);
+                          return (
+                            <span className={`block text-[10px] mt-1 ${activo ? "text-emerald-600" : "text-slate-400"}`}>
+                              {activo ? "✓ activó su cuenta" : "sin activar aún"}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500">{fecha(a.creado_en)}</td>
                     </tr>
@@ -615,6 +736,16 @@ export function PanelAltas({ altas, empresas }: { altas: Alta[]; empresas: Empre
                   Al crear la cuenta se usa la empresa vinculada; si no hay ninguna, se busca por CUIT o se crea una nueva.
                 </p>
               </section>
+
+              {/* Estado de la cuenta (onboarding) */}
+              {seleccionada.estado === "cuenta_creada" && (
+                <section>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">
+                    Estado de la cuenta
+                  </p>
+                  <EstadoCuentaCard estado={estados[seleccionada.email.toLowerCase()]} />
+                </section>
+              )}
 
               {/* Acciones */}
               <section className="space-y-2 pt-2">
