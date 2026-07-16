@@ -26,6 +26,7 @@ import {
   Loader2,
   Link2,
   Unlink,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import {
   crearCuentaDesdeAlta,
   vincularEmpresaAlta,
 } from "@/modulos/altas/acciones";
+import { reenviarInvitacionAlta } from "@/modulos/altas/invitaciones";
 import {
   CATEGORIA_ALTA_LABEL,
   ESTADOS_ALTA,
@@ -97,6 +99,7 @@ export function PanelAltas({ altas, empresas }: { altas: Alta[]; empresas: Empre
   const [busqueda, setBusqueda] = useState("");
   const [seleccionada, setSeleccionada] = useState<Alta | null>(null);
   const [creando, setCreando] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
   const [filtroPadron, setFiltroPadron] = useState("");
   const [empresaElegida, setEmpresaElegida] = useState("");
   const [vinculando, setVinculando] = useState(false);
@@ -178,11 +181,15 @@ export function PanelAltas({ altas, empresas }: { altas: Alta[]; empresas: Empre
       setCreando(false);
     }
     if (res?.error) return toast.error(res.error);
-    toast.success(
-      "emailEnviado" in res && res.emailEnviado
-        ? "Cuenta creada. Le enviamos el email para definir su contraseña."
-        : "Cuenta creada."
-    );
+    if ("emailEnviado" in res && res.emailEnviado) {
+      toast.success("Cuenta creada. Le enviamos el email para definir su contraseña.");
+    } else {
+      toast.warning("Cuenta creada, pero el email no se envió", {
+        description:
+          ("emailError" in res && res.emailError) ||
+          "Revisá la configuración de SMTP y usá «Reenviar invitación».",
+      });
+    }
     const empresaIdCreada =
       "empresaId" in res && res.empresaId ? res.empresaId : null;
     setSeleccionada((prev) =>
@@ -195,6 +202,22 @@ export function PanelAltas({ altas, empresas }: { altas: Alta[]; empresas: Empre
         : null
     );
     refresh();
+  }
+
+  async function reenviar(altaId: string) {
+    setReenviando(true);
+    let res;
+    try {
+      res = await reenviarInvitacionAlta(altaId);
+    } catch {
+      return toast.error("No se pudo reenviar. Probá de nuevo.");
+    } finally {
+      setReenviando(false);
+    }
+    if (res?.error) return toast.error(res.error);
+    toast.success("Invitación reenviada", {
+      description: "Le llegará un nuevo email con un enlace válido por 30 días.",
+    });
   }
 
   const counts = useMemo(
@@ -596,8 +619,29 @@ export function PanelAltas({ altas, empresas }: { altas: Alta[]; empresas: Empre
               {/* Acciones */}
               <section className="space-y-2 pt-2">
                 {seleccionada.estado === "cuenta_creada" ? (
-                  <div className="flex items-center gap-2 w-full bg-emerald-50 text-emerald-700 rounded-lg px-4 py-3 text-sm font-semibold">
-                    <CheckCircle2 className="w-4 h-4" /> Esta empresa ya tiene acceso a la plataforma.
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 w-full bg-emerald-50 text-emerald-700 rounded-lg px-4 py-3 text-sm font-semibold">
+                      <CheckCircle2 className="w-4 h-4" /> Esta empresa ya tiene acceso a la plataforma.
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={reenviando}
+                      onClick={() => reenviar(seleccionada.id)}
+                    >
+                      {reenviando ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Reenviando…
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 mr-2" /> Reenviar invitación
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-[11px] text-slate-400">
+                      Genera un nuevo enlace para definir la contraseña (válido 30 días) por si todavía no ingresaron.
+                    </p>
                   </div>
                 ) : (
                   <Button

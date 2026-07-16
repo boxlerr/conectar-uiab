@@ -6,6 +6,7 @@ import { z } from "zod";
 import { appUrl, emailAdmin, enviarEmail } from "@/lib/email/cliente";
 import { renderEmailBase } from "@/lib/email/plantillas";
 import { CATEGORIAS_ALTA, type AltaSocioInput } from "./constantes";
+import { generarYEnviarInvitacion } from "./invitaciones-core";
 
 function adminClient() {
   return createClient(
@@ -219,7 +220,6 @@ export async function crearCuentaDesdeAlta(altaId: string) {
   const email: string = alta.email;
   const esProveedor = alta.categoria === "prestador_servicios";
   const rol = esProveedor ? "provider" : "company";
-  const redirectTo = `${appUrl()}/api/auth/callback?next=/restablecer-password`;
 
   // 1. ¿Ya existe un perfil con ese email? (= ya tiene cuenta)
   const { data: perfilExistente } = await db
@@ -229,28 +229,25 @@ export async function crearCuentaDesdeAlta(altaId: string) {
     .maybeSingle();
 
   let userId: string | null = perfilExistente?.id ?? null;
-  let accionLink: string | null = null;
 
-  if (userId) {
-    // Usuario ya existe → generamos link de recuperación para definir/retomar clave.
-    const { data: link } = await db.auth.admin.generateLink({
-      type: "recovery",
+  if (!userId) {
+    // Usuario nuevo → lo creamos ya confirmado, sin contraseña. La contraseña la
+    // define el propio socio con el link de invitación (token propio, válido 30
+    // días — ver invitaciones-core), no con el link nativo de Supabase que vence.
+    const { data: creado, error: crearErr } = await db.auth.admin.createUser({
       email,
-      options: { redirectTo },
+      email_confirm: true,
+      user_metadata: { nombre_completo: alta.referente_nombre },
     });
-    accionLink = link?.properties?.action_link ?? null;
-  } else {
-    // Usuario nuevo → invitación (crea el usuario + link para fijar contraseña).
-    const { data: link, error: invErr } = await db.auth.admin.generateLink({
-      type: "invite",
-      email,
-      options: { redirectTo, data: { nombre_completo: alta.referente_nombre } },
-    });
-    if (invErr || !link?.user?.id) {
-      return { error: `No se pudo crear el usuario: ${invErr?.message ?? "error desconocido"}` };
+    if (crearErr || !creado?.user?.id) {
+      const yaExiste = /already|registrad|registered|exist/i.test(crearErr?.message ?? "");
+      return {
+        error: yaExiste
+          ? "Ya existe un usuario de Auth con ese email pero sin perfil. Resolvelo a mano antes de dar acceso."
+          : `No se pudo crear el usuario: ${crearErr?.message ?? "error desconocido"}`,
+      };
     }
-    userId = link.user.id;
-    accionLink = link.properties?.action_link ?? null;
+    userId = creado.user.id;
   }
 
   if (!userId) return { error: "No se pudo resolver el usuario." };
@@ -374,23 +371,13 @@ export async function crearCuentaDesdeAlta(altaId: string) {
     }
   }
 
-  // 4. Email branded para fijar contraseña.
-  if (accionLink) {
-    const nombre = alta.nombre_comercial || alta.razon_social;
-    await enviarEmail({
-      para: email,
-      asunto: "Tu acceso a UIAB Conecta está listo",
-      html: renderEmailBase({
-        preheader: "Definí tu contraseña y entrá al directorio de UIAB Conecta.",
-        titulo: "¡Tu cuenta está activa!",
-        intro: `Hola ${alta.referente_nombre}, creamos el acceso de ${nombre} a UIAB Conecta.`,
-        cuerpo: `<p style="margin:0;">Solo falta que definas tu contraseña para empezar a usar la plataforma. El enlace es personal y vence en unas horas.</p>`,
-        cta: { etiqueta: "Definir mi contraseña", href: accionLink },
-        pie: "Si el enlace venció, podés generar uno nuevo desde «¿Olvidaste tu contraseña?» en el login.",
-      }),
-      texto: `Hola ${alta.referente_nombre}, tu acceso a UIAB Conecta (${nombre}) está listo. Definí tu contraseña: ${accionLink}`,
-    });
-  }
+  // 4. Invitación para definir contraseña (token propio, válido 30 días, single-use).
+  const inv = await generarYEnviarInvitacion({
+    perfilId: userId,
+    email,
+    referenteNombre: alta.referente_nombre,
+    nombreEmpresa: alta.nombre_comercial || alta.razon_social,
+  });
 
   // 5. Marcar la solicitud.
   await db
@@ -403,7 +390,8 @@ export async function crearCuentaDesdeAlta(altaId: string) {
 
   return {
     success: true as const,
-    emailEnviado: !!accionLink,
+    emailEnviado: inv.ok,
+    emailError: inv.ok ? undefined : inv.error,
     reutilizada: !!alta.empresa_id || (!esProveedor && !!empresaIdFinal && empresaIdFinal !== null),
     empresaId: empresaIdFinal,
   };
