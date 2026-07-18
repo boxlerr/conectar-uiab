@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import * as XLSX from "xlsx";
+// xlsx (~400KB) se carga dinámicamente sólo cuando se usa (descargar plantilla
+// o procesar un archivo), para no inflar el bundle inicial de esta ruta.
 import { Button } from "@/components/ui/button";
 import {
   X,
@@ -88,7 +89,8 @@ export function ImportarExcelModal({ role, entityId, onClose, onSuccess }: Props
   const [nombreArchivo, setNombreArchivo] = useState<string>("");
   const [importando, setImportando] = useState(false);
 
-  const descargarPlantilla = () => {
+  const descargarPlantilla = async () => {
+    const XLSX = await import("xlsx");
     const headers = COLUMNAS.map((c) => c.header);
     const ejemploProducto: Record<string, any> = {
       nombre: "Auriculares Pro X",
@@ -129,6 +131,7 @@ export function ImportarExcelModal({ role, entityId, onClose, onSuccess }: Props
   const procesarArchivo = async (file: File) => {
     setNombreArchivo(file.name);
     try {
+      const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
