@@ -31,6 +31,7 @@ import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { createClient } from "@/lib/supabase/cliente";
+import { leerCacheDirectorio, guardarCacheDirectorio } from "@/lib/datos/cache-directorio";
 import { crearSlug } from "@/lib/utilidades";
 import { AccesoRequerido } from "@/components/ui/acceso-requerido";
 import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
@@ -145,15 +146,17 @@ export default function InstitucionesEducativasPage() {
     }
   }, []);
 
-  const fetchInstituciones = useCallback(async () => {
+  const fetchInstituciones = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     fetchInstitucionesCount();
 
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa')) {
       setCargandoDatos(false);
       return;
     }
-    setCargandoDatos(true);
-    setEmpresas([]);
+    if (!silent) {
+      setCargandoDatos(true);
+      setEmpresas([]);
+    }
 
     try {
     const supabase = createClient();
@@ -230,6 +233,7 @@ export default function InstitucionesEducativasPage() {
       };
     });
 
+    guardarCacheDirectorio("instituciones_educativas", mapped);
     setEmpresas(mapped);
     } catch (err) {
       console.error("[instituciones-educativas] fetch falló:", err);
@@ -240,7 +244,14 @@ export default function InstitucionesEducativasPage() {
 
   useEffect(() => {
     if (loading) return;
-    fetchInstituciones();
+    const cacheado = leerCacheDirectorio("instituciones_educativas");
+    if (cacheado) {
+      setEmpresas(cacheado);
+      setCargandoDatos(false);
+      fetchInstituciones({ silent: true });
+    } else {
+      fetchInstituciones();
+    }
   }, [loading, fetchInstituciones]);
 
   const categorias = useMemo(

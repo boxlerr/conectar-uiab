@@ -34,6 +34,7 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { AccesoRequerido } from "@/components/ui/acceso-requerido";
 import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
 import { createClient } from "@/lib/supabase/cliente";
+import { leerCacheDirectorio, guardarCacheDirectorio } from "@/lib/datos/cache-directorio";
 import { crearSlug } from "@/lib/utilidades";
 
 /* ─── Animation variants ─── */
@@ -141,13 +142,15 @@ export default function InstitucionesBancariasPage() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const fetchBancos = useCallback(async () => {
+  const fetchBancos = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa')) {
       setCargandoDatos(false);
       return;
     }
-    setCargandoDatos(true);
-    setEmpresas([]);
+    if (!silent) {
+      setCargandoDatos(true);
+      setEmpresas([]);
+    }
 
     try {
     const supabase = createClient();
@@ -224,6 +227,7 @@ export default function InstitucionesBancariasPage() {
       };
     });
 
+    guardarCacheDirectorio("instituciones_bancarias", mapped);
     setEmpresas(mapped);
     } catch (err) {
       console.error("[instituciones-bancarias] fetch falló:", err);
@@ -234,7 +238,14 @@ export default function InstitucionesBancariasPage() {
 
   useEffect(() => {
     if (loading) return;
-    fetchBancos();
+    const cacheado = leerCacheDirectorio("instituciones_bancarias");
+    if (cacheado) {
+      setEmpresas(cacheado);
+      setCargandoDatos(false);
+      fetchBancos({ silent: true });
+    } else {
+      fetchBancos();
+    }
   }, [loading, fetchBancos]);
 
   const categorias = useMemo(

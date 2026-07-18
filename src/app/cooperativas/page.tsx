@@ -26,6 +26,7 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { AccesoRequerido } from "@/components/ui/acceso-requerido";
 import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
 import { createClient } from "@/lib/supabase/cliente";
+import { leerCacheDirectorio, guardarCacheDirectorio } from "@/lib/datos/cache-directorio";
 import { crearSlug } from "@/lib/utilidades";
 
 /* ─── Animation variants ─── */
@@ -122,13 +123,15 @@ export default function CooperativasPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const fetchCooperativas = useCallback(async () => {
+  const fetchCooperativas = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa')) {
       setCargandoDatos(false);
       return;
     }
-    setCargandoDatos(true);
-    setCooperativas([]);
+    if (!silent) {
+      setCargandoDatos(true);
+      setCooperativas([]);
+    }
 
     try {
     const supabase = createClient();
@@ -205,6 +208,7 @@ export default function CooperativasPage() {
       };
     });
 
+    guardarCacheDirectorio("cooperativas", mapped);
     setCooperativas(mapped);
     } catch (err) {
       console.error("[cooperativas] fetch falló:", err);
@@ -215,7 +219,14 @@ export default function CooperativasPage() {
 
   useEffect(() => {
     if (loading) return;
-    fetchCooperativas();
+    const cacheado = leerCacheDirectorio("cooperativas");
+    if (cacheado) {
+      setCooperativas(cacheado);
+      setCargandoDatos(false);
+      fetchCooperativas({ silent: true });
+    } else {
+      fetchCooperativas();
+    }
   }, [loading, fetchCooperativas]);
 
   const categorias = useMemo(

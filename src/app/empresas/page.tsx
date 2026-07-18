@@ -18,6 +18,7 @@ import { Building2, LayoutGrid, List, User } from "lucide-react";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient, resetClient } from "@/lib/supabase/cliente";
+import { leerCacheDirectorio, guardarCacheDirectorio } from "@/lib/datos/cache-directorio";
 
 import { crearSlug } from "@/lib/utilidades";
 import { BotonReiniciarTour } from "@/modulos/onboarding/componentes/boton-reiniciar-tour";
@@ -84,12 +85,17 @@ export default function EmpresasPage() {
   }, [categoriaSocio]);
 
   // Fetch real companies from Supabase — wrapped in useCallback for reuse
-  const fetchEmpresas = useCallback(async () => {
+  const fetchEmpresas = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!currentUser) return;
 
-    setCargandoDatos(true);
-    setErrorCarga(null);
-    setEmpresas([]);
+    const cacheKey = categoriaSocio ?? "all";
+    // En una revalidación silenciosa (SWR) NO limpiamos la pantalla: seguimos
+    // mostrando lo cacheado y sólo actualizamos al terminar.
+    if (!silent) {
+      setCargandoDatos(true);
+      setErrorCarga(null);
+      setEmpresas([]);
+    }
     const supabase = createClient();
 
     let data: any[] | null = null;
@@ -115,12 +121,15 @@ export default function EmpresasPage() {
 
     if (error || !data) {
       console.error("Error fetching vista_directorio (tras retry):", error);
-      setErrorCarga(
-        error?.message?.includes('Timeout')
-          ? 'La carga está tardando más de lo habitual. Tu conexión puede estar lenta.'
-          : 'No pudimos cargar el directorio. Intentá de nuevo.'
-      );
-      setCargandoDatos(false);
+      // En revalidación silenciosa mantenemos los datos cacheados en pantalla.
+      if (!silent) {
+        setErrorCarga(
+          error?.message?.includes('Timeout')
+            ? 'La carga está tardando más de lo habitual. Tu conexión puede estar lenta.'
+            : 'No pudimos cargar el directorio. Intentá de nuevo.'
+        );
+        setCargandoDatos(false);
+      }
       return;
     }
 
@@ -217,6 +226,7 @@ export default function EmpresasPage() {
       };
     });
 
+    guardarCacheDirectorio(cacheKey, mappedData);
     setEmpresas(mappedData);
     setCargandoDatos(false);
   }, [currentUser, categoriaSocio]);
@@ -226,18 +236,32 @@ export default function EmpresasPage() {
     if (loading || !currentUser) return;
     if (currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa') return;
 
-    fetchEmpresas();
+    // SWR: si ya vimos esta categoría, la mostramos al instante (sin skeleton)
+    // y revalidamos en silencio. Si no, carga normal con skeleton.
+    const servirDesdeCache = () => {
+      const cacheado = leerCacheDirectorio(categoriaSocio ?? "all");
+      if (cacheado) {
+        setEmpresas(cacheado);
+        setCargandoDatos(false);
+        setErrorCarga(null);
+        fetchEmpresas({ silent: true });
+      } else {
+        fetchEmpresas();
+      }
+    };
+
+    servirDesdeCache();
 
     // Handle back-navigation: popstate fires when browser history changes
     const handlePopState = () => {
-      fetchEmpresas();
+      servirDesdeCache();
     };
     window.addEventListener('popstate', handlePopState);
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [loading, currentUser, fetchEmpresas]);
+  }, [loading, currentUser, categoriaSocio, fetchEmpresas]);
 
   const empresasFiltradas = useMemo(() => {
     return empresas.filter((empresa) => {
