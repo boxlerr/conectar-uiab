@@ -4,6 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { crearSlug } from "@/lib/utilidades";
 import type { Entidad } from "@/lib/datos/directorio";
 
+/** Fila de empresas_tags / proveedores_tags con la tag embebida. */
+type FilaTag = { tags?: { nombre?: string; administrado_por_admin?: boolean } | null };
+
 export interface DatosDirectorio {
   empresas: Entidad[];
   prestadores: Entidad[];
@@ -51,6 +54,7 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
           direccion,
           localidad,
           actividad,
+          descripcion,
           sitio_web,
           email,
           telefono,
@@ -65,7 +69,8 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
           ),
           empresas_tags (
             tags (
-              nombre
+              nombre,
+              administrado_por_admin
             )
           )
         `)
@@ -73,7 +78,7 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
       supabase
         .from("proveedores")
         .select(
-          "id, nombre, apellido, nombre_comercial, tipo_proveedor, email, telefono, localidad, provincia, descripcion, bucket_logo, ruta_logo, proveedores_tags ( tags ( nombre ) )"
+          "id, nombre, apellido, nombre_comercial, tipo_proveedor, email, telefono, localidad, provincia, descripcion, bucket_logo, ruta_logo, proveedores_tags ( tags ( nombre, administrado_por_admin ) )"
         )
         .eq("estado", "aprobado"),
       supabase
@@ -89,7 +94,11 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
       emp.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
     const tags: string[] = Array.from(
       new Set(
+        // Sólo etiquetas del catálogo curado: el buscador global matchea contra
+        // este array, y dejar pasar las propias convierte cualquier invención en
+        // un atajo para aparecer en las búsquedas de los demás.
         (emp.empresas_tags || [])
+          .filter((et: FilaTag) => et.tags?.administrado_por_admin)
           .map((et: any) => et.tags?.nombre)
           .filter((n: any): n is string => Boolean(n))
       )
@@ -112,11 +121,13 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
       slug: crearSlug(emp.razon_social),
       nombre: emp.razon_social,
       categoria: mainCat,
+      // Lo que escribió la socia manda sobre el rubro que trajo el padrón.
       descripcionCorta:
+        emp.descripcion ||
         emp.actividad ||
         DESCRIPCION_DEFAULT_POR_TIPO[categoriaSocio ?? ""] ||
         "Sin descripción",
-      descripcionLarga: emp.actividad || "",
+      descripcionLarga: emp.descripcion || emp.actividad || "",
       logo: emp.razon_social.charAt(0).toUpperCase(),
       logoUrl,
       ubicacion: `${emp.localidad || ""}, ${emp.direccion || ""}`.replace(
@@ -147,6 +158,7 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
     const tags: string[] = Array.from(
       new Set(
         (p.proveedores_tags || [])
+          .filter((pt: FilaTag) => pt.tags?.administrado_por_admin)
           .map((pt: any) => pt.tags?.nombre)
           .filter((n: any): n is string => Boolean(n))
       )

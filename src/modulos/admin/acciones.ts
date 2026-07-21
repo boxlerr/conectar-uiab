@@ -4,6 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { NivelTarifa } from "@/tipos";
 import { crearSlug } from "@/lib/utilidades";
+import { getRole } from "@/lib/autenticacion/obtener-rol";
+import { limpiarNombreEtiqueta, slugEtiqueta } from "@/modulos/compartido/etiquetas";
 import { appUrl, enviarEmail } from "@/lib/email/cliente";
 import {
   plantillaAprobacion,
@@ -528,5 +530,119 @@ export async function eliminarCategoria(id: string) {
     return { error: error.message };
   }
   revalidatePath("/admin/servicios");
+  return { success: true };
+}
+
+// ─── Etiquetas ───────────────────────────────────────────────────────────────
+
+type ResultadoEtiqueta = { error?: string; success?: boolean };
+
+/**
+ * Guard explícito para las acciones sobre etiquetas.
+ *
+ * El layout de /admin es client-side y no protege nada, así que sin esto
+ * cualquier usuario logueado podría borrar una etiqueta invocando el server
+ * action a mano. Devuelve el error en vez de redirigir para que el panel lo
+ * muestre con un toast.
+ */
+async function exigirAdmin(): Promise<{ error: string } | null> {
+  const rol = await getRole();
+  if (rol !== "admin") {
+    return { error: "No tenés permiso para hacer esto." };
+  }
+  return null;
+}
+
+function revalidarEtiquetas() {
+  revalidatePath("/admin/etiquetas");
+  revalidatePath("/perfil/etiquetas");
+  revalidatePath("/directorio");
+  revalidatePath("/empresas");
+}
+
+/** Sube una etiqueta propuesta por un socio al catálogo que ven todos. */
+export async function promoverEtiqueta(id: string, tipoTag?: string): Promise<ResultadoEtiqueta> {
+  const denegado = await exigirAdmin();
+  if (denegado) return denegado;
+
+  const cambios: Record<string, unknown> = {
+    administrado_por_admin: true,
+    activo: true,
+  };
+  if (tipoTag) cambios.tipo_tag = tipoTag;
+
+  const { error } = await adminClient().from("tags").update(cambios).eq("id", id);
+  if (error) return { error: error.message };
+  revalidarEtiquetas();
+  return { success: true };
+}
+
+/** Corrige el texto y la clasificación (típicamente antes de promover). */
+export async function actualizarEtiqueta(id: string, nombre: string, tipoTag: string): Promise<ResultadoEtiqueta> {
+  const denegado = await exigirAdmin();
+  if (denegado) return denegado;
+
+  const limpio = limpiarNombreEtiqueta(nombre);
+  if (!limpio) return { error: "El nombre no puede estar vacío." };
+
+  const { error } = await adminClient()
+    .from("tags")
+    .update({ nombre: limpio, slug: slugEtiqueta(limpio), tipo_tag: tipoTag })
+    .eq("id", id);
+
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "Ya existe otra etiqueta con ese nombre. Fusionalas en vez de renombrar." };
+    }
+    return { error: error.message };
+  }
+  revalidarEtiquetas();
+  return { success: true };
+}
+
+/**
+ * Saca la etiqueta del catálogo sin borrarla.
+ * OJO: `fn_calcular_matches_oportunidad` no filtra por `activo`, así que esto
+ * la oculta de las pantallas pero NO la saca del algoritmo de match.
+ */
+export async function toggleActivarEtiqueta(id: string, activo: boolean): Promise<ResultadoEtiqueta> {
+  const denegado = await exigirAdmin();
+  if (denegado) return denegado;
+
+  const { error } = await adminClient().from("tags").update({ activo }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidarEtiquetas();
+  return { success: true };
+}
+
+/**
+ * Absorbe `origenId` dentro de `destinoId`: repunta los vínculos de socios,
+ * oportunidades e ítems, deja el nombre viejo como alias y borra el origen.
+ * Nadie pierde la etiqueta: pasa a figurar con el nombre oficial.
+ */
+export async function fusionarEtiqueta(origenId: string, destinoId: string): Promise<ResultadoEtiqueta> {
+  const denegado = await exigirAdmin();
+  if (denegado) return denegado;
+
+  const { error } = await adminClient().rpc("fn_fusionar_tags", {
+    p_origen: origenId,
+    p_destino: destinoId,
+  });
+  if (error) return { error: error.message };
+  revalidarEtiquetas();
+  return { success: true };
+}
+
+/**
+ * Borra la etiqueta. Los vínculos caen por ON DELETE CASCADE, o sea que
+ * desaparece de la ficha de quien la tuviera. No hay vuelta atrás.
+ */
+export async function eliminarEtiqueta(id: string): Promise<ResultadoEtiqueta> {
+  const denegado = await exigirAdmin();
+  if (denegado) return denegado;
+
+  const { error } = await adminClient().from("tags").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidarEtiquetas();
   return { success: true };
 }
