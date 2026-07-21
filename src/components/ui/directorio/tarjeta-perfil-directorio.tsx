@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, MapPin, BadgeCheck, Star, User, Mail, Phone } from "lucide-react";
 import { Entidad } from "@/lib/datos/directorio";
+import { ChipNorma } from "@/modulos/certificaciones/chip-norma";
 
 interface ProfileCardProps {
   entidad: Entidad;
@@ -105,6 +106,18 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
             <p className="text-slate-500 text-[13px] leading-relaxed font-normal line-clamp-1 mt-1">
               {entidad.descripcionCorta}
             </p>
+            {entidad.certificaciones && entidad.certificaciones.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {entidad.certificaciones.slice(0, 2).map((c, idx) => (
+                  <ChipNorma key={idx} etiqueta={c.etiqueta} familia={c.familia} verificada={c.verificada} size="sm" />
+                ))}
+                {entidad.certificaciones.length > 2 && (
+                  <span className="bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 rounded-[3px]">
+                    +{entidad.certificaciones.length - 2}
+                  </span>
+                )}
+              </div>
+            )}
             {(entidad.contacto.email || entidad.contacto.telefono) && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
                 {entidad.contacto.email && (
@@ -219,6 +232,20 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
 
         {/* Footer */}
         <div className="mt-4 space-y-2.5">
+          {/* Certificaciones y normas — el "iconito" del listado */}
+          {entidad.certificaciones && entidad.certificaciones.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {entidad.certificaciones.slice(0, 3).map((c, idx) => (
+                <ChipNorma key={idx} etiqueta={c.etiqueta} familia={c.familia} verificada={c.verificada} size="sm" />
+              ))}
+              {entidad.certificaciones.length > 3 && (
+                <span className="bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400 rounded-[3px]">
+                  +{entidad.certificaciones.length - 3}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Servicios / categorías secundarias */}
           {entidad.servicios.length > 0 && (
             <div className="flex flex-wrap gap-1.5">

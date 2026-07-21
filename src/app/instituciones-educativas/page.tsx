@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 
 import { Entidad } from "@/lib/datos/directorio";
+import { mapearCertificaciones, SELECT_CERTIFICACIONES_DIRECTORIO } from "@/modulos/certificaciones/normas";
 import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
@@ -172,7 +173,7 @@ export default function InstitucionesEducativasPage() {
 
     const empresaIds = data.filter((d: any) => d.tipo_entidad === "empresa").map((d: any) => d.id);
 
-    const [resEmp, resResenas] = await Promise.all([
+    const [resEmp, resResenas, resCerts] = await Promise.all([
       empresaIds.length > 0
         ? supabase
           .from("empresas_categorias")
@@ -180,7 +181,12 @@ export default function InstitucionesEducativasPage() {
           .in("empresa_id", empresaIds)
         : Promise.resolve({ data: [] as any[] }),
       supabase.from("resenas").select("calificacion, empresa_resenada_id").eq("estado", "aprobada"),
+      empresaIds.length > 0
+        ? supabase.from("certificaciones").select(SELECT_CERTIFICACIONES_DIRECTORIO).in("empresa_id", empresaIds)
+        : Promise.resolve({ data: [] as any[] }),
     ]);
+
+    const certMap = mapearCertificaciones(resCerts.data);
 
     const catMap = new Map<string, string[]>();
     (resEmp.data ?? []).forEach((ec: any) => {
@@ -222,6 +228,8 @@ export default function InstitucionesEducativasPage() {
         logoUrl,
         ubicacion: `${item.localidad || ""}, ${item.direccion || ""}`.replace(/^, | ,|, $/g, ""),
         servicios: cats.slice(1),
+        tags: [],
+        certificaciones: certMap.get(item.id) ?? [],
         contacto: {
           email: item.email || "",
           telefono: item.telefono || "",

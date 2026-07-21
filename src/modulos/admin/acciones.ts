@@ -646,3 +646,35 @@ export async function eliminarEtiqueta(id: string): Promise<ResultadoEtiqueta> {
   revalidarEtiquetas();
   return { success: true };
 }
+
+// ─── Certificaciones ─────────────────────────────────────────────────────────
+
+/**
+ * Marca (o desmarca) una certificación como verificada por la UIAB. Sólo la
+ * puede tocar un admin: el service_role de `adminClient()` es el único que pasa
+ * el trigger `tg_certificaciones_touch` (que bloquea a authenticated/anon), y
+ * `exigirAdmin()` valida el rol en el server (el layout de /admin es client-side
+ * y no protege el server action).
+ */
+export async function verificarCertificacion(
+  certId: string,
+  verificada: boolean
+): Promise<{ error: string } | { success: true }> {
+  const denegado = await exigirAdmin();
+  if (denegado) return denegado;
+
+  const { error } = await adminClient()
+    .from("certificaciones")
+    .update({
+      verificada,
+      verificada_en: verificada ? new Date().toISOString() : null,
+    })
+    .eq("id", certId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/certificaciones");
+  revalidatePath("/directorio");
+  revalidatePath("/empresas");
+  return { success: true };
+}

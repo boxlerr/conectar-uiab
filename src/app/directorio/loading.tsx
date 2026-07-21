@@ -33,7 +33,7 @@ export default function LoadingDirectorio() {
             <div className="mb-8 h-16 bg-white rounded-xl border border-slate-200/60" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 h-[280px]">
+                <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 h-[320px]">
                   <div className="flex justify-between mb-6">
                     <div className="w-14 h-14 rounded-lg bg-slate-100" />
                     <div className="w-24 h-6 rounded bg-slate-100" />

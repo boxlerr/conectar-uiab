@@ -6,7 +6,9 @@ import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
 import { CatalogoPublico, type CatalogoItem } from "@/components/ui/directorio/catalogo-publico";
 import { ModalContacto } from "@/components/ui/directorio/modal-contacto";
-import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock, Tag } from "lucide-react";
+import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock, Tag, Award } from "lucide-react";
+import { ChipNorma } from "@/modulos/certificaciones/chip-norma";
+import { etiquetaNorma, familiaNorma, normaPorCodigo, estadoVigencia } from "@/modulos/certificaciones/normas";
 import Image from "next/image";
 import { BotonWhatsApp } from "@/components/ui/boton-whatsapp";
 import { RegistrarVisita } from "@/components/ui/registrar-visita";
@@ -67,6 +69,91 @@ function createAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+interface CertFicha {
+  codigo_norma: string;
+  nombre_libre: string | null;
+  verificada: boolean;
+  alcance: string | null;
+  organismo_certificador: string | null;
+  numero_certificado: string | null;
+  fecha_vencimiento: string | null;
+}
+
+async function fetchCertificaciones(
+  supabase: any,
+  key: "empresa_id" | "proveedor_id",
+  id: string
+): Promise<CertFicha[]> {
+  const { data } = await supabase
+    .from("certificaciones")
+    .select(
+      "codigo_norma, nombre_libre, verificada, alcance, organismo_certificador, numero_certificado, fecha_vencimiento"
+    )
+    .eq(key, id)
+    .order("verificada", { ascending: false });
+  return (data as CertFicha[]) ?? [];
+}
+
+// Sección pública "Certificaciones y normas". Contenido público de alto valor:
+// va FUERA del gate de login. accent = "blue" (empresas) | "amber" (prestadores).
+function SeccionCertificaciones({ certs, accent }: { certs: CertFicha[]; accent: "blue" | "amber" }) {
+  if (certs.length === 0) return null;
+  const iconColor = accent === "amber" ? "text-[#bf7035]" : "text-blue-600";
+
+  return (
+    <section className="bg-white p-7 rounded-md border border-slate-200">
+      <div className="flex items-center gap-2.5 mb-5">
+        <Award className={`w-4 h-4 ${iconColor}`} />
+        <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
+          Certificaciones y normas
+        </h2>
+      </div>
+      <div className="space-y-4">
+        {certs.map((c, idx) => {
+          const etiqueta = etiquetaNorma(c.codigo_norma, c.nombre_libre);
+          const familia = familiaNorma(c.codigo_norma);
+          const n = normaPorCodigo(c.codigo_norma);
+          const estado = estadoVigencia(c.fecha_vencimiento);
+          return (
+            <div key={idx} className={idx > 0 ? "pt-4 border-t border-slate-100" : ""}>
+              <div className="flex flex-wrap items-center gap-2">
+                <ChipNorma etiqueta={etiqueta} familia={familia} verificada={c.verificada} size="md" />
+                {c.verificada && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Verificada por UIAB
+                  </span>
+                )}
+                {c.fecha_vencimiento && estado === "vencida" && (
+                  <span className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded">Vencida</span>
+                )}
+                {c.fecha_vencimiento && estado === "por_vencer" && (
+                  <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">Vence pronto</span>
+                )}
+              </div>
+              {n && n.codigo !== "otra" && (
+                <p className="text-[14px] font-semibold text-slate-800 mt-2">{n.nombre}</p>
+              )}
+              {c.alcance && <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">{c.alcance}</p>}
+              {(c.organismo_certificador || c.numero_certificado) && (
+                <p className="text-[12px] text-slate-400 mt-1.5">
+                  {c.organismo_certificador && <>Certificada por {c.organismo_certificador}</>}
+                  {c.organismo_certificador && c.numero_certificado && " · "}
+                  {c.numero_certificado && <>Cert. N° {c.numero_certificado}</>}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-slate-400 mt-5 pt-4 border-t border-slate-100 leading-relaxed">
+        Certificaciones declaradas por cada empresa. Las marcadas como verificadas fueron cotejadas
+        por la UIAB contra el certificado original. La UIAB no emite ni audita certificaciones.
+      </p>
+    </section>
   );
 }
 
@@ -373,6 +460,10 @@ async function EmpresaProfile({
     ? supabase.storage.from(empresaDb.bucket_logo).getPublicUrl(empresaDb.ruta_logo).data.publicUrl
     : null;
 
+  // Certificaciones: contenido público (se ve sin cuenta). Query O(1) por id,
+  // fuera del gate de auth.
+  const certs = await fetchCertificaciones(supabase, "empresa_id", empresaDb.id);
+
   // Only fetch heavy data when authenticated to avoid wasted DB calls
   let finalResenas: any[] = [];
   let oportunidadesActivas: any[] = [];
@@ -607,6 +698,8 @@ async function EmpresaProfile({
               </section>
             )}
 
+            <SeccionCertificaciones certs={certs} accent="blue" />
+
             {/* Gated content */}
             {isAuthenticated ? (
               <>
@@ -774,6 +867,9 @@ async function ProveedorProfile({
     ? supabase.storage.from(provDb.bucket_logo).getPublicUrl(provDb.ruta_logo).data.publicUrl
     : null;
 
+  // Certificaciones: contenido público, fuera del gate de auth.
+  const certs = await fetchCertificaciones(supabase, "proveedor_id", provDb.id);
+
   // Los prestadores de servicios no son calificados: no se traen reseñas.
   let catalogoItems: CatalogoItem[] = [];
 
@@ -913,6 +1009,8 @@ async function ProveedorProfile({
                 ))}
               </div>
             </section>
+
+            <SeccionCertificaciones certs={certs} accent="amber" />
 
             {/* Gated content — los prestadores no reciben reseñas, solo catálogo */}
             {isAuthenticated ? (

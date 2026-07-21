@@ -270,7 +270,8 @@ export function DirectorioCliente({
         e.nombre.toLowerCase().includes(term) ||
         e.descripcionCorta.toLowerCase().includes(term) ||
         e.servicios.some((s: string) => s.toLowerCase().includes(term)) ||
-        e.tags.some((t: string) => t.toLowerCase().includes(term));
+        e.tags.some((t: string) => t.toLowerCase().includes(term)) ||
+        (e.certificaciones ?? []).some((c) => c.etiqueta.toLowerCase().includes(term));
       return matchCategoria && matchSearch;
     });
   }, [entidadesActivas, categoriaSeleccionada, searchTerm]);

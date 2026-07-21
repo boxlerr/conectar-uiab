@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Entidad } from "@/lib/datos/directorio"; // Only for typing now
+import { mapearCertificaciones, SELECT_CERTIFICACIONES_DIRECTORIO } from "@/modulos/certificaciones/normas";
 import {
   CategoriaSocio,
   CATEGORIAS_SOCIO_META,
@@ -138,9 +139,9 @@ export default function EmpresasPage() {
     const proveedorIds = data.filter((d: any) => d.tipo_entidad === 'proveedor').map((d: any) => d.id);
 
     // Paralelizamos carga de categorías y de reseñas (con timeout combinado)
-    let resEmp: any, resProv: any, resResenas: any;
+    let resEmp: any, resProv: any, resResenas: any, resCerts: any;
     try {
-      [resEmp, resProv, resResenas] = await conTimeout(
+      [resEmp, resProv, resResenas, resCerts] = await conTimeout(
         Promise.all([
           empresaIds.length > 0
             ? (async () => await supabase.from('empresas_categorias').select('empresa_id, categorias(nombre)').in('empresa_id', empresaIds))()
@@ -149,6 +150,9 @@ export default function EmpresasPage() {
             ? (async () => await supabase.from('proveedores_categorias').select('proveedor_id, categorias(nombre)').in('proveedor_id', proveedorIds))()
             : Promise.resolve({ data: [] }),
           (async () => await supabase.from('resenas').select('calificacion, empresa_resenada_id, proveedor_resenado_id').eq('estado', 'aprobada'))(),
+          (empresaIds.length > 0 || proveedorIds.length > 0)
+            ? (async () => await supabase.from('certificaciones').select(SELECT_CERTIFICACIONES_DIRECTORIO).or(`empresa_id.in.(${empresaIds.join(',') || 'null'}),proveedor_id.in.(${proveedorIds.join(',') || 'null'})`))()
+            : Promise.resolve({ data: [] }),
         ]),
         10000,
         'categorías y reseñas'
@@ -159,7 +163,10 @@ export default function EmpresasPage() {
       resEmp = { data: [] };
       resProv = { data: [] };
       resResenas = { data: [] };
+      resCerts = { data: [] };
     }
+
+    const certMap = mapearCertificaciones(resCerts.data);
 
     const catMap = new Map();
     if (resEmp.data) {
@@ -216,6 +223,7 @@ export default function EmpresasPage() {
         ubicacion: `${item.localidad || ''}, ${item.direccion || ''}`.replace(/^, | ,|, $/g, ''),
         servicios: cats.slice(1),
         tags: [],
+        certificaciones: certMap.get(item.id) ?? [],
         contacto: {
           email: item.email || "",
           telefono: item.telefono || "",

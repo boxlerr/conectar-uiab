@@ -3,6 +3,10 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { crearSlug } from "@/lib/utilidades";
 import type { Entidad } from "@/lib/datos/directorio";
+import {
+  mapearCertificaciones,
+  SELECT_CERTIFICACIONES_DIRECTORIO,
+} from "@/modulos/certificaciones/normas";
 
 /** Fila de empresas_tags / proveedores_tags con la tag embebida. */
 type FilaTag = { tags?: { nombre?: string; administrado_por_admin?: boolean } | null };
@@ -44,7 +48,7 @@ const CATEGORIA_DEFAULT_POR_TIPO: Record<string, string> = {
 export async function obtenerDirectorio(): Promise<DatosDirectorio> {
   const supabase = createAdminClient();
 
-  const [empresasRes, proveedoresRes, resenasEmpRes] =
+  const [empresasRes, proveedoresRes, resenasEmpRes, certsRes] =
     await Promise.all([
       supabase
         .from("empresas")
@@ -86,7 +90,12 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
         .select("empresa_resenada_id, calificacion")
         .eq("estado", "aprobada")
         .not("empresa_resenada_id", "is", null),
+      supabase
+        .from("certificaciones")
+        .select(SELECT_CERTIFICACIONES_DIRECTORIO),
     ]);
+
+  const certsPorEntidad = mapearCertificaciones(certsRes.data);
 
   const empresasConTipo = (empresasRes.data || []).map((emp: any) => {
     const categoriaSocio: string | null = emp.categoria_socio || null;
@@ -136,6 +145,7 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
       ),
       servicios: cats.slice(1),
       tags,
+      certificaciones: certsPorEntidad.get(emp.id) ?? [],
       rating: 0,
       reviews: 0,
       esSocio: true,
@@ -183,6 +193,7 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
       ubicacion: [p.localidad, p.provincia].filter(Boolean).join(", "),
       servicios: [],
       tags,
+      certificaciones: certsPorEntidad.get(p.id) ?? [],
       rating: 0,
       reviews: 0,
       esSocio: false,

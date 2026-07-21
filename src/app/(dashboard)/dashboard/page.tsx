@@ -311,14 +311,14 @@ export default async function DashboardPage() {
       ? [
           { href: '/oportunidades', icon: Plus, label: 'Publicar Oportunidad', sub: 'Nuevo requerimiento' },
           { href: '/empresas?categoria=proveedores', icon: Search, label: 'Buscar proveedores de servicios', sub: 'Directorio verificado' },
-          { href: '/perfil/datos', icon: Settings, label: 'Editar Perfil', sub: 'Datos institucionales' },
-          { href: '/perfil/documentos', icon: FileCheck2, label: 'Documentos', sub: 'Facturas y habilitaciones' },
+          { href: '/perfil/certificaciones', icon: Award, label: 'Certificaciones', sub: 'ISO, BPM y normas' },
+          { href: '/perfil/documentos', icon: FileCheck2, label: 'Legajo y habilitaciones', sub: 'Documentación privada' },
         ]
       : [
           { href: '/oportunidades', icon: Briefcase, label: 'Oportunidades', sub: 'Requerimientos abiertos' },
           { href: '/empresas', icon: Building, label: 'Explorar Socios UIAB', sub: 'Directorio industrial' },
-          { href: '/perfil/datos', icon: Settings, label: 'Editar Perfil', sub: 'Datos profesionales' },
-          { href: '/perfil/documentos', icon: FileCheck2, label: 'Certificaciones', sub: 'Habilitaciones' },
+          { href: '/perfil/certificaciones', icon: Award, label: 'Certificaciones', sub: 'ISO, BPM y normas' },
+          { href: '/perfil/documentos', icon: FileCheck2, label: 'Legajo y habilitaciones', sub: 'Documentación privada' },
         ];
 
   /* eslint-enable @typescript-eslint/no-explicit-any */

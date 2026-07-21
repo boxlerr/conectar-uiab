@@ -17,6 +17,7 @@ import {
   Phone,
   Globe,
   MapPin,
+  Award,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -48,6 +49,7 @@ export default function MiPerfilPage() {
   const [profileDetails, setProfileDetails] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [resenas, setResenas] = useState<Resena[]>([]);
+  const [certsCount, setCertsCount] = useState<{ total: number; verificadas: number }>({ total: 0, verificadas: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
 
@@ -92,6 +94,19 @@ export default function MiPerfilPage() {
         .order("creada_en", { ascending: false })
         .limit(3);
       if (resenasData) setResenas(resenasData as unknown as Resena[]);
+
+      // Conteo de certificaciones cargadas
+      const certCol = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
+      const { data: certsData } = await supabase
+        .from("certificaciones")
+        .select("verificada")
+        .eq(certCol, currentUser.entityId);
+      if (certsData) {
+        setCertsCount({
+          total: certsData.length,
+          verificadas: certsData.filter((c: any) => c.verificada).length,
+        });
+      }
 
       setIsLoading(false);
     }
@@ -304,6 +319,33 @@ export default function MiPerfilPage() {
           </Link>
         </Card>
       </div>
+
+      {/* Certificaciones y normas */}
+      <Card className="p-6 border-slate-100 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100">
+              <Award className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Certificaciones y normas</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {certsCount.total > 0
+                  ? `${certsCount.total} cargada${certsCount.total === 1 ? "" : "s"}${certsCount.verificadas > 0 ? ` · ${certsCount.verificadas} verificada${certsCount.verificadas === 1 ? "" : "s"} por UIAB` : ""}`
+                  : "ISO, BPM, habilitaciones — se ven en tu ficha y en el directorio"}
+              </p>
+            </div>
+          </div>
+          {certsCount.total > 0 && (
+            <Badge variant="outline" className="bg-slate-50 text-xs">
+              {certsCount.total}
+            </Badge>
+          )}
+        </div>
+        <Link href="/perfil/certificaciones" className="inline-flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700 transition">
+          {certsCount.total > 0 ? "Gestionar certificaciones" : "Cargar tus certificaciones"} <ArrowRight className="w-4 h-4 ml-1" />
+        </Link>
+      </Card>
 
       {/* Resumen de Reseñas */}
       <Card data-tour="perfil-resenas" className="p-6 border-slate-100 shadow-sm">

@@ -30,7 +30,7 @@ export default function LoadingEmpresaProfile() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Main */}
           <main className="w-full lg:w-[72%] space-y-6">
-            {[...Array(2)].map((_, i) => (
+            {[...Array(3)].map((_, i) => (
               <section key={i} className="bg-white p-7 rounded-md border border-slate-200">
                 <div className="h-3 w-40 bg-slate-200 rounded mb-5" />
                 <div className="space-y-3">

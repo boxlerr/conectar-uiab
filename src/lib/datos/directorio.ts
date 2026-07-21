@@ -1,3 +1,5 @@
+import type { CertificacionChip } from "@/modulos/certificaciones/normas";
+
 export interface Entidad {
   id: string;
   tipo: "empresa" | "proveedor";
@@ -11,7 +13,7 @@ export interface Entidad {
   ubicacion: string;
   servicios: string[];
   tags: string[];
-  certificaciones?: string[];
+  certificaciones?: CertificacionChip[];
   destacado?: boolean;
   rating?: number;
   reviews?: number;
@@ -38,7 +40,6 @@ export const entidades: Entidad[] = [
     logo: "M",
     ubicacion: "Burzaco, Almirante Brown",
     servicios: ["Fundición", "Matricería", "Mecanizado CNC", "Tratamientos Térmicos"],
-    certificaciones: ["ISO 9001:2015"],
     destacado: true,
     rating: 4.8,
     reviews: 32,
@@ -61,7 +62,6 @@ export const entidades: Entidad[] = [
     logo: "Q",
     ubicacion: "Longchamps, Almirante Brown",
     servicios: ["Polímeros", "Aditivos", "Asesoramiento Químico", "Logística Especializada"],
-    certificaciones: ["ISO 9001:2015", "ISO 14001"],
     destacado: true,
     rating: 4.9,
     reviews: 28,
