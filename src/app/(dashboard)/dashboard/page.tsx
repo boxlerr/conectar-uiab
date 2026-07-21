@@ -358,7 +358,7 @@ export default async function DashboardPage() {
                   <div className="absolute -inset-0.5 rounded-full bg-gradient-to-br from-sky-400 via-cyan-300 to-blue-500 opacity-50 group-hover:opacity-95 blur-sm transition-opacity duration-300" />
                   <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white flex items-center justify-center overflow-hidden ring-1 ring-white/20 shadow-2xl">
                     {logoUrl ? (
-                      <Image src={logoUrl} alt="" width={120} height={120} className="w-full h-full object-cover" />
+                      <Image src={logoUrl} alt="" width={120} height={120} className="w-full h-full object-contain p-2" />
                     ) : (
                       <span className="font-poppins font-black text-3xl sm:text-4xl text-[#00213f]">
                         {displayName.charAt(0).toUpperCase()}

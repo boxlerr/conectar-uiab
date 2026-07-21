@@ -230,7 +230,7 @@ export default function MiPerfilDatosPage() {
             >
               {logoPreviewUrl ? (
                 <>
-                  <Image src={logoPreviewUrl} alt="Logotipo" fill className="object-cover" unoptimized />
+                  <Image src={logoPreviewUrl} alt="Logotipo" fill className="object-contain p-2" unoptimized />
                   <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                     <span className="text-white text-xs font-semibold">CAMBIAR</span>
                   </div>
