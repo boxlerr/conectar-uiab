@@ -120,13 +120,7 @@ function SeccionCertificaciones({ certs, accent }: { certs: CertFicha[]; accent:
           return (
             <div key={idx} className={idx > 0 ? "pt-4 border-t border-slate-100" : ""}>
               <div className="flex flex-wrap items-center gap-2">
-                <ChipNorma etiqueta={etiqueta} familia={familia} verificada={c.verificada} size="md" />
-                {c.verificada && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Verificada por UIAB
-                  </span>
-                )}
+                <ChipNorma etiqueta={etiqueta} familia={familia} size="md" />
                 {c.fecha_vencimiento && estado === "vencida" && (
                   <span className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded">Vencida</span>
                 )}
@@ -150,8 +144,8 @@ function SeccionCertificaciones({ certs, accent }: { certs: CertFicha[]; accent:
         })}
       </div>
       <p className="text-[11px] text-slate-400 mt-5 pt-4 border-t border-slate-100 leading-relaxed">
-        Certificaciones declaradas por cada empresa. Las marcadas como verificadas fueron cotejadas
-        por la UIAB contra el certificado original. La UIAB no emite ni audita certificaciones.
+        Certificaciones declaradas por cada empresa bajo su responsabilidad. La UIAB no emite,
+        verifica ni audita certificaciones.
       </p>
     </section>
   );

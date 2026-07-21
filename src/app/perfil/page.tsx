@@ -49,7 +49,7 @@ export default function MiPerfilPage() {
   const [profileDetails, setProfileDetails] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [resenas, setResenas] = useState<Resena[]>([]);
-  const [certsCount, setCertsCount] = useState<{ total: number; verificadas: number }>({ total: 0, verificadas: 0 });
+  const [certsCount, setCertsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
 
@@ -97,16 +97,11 @@ export default function MiPerfilPage() {
 
       // Conteo de certificaciones cargadas
       const certCol = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
-      const { data: certsData } = await supabase
+      const { count: certCount } = await supabase
         .from("certificaciones")
-        .select("verificada")
+        .select("id", { count: "exact", head: true })
         .eq(certCol, currentUser.entityId);
-      if (certsData) {
-        setCertsCount({
-          total: certsData.length,
-          verificadas: certsData.filter((c: any) => c.verificada).length,
-        });
-      }
+      setCertsCount(certCount ?? 0);
 
       setIsLoading(false);
     }
@@ -330,20 +325,20 @@ export default function MiPerfilPage() {
             <div>
               <h2 className="text-lg font-bold text-slate-900">Certificaciones y normas</h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                {certsCount.total > 0
-                  ? `${certsCount.total} cargada${certsCount.total === 1 ? "" : "s"}${certsCount.verificadas > 0 ? ` · ${certsCount.verificadas} verificada${certsCount.verificadas === 1 ? "" : "s"} por UIAB` : ""}`
+                {certsCount > 0
+                  ? `${certsCount} cargada${certsCount === 1 ? "" : "s"}`
                   : "ISO, BPM, habilitaciones — se ven en tu ficha y en el directorio"}
               </p>
             </div>
           </div>
-          {certsCount.total > 0 && (
+          {certsCount > 0 && (
             <Badge variant="outline" className="bg-slate-50 text-xs">
-              {certsCount.total}
+              {certsCount}
             </Badge>
           )}
         </div>
         <Link href="/perfil/certificaciones" className="inline-flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700 transition">
-          {certsCount.total > 0 ? "Gestionar certificaciones" : "Cargar tus certificaciones"} <ArrowRight className="w-4 h-4 ml-1" />
+          {certsCount > 0 ? "Gestionar certificaciones" : "Cargar tus certificaciones"} <ArrowRight className="w-4 h-4 ml-1" />
         </Link>
       </Card>
 

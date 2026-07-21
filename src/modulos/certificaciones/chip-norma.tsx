@@ -7,8 +7,12 @@
  * ⚠️ Legal: NO se usan los logos oficiales de ISO/IRAM/TÜV/etc. (marcas
  * registradas). El chip es un badge propio: código de la norma + ícono genérico
  * por familia (lucide-react). Se lee igual de rápido y no expone a la UIAB.
+ *
+ * Las certificaciones las declara cada socio bajo su responsabilidad: la UIAB no
+ * las verifica ni las audita, así que el chip no lleva ningún sello de
+ * "verificado".
  */
-import { Award, BadgeCheck, HardHat, Landmark, Leaf, Stamp, Utensils, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Award, BadgeCheck, HardHat, Landmark, Leaf, Stamp, Utensils, type LucideIcon } from "lucide-react";
 import { FAMILIA_META, type FamiliaNorma } from "./normas";
 import { cn } from "@/lib/utilidades";
 
@@ -25,28 +29,19 @@ const ICONOS: Record<string, LucideIcon> = {
 interface ChipNormaProps {
   etiqueta: string;
   familia: FamiliaNorma;
-  /** Muestra el tilde "verificada por UIAB". */
-  verificada?: boolean;
   size?: "sm" | "md";
   className?: string;
   title?: string;
 }
 
-export function ChipNorma({
-  etiqueta,
-  familia,
-  verificada = false,
-  size = "sm",
-  className,
-  title,
-}: ChipNormaProps) {
+export function ChipNorma({ etiqueta, familia, size = "sm", className, title }: ChipNormaProps) {
   const meta = FAMILIA_META[familia] ?? FAMILIA_META.otras;
   const Icono = ICONOS[meta.icono] ?? Award;
   const esSm = size === "sm";
 
   return (
     <span
-      title={title ?? (verificada ? `${etiqueta} · verificada por UIAB` : etiqueta)}
+      title={title ?? etiqueta}
       className={cn(
         "inline-flex items-center gap-1 rounded-[3px] border font-bold whitespace-nowrap",
         meta.chip,
@@ -56,13 +51,6 @@ export function ChipNorma({
     >
       <Icono className={esSm ? "w-3 h-3" : "w-3.5 h-3.5"} strokeWidth={2.25} aria-hidden />
       {etiqueta}
-      {verificada && (
-        <ShieldCheck
-          className={esSm ? "w-3 h-3 opacity-80" : "w-3.5 h-3.5 opacity-80"}
-          strokeWidth={2.5}
-          aria-label="Verificada por UIAB"
-        />
-      )}
     </span>
   );
 }

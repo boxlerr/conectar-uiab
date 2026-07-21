@@ -31,8 +31,6 @@ import {
   FileText,
   UploadCloud,
   X,
-  ShieldCheck,
-  Clock,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -232,7 +230,7 @@ export default function MiPerfilCertificacionesPage() {
       const data = await listarCertificaciones(role, entityId);
       setCerts(data);
       toast.success(form.id ? "Certificación actualizada" : "Certificación agregada", {
-        description: "La UIAB la revisa y, al validarla, aparece como verificada en tu ficha.",
+        description: "Ya aparece en tu ficha y en el directorio.",
       });
       cerrarForm();
     } finally {
@@ -573,7 +571,7 @@ function FormularioCertificacion({
               <ChipNorma etiqueta={etiquetaPreview} familia={familiaPreview} size="md" />
             </div>
             <p className="text-[11px] text-slate-400 mt-3 leading-relaxed">
-              El tilde de verificada lo agrega la UIAB después de revisar tu certificado.
+              Aparece en tu ficha y en las tarjetas del directorio apenas la guardás.
             </p>
           </div>
         </div>
@@ -635,18 +633,7 @@ function FilaCertificacion({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <ChipNorma etiqueta={etiqueta} familia={familia} verificada={cert.verificada} size="md" />
-            {cert.verificada ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Verificada por UIAB
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                <Clock className="w-3.5 h-3.5" />
-                Pendiente de verificación
-              </span>
-            )}
+            <ChipNorma etiqueta={etiqueta} familia={familia} size="md" />
             {badge && (
               <span className={`inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded ${badge.cls}`}>
                 {badge.texto(formatearFecha(cert.fecha_vencimiento!))}

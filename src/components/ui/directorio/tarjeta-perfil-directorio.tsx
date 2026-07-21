@@ -109,7 +109,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
             {entidad.certificaciones && entidad.certificaciones.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
                 {entidad.certificaciones.slice(0, 2).map((c, idx) => (
-                  <ChipNorma key={idx} etiqueta={c.etiqueta} familia={c.familia} verificada={c.verificada} size="sm" />
+                  <ChipNorma key={idx} etiqueta={c.etiqueta} familia={c.familia} size="sm" />
                 ))}
                 {entidad.certificaciones.length > 2 && (
                   <span className="bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 rounded-[3px]">
@@ -236,7 +236,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
           {entidad.certificaciones && entidad.certificaciones.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {entidad.certificaciones.slice(0, 3).map((c, idx) => (
-                <ChipNorma key={idx} etiqueta={c.etiqueta} familia={c.familia} verificada={c.verificada} size="sm" />
+                <ChipNorma key={idx} etiqueta={c.etiqueta} familia={c.familia} size="sm" />
               ))}
               {entidad.certificaciones.length > 3 && (
                 <span className="bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400 rounded-[3px]">
