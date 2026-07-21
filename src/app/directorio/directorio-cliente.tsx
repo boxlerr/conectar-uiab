@@ -43,6 +43,9 @@ interface ConfigTab {
   badge?: string;
   singular: string;
   plural: string;
+  /** Formas breves para los slots que truncan (mini-stats del CTA). Default: singular/plural. */
+  singularCorto?: string;
+  pluralCorto?: string;
   genero: "f" | "m";
   /** Título del empty state invitacional cuando la pestaña no tiene entidades. */
   tituloVacio: string;
@@ -68,10 +71,13 @@ const TABS: ConfigTab[] = [
     Icono: Wrench,
     esquema: "emerald",
     badge: "No socios",
-    singular: "prestador",
-    plural: "prestadores",
+    singular: "prestador de productos y servicios",
+    plural: "prestadores de productos y servicios",
+    singularCorto: "prestador",
+    pluralCorto: "prestadores",
     genero: "m",
-    tituloVacio: "Todavía no hay prestadores publicados en el directorio",
+    tituloVacio:
+      "Todavía no hay prestadores de productos y servicios publicados en el directorio",
     permiteVista: false,
   },
   {
@@ -110,6 +116,13 @@ const TABS: ConfigTab[] = [
     permiteVista: true,
   },
 ];
+
+/** Rótulo completo según el conteo ("1 prestador de productos y servicios"). */
+const rotulo = (tab: ConfigTab, n: number) => (n === 1 ? tab.singular : tab.plural);
+
+/** Rótulo breve, sólo para los slots que truncan. */
+const rotuloCorto = (tab: ConfigTab, n: number) =>
+  n === 1 ? (tab.singularCorto ?? tab.singular) : (tab.pluralCorto ?? tab.plural);
 
 // Mapas de clases estáticas por esquema (nunca interpolar colores en Tailwind).
 const ESTILOS_TAB_ACTIVA: Record<Esquema, string> = {
@@ -283,7 +296,7 @@ export function DirectorioCliente({
 
   const resumenConteos =
     conteos
-      .map(({ tab, count }) => `${count} ${count === 1 ? tab.singular : tab.plural}`)
+      .map(({ tab, count }) => `${count} ${rotulo(tab, count)}`)
       .join(" · ") || "Sin organizaciones publicadas";
 
   const sufijoEncontrado = `encontrad${tabActiva.genero === "f" ? "a" : "o"}${
@@ -425,8 +438,10 @@ export function DirectorioCliente({
                           : "w-4 h-4 text-blue-200"
                       }
                     />
-                    <span className="text-xs font-bold capitalize">
-                      {count === 1 ? tab.singular : tab.plural}
+                    {/* Rótulo fijo (no singulariza por conteo): el chip tiene que
+                        decir lo mismo que su pestaña de más abajo. */}
+                    <span className="text-xs font-bold whitespace-nowrap">
+                      {tab.etiqueta}
                     </span>
                     <span
                       className={
@@ -556,10 +571,7 @@ export function DirectorioCliente({
               <div>
                 <h3 className="font-manrope text-lg font-bold text-slate-800">
                   {entidadesFiltradas.length}{" "}
-                  {entidadesFiltradas.length === 1
-                    ? tabActiva.singular
-                    : tabActiva.plural}{" "}
-                  {sufijoEncontrado}
+                  {rotulo(tabActiva, entidadesFiltradas.length)} {sufijoEncontrado}
                 </h3>
               </div>
 
@@ -762,8 +774,8 @@ export function DirectorioCliente({
                             <p className="font-manrope text-lg font-black text-white leading-none">
                               {count}
                             </p>
-                            <p className="text-[11px] font-semibold text-blue-100/60 truncate capitalize">
-                              {count === 1 ? tab.singular : tab.plural}
+                            <p className="text-[11px] font-semibold text-blue-100/60 truncate first-letter:uppercase">
+                              {rotuloCorto(tab, count)}
                             </p>
                           </div>
                         </div>

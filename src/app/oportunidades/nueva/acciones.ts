@@ -3,8 +3,19 @@
 import { createClient } from "@/lib/supabase/servidor";
 import { revalidatePath } from "next/cache";
 
-export async function crearOportunidad(formData: FormData) {
+export interface ResultadoCrearOportunidad {
+  success: boolean;
+  error?: string;
+  redirect?: string;
+  /** Se publicó, pero las etiquetas no se guardaron: hay que avisarle al usuario. */
+  avisoTags?: string;
+}
+
+export async function crearOportunidad(
+  formData: FormData
+): Promise<ResultadoCrearOportunidad> {
   const supabase = await createClient();
+  let avisoTags: string | undefined;
 
   // Validate Authentication
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -95,7 +106,9 @@ export async function crearOportunidad(formData: FormData) {
     const { error: tagsError } = await supabase.from("oportunidades_tags").insert(tagRows);
     if (tagsError) {
       console.error("Error al guardar tags de oportunidad:", tagsError);
-      // No abortamos: la oportunidad ya quedó creada; solo logueamos.
+      // No abortamos: la oportunidad ya quedó creada. Pero sí avisamos: sin
+      // etiquetas el match queda ciego y el usuario no tendría cómo enterarse.
+      avisoTags = "La oportunidad se publicó, pero no se pudieron guardar las etiquetas.";
     }
   }
 
@@ -103,5 +116,5 @@ export async function crearOportunidad(formData: FormData) {
   revalidatePath("/oportunidades");
   revalidatePath("/dashboard");
 
-  return { success: true, redirect: `/oportunidades/${newOp.id}` };
+  return { success: true, redirect: `/oportunidades/${newOp.id}`, avisoTags };
 }
