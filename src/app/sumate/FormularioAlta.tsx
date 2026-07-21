@@ -20,6 +20,7 @@ const ESTADO_INICIAL = {
   referente_nombre: "",
   referente_cargo: "",
   email: "",
+  email_compras: "",
   telefono: "",
   sitio_web: "",
   localidad: "",
@@ -270,7 +271,7 @@ export function FormularioAlta() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label htmlFor="email" className={labelCls}>
-              Email <span className="text-rose-500">*</span>
+              Email de acceso <span className="text-rose-500">*</span>
             </label>
             <input
               id="email"
@@ -281,6 +282,9 @@ export function FormularioAlta() {
               onChange={(e) => set("email", e.target.value)}
               required
             />
+            <p className="text-[11px] text-slate-400 mt-1.5 ml-1">
+              Con este correo ingresa a la plataforma la persona que va a usar el sistema. No se publica.
+            </p>
           </div>
           <div>
             <label htmlFor="telefono" className={labelCls}>
@@ -294,6 +298,23 @@ export function FormularioAlta() {
               onChange={(e) => set("telefono", e.target.value)}
             />
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="email_compras" className={labelCls}>
+            Email de compras <span className="text-slate-400 font-medium normal-case tracking-normal">(opcional)</span>
+          </label>
+          <input
+            id="email_compras"
+            type="email"
+            className={inputCls}
+            placeholder="compras@empresa.com"
+            value={form.email_compras}
+            onChange={(e) => set("email_compras", e.target.value)}
+          />
+          <p className="text-[11px] text-slate-400 mt-1.5 ml-1">
+            Opcional. Este correo <strong>se muestra en tu perfil del directorio</strong> para que te contacten por compras.
+          </p>
         </div>
       </fieldset>
 
@@ -389,7 +410,7 @@ export function FormularioAlta() {
         <div className="flex items-center justify-between gap-4 mt-6">
           <p className="text-xs text-slate-400 flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            Tus datos no se publican: sólo los ve el equipo de UIAB.
+            Tus datos los ve el equipo de UIAB (salvo el correo de compras, si lo cargás).
           </p>
           <Button
             type="submit"

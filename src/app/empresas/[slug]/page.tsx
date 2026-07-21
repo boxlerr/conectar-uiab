@@ -353,6 +353,7 @@ export default async function EmpresaProfilePage({
         descripcion,
         sitio_web,
         email,
+        email_compras,
         telefono,
         whatsapp,
         referente,
@@ -387,6 +388,7 @@ export default async function EmpresaProfilePage({
         nombre_comercial,
         tipo_proveedor,
         email,
+        email_compras,
         telefono,
         localidad,
         provincia,
@@ -540,6 +542,7 @@ async function EmpresaProfile({
     servicios: serviciosExtra,
     contacto: {
       email: empresaDb.email || "No disponible",
+      emailCompras: empresaDb.email_compras || "",
       // El contacto es público (se ve sin cuenta): ese es el valor de ser socio.
       telefono: empresaDb.telefono || "",
       whatsapp: empresaDb.whatsapp || empresaDb.telefono || "",
@@ -788,6 +791,18 @@ async function EmpresaProfile({
                     </div>
                   </li>
 
+                  {empresa.contacto.emailCompras && (
+                    <li className="flex items-start gap-3">
+                      <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de compras</p>
+                        <a href={`mailto:${empresa.contacto.emailCompras}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
+                          {empresa.contacto.emailCompras}
+                        </a>
+                      </div>
+                    </li>
+                  )}
+
                   {empresa.contacto.telefono && (
                     <li className="flex items-start gap-3">
                       <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
@@ -885,6 +900,7 @@ async function ProveedorProfile({
     servicios: cats.length > 0 ? cats : (provDb.tipo_proveedor ? [provDb.tipo_proveedor] : ["Servicios Generales"]),
     contacto: {
       email: provDb.email || "No disponible",
+      emailCompras: provDb.email_compras || "",
       telefono: provDb.telefono || "",
     }
   };
@@ -1065,6 +1081,18 @@ async function ProveedorProfile({
                       </a>
                     </div>
                   </li>
+
+                  {proveedor.contacto.emailCompras && (
+                    <li className="flex items-start gap-3">
+                      <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de compras</p>
+                        <a href={`mailto:${proveedor.contacto.emailCompras}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
+                          {proveedor.contacto.emailCompras}
+                        </a>
+                      </div>
+                    </li>
+                  )}
 
                   {proveedor.contacto.telefono && (
                     <li className="flex items-start gap-3">

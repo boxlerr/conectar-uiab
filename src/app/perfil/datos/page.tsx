@@ -26,6 +26,7 @@ export default function MiPerfilDatosPage() {
     razon_social: "",
     nombre_comercial: "",
     email: "",
+    email_compras: "",
     telefono: "",
     whatsapp: "",
     sitio_web: "",
@@ -62,6 +63,7 @@ export default function MiPerfilDatosPage() {
         razon_social: data.razon_social || "",
         nombre_comercial: data.nombre_comercial || "",
         email: data.email || "",
+        email_compras: data.email_compras || "",
         telefono: data.telefono || "",
         whatsapp: data.whatsapp || "",
         sitio_web: data.sitio_web || "",
@@ -335,6 +337,21 @@ export default function MiPerfilDatosPage() {
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
                 placeholder="contacto@empresa.com"
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                <Mail className="w-4 h-4 text-slate-400" /> Correo de Compras
+                <span className="text-sm font-normal text-slate-400 ml-1">(Opcional)</span>
+              </label>
+              <input
+                type="email"
+                value={formData.email_compras}
+                onChange={e => setFormData({ ...formData, email_compras: e.target.value })}
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                placeholder="compras@empresa.com"
+              />
+              <p className="text-xs text-slate-400">Si lo cargás, se muestra en tu ficha del directorio para consultas de compras.</p>
             </div>
 
             {/* Teléfono unificado: un solo número, con toggle WhatsApp */}

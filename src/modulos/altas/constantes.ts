@@ -38,6 +38,7 @@ export interface AltaSocioInput {
   referente_nombre: string;
   referente_cargo?: string;
   email: string;
+  email_compras?: string;
   telefono?: string;
   sitio_web?: string;
   localidad?: string;
