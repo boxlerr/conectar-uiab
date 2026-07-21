@@ -130,7 +130,7 @@ export function plantillaPagoConfirmadoAdmin(d: {
       intro: `${d.nombre} pagó su suscripción y está pendiente de aprobación.`,
       cuerpo,
       cta: { etiqueta: "Revisar en el panel", href: `${appUrl()}/admin/empresas` },
-      pie: "Recibís esta notificación porque tu cuenta figura como administradora de la red Conectar UIAB.",
+      pie: "Recibís esta notificación porque tu cuenta figura como administradora de la red UIAB Conecta.",
     }),
     texto: [
       `Pago recibido — ${d.nombre}`,
@@ -217,8 +217,9 @@ export function plantillaRecordatorioVencimiento(d: DatosSuscripcionComun & {
       titulo: "Renovación próxima",
       intro: "Tu suscripción se cobrará en los próximos días.",
       cuerpo,
+      cta: { etiqueta: "Ver mi suscripción", href: `${appUrl()}/perfil/suscripcion` },
     }),
-    texto: `Tu suscripción se renueva el ${formatFecha(d.venceEn)} por ${formatARS(d.monto)}.`,
+    texto: `Tu suscripción se renueva el ${formatFecha(d.venceEn)} por ${formatARS(d.monto)}. Verla en ${appUrl()}/perfil/suscripcion`,
   };
 }
 

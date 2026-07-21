@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { appUrl, emailAdmin, enviarEmail } from "@/lib/email/cliente";
-import { renderEmailBase } from "@/lib/email/plantillas";
+import { escapeText, escapeTextoMultilinea, renderEmailBase } from "@/lib/email/plantillas";
 
 const ContactoSchema = z.object({
   nombre: z.string().trim().min(2, "Ingresá tu nombre").max(80),
@@ -15,13 +15,6 @@ const ContactoSchema = z.object({
 });
 
 export type ContactoInput = z.input<typeof ContactoSchema>;
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
 
 export async function enviarConsultaContacto(input: ContactoInput) {
   const parsed = ContactoSchema.safeParse(input);
@@ -47,11 +40,11 @@ export async function enviarConsultaContacto(input: ContactoInput) {
       titulo: "Nueva consulta desde el sitio",
       intro: `${nombreCompleto} (${d.email}) escribió desde el formulario de contacto.`,
       cuerpo: `
-        <p style="margin:0 0 8px 0;"><strong>Asunto:</strong> ${escapeHtml(asunto)}</p>
+        <p style="margin:0 0 8px 0;"><strong>Asunto:</strong> ${escapeText(asunto)}</p>
         <p style="margin:0 0 4px 0;"><strong>Mensaje:</strong></p>
-        <p style="margin:0; white-space:pre-wrap;">${escapeHtml(d.mensaje)}</p>
+        <p style="margin:0;">${escapeTextoMultilinea(d.mensaje)}</p>
       `,
-      pie: `Podés responder directamente a este correo para contestarle a ${escapeHtml(d.nombre)}.`,
+      pie: `Podés responder directamente a este correo para contestarle a ${d.nombre}.`,
     }),
     texto: `Consulta de ${nombreCompleto} (${d.email})\nAsunto: ${asunto}\n\n${d.mensaje}`,
   });
@@ -67,7 +60,7 @@ export async function enviarConsultaContacto(input: ContactoInput) {
     html: renderEmailBase({
       preheader: "Gracias por escribirnos. Te respondemos a la brevedad.",
       titulo: "¡Recibimos tu mensaje!",
-      intro: `Hola ${escapeHtml(d.nombre)}, gracias por contactarte con la Unión Industrial de Almirante Brown.`,
+      intro: `Hola ${d.nombre}, gracias por contactarte con la Unión Industrial de Almirante Brown.`,
       cuerpo: `<p style="margin:0;">Tu consulta llegó a nuestro equipo y te vamos a responder a la brevedad a este correo.</p>`,
       cta: { etiqueta: "Conocé el directorio", href: `${appUrl()}/directorio` },
     }),

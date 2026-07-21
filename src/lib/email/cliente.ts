@@ -1,4 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
+import { LOGO_CID, LOGO_PNG_BASE64 } from "./logo";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -83,7 +84,7 @@ function obtenerTransporter(): Transporter | null {
 /**
  * Remitente por defecto. Debe ser un correo válido del dominio SMTP
  * (muchos proveedores rechazan un From distinto al usuario autenticado).
- * Ejemplo: `"Conectar UIAB <no-reply@uiab.com.ar>"`.
+ * Ejemplo: `"UIAB Conecta <no-reply@uiab.com.ar>"`.
  */
 function remitentePorDefecto(): string {
   return (
@@ -121,6 +122,33 @@ export interface EnviarEmailResultado {
 }
 
 /**
+ * Adjunto inline del logo institucional.
+ *
+ * Va como attachment con Content-ID en vez de una `<img src="https://...">`
+ * porque Outlook de escritorio bloquea las imágenes remotas por defecto: el
+ * encabezado del correo llegaba sin marca. Un adjunto inline siempre se pinta,
+ * y al ser `contentDisposition: "inline"` no aparece como archivo adjunto.
+ *
+ * Se agrega solo si el HTML realmente lo referencia (`cid:...`), así un correo
+ * que no use la plantilla base no arrastra 9 KB al pedo.
+ */
+let logoBufferCache: Buffer | null = null;
+
+function adjuntosDelHtml(html: string) {
+  if (!html.includes(`cid:${LOGO_CID}`)) return undefined;
+  logoBufferCache ??= Buffer.from(LOGO_PNG_BASE64, "base64");
+  return [
+    {
+      filename: "uiab-conecta.png",
+      content: logoBufferCache,
+      contentType: "image/png",
+      cid: LOGO_CID,
+      contentDisposition: "inline" as const,
+    },
+  ];
+}
+
+/**
  * Envía un email transaccional. Nunca propaga excepciones: captura y loguea.
  * Usá esto desde server actions y API routes de Next.js.
  */
@@ -144,6 +172,7 @@ export async function enviarEmail(
       html: input.html,
       text: input.texto,
       replyTo: input.responderA,
+      attachments: adjuntosDelHtml(input.html),
     });
     return { ok: true, id: info.messageId };
   } catch (err: unknown) {

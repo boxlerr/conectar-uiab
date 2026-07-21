@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { appUrl, emailAdmin, enviarEmail } from "@/lib/email/cliente";
-import { renderEmailBase } from "@/lib/email/plantillas";
+import { escapeText, renderEmailBase } from "@/lib/email/plantillas";
 import { CATEGORIAS_ALTA, type AltaSocioInput } from "./constantes";
 import { generarYEnviarInvitacion } from "./invitaciones-core";
 
@@ -132,12 +132,14 @@ export async function enviarAltaSocio(input: AltaSocioInput) {
       preheader: `${nombre} completó el formulario de alta.`,
       titulo: "Nueva solicitud de alta",
       intro: `${nombre} (${categoriaLabel}) cargó sus datos en /sumate.`,
+      // `cuerpo` se interpola crudo en la plantilla: todo esto viene del
+      // formulario público /sumate, así que va escapado sí o sí.
       cuerpo: `
-        <p style="margin:0 0 8px 0;"><strong>Referente:</strong> ${d.referente_nombre.trim()}${d.referente_cargo ? " · " + d.referente_cargo.trim() : ""}</p>
-        <p style="margin:0 0 8px 0;"><strong>Email:</strong> ${d.email}</p>
-        ${d.telefono ? `<p style="margin:0 0 8px 0;"><strong>Teléfono:</strong> ${d.telefono.trim()}</p>` : ""}
-        ${d.localidad ? `<p style="margin:0 0 8px 0;"><strong>Localidad:</strong> ${d.localidad.trim()}</p>` : ""}
-        ${d.ya_es_socio ? `<p style="margin:0 0 8px 0;"><strong>Ya es socio</strong>${d.n_socio ? " (N° " + d.n_socio.trim() + ")" : ""}</p>` : ""}
+        <p style="margin:0 0 8px 0;"><strong>Referente:</strong> ${escapeText(d.referente_nombre.trim())}${d.referente_cargo ? " · " + escapeText(d.referente_cargo.trim()) : ""}</p>
+        <p style="margin:0 0 8px 0;"><strong>Email:</strong> ${escapeText(d.email)}</p>
+        ${d.telefono ? `<p style="margin:0 0 8px 0;"><strong>Teléfono:</strong> ${escapeText(d.telefono.trim())}</p>` : ""}
+        ${d.localidad ? `<p style="margin:0 0 8px 0;"><strong>Localidad:</strong> ${escapeText(d.localidad.trim())}</p>` : ""}
+        ${d.ya_es_socio ? `<p style="margin:0 0 8px 0;"><strong>Ya es socio</strong>${d.n_socio ? " (N° " + escapeText(d.n_socio.trim()) + ")" : ""}</p>` : ""}
       `,
       cta: { etiqueta: "Revisar en el panel", href: `${appUrl()}/admin/altas` },
     }),
