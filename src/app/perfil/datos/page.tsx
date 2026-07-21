@@ -4,12 +4,13 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Save, User, Building, MapPin, Phone, Mail, Globe, FileText, Loader2, Users } from "lucide-react";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { updateCompanyOrProvider } from "../acciones";
 import { toast } from "sonner";
 import Image from "next/image";
 import { PROVINCIAS_AR, LOCALIDADES_ALMIRANTE_BROWN } from "@/lib/datos/geografia-ar";
+import { AvisoConflictosPadronAuto } from "@/modulos/altas/componentes/aviso-conflictos-padron-auto";
 
 const selectCls =
   "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-primary-500";
@@ -44,50 +45,53 @@ export default function MiPerfilDatosPage() {
   });
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string>("");
 
+  // Extraída del effect para poder recargar cuando la socia resuelve una
+  // diferencia con el padrón desde el aviso: si no, el formulario conserva el
+  // valor viejo en su estado local y al guardar lo vuelve a pisar.
+  const loadData = useCallback(async () => {
+    if (!currentUser?.entityId) {
+      setFetching(false);
+      return;
+    }
+
+    const table = currentUser.role === "company" ? "empresas" : "proveedores";
+    const { data } = await supabase.from(table).select("*").eq("id", currentUser.entityId).single();
+
+    if (data) {
+      setFormData({
+        razon_social: data.razon_social || "",
+        nombre_comercial: data.nombre_comercial || "",
+        email: data.email || "",
+        telefono: data.telefono || "",
+        whatsapp: data.whatsapp || "",
+        sitio_web: data.sitio_web || "",
+        pais: data.pais || "Argentina",
+        provincia: data.provincia || "Buenos Aires",
+        localidad: data.localidad || "",
+        direccion: data.direccion || "",
+        descripcion: data.descripcion || "",
+        cuit: data.cuit || "",
+        cantidad_empleados: data.cantidad_empleados != null ? String(data.cantidad_empleados) : "",
+        ruta_logo: data.ruta_logo || "",
+        bucket_logo: data.bucket_logo || "",
+        nombre_logo: data.nombre_logo || "",
+        mime_logo: data.mime_logo || "",
+        tamano_logo_bytes: data.tamano_logo_bytes || 0,
+        fecha_inicio_experiencia: data.fecha_inicio_experiencia || "",
+      });
+      if (data.bucket_logo && data.ruta_logo) {
+        const { data: urlData } = supabase.storage.from(data.bucket_logo).getPublicUrl(data.ruta_logo);
+        setLogoPreviewUrl(urlData.publicUrl);
+      }
+    }
+    setFetching(false);
+  }, [currentUser?.entityId, currentUser?.role, supabase]);
+
   useEffect(() => {
     // Esperar a que auth esté lista antes de consultar Supabase.
     if (authLoading) return;
-
-    async function loadData() {
-      if (!currentUser?.entityId) {
-        setFetching(false);
-        return;
-      }
-      
-      const table = currentUser.role === "company" ? "empresas" : "proveedores";
-      const { data, error } = await supabase.from(table).select("*").eq("id", currentUser.entityId).single();
-      
-      if (data) {
-        setFormData({
-          razon_social: data.razon_social || "",
-          nombre_comercial: data.nombre_comercial || "",
-          email: data.email || "",
-          telefono: data.telefono || "",
-          whatsapp: data.whatsapp || "",
-          sitio_web: data.sitio_web || "",
-          pais: data.pais || "Argentina",
-          provincia: data.provincia || "Buenos Aires",
-          localidad: data.localidad || "",
-          direccion: data.direccion || "",
-          descripcion: data.descripcion || "",
-          cuit: data.cuit || "",
-          cantidad_empleados: data.cantidad_empleados != null ? String(data.cantidad_empleados) : "",
-          ruta_logo: data.ruta_logo || "",
-          bucket_logo: data.bucket_logo || "",
-          nombre_logo: data.nombre_logo || "",
-          mime_logo: data.mime_logo || "",
-          tamano_logo_bytes: data.tamano_logo_bytes || 0,
-          fecha_inicio_experiencia: data.fecha_inicio_experiencia || "",
-        });
-        if (data.bucket_logo && data.ruta_logo) {
-          const { data: urlData } = supabase.storage.from(data.bucket_logo).getPublicUrl(data.ruta_logo);
-          setLogoPreviewUrl(urlData.publicUrl);
-        }
-      }
-      setFetching(false);
-    }
     loadData();
-  }, [authLoading, currentUser?.entityId, currentUser?.role]);
+  }, [authLoading, loadData]);
 
   if (!currentUser) return null;
 
@@ -205,6 +209,8 @@ export default function MiPerfilDatosPage() {
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Datos y Contacto</h1>
         <p className="text-slate-500 mt-1">Cómo te ven las demás empresas e industrias en el directorio.</p>
       </div>
+
+      <AvisoConflictosPadronAuto onResuelto={loadData} />
 
       <Card data-tour="datos-form" className="p-6 border-slate-100 shadow-sm">
         <form onSubmit={handleSave} className="space-y-6">

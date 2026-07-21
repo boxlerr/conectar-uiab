@@ -22,7 +22,7 @@ async function getAltas() {
   const { data, error } = await adminClient()
     .from("altas_socios")
     .select(
-      "id, razon_social, nombre_comercial, cuit, actividad, categoria, ya_es_socio, n_socio, referente_nombre, referente_cargo, email, telefono, sitio_web, localidad, direccion, mensaje, estado, empresa_id, creado_en, actualizado_en"
+      "id, razon_social, nombre_comercial, cuit, actividad, categoria, ya_es_socio, n_socio, referente_nombre, referente_cargo, email, telefono, sitio_web, localidad, direccion, mensaje, estado, empresa_id, creado_en, actualizado_en, conflictos_padron, conflictos_revisados_en"
     )
     .order("creado_en", { ascending: false });
 

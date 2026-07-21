@@ -3,6 +3,9 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { BannerSuscripcion, DashboardBlurGate } from '@/components/ui/BannerSuscripcion';
 import { BotonReiniciarTour } from '@/modulos/onboarding/componentes/boton-reiniciar-tour';
+import { AvisoConflictosPadron } from '@/modulos/altas/componentes/aviso-conflictos-padron';
+import { conflictosPendientes, type ConflictoPadron } from '@/modulos/altas/padron';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { TarjetaVisitas } from '@/components/ui/tarjeta-visitas';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -137,6 +140,20 @@ export default async function DashboardPage() {
   } else if (isProvider) {
     const { data } = await supabase.from('miembros_proveedor').select('proveedor_id').eq('perfil_id', user.id).single();
     entityId = data?.proveedor_id ?? null;
+  }
+
+  // ── Diferencias con el padrón que la socia todavía no revisó ──
+  // `altas_socios` es deny-by-default para authenticated, así que va por el
+  // admin client. El filtro por empresa_id acota la lectura a su propia alta.
+  let conflictosPadron: ConflictoPadron[] = [];
+  if (isCompany && entityId) {
+    const { data: altas } = await createAdminClient()
+      .from('altas_socios')
+      .select('conflictos_padron')
+      .eq('empresa_id', entityId)
+      .is('conflictos_revisados_en', null)
+      .limit(1);
+    conflictosPadron = conflictosPendientes(altas?.[0]?.conflictos_padron as ConflictoPadron[] | null);
   }
 
   // ── Parallel data fetch ──
@@ -316,6 +333,8 @@ export default async function DashboardPage() {
     <DashboardBlurGate>
     <main className="min-h-screen bg-[#f2f5f8]">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-5">
+
+        <AvisoConflictosPadron conflictos={conflictosPadron} />
 
         {/* ── HERO HEADER ── */}
         <header

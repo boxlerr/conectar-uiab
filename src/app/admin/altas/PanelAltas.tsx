@@ -44,6 +44,7 @@ import {
   CATEGORIA_ALTA_LABEL,
   ESTADOS_ALTA,
 } from "@/modulos/altas/constantes";
+import { conflictosPendientes, type ConflictoPadron } from "@/modulos/altas/padron";
 
 type Alta = {
   id: string;
@@ -66,6 +67,8 @@ type Alta = {
   empresa_id: string | null;
   creado_en: string;
   actualizado_en: string;
+  conflictos_padron: ConflictoPadron[] | null;
+  conflictos_revisados_en: string | null;
 };
 
 type EmpresaPadron = {
@@ -126,6 +129,70 @@ const TONO_ESTADO: Record<"ok" | "warn" | "bad" | "muted", string> = {
   bad: "text-rose-600",
   muted: "text-slate-500",
 };
+
+// Diferencias entre lo que la socia cargó en /sumate y lo que ya figuraba en el
+// padrón. Sirve para levantar el teléfono y confirmar el dato en vez de esperar
+// a que la socia lo revise por su cuenta (que puede no ingresar en semanas).
+function DiferenciasPadronCard({ alta }: { alta: Alta }) {
+  const todas = alta.conflictos_padron ?? [];
+  if (todas.length === 0) return null;
+
+  const pendientes = conflictosPendientes(todas);
+
+  return (
+    <section>
+      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">
+        Diferencias con el padrón
+      </p>
+
+      <ul className="space-y-2.5">
+        {todas.map((c) => {
+          const ganoFormulario = c.aplicado === "formulario";
+          return (
+            <li key={c.campo} className="rounded-lg border border-slate-200 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  {c.etiqueta}
+                </span>
+                {c.resuelto ? (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-px uppercase tracking-wider">
+                    Confirmado
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-px uppercase tracking-wider">
+                    Sin confirmar
+                  </span>
+                )}
+              </div>
+
+              <p className="text-[13px] text-slate-600 leading-snug">
+                <span className="text-slate-400">Cargó:</span>{" "}
+                <span className={ganoFormulario ? "font-semibold text-slate-800" : ""}>
+                  {c.valor_formulario}
+                </span>
+              </p>
+              <p className="text-[13px] text-slate-600 leading-snug">
+                <span className="text-slate-400">Padrón:</span>{" "}
+                <span className={!ganoFormulario ? "font-semibold text-slate-800" : ""}>
+                  {c.valor_padron}
+                </span>
+              </p>
+              <p className="text-[11px] text-slate-400 mt-1">
+                En la ficha quedó {ganoFormulario ? "lo que cargó la socia" : "el dato del padrón"}.
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+
+      <p className="text-[11px] text-slate-400 mt-2">
+        {pendientes.length === 0
+          ? "La socia ya revisó todas las diferencias desde su panel."
+          : `${pendientes.length} sin confirmar. Le aparecen como aviso al ingresar, o podés confirmarlas por teléfono.`}
+      </p>
+    </section>
+  );
+}
 
 function EstadoCuentaCard({ estado }: { estado?: EstadoCuenta }) {
   if (!estado) {
@@ -736,6 +803,9 @@ export function PanelAltas({
                   Al crear la cuenta se usa la empresa vinculada; si no hay ninguna, se busca por CUIT o se crea una nueva.
                 </p>
               </section>
+
+              {/* Diferencias entre el formulario y el padrón */}
+              <DiferenciasPadronCard alta={seleccionada} />
 
               {/* Estado de la cuenta (onboarding) */}
               {seleccionada.estado === "cuenta_creada" && (

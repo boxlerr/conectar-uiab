@@ -7,6 +7,7 @@ import { appUrl, emailAdmin, enviarEmail } from "@/lib/email/cliente";
 import { escapeText, renderEmailBase } from "@/lib/email/plantillas";
 import { CATEGORIAS_ALTA, type AltaSocioInput } from "./constantes";
 import { generarYEnviarInvitacion } from "./invitaciones-core";
+import { fusionarConPadron, type ConflictoPadron } from "./padron";
 
 function adminClient() {
   return createClient(
@@ -277,6 +278,7 @@ export async function crearCuentaDesdeAlta(altaId: string) {
 
   // 3. Entidad + membresía.
   let empresaIdFinal: string | null = alta.empresa_id ?? null;
+  let conflictosPadron: ConflictoPadron[] = [];
 
   if (esProveedor) {
     const { data: prov, error: provErr } = await db
@@ -344,16 +346,29 @@ export async function crearCuentaDesdeAlta(altaId: string) {
       if (empErr) return { error: `Error creando la empresa: ${empErr.message}` };
       empresaIdFinal = emp.id;
     } else {
-      // Completar datos faltantes de la ficha existente (email/teléfono suelen ser NULL en el padrón).
-      await db
+      // La ficha ya existía en el padrón: la fusionamos con lo que cargó la
+      // socia. `email` y `telefono` del formulario pisan, el resto sólo
+      // completa lo que está vacío, y las diferencias quedan anotadas para
+      // que la socia las confirme en su primer ingreso (ver ./padron).
+      const { data: fichaPadron } = await db
         .from("empresas")
-        .update({
-          email: alta.email,
-          telefono: alta.telefono ?? null,
-          sitio_web: alta.sitio_web ?? null,
-        })
+        .select("*")
         .eq("id", empresaIdFinal)
-        .is("email", null);
+        .single();
+
+      if (fichaPadron) {
+        const { cambios, conflictos } = fusionarConPadron(alta, fichaPadron);
+        conflictosPadron = conflictos;
+        if (Object.keys(cambios).length > 0) {
+          const { error: fusionErr } = await db
+            .from("empresas")
+            .update(cambios)
+            .eq("id", empresaIdFinal);
+          if (fusionErr) {
+            return { error: `Error actualizando la ficha de la empresa: ${fusionErr.message}` };
+          }
+        }
+      }
     }
 
     // Membresía (evitar duplicado).
@@ -384,7 +399,12 @@ export async function crearCuentaDesdeAlta(altaId: string) {
   // 5. Marcar la solicitud.
   await db
     .from("altas_socios")
-    .update({ estado: "cuenta_creada", empresa_id: empresaIdFinal })
+    .update({
+      estado: "cuenta_creada",
+      empresa_id: empresaIdFinal,
+      conflictos_padron: conflictosPadron,
+      conflictos_revisados_en: null,
+    })
     .eq("id", altaId);
 
   revalidatePath("/admin/altas");
