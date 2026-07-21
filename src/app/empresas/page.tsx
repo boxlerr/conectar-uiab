@@ -208,8 +208,9 @@ export default function EmpresasPage() {
         slug: crearSlug(nombre),
         nombre: nombre,
         categoria: mainCat,
-        descripcionCorta: item.actividad || item.descripcion_corta || "Sin descripción",
-        descripcionLarga: item.actividad || item.descripcion || "",
+        // Lo que escribió la socia manda sobre el rubro que trajo el padrón.
+        descripcionCorta: item.descripcion || item.actividad || item.descripcion_corta || "Sin descripción",
+        descripcionLarga: item.descripcion || item.actividad || "",
         logo: nombre.charAt(0).toUpperCase(),
         logoUrl,
         ubicacion: `${item.localidad || ''}, ${item.direccion || ''}`.replace(/^, | ,|, $/g, ''),

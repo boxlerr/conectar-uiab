@@ -117,14 +117,14 @@ async function datosSeoPorSlug(slug: string) {
 
   const { data: empresas } = await db
     .from("empresas")
-    .select("razon_social, actividad, localidad, provincia, sitio_web, bucket_logo, ruta_logo")
+    .select("razon_social, actividad, descripcion, localidad, provincia, sitio_web, bucket_logo, ruta_logo")
     .eq("estado", "aprobada");
   const emp = empresas?.find((e: any) => crearSlug(e.razon_social) === slug);
   if (emp) {
     return {
       esProveedor: false,
       nombre: emp.razon_social as string,
-      descripcion: (emp.actividad as string) || null,
+      descripcion: (emp.descripcion as string) || (emp.actividad as string) || null,
       localidad: (emp.localidad as string) || null,
       provincia: (emp.provincia as string) || null,
       sitioWeb: (emp.sitio_web as string) || null,
@@ -269,6 +269,7 @@ export default async function EmpresaProfilePage({
         localidad,
         provincia,
         actividad,
+        descripcion,
         sitio_web,
         email,
         telefono,
@@ -425,7 +426,11 @@ async function EmpresaProfile({
     catalogoItems = catalogo;
   }
 
-  const tieneActividadReal = Boolean(empresaDb.actividad && empresaDb.actividad.trim().length > 8);
+  // `descripcion` es lo que escribe la socia (formulario de alta y /perfil/datos);
+  // `actividad` es el rubro que trajo el padrón. Mandan sus palabras, y caemos
+  // al padrón mientras no haya escrito nada.
+  const textoEmpresa = (empresaDb.descripcion || empresaDb.actividad || "").trim();
+  const tieneActividadReal = textoEmpresa.length > 8;
   const serviciosExtra = cats.slice(1);
   const tieneServiciosReales = serviciosExtra.length > 0;
 
@@ -443,7 +448,7 @@ async function EmpresaProfile({
   const empresa = {
     nombre: empresaDb.razon_social,
     categoria: mainCat,
-    actividad: tieneActividadReal ? empresaDb.actividad : null,
+    actividad: tieneActividadReal ? textoEmpresa : null,
     logo: empresaDb.razon_social.charAt(0).toUpperCase(),
     logoUrl,
     ubicacion: [empresaDb.localidad, empresaDb.direccion].filter(Boolean).join(", ") || null,
