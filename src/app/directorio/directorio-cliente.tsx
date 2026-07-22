@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Entidad } from "@/lib/datos/directorio";
 import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
+import { BannerLogosSocias } from "@/components/ui/directorio/banner-logos-socias";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import {
   Building2,
@@ -297,11 +298,6 @@ export function DirectorioCliente({
     0
   );
 
-  const resumenConteos =
-    conteos
-      .map(({ tab, count }) => `${count} ${rotulo(tab, count)}`)
-      .join(" · ") || "Sin organizaciones publicadas";
-
   const sufijoEncontrado = `encontrad${tabActiva.genero === "f" ? "a" : "o"}${
     entidadesFiltradas.length === 1 ? "" : "s"
   }`;
@@ -439,44 +435,29 @@ export function DirectorioCliente({
       </div>
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-        {/* Dashboard Value Bar */}
+        {/* Slider de logos de las empresas de la red (reemplaza la vieja barra
+            de conteos; los conteos ya viven en las pestañas). */}
         <motion.div
           initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           data-tour="directorio-stats"
-          className="bg-white rounded-2xl p-6 shadow-xl shadow-primary/5 border border-slate-200/60 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden -mt-10 z-20"
+          className="bg-white rounded-2xl py-5 shadow-xl shadow-primary/5 border border-slate-200/60 mb-8 relative overflow-hidden -mt-10 z-20"
         >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3" />
-
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100 shadow-inner">
-              <Building2 className="w-7 h-7" />
-            </div>
-            <div>
-              <h2 className="font-manrope text-xl font-bold text-slate-800">
-                Directorio Activo
-              </h2>
-              <p className="text-sm font-medium text-slate-500">
-                {resumenConteos}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-6 relative z-10 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-              <span className="text-sm font-bold text-slate-700 whitespace-nowrap">
-                Contactos directos
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-6 mb-4">
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+              Empresas de la red UIAB
+            </p>
+            <div className="flex items-center gap-4 shrink-0">
+              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-slate-500 whitespace-nowrap">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Contactos directos
               </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-              <span className="text-sm font-bold text-slate-700 whitespace-nowrap">
-                Perfiles verificados
+              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-slate-500 whitespace-nowrap">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Perfiles verificados
               </span>
             </div>
           </div>
+          <BannerLogosSocias />
         </motion.div>
 
         {/* ─── Tabs ─── */}
