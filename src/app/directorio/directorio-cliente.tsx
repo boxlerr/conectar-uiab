@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Entidad } from "@/lib/datos/directorio";
 import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import {
   Building2,
   Wrench,
@@ -204,6 +205,7 @@ export function DirectorioCliente({
 }: DirectorioClienteProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { currentUser } = useAuth();
 
   const datosPorTab: Record<TabKey, Entidad[]> = {
     empresas,
@@ -366,6 +368,20 @@ export function DirectorioCliente({
               </span>
             </motion.div>
 
+            <motion.h1
+              variants={heroItem}
+              className="font-manrope text-2xl sm:text-3xl font-black text-white tracking-tight mb-2"
+            >
+              Directorio de la red UIAB
+            </motion.h1>
+
+            <motion.p
+              variants={heroItem}
+              className="text-blue-100/80 text-sm sm:text-base font-medium max-w-xl mx-auto mb-6"
+            >
+              Empresas socias, prestadores e instituciones de Almirante Brown. Buscá y contactá directo.
+            </motion.p>
+
             {/* Buscador protagonista */}
             <motion.div
               variants={heroItem}
@@ -394,69 +410,30 @@ export function DirectorioCliente({
               </div>
             </motion.div>
 
-            {/* Chips-tab por categoría (fusionan navegación + conteos) */}
-            <motion.div
-              variants={heroItem}
-              className="flex flex-wrap justify-center gap-2 sm:gap-2.5 mt-6"
-            >
-              {TABS.map((tab) => {
-                const activa = tab.key === tabActiva.key;
-                const count = datosPorTab[tab.key].length;
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => handleTabChange(tab.key)}
-                    className={
-                      activa
-                        ? "inline-flex items-center gap-2 bg-white text-[#00213f] border border-white rounded-full px-4 py-2 shadow-lg shadow-blue-900/30 transition-all"
-                        : "inline-flex items-center gap-2 bg-white/[0.08] backdrop-blur-md border border-white/15 text-blue-100 rounded-full px-4 py-2 hover:bg-white/[0.16] hover:border-white/30 transition-all"
-                    }
-                  >
-                    <tab.Icono
-                      className={
-                        activa
-                          ? "w-4 h-4 text-[#00213f]"
-                          : "w-4 h-4 text-blue-200"
-                      }
-                    />
-                    {/* Rótulo fijo (no singulariza por conteo): el chip tiene que
-                        decir lo mismo que su pestaña de más abajo. */}
-                    <span className="text-xs font-bold whitespace-nowrap">
-                      {tab.etiqueta}
-                    </span>
-                    <span
-                      className={
-                        activa
-                          ? "font-manrope text-xs font-black bg-[#00213f] text-white rounded-full px-1.5 py-0.5 min-w-[22px]"
-                          : "font-manrope text-xs font-black bg-white/10 text-white rounded-full px-1.5 py-0.5 min-w-[22px]"
-                      }
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </motion.div>
+            {/* Los conteos/pestañas por categoría viven una sola vez, en la
+                barra de tabs de abajo (evita el duplicado con el hero). */}
 
-            <motion.div
-              variants={heroItem}
-              className="flex flex-wrap justify-center gap-3 mt-6"
-            >
-              <Link
-                href="/register"
-                className="group inline-flex items-center gap-2 bg-white text-[#00213f] px-6 py-3 rounded-lg font-manrope font-extrabold text-sm shadow-xl hover:bg-blue-50 hover:-translate-y-0.5 transition-all"
+            {/* CTAs solo para visitantes: si ya estás logueado no tienen sentido. */}
+            {!currentUser && (
+              <motion.div
+                variants={heroItem}
+                className="flex flex-wrap justify-center gap-3 mt-6"
               >
-                Sumá tu organización
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                href="/contacto"
-                className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-md border border-white/25 text-white px-6 py-3 rounded-lg font-manrope font-bold text-sm hover:bg-white/15 hover:border-white/50 transition-all"
-              >
-                Conocé la UIAB
-              </Link>
-            </motion.div>
+                <Link
+                  href="/register"
+                  className="group inline-flex items-center gap-2 bg-white text-[#00213f] px-6 py-3 rounded-lg font-manrope font-extrabold text-sm shadow-xl hover:bg-blue-50 hover:-translate-y-0.5 transition-all"
+                >
+                  Sumá tu organización
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link
+                  href="/contacto"
+                  className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-md border border-white/25 text-white px-6 py-3 rounded-lg font-manrope font-bold text-sm hover:bg-white/15 hover:border-white/50 transition-all"
+                >
+                  Conocé la UIAB
+                </Link>
+              </motion.div>
+            )}
           </motion.div>
         </div>
       </div>
