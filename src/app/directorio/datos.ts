@@ -19,6 +19,50 @@ export interface DatosDirectorio {
   cooperativas: Entidad[];
 }
 
+/**
+ * PRNG determinístico con semilla (mulberry32). Puro y sin dependencias: dada
+ * la misma semilla devuelve SIEMPRE la misma secuencia de números en [0, 1).
+ */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Fisher–Yates barajando una COPIA con la semilla dada. Puro: nunca muta el
+ * array original. Con la misma semilla el resultado es idéntico (reproducible
+ * en SSR y en cliente).
+ */
+function barajarConSemilla<T>(arr: T[], seed: number): T[] {
+  const copia = arr.slice();
+  const rand = mulberry32(seed);
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+
+/**
+ * Semilla del DÍA: hashea el `YYYY-MM-DD` (en UTC) a un entero sin signo. No
+ * usa Date.now()/Math.random(): así la semilla NO cambia por request, sólo una
+ * vez por día. Estable dentro del día, distinta cada día.
+ */
+function semillaDelDia(fecha: Date = new Date()): number {
+  const clave = `${fecha.getUTCFullYear()}-${fecha.getUTCMonth() + 1}-${fecha.getUTCDate()}`;
+  let h = 0;
+  for (let i = 0; i < clave.length; i++) {
+    h = (Math.imul(h, 31) + clave.charCodeAt(i)) | 0;
+  }
+  return h >>> 0;
+}
+
 // Defaults por tipo de socia (columna empresas.categoria_socio). Las empresas
 // industriales (null o 'proveedores_servicios_productos') conservan el default
 // histórico.
@@ -233,7 +277,22 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
     }
   }
 
-  return { empresas, prestadores, financieras, educativas, cooperativas };
+  // Justicia del directorio: Postgres devuelve las filas en un orden físico
+  // arbitrario y sin ORDER BY siempre salían casi igual, favoreciendo de hecho
+  // a las mismas socias. Barajamos cada lista con una semilla derivada del DÍA
+  // (no del request): así el orden rota todos los días —nadie queda fijo
+  // arriba, tampoco las que empiezan con "A"— pero es estable dentro del mismo
+  // día (no salta en cada carga). Como la página es force-dynamic y esto corre
+  // sólo en el servidor, SSR y cliente reciben el MISMO orden: no hay mismatch
+  // de hidratación. Es el orden "Sugerido" (default) del cliente.
+  const seed = semillaDelDia();
+  return {
+    empresas: barajarConSemilla(empresas, seed),
+    prestadores: barajarConSemilla(prestadores, seed),
+    financieras: barajarConSemilla(financieras, seed),
+    educativas: barajarConSemilla(educativas, seed),
+    cooperativas: barajarConSemilla(cooperativas, seed),
+  };
 }
 
 function aplicarResenas(

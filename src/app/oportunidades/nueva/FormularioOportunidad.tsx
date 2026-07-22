@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { crearOportunidad } from "./acciones";
 import { SelectorEtiquetas } from "@/components/ui/selector-etiquetas";
+import { SelectUIAB } from "@/components/ui/select-uiab";
 import type { TagOption } from "@/modulos/compartido/etiquetas";
 import {
   Loader2,
@@ -19,6 +20,10 @@ import {
   ShieldCheck,
   ArrowRight,
   CheckCircle2,
+  Package,
+  Wrench,
+  Users,
+  Shapes,
 } from "lucide-react";
 
 /** Manrope está cargada en el layout pero no registrada como token de Tailwind:
@@ -34,6 +39,15 @@ const inputCls =
 
 const labelCls =
   "block mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500";
+
+/** Qué necesita quien publica. Los `valor` coinciden con el CHECK de
+ *  `oportunidades.tipo_requerimiento` (text[]) en la base. */
+const TIPOS_REQUERIMIENTO = [
+  { valor: "material", label: "Material", icon: Package },
+  { valor: "servicio", label: "Servicio", icon: Wrench },
+  { valor: "personal", label: "Personal", icon: Users },
+  { valor: "otro", label: "Otro", icon: Shapes },
+] as const;
 
 function EncabezadoSeccion({
   numero,
@@ -218,8 +232,21 @@ export function FormularioOportunidad({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [descripcionVacia, setDescripcionVacia] = useState(false);
+  const [tiposReq, setTiposReq] = useState<Set<string>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  /** Términos que el usuario escribió y no están en el catálogo. Se crean como
+   *  etiquetas libres del lado del servidor al publicar. */
+  const [nuevasEtiquetas, setNuevasEtiquetas] = useState<string[]>([]);
   const contenedorErrorRef = useRef<HTMLDivElement>(null);
+
+  const toggleTipo = (valor: string) => {
+    setTiposReq((prev) => {
+      const next = new Set(prev);
+      if (next.has(valor)) next.delete(valor);
+      else next.add(valor);
+      return next;
+    });
+  };
 
   const toggleTag = (id: string) => {
     setSelectedTags((prev) => {
@@ -229,6 +256,8 @@ export function FormularioOportunidad({
       return next;
     });
   };
+
+  const totalEtiquetas = selectedTags.size + nuevasEtiquetas.length;
 
   // El error puede dispararse estando al final del form: hay que ir a verlo.
   useEffect(() => {
@@ -256,7 +285,9 @@ export function FormularioOportunidad({
     setLoading(true);
     setError(null);
 
+    for (const valor of tiposReq) formData.append("tipo_requerimiento", valor);
     for (const tagId of selectedTags) formData.append("tag_ids", tagId);
+    for (const termino of nuevasEtiquetas) formData.append("nuevas_etiquetas", termino);
 
     const result = await crearOportunidad(formData);
 
@@ -299,6 +330,43 @@ export function FormularioOportunidad({
             <div>
               <EncabezadoSeccion numero="01" titulo="Requerimiento" />
 
+              {/* ¿Qué necesitás?: material / servicio / personal / otro */}
+              <fieldset className="mb-6">
+                <legend className={labelCls}>¿Qué necesitás?</legend>
+                <p className="text-sm text-slate-500 leading-relaxed mb-3 max-w-prose">
+                  Marcá lo que estás buscando. Podés combinar más de uno: material,
+                  servicio, producto o personal.
+                </p>
+                <div
+                  role="group"
+                  aria-label="¿Qué necesitás?"
+                  className="flex flex-wrap gap-2"
+                >
+                  {TIPOS_REQUERIMIENTO.map(({ valor, label, icon: Icon }) => {
+                    const activo = tiposReq.has(valor);
+                    return (
+                      <button
+                        key={valor}
+                        type="button"
+                        onClick={() => toggleTipo(valor)}
+                        aria-pressed={activo}
+                        className={`inline-flex h-10 items-center gap-2 rounded-sm border px-3.5 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10375c]/40 ${
+                          activo
+                            ? "border-[#00213f] bg-[#00213f] text-white shadow-sm"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800"
+                        }`}
+                      >
+                        <Icon
+                          className={`w-4 h-4 ${activo ? "text-white" : "text-slate-400"}`}
+                          aria-hidden="true"
+                        />
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
               <p className="text-xs text-slate-400 mb-5">
                 Los campos con <span className="text-red-500">*</span> son obligatorios.
               </p>
@@ -324,28 +392,16 @@ export function FormularioOportunidad({
                     Rubro
                     <Obligatorio />
                   </label>
-                  <div className="relative">
-                    <select
-                      id="categoria_id"
-                      name="categoria_id"
-                      required
-                      defaultValue=""
-                      className={`${inputCls} appearance-none pr-10 cursor-pointer`}
-                    >
-                      <option value="" disabled>
-                        Elegí el rubro…
-                      </option>
-                      {categorias.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.nombre}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
-                      aria-hidden="true"
-                    />
-                  </div>
+                  <SelectUIAB
+                    id="categoria_id"
+                    name="categoria_id"
+                    required
+                    defaultValue=""
+                    placeholder="Elegí el rubro…"
+                    ariaLabel="Rubro"
+                    className={inputCls}
+                    options={categorias.map((cat) => ({ value: cat.id, label: cat.nombre }))}
+                  />
                 </div>
 
                 <div>
@@ -436,7 +492,8 @@ export function FormularioOportunidad({
               <EncabezadoSeccion numero="04" titulo="Etiquetas para el match" />
 
               <p className="text-sm text-slate-500 leading-relaxed mb-4 max-w-prose">
-                Escribí lo que necesitás y elegí de la lista. Cada etiqueta suma puntaje al
+                Escribí lo que necesitás —material, servicio, producto o personal— y elegí de
+                la lista. ¿No está? Sumá tu propio término. Cada etiqueta suma puntaje al
                 cruce con los perfiles de la red: con{" "}
                 <strong className="font-semibold text-slate-700">5 o más</strong> el ranking
                 de candidatos mejora bastante.
@@ -447,6 +504,8 @@ export function FormularioOportunidad({
                 seleccionados={selectedTags}
                 onToggle={toggleTag}
                 onLimpiar={() => setSelectedTags(new Set())}
+                nuevos={nuevasEtiquetas}
+                onNuevosCambian={setNuevasEtiquetas}
               />
             </div>
           </div>
@@ -454,8 +513,8 @@ export function FormularioOportunidad({
           {/* Footer de acciones: sticky dentro de la tarjeta */}
           <div className="sticky bottom-0 z-20 rounded-b-xl border-t border-slate-200/70 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 shadow-[0_-8px_24px_-18px_rgba(15,23,42,0.25)]">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              Visible sólo para la red UIAB · {selectedTags.size} etiqueta
-              {selectedTags.size === 1 ? "" : "s"}
+              Visible sólo para la red UIAB · {totalEtiquetas} etiqueta
+              {totalEtiquetas === 1 ? "" : "s"}
             </p>
 
             <div className="flex gap-3">

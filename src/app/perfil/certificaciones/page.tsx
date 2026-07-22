@@ -4,6 +4,7 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { createClient } from "@/lib/supabase/cliente";
 import { Card } from "@/components/ui/card";
 import { ChipNorma } from "@/modulos/certificaciones/chip-norma";
+import { SelectUIAB } from "@/components/ui/select-uiab";
 import {
   NORMAS_POR_FAMILIA,
   NORMAS_FRECUENTES,
@@ -415,26 +416,21 @@ function FormularioCertificacion({
             <label className={labelCls} htmlFor="cert-norma">
               Norma o certificación <span className="text-rose-500">*</span>
             </label>
-            <select
+            <SelectUIAB
               id="cert-norma"
+              ariaLabel="Norma"
+              placeholder="Elegí una norma…"
               value={form.codigo_norma}
-              onChange={(e) => set({ codigo_norma: e.target.value })}
+              onValueChange={(v) => set({ codigo_norma: v })}
               className={inputCls}
-            >
-              <option value="">Elegí una norma…</option>
-              {NORMAS_POR_FAMILIA.map((g) => (
-                <optgroup key={g.familia} label={g.etiqueta}>
-                  {g.normas.map((n) => (
-                    <option key={n.codigo} value={n.codigo}>
-                      {n.etiqueta} — {n.nombre}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-              <optgroup label="Otra">
-                <option value={CODIGO_OTRA}>Otra certificación…</option>
-              </optgroup>
-            </select>
+              options={[
+                ...NORMAS_POR_FAMILIA.map((g) => ({
+                  label: g.etiqueta,
+                  options: g.normas.map((n) => ({ value: n.codigo, label: `${n.etiqueta} — ${n.nombre}` })),
+                })),
+                { label: "Otra", options: [{ value: CODIGO_OTRA, label: "Otra certificación…" }] },
+              ]}
+            />
           </div>
 
           {esOtra && (
@@ -601,7 +597,8 @@ function FormularioCertificacion({
 const VIGENCIA_BADGE: Record<EstadoVigencia, { texto: (f: string) => string; cls: string } | null> = {
   sin_vencimiento: null,
   vigente: { texto: (f) => `Vigente hasta ${f}`, cls: "bg-slate-100 text-slate-500" },
-  por_vencer: { texto: (f) => `Vence pronto · ${f}`, cls: "bg-amber-50 text-amber-700" },
+  // "Vence pronto" se sacó a propósito: la vigencia es responsabilidad de cada socia, no la vigilamos.
+  por_vencer: null,
   vencida: { texto: (f) => `Vencida · ${f}`, cls: "bg-rose-50 text-rose-700" },
 };
 

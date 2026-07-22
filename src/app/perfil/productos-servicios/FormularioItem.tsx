@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { SelectUIAB } from "@/components/ui/select-uiab";
 import {
   Loader2,
   PackageSearch,
@@ -599,15 +600,17 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
                 </div>
               </Campo>
               <Campo label="Moneda">
-                <select
+                <SelectUIAB
+                  ariaLabel="Moneda"
                   className={inputCls}
                   value={moneda}
-                  onChange={(e) => setMoneda(e.target.value)}
-                >
-                  <option value="ARS">ARS</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                </select>
+                  onValueChange={(v) => setMoneda(v)}
+                  options={[
+                    { value: "ARS", label: "ARS" },
+                    { value: "USD", label: "USD" },
+                    { value: "EUR", label: "EUR" },
+                  ]}
+                />
               </Campo>
             </div>
           )}

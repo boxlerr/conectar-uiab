@@ -7,6 +7,7 @@ import { Entidad } from "@/lib/datos/directorio";
 import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
 import { SliderLogosDirectorio, type LogoDirectorio } from "@/components/ui/directorio/slider-logos-directorio";
+import { SelectUIAB } from "@/components/ui/select-uiab";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import {
   Building2,
@@ -35,6 +36,16 @@ type TabKey =
   | "cooperativas";
 
 type Esquema = "blue" | "emerald" | "violet" | "amber" | "teal";
+
+/** Criterio del control "Ordenar por". `sugerido` = orden justo que llega del SSR. */
+type Orden = "sugerido" | "az" | "za" | "certificaciones";
+
+const OPCIONES_ORDEN: { valor: Orden; etiqueta: string }[] = [
+  { valor: "sugerido", etiqueta: "Sugerido" },
+  { valor: "az", etiqueta: "A–Z" },
+  { valor: "za", etiqueta: "Z–A" },
+  { valor: "certificaciones", etiqueta: "Con certificaciones primero" },
+];
 
 interface ConfigTab {
   key: TabKey;
@@ -238,6 +249,9 @@ export function DirectorioCliente({
   const [searchTerm, setSearchTerm] = useState(() => searchParams.get("q") ?? "");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // Criterio de orden elegido por el usuario. `sugerido` respeta el orden justo
+  // (shuffle diario) que ya viene del SSR.
+  const [orden, setOrden] = useState<Orden>("sugerido");
 
   // Parallax sutil de posición del fondo del hero. Nunca tocamos la opacidad:
   // el fondo tiene que ser estable siempre (bug previo: fundía a blanco).
@@ -289,6 +303,28 @@ export function DirectorioCliente({
       return matchCategoria && matchSearch;
     });
   }, [entidadesActivas, categoriaSeleccionada, searchTerm]);
+
+  // Orden aplicado DESPUÉS del filtrado, sobre una copia (nunca mutamos props).
+  // `sugerido` devuelve tal cual el orden justo del SSR. Para "con
+  // certificaciones/logo primero" agrupamos ese subconjunto adelante y, como
+  // Array.sort es estable, dentro de cada grupo se respeta el orden sugerido.
+  const entidadesOrdenadas = useMemo(() => {
+    if (orden === "sugerido") return entidadesFiltradas;
+    const copia = entidadesFiltradas.slice();
+    const porNombre = (a: Entidad, b: Entidad) =>
+      a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
+    const tieneCerts = (e: Entidad) => ((e.certificaciones?.length ?? 0) > 0 ? 1 : 0);
+    switch (orden) {
+      case "az":
+        return copia.sort(porNombre);
+      case "za":
+        return copia.sort((a, b) => porNombre(b, a));
+      case "certificaciones":
+        return copia.sort((a, b) => tieneCerts(b) - tieneCerts(a));
+      default:
+        return copia;
+    }
+  }, [entidadesFiltradas, orden]);
 
   const effectiveViewMode = tabActiva.permiteVista ? viewMode : "list";
   const colorAccent = tabActiva.esquema;
@@ -526,35 +562,56 @@ export function DirectorioCliente({
                 </h3>
               </div>
 
-              {tabActiva.permiteVista && (
-                <div data-tour="directorio-vista" className="flex items-center gap-3">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Vista:
-                  </span>
-                  <div className="bg-slate-100 p-1 rounded-lg flex gap-1 border border-slate-200">
-                    <button
-                      onClick={() => setViewMode("grid")}
-                      className={`p-2 rounded-md transition-all ${
-                        effectiveViewMode === "grid"
-                          ? ESTILOS_VISTA_ACTIVA[colorAccent]
-                          : "text-slate-400 hover:text-slate-700"
-                      }`}
-                    >
-                      <LayoutGrid className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode("list")}
-                      className={`p-2 rounded-md transition-all ${
-                        effectiveViewMode === "list"
-                          ? ESTILOS_VISTA_ACTIVA[colorAccent]
-                          : "text-slate-400 hover:text-slate-700"
-                      }`}
-                    >
-                      <List className="w-4 h-4" />
-                    </button>
-                  </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                {/* Ordenar por: el usuario elige; "Sugerido" respeta el orden
+                    justo (shuffle diario) que trae el SSR. */}
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="orden-directorio"
+                    className="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"
+                  >
+                    Ordenar por:
+                  </label>
+                  <SelectUIAB
+                    id="orden-directorio"
+                    ariaLabel="Ordenar por"
+                    value={orden}
+                    onValueChange={(v) => setOrden(v as Orden)}
+                    options={OPCIONES_ORDEN.map((o) => ({ value: o.valor, label: o.etiqueta }))}
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-bold text-slate-700"
+                  />
                 </div>
-              )}
+
+                {tabActiva.permiteVista && (
+                  <div data-tour="directorio-vista" className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Vista:
+                    </span>
+                    <div className="bg-slate-100 p-1 rounded-lg flex gap-1 border border-slate-200">
+                      <button
+                        onClick={() => setViewMode("grid")}
+                        className={`p-2 rounded-md transition-all ${
+                          effectiveViewMode === "grid"
+                            ? ESTILOS_VISTA_ACTIVA[colorAccent]
+                            : "text-slate-400 hover:text-slate-700"
+                        }`}
+                      >
+                        <LayoutGrid className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setViewMode("list")}
+                        className={`p-2 rounded-md transition-all ${
+                          effectiveViewMode === "list"
+                            ? ESTILOS_VISTA_ACTIVA[colorAccent]
+                            : "text-slate-400 hover:text-slate-700"
+                        }`}
+                      >
+                        <List className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Results */}
@@ -568,7 +625,7 @@ export function DirectorioCliente({
                     : "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_32px_-12px_rgba(15,23,42,0.08)] overflow-hidden divide-y divide-slate-200/70"
                 }
               >
-                {entidadesFiltradas.map((entidad) => (
+                {entidadesOrdenadas.map((entidad) => (
                   <DirectoryProfileCard
                     key={entidad.id}
                     entidad={entidad}

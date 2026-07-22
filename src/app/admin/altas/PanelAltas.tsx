@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { SelectUIAB } from "@/components/ui/select-uiab";
 import {
   UserPlus,
   Search,
@@ -767,21 +768,17 @@ export function PanelAltas({
                       />
                     </div>
                     <div className="flex gap-2">
-                      <select
+                      <SelectUIAB
+                        ariaLabel="Empresa del padrón"
+                        placeholder={`Elegí una empresa del padrón (${empresasFiltradas.length})`}
                         value={empresaElegida}
-                        onChange={(e) => setEmpresaElegida(e.target.value)}
-                        className="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      >
-                        <option value="">
-                          Elegí una empresa del padrón ({empresasFiltradas.length})
-                        </option>
-                        {empresasFiltradas.map((emp) => (
-                          <option key={emp.id} value={emp.id}>
-                            {emp.razon_social}
-                            {emp.cuit ? ` — ${emp.cuit}` : ""}
-                          </option>
-                        ))}
-                      </select>
+                        onValueChange={(v) => setEmpresaElegida(v)}
+                        className="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                        options={empresasFiltradas.map((emp) => ({
+                          value: emp.id,
+                          label: `${emp.razon_social}${emp.cuit ? ` — ${emp.cuit}` : ""}`,
+                        }))}
+                      />
                       <Button
                         variant="outline"
                         size="sm"

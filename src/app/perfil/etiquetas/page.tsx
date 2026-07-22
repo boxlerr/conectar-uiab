@@ -13,9 +13,6 @@ import {
   slugEtiqueta,
   limpiarNombreEtiqueta,
   validarEtiquetaLibre,
-  ETIQUETA_MIN,
-  ETIQUETA_MAX,
-  MAX_ETIQUETAS_LIBRES,
 } from "@/modulos/compartido/etiquetas";
 import { toast } from "sonner";
 
@@ -41,7 +38,6 @@ export default function MiPerfilEtiquetasPage() {
   const [saving, setSaving] = useState(false);
   const [creando, setCreando] = useState(false);
   const [search, setSearch] = useState("");
-  const [nuevaEtiqueta, setNuevaEtiqueta] = useState("");
 
   useEffect(() => {
     if (authLoading) return;
@@ -144,7 +140,6 @@ export default function MiPerfilEtiquetasPage() {
       const slug = slugEtiqueta(texto);
       const yaVisible = allTags.find((t) => slugEtiqueta(t.nombre) === slug);
       if (yaVisible) {
-        setNuevaEtiqueta("");
         setSearch("");
         if (selectedIds.has(yaVisible.id)) {
           toast.info("Ya tenés esa etiqueta", { description: `«${yaVisible.nombre}» ya está en tu lista.` });
@@ -152,13 +147,6 @@ export default function MiPerfilEtiquetasPage() {
           toggle(yaVisible.id);
           toast.info(`«${yaVisible.nombre}» ya existía`, { description: "La marcamos por vos." });
         }
-        return;
-      }
-
-      if (misLibres.length >= MAX_ETIQUETAS_LIBRES) {
-        toast.error("Llegaste al máximo", {
-          description: `Podés tener hasta ${MAX_ETIQUETAS_LIBRES} etiquetas propias. Sacá alguna antes de agregar otra.`,
-        });
         return;
       }
 
@@ -177,7 +165,6 @@ export default function MiPerfilEtiquetasPage() {
         );
       }
       setSelectedIds((prev) => new Set(prev).add(res.tag.id));
-      setNuevaEtiqueta("");
       setSearch("");
 
       toast.success(
@@ -185,7 +172,7 @@ export default function MiPerfilEtiquetasPage() {
         { description: "Acordate de apretar «Guardar Etiquetas» para que quede." }
       );
     },
-    [allTags, misLibres.length, selectedIds, toggle]
+    [allTags, selectedIds, toggle]
   );
 
   if (!currentUser) return null;
@@ -222,7 +209,14 @@ export default function MiPerfilEtiquetasPage() {
   };
 
   const sinEntidad = !currentUser.entityId;
-  const textoNuevo = limpiarNombreEtiqueta(nuevaEtiqueta);
+
+  // Un solo buscador: si lo que escribís no está en el catálogo (ni ya lo tenés),
+  // y es un texto válido, aparece la opción de agregarlo como etiqueta propia.
+  const textoBusqueda = limpiarNombreEtiqueta(search);
+  const slugBusqueda = slugEtiqueta(textoBusqueda);
+  const hayExacta = allTags.some((t) => slugEtiqueta(t.nombre) === slugBusqueda);
+  const puedeAgregar =
+    !sinEntidad && textoBusqueda.length > 0 && validarEtiquetaLibre(textoBusqueda) === null && !hayExacta;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -230,7 +224,8 @@ export default function MiPerfilEtiquetasPage() {
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Etiquetas para el Match</h1>
         <p className="text-slate-500 mt-1">
           Marcá tus capacidades, materiales, modalidades e industrias. Cuanto mejor te describas,
-          mejor te conectará el algoritmo con oportunidades relevantes.
+          mejor te conectará el algoritmo con oportunidades relevantes. ¿No encontrás lo que hacés?
+          Escribilo en el buscador y agregalo.
         </p>
       </div>
 
@@ -240,119 +235,106 @@ export default function MiPerfilEtiquetasPage() {
           <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
             <TagIcon className="w-5 h-5 text-primary-600" /> Catálogo de Etiquetas
           </h3>
-          <div className="relative mb-4">
+          <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar etiqueta (ej. Soldadura, Alimentaria...)"
+              placeholder="Buscá o escribí una etiqueta (ej. Soldadura, Mecanizado de titanio…)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 transition-all"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && puedeAgregar) {
+                  e.preventDefault();
+                  handleCrearEtiqueta(search);
+                }
+              }}
+              disabled={sinEntidad && catalogo.length === 0}
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 transition-all"
             />
           </div>
+          <p className="text-[11px] text-slate-400 mb-4">
+            {sinEntidad
+              ? "Para agregar etiquetas propias, primero completá tus datos en «Datos y Contacto»."
+              : "Si no está en la lista, escribila y agregala."}
+          </p>
 
-          {/* Crear etiqueta propia */}
-          <div className="mb-6 pb-6 border-b border-slate-100">
-            <label
-              htmlFor="nueva-etiqueta"
-              className="text-xs font-bold text-slate-500 uppercase tracking-widest"
-            >
-              Agregá la tuya
-            </label>
-            <p className="text-[11px] text-slate-400 mt-1 mb-2">
-              ¿No encontrás lo que hacés? Escribilo. No aparece en el catálogo general, pero se ve en
-              tu ficha y cuenta para el match.
-            </p>
-            <div className="flex gap-2">
-              <input
-                id="nueva-etiqueta"
-                type="text"
-                value={nuevaEtiqueta}
-                onChange={(e) => setNuevaEtiqueta(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleCrearEtiqueta(nuevaEtiqueta);
-                  }
-                }}
-                maxLength={ETIQUETA_MAX}
-                disabled={sinEntidad || creando}
-                placeholder="Ej. Mecanizado de titanio"
-                className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              <Button
+          <div className="max-h-[520px] overflow-y-auto pr-1 modern-scrollbar">
+            {/* Opción de agregar, integrada al mismo buscador */}
+            {puedeAgregar && (
+              <button
                 type="button"
-                variant="outline"
-                onClick={() => handleCrearEtiqueta(nuevaEtiqueta)}
-                disabled={sinEntidad || creando || textoNuevo.length < ETIQUETA_MIN}
+                onClick={() => handleCrearEtiqueta(search)}
+                disabled={creando}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 mb-2 rounded-lg text-left border border-dashed border-primary-300 bg-primary-50/60 text-primary-800 hover:bg-primary-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
               >
+                <span className="text-sm font-medium min-w-0">
+                  Agregar «<span className="font-semibold">{textoBusqueda}</span>» como etiqueta propia
+                </span>
                 {creando ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                 ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-1" /> Agregar
-                  </>
+                  <Plus className="w-4 h-4 shrink-0" />
                 )}
-              </Button>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-2">
-              {sinEntidad
-                ? "Primero completá tus datos en «Datos y Contacto»."
-                : `${misLibres.length}/${MAX_ETIQUETAS_LIBRES} etiquetas propias`}
-            </p>
-          </div>
+              </button>
+            )}
 
-          <div className="max-h-[500px] overflow-y-auto pr-2 modern-scrollbar space-y-6">
-            {tagsPorTipo.length === 0 ? (
-              <div className="text-center py-8 space-y-3">
+            {tagsPorTipo.length === 0 && !puedeAgregar ? (
+              <div className="text-center py-8">
                 <p className="text-slate-500 text-sm">
-                  No encontramos «{search.trim()}» en el catálogo.
+                  {search.trim()
+                    ? `No encontramos «${search.trim()}» en el catálogo.`
+                    : "No hay etiquetas para mostrar."}
                 </p>
-                {!sinEntidad && !validarEtiquetaLibre(search) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={creando}
-                    onClick={() => handleCrearEtiqueta(search)}
-                  >
-                    <Plus className="w-4 h-4 mr-1" /> Crear «{limpiarNombreEtiqueta(search)}» como
-                    etiqueta propia
-                  </Button>
-                )}
               </div>
             ) : (
               tagsPorTipo.map(({ tipo, label, items }) => (
-                <div key={tipo}>
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
+                <div key={tipo} className="mb-2">
+                  <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50 rounded-md">
                     {label}
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {items.map((tag) => {
-                      const active = selectedIds.has(tag.id);
-                      const propia = !tag.administrado_por_admin;
-                      return (
-                        <button
-                          key={tag.id}
-                          type="button"
-                          onClick={() => toggle(tag.id)}
-                          aria-pressed={active}
-                          title={propia ? "Etiqueta propia, pendiente de revisión" : undefined}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                            propia
-                              ? active
-                                ? "bg-amber-500 border-amber-500 text-white shadow-sm"
-                                : "bg-white border-dashed border-amber-300 text-amber-800 hover:bg-amber-50"
-                              : active
-                                ? "bg-primary-600 border-primary-600 text-white shadow-sm"
-                                : "bg-white border-slate-200 text-slate-700 hover:border-slate-400 hover:bg-slate-50"
-                          }`}
-                        >
-                          {tag.nombre}
-                        </button>
-                      );
-                    })}
                   </div>
+                  {items.map((tag) => {
+                    const active = selectedIds.has(tag.id);
+                    const propia = !tag.administrado_por_admin;
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggle(tag.id)}
+                        role="switch"
+                        aria-checked={active}
+                        title={propia ? "Etiqueta propia" : undefined}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ${
+                          active
+                            ? propia
+                              ? "bg-amber-50 text-amber-900"
+                              : "bg-primary-50 text-primary-800"
+                            : "hover:bg-slate-50 text-slate-700"
+                        }`}
+                      >
+                        <span className="text-sm flex items-center gap-2 min-w-0">
+                          <span className="line-clamp-1">{tag.nombre}</span>
+                          {propia && (
+                            <span className="text-[10px] uppercase tracking-wider text-amber-700 border border-amber-300 rounded px-1.5 py-0.5 shrink-0">
+                              propia
+                            </span>
+                          )}
+                        </span>
+                        {active ? (
+                          propia ? (
+                            <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4 text-primary-600 shrink-0" />
+                          )
+                        ) : (
+                          <div
+                            className={`w-4 h-4 rounded-full border-2 shrink-0 ${
+                              propia ? "border-amber-300" : "border-slate-200"
+                            }`}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               ))
             )}
@@ -367,7 +349,7 @@ export default function MiPerfilEtiquetasPage() {
               Tus etiquetas ({selectedTags.length})
             </h3>
             <p className="text-slate-400 text-xs mb-6">
-              Sumá hasta donde tenga sentido. Cada etiqueta coincidente con una oportunidad suma
+              Sumá todas las que tengan sentido. Cada etiqueta coincidente con una oportunidad suma
               puntos en el match (hasta 40 pts por tags).
             </p>
 

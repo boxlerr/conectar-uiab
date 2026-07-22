@@ -1,7 +1,18 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/servidor";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import {
+  limpiarNombreEtiqueta,
+  slugEtiqueta,
+  validarEtiquetaLibre,
+} from "@/modulos/compartido/etiquetas";
+
+/** Valores válidos de `oportunidades.tipo_requerimiento` (text[]) en la base. */
+const TIPOS_REQUERIMIENTO_VALIDOS = ["material", "servicio", "personal", "otro"] as const;
+/** Tope de términos libres que aceptamos por publicación. */
+const MAX_NUEVAS_ETIQUETAS = 10;
 
 export interface ResultadoCrearOportunidad {
   success: boolean;
@@ -67,6 +78,29 @@ export async function crearOportunidad(
 
   const tagIds = formData.getAll("tag_ids").map(String).filter(Boolean);
 
+  // Qué necesita quien publica: material / servicio / personal / otro.
+  const tipoRequerimiento = [
+    ...new Set(formData.getAll("tipo_requerimiento").map(String)),
+  ].filter((t): t is (typeof TIPOS_REQUERIMIENTO_VALIDOS)[number] =>
+    (TIPOS_REQUERIMIENTO_VALIDOS as readonly string[]).includes(t)
+  );
+
+  // Términos libres escritos por el usuario: limpiamos, validamos (mismo criterio
+  // que las etiquetas del perfil), deduplicamos por slug y acotamos el total.
+  const nuevasEtiquetas: string[] = [];
+  {
+    const slugsVistos = new Set<string>();
+    for (const raw of formData.getAll("nuevas_etiquetas")) {
+      const nombre = limpiarNombreEtiqueta(String(raw));
+      if (!nombre || validarEtiquetaLibre(nombre) !== null) continue;
+      const slug = slugEtiqueta(nombre);
+      if (!slug || slugsVistos.has(slug)) continue;
+      slugsVistos.add(slug);
+      nuevasEtiquetas.push(nombre);
+      if (nuevasEtiquetas.length >= MAX_NUEVAS_ETIQUETAS) break;
+    }
+  }
+
   if (!titulo || !descripcion || !categoria_id || !localidad) {
     return { success: false, error: "Por favor completa todos los campos requeridos." };
   }
@@ -87,6 +121,8 @@ export async function crearOportunidad(
       cantidad,
       unidad: unidadRaw,
       fecha_necesidad: fechaRaw,
+      // Si no eligió ninguno, omitimos la columna para que rija su default.
+      ...(tipoRequerimiento.length > 0 ? { tipo_requerimiento: tipoRequerimiento } : {}),
     })
     .select('id')
     .single();
@@ -96,9 +132,74 @@ export async function crearOportunidad(
     return { success: false, error: "Ocurrió un error al guardar la oportunidad." };
   }
 
+  // Términos libres → filas en `tags`. Se hace con service role (saltea RLS,
+  // igual que perfil/acciones::crearEtiquetaLibre) y se reutiliza la etiqueta si
+  // ya existe por slug. Cada término tolera su propio error: la publicación ya
+  // está hecha y no queremos abortarla por una etiqueta que no entró.
+  const tagIdsLibres: string[] = [];
+  if (nuevasEtiquetas.length > 0) {
+    const admin = createAdminClient();
+    for (const nombre of nuevasEtiquetas) {
+      const slug = slugEtiqueta(nombre);
+      try {
+        const { data: existente } = await admin
+          .from("tags")
+          .select("id")
+          .eq("slug", slug)
+          .maybeSingle();
+
+        if (existente?.id) {
+          tagIdsLibres.push(existente.id);
+          continue;
+        }
+
+        const { data: creada, error: crearError } = await admin
+          .from("tags")
+          .insert({
+            nombre,
+            slug,
+            tipo_tag: "general",
+            activo: true,
+            administrado_por_admin: false,
+            creado_por: user.id,
+            ...(empresaId ? { creado_por_empresa: empresaId } : {}),
+            ...(proveedorId ? { creado_por_proveedor: proveedorId } : {}),
+          })
+          .select("id")
+          .single();
+
+        if (crearError) {
+          // 23505: otra request creó el mismo slug entre el SELECT y el INSERT.
+          if (crearError.code === "23505") {
+            const { data: ganadora } = await admin
+              .from("tags")
+              .select("id")
+              .eq("slug", slug)
+              .maybeSingle();
+            if (ganadora?.id) {
+              tagIdsLibres.push(ganadora.id);
+              continue;
+            }
+          }
+          console.error("Error al crear etiqueta libre de oportunidad:", crearError);
+          avisoTags =
+            "La oportunidad se publicó, pero algún término nuevo no se pudo guardar como etiqueta.";
+          continue;
+        }
+
+        if (creada?.id) tagIdsLibres.push(creada.id);
+      } catch (err) {
+        console.error("Error inesperado al crear etiqueta libre:", err);
+        avisoTags =
+          "La oportunidad se publicó, pero algún término nuevo no se pudo guardar como etiqueta.";
+      }
+    }
+  }
+
   // Insert tags (trigger recalculará los matches)
-  if (tagIds.length > 0) {
-    const tagRows = tagIds.map((tag_id) => ({
+  const tagIdsFinal = [...new Set([...tagIds, ...tagIdsLibres])];
+  if (tagIdsFinal.length > 0) {
+    const tagRows = tagIdsFinal.map((tag_id) => ({
       oportunidad_id: newOp.id,
       tag_id,
       peso: 1,

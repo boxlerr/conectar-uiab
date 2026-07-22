@@ -9,8 +9,6 @@ import {
   limpiarNombreEtiqueta,
   slugEtiqueta,
   validarEtiquetaLibre,
-  MAX_ETIQUETAS_LIBRES,
-  MAX_ETIQUETAS_LIBRES_POR_DIA,
 } from "@/modulos/compartido/etiquetas";
 
 // Server Action strictly bypassing RLS (if needed) for Profile Syncing using the Service Role Key
@@ -320,38 +318,9 @@ export async function crearEtiquetaLibre(
     return { success: true, tag: existente, reutilizada: true };
   }
 
-  // ── Cupos (sólo se chequean si de verdad vamos a crear una fila nueva)
-  const pivote = esEmpresa ? "empresas_tags" : "proveedores_tags";
-  const claveEntidad = esEmpresa ? "empresa_id" : "proveedor_id";
-
-  const { count: propiasEnUso } = await supabaseAdmin
-    .from(pivote)
-    .select("tag_id, tags!inner(administrado_por_admin)", {
-      count: "exact",
-      head: true,
-    })
-    .eq(claveEntidad, entidad.entityId)
-    .eq("tags.administrado_por_admin", false);
-
-  if ((propiasEnUso ?? 0) >= MAX_ETIQUETAS_LIBRES) {
-    return {
-      error: `Llegaste al máximo de ${MAX_ETIQUETAS_LIBRES} etiquetas propias. Sacá alguna antes de agregar otra.`,
-    };
-  }
-
-  const hace24hs = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { count: creadasHoy } = await supabaseAdmin
-    .from("tags")
-    .select("id", { count: "exact", head: true })
-    .eq(columnaAutor, entidad.entityId)
-    .gte("creado_en", hace24hs);
-
-  if ((creadasHoy ?? 0) >= MAX_ETIQUETAS_LIBRES_POR_DIA) {
-    return {
-      error:
-        "Creaste varias etiquetas nuevas hoy. Probá de nuevo mañana o escribinos si necesitás más.",
-    };
-  }
+  // Sin cupos: la socia puede sumar todas las etiquetas propias que quiera.
+  // El admin luego decide en /admin/etiquetas cuáles suben al padrón; rechazar
+  // del padrón NO borra la etiqueta (la socia la sigue usando).
 
   const { data: creada, error: insertError } = await supabaseAdmin
     .from("tags")

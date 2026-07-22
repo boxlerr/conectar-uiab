@@ -12,7 +12,17 @@ function adminClient() {
 
 export interface Notificacion {
   id: string;
-  tipo: "resena_aprobada" | "resena_rechazada" | "resena_recibida";
+  tipo:
+    | "resena_aprobada"
+    | "resena_rechazada"
+    | "resena_recibida"
+    | "oportunidad_solicitud"
+    | "solicitud_respondida"
+    | "pago_confirmado"
+    | "pago_fallido"
+    | "suscripcion_por_vencer"
+    | "suscripcion_en_mora"
+    | "suscripcion_suspendida";
   titulo: string;
   mensaje: string;
   leida: boolean;
@@ -39,6 +49,54 @@ export async function crearNotificacion(input: {
     });
   if (error) {
     console.error("[notificaciones] Error creando notificación:", error.message);
+  }
+}
+
+/**
+ * Notifica a todos los miembros de una entidad (empresa o particular) resolviendo
+ * sus perfil_id con el service role y haciendo fan-out con `crearNotificacion`.
+ *
+ * Tolerante a fallos: nunca lanza. Si algo falla, loguea y sigue, para no romper
+ * el flujo llamador (webhook, cron, server action de postulación, etc.).
+ */
+export async function notificarEntidad(input: {
+  empresaId?: string | null;
+  proveedorId?: string | null;
+  tipo: Notificacion["tipo"];
+  titulo: string;
+  mensaje: string;
+  url?: string;
+}) {
+  try {
+    const db = adminClient();
+
+    let perfilIds: string[] = [];
+
+    if (input.empresaId) {
+      const { data: miembros } = await db
+        .from("miembros_empresa")
+        .select("perfil_id")
+        .eq("empresa_id", input.empresaId);
+      perfilIds = (miembros ?? []).map((m) => m.perfil_id);
+    } else if (input.proveedorId) {
+      const { data: miembros } = await db
+        .from("miembros_proveedor")
+        .select("perfil_id")
+        .eq("proveedor_id", input.proveedorId);
+      perfilIds = (miembros ?? []).map((m) => m.perfil_id);
+    }
+
+    for (const perfilId of perfilIds) {
+      await crearNotificacion({
+        perfilId,
+        tipo: input.tipo,
+        titulo: input.titulo,
+        mensaje: input.mensaje,
+        url: input.url,
+      });
+    }
+  } catch (err) {
+    console.error("[notificaciones] Error notificando entidad:", err);
   }
 }
 

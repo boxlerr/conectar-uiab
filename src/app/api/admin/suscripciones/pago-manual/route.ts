@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sumarUnMes, nombrePlan } from "@/lib/mercadopago/suscripciones";
 import { enviarEmail } from "@/lib/email/cliente";
 import { plantillaPagoManualRegistrado } from "@/lib/email/plantillas-suscripciones";
+import { notificarEntidad } from "@/modulos/notificaciones/acciones";
 
 /**
  * POST /api/admin/suscripciones/pago-manual
@@ -141,6 +142,16 @@ export async function POST(req: NextRequest) {
     });
     await enviarEmail({ para: email, asunto: p.asunto, html: p.html, texto: p.texto });
   }
+
+  // Notificación in-web: registramos el pago manual y la suscripción quedó activa.
+  await notificarEntidad({
+    empresaId: empresa_id ?? null,
+    proveedorId: proveedor_id ?? null,
+    tipo: "pago_confirmado",
+    titulo: "Registramos tu pago",
+    mensaje: "Registramos tu pago y tu suscripción quedó activa.",
+    url: "/perfil/suscripcion",
+  });
 
   return NextResponse.json({ ok: true, suscripcion_id: sus.id });
 }

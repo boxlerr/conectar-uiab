@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/servidor";
 import { revalidatePath } from "next/cache";
+import { crearNotificacion } from "@/modulos/notificaciones/acciones";
 
 /**
  * Marca una solicitud recibida como "vista". Solo válido si el usuario actual
@@ -55,7 +56,7 @@ export async function marcarSolicitudRespondida(solicitudId: string) {
 
   const { data: sol } = await supabase
     .from("solicitudes_presupuesto")
-    .select("id, estado")
+    .select("id, estado, perfil_solicitante_id, oportunidad_id")
     .eq("id", solicitudId)
     .single();
 
@@ -73,6 +74,19 @@ export async function marcarSolicitudRespondida(solicitudId: string) {
   if (error) {
     console.error("[marcarSolicitudRespondida]", error);
     return { success: false, error: error.message };
+  }
+
+  // Notificar al postulante que respondieron su solicitud (in-web)
+  if (sol.perfil_solicitante_id) {
+    await crearNotificacion({
+      perfilId: sol.perfil_solicitante_id,
+      tipo: "solicitud_respondida",
+      titulo: "Respondieron tu solicitud",
+      mensaje: "El destinatario respondió tu solicitud de presupuesto.",
+      url: sol.oportunidad_id
+        ? `/oportunidades/${sol.oportunidad_id}`
+        : "/perfil/solicitudes",
+    });
   }
 
   revalidatePath("/perfil/solicitudes");

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { SelectUIAB } from "@/components/ui/select-uiab";
 import {
   Tag,
   Search,
@@ -11,6 +12,7 @@ import {
   AlertCircle,
   ArrowUpCircle,
   Merge,
+  CircleSlash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   promoverEtiqueta,
+  rechazarEtiqueta,
   actualizarEtiqueta,
   toggleActivarEtiqueta,
   fusionarEtiqueta,
@@ -32,6 +35,7 @@ export type EtiquetaAdmin = {
   tipo_tag: string;
   activo: boolean;
   administrado_por_admin: boolean;
+  revisada: boolean;
   creado_en: string;
   autor: string | null;
   usos: number;
@@ -65,7 +69,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
 
   const conteos = useMemo(
     () => ({
-      propuestas: etiquetas.filter((e) => !e.administrado_por_admin).length,
+      propuestas: etiquetas.filter((e) => !e.administrado_por_admin && !e.revisada).length,
       catalogo: etiquetas.filter((e) => e.administrado_por_admin && e.activo).length,
       inactivas: etiquetas.filter((e) => !e.activo).length,
       todas: etiquetas.length,
@@ -77,7 +81,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
     const term = busqueda.trim().toLowerCase();
     return etiquetas
       .filter((e) => {
-        if (pestana === "propuestas") return !e.administrado_por_admin;
+        if (pestana === "propuestas") return !e.administrado_por_admin && !e.revisada;
         if (pestana === "catalogo") return e.administrado_por_admin && e.activo;
         if (pestana === "inactivas") return !e.activo;
         return true;
@@ -112,6 +116,18 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
     }
     toast.success(`«${etiqueta.nombre}» pasó al catálogo oficial`, {
       description: "Ya la pueden elegir todos los socios.",
+    });
+    refresh();
+  }
+
+  async function handleRechazar(etiqueta: EtiquetaAdmin) {
+    const res = await rechazarEtiqueta(etiqueta.id);
+    if (res.error) {
+      toast.error("No se pudo rechazar", { description: res.error });
+      return;
+    }
+    toast.success(`«${etiqueta.nombre}» rechazada del padrón`, {
+      description: "No se sube al catálogo, pero la socia la sigue usando en su ficha.",
     });
     refresh();
   }
@@ -302,6 +318,16 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
                       >
                         <Merge className="w-4 h-4" />
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRechazar(etiqueta)}
+                        disabled={isPending}
+                        className="text-slate-500 hover:text-amber-600 hover:bg-amber-50"
+                        title="Rechazar del padrón (sin borrar: la socia la sigue usando)"
+                      >
+                        <CircleSlash className="w-4 h-4" />
+                      </Button>
                     </>
                   )}
                   <Button
@@ -384,17 +410,13 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                     Tipo
                   </label>
-                  <select
+                  <SelectUIAB
+                    ariaLabel="Tipo de etiqueta"
                     value={tipoTag}
-                    onChange={(e) => setTipoTag(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all font-medium bg-white"
-                  >
-                    {TIPO_TAG_ORDEN.map((tipo) => (
-                      <option key={tipo} value={tipo}>
-                        {TIPO_TAG_LABELS[tipo] ?? tipo}
-                      </option>
-                    ))}
-                  </select>
+                    onValueChange={(v) => setTipoTag(v)}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium bg-white"
+                    options={TIPO_TAG_ORDEN.map((tipo) => ({ value: tipo, label: TIPO_TAG_LABELS[tipo] ?? tipo }))}
+                  />
                   <p className="text-xs text-slate-400 mt-1.5">
                     Las etiquetas que escriben los socios entran como «General». Reclasificala antes
                     de promoverla.
@@ -453,18 +475,14 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                     Fusionar con
                   </label>
-                  <select
+                  <SelectUIAB
+                    ariaLabel="Etiqueta destino de la fusión"
+                    placeholder="Elegí una etiqueta del catálogo..."
                     value={destinoFusion}
-                    onChange={(e) => setDestinoFusion(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all font-medium bg-white"
-                  >
-                    <option value="">Elegí una etiqueta del catálogo...</option>
-                    {opcionesFusion.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    onValueChange={(v) => setDestinoFusion(v)}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium bg-white"
+                    options={opcionesFusion.map((e) => ({ value: e.id, label: e.nombre }))}
+                  />
                 </div>
               </div>
               <div className="px-6 py-5 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">

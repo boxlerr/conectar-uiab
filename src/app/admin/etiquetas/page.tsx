@@ -11,7 +11,7 @@ async function getEtiquetas(): Promise<EtiquetaAdmin[]> {
     supabase
       .from("tags")
       .select(
-        "id, nombre, slug, tipo_tag, activo, administrado_por_admin, creado_en, creado_por_empresa, creado_por_proveedor, empresas_tags(count), proveedores_tags(count)"
+        "id, nombre, slug, tipo_tag, activo, administrado_por_admin, revisada, creado_en, creado_por_empresa, creado_por_proveedor, empresas_tags(count), proveedores_tags(count)"
       )
       .order("administrado_por_admin", { ascending: true })
       .order("creado_en", { ascending: false }),
@@ -44,6 +44,7 @@ async function getEtiquetas(): Promise<EtiquetaAdmin[]> {
     tipo_tag: t.tipo_tag as string,
     activo: t.activo as boolean,
     administrado_por_admin: t.administrado_por_admin as boolean,
+    revisada: t.revisada as boolean,
     creado_en: t.creado_en as string,
     autor:
       (t.creado_por_empresa

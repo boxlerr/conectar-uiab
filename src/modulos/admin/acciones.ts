@@ -568,10 +568,31 @@ export async function promoverEtiqueta(id: string, tipoTag?: string): Promise<Re
   const cambios: Record<string, unknown> = {
     administrado_por_admin: true,
     activo: true,
+    revisada: true,
   };
   if (tipoTag) cambios.tipo_tag = tipoTag;
 
   const { error } = await adminClient().from("tags").update(cambios).eq("id", id);
+  if (error) return { error: error.message };
+  revalidarEtiquetas();
+  return { success: true };
+}
+
+/**
+ * Rechaza una etiqueta propuesta: la saca de la cola de "Propuestas" SIN borrarla
+ * ni sacarla del padrón general (queda administrado_por_admin=false, activo=true).
+ * La socia la sigue viendo en su ficha y sigue contando para el match. Rechazar
+ * ≠ eliminar: sólo significa "no la subo al catálogo oficial".
+ */
+export async function rechazarEtiqueta(id: string): Promise<ResultadoEtiqueta> {
+  const denegado = await exigirAdmin();
+  if (denegado) return denegado;
+
+  const { error } = await adminClient()
+    .from("tags")
+    .update({ revisada: true })
+    .eq("id", id)
+    .eq("administrado_por_admin", false);
   if (error) return { error: error.message };
   revalidarEtiquetas();
   return { success: true };

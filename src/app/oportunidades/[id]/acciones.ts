@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/servidor";
 import { revalidatePath } from "next/cache";
+import { notificarEntidad } from "@/modulos/notificaciones/acciones";
 
 export interface PostularseResult {
   success: boolean;
@@ -71,7 +72,7 @@ export async function postularseAOportunidad(
   // 3) Oportunidad + destino
   const { data: op, error: opError } = await supabase
     .from("oportunidades")
-    .select("id, estado, empresa_solicitante_id, proveedor_solicitante_id")
+    .select("id, titulo, estado, empresa_solicitante_id, proveedor_solicitante_id")
     .eq("id", oportunidadId)
     .single();
 
@@ -161,6 +162,19 @@ export async function postularseAOportunidad(
     // No crítico: la solicitud ya quedó registrada
     console.warn("[postularse] match state update fallo:", matchError.message);
   }
+
+  // 7b) Notificar a los miembros de la entidad destino (in-web, tolerante a fallos)
+  const tituloOp = (op as { titulo?: string | null }).titulo?.trim();
+  await notificarEntidad({
+    empresaId: empresaDestinoId,
+    proveedorId: proveedorDestinoId,
+    tipo: "oportunidad_solicitud",
+    titulo: "Nueva solicitud de presupuesto",
+    mensaje: tituloOp
+      ? `Recibiste una solicitud para "${tituloOp}".`
+      : "Recibiste una nueva solicitud de presupuesto.",
+    url: "/perfil/solicitudes",
+  });
 
   // 8) Revalidar cachés
   revalidatePath(`/oportunidades/${oportunidadId}`);

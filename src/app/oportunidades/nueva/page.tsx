@@ -73,8 +73,9 @@ export default async function NuevaOportunidadPage() {
                 Publicar un requerimiento
               </h1>
               <p className="text-blue-100/90 mt-2 text-sm max-w-xl leading-relaxed">
-                Contanos qué obra, servicio o producto necesita tu organización. Lo cruzamos
-                con las empresas socias y los prestadores verificados de la red.
+                Contanos qué material, servicio, producto o personal necesita tu
+                organización. Lo cruzamos con las empresas socias y los prestadores
+                verificados de la red.
               </p>
             </div>
           </div>

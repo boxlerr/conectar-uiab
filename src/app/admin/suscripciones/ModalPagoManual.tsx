@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { SelectUIAB } from "@/components/ui/select-uiab";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -111,31 +112,35 @@ export function ModalPagoManual({
             <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
               {tipo === "empresa" ? "Empresa" : "Particular"}
             </label>
-            <select
-              value={entidadId}
-              onChange={(e) => { setEntidadId(e.target.value); autoMonto(e.target.value, tipo); }}
-              className="mt-1 w-full h-10 rounded border border-slate-200 px-3 text-sm"
+            <SelectUIAB
+              ariaLabel="Entidad"
               required
-            >
-              <option value="">Seleccionar...</option>
-              {tipo === "empresa"
-                ? empresas.map((e) => <option key={e.id} value={e.id}>{e.razon_social}</option>)
-                : proveedores.map((p) => <option key={p.id} value={p.id}>{p.nombre} {p.apellido || ""}</option>)}
-            </select>
+              placeholder="Seleccionar..."
+              value={entidadId}
+              onValueChange={(v) => { setEntidadId(v); autoMonto(v, tipo); }}
+              className="mt-1 w-full h-10 rounded border border-slate-200 px-3 text-sm"
+              options={
+                tipo === "empresa"
+                  ? empresas.map((e) => ({ value: e.id, label: e.razon_social }))
+                  : proveedores.map((p) => ({ value: p.id, label: `${p.nombre} ${p.apellido || ""}`.trim() }))
+              }
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Método</label>
-              <select
+              <SelectUIAB
+                ariaLabel="Método de pago"
                 value={metodo}
-                onChange={(e) => setMetodo(e.target.value as any)}
+                onValueChange={(v) => setMetodo(v as any)}
                 className="mt-1 w-full h-10 rounded border border-slate-200 px-3 text-sm"
-              >
-                <option value="efectivo">Efectivo</option>
-                <option value="cheque">Cheque</option>
-                <option value="cortesia">Cortesía</option>
-              </select>
+                options={[
+                  { value: "efectivo", label: "Efectivo" },
+                  { value: "cheque", label: "Cheque" },
+                  { value: "cortesia", label: "Cortesía" },
+                ]}
+              />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Fecha del pago</label>

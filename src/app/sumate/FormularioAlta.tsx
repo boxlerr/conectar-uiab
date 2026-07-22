@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { SelectUIAB } from "@/components/ui/select-uiab";
 import { CheckCircle2, Send, Loader2, PartyPopper, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -188,18 +189,14 @@ export function FormularioAlta() {
           <label htmlFor="categoria" className={labelCls}>
             ¿Qué tipo de organización sos? <span className="text-rose-500">*</span>
           </label>
-          <select
+          <SelectUIAB
             id="categoria"
             className={inputCls}
+            ariaLabel="Categoría"
             value={form.categoria}
-            onChange={(e) => set("categoria", e.target.value)}
-          >
-            {CATEGORIAS_ALTA.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+            onValueChange={(v) => set("categoria", v)}
+            options={CATEGORIAS_ALTA.map((c) => ({ value: c.value, label: c.label }))}
+          />
         </div>
 
         <div>
@@ -332,19 +329,15 @@ export function FormularioAlta() {
             <label htmlFor="localidad" className={labelCls}>
               Localidad
             </label>
-            <select
+            <SelectUIAB
               id="localidad"
               className={inputCls}
+              ariaLabel="Localidad"
+              placeholder="Seleccioná una localidad…"
               value={form.localidad}
-              onChange={(e) => set("localidad", e.target.value)}
-            >
-              <option value="">Seleccioná una localidad…</option>
-              {LOCALIDADES_ALMIRANTE_BROWN.map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </select>
+              onValueChange={(v) => set("localidad", v)}
+              options={LOCALIDADES_ALMIRANTE_BROWN.map((l) => ({ value: l, label: l }))}
+            />
           </div>
           <div>
             <label htmlFor="sitio_web" className={labelCls}>

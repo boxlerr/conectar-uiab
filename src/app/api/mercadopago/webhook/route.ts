@@ -9,6 +9,7 @@ import {
   plantillaPagoFallido,
   plantillaPagoConfirmadoAdmin,
 } from "@/lib/email/plantillas-suscripciones";
+import { notificarEntidad } from "@/modulos/notificaciones/acciones";
 
 /**
  * POST /api/mercadopago/webhook
@@ -119,8 +120,24 @@ async function procesarPayment(admin: ReturnType<typeof createAdminClient>, paym
 
     await enviarEmailPago(admin, sus, pago, "confirmado", proximo);
     await enviarEmailPagoAdmin(admin, sus, pago);
+    await notificarEntidad({
+      empresaId: sus.empresa_id,
+      proveedorId: sus.proveedor_id,
+      tipo: "pago_confirmado",
+      titulo: "Pago confirmado",
+      mensaje: "Recibimos tu pago y tu suscripción quedó al día.",
+      url: "/perfil/suscripcion",
+    });
   } else if (pago.status === "rejected") {
     await enviarEmailPago(admin, sus, pago, "fallido");
+    await notificarEntidad({
+      empresaId: sus.empresa_id,
+      proveedorId: sus.proveedor_id,
+      tipo: "pago_fallido",
+      titulo: "No pudimos procesar tu pago",
+      mensaje: "El pago de tu suscripción fue rechazado. Revisá tu medio de pago.",
+      url: "/perfil/suscripcion",
+    });
   }
 }
 

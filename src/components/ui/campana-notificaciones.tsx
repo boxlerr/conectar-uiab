@@ -1,7 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef, useTransition } from "react";
-import { Bell, Star, Check, X, CheckCheck } from "lucide-react";
+import {
+  Bell,
+  Star,
+  Check,
+  X,
+  CheckCheck,
+  Inbox,
+  MessageSquare,
+  CreditCard,
+  Clock,
+  AlertTriangle,
+  Ban,
+} from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utilidades";
 import {
@@ -16,12 +28,26 @@ const ICONO: Record<Notificacion["tipo"], React.ReactNode> = {
   resena_aprobada: <Check className="w-3.5 h-3.5 text-emerald-600" />,
   resena_rechazada: <X className="w-3.5 h-3.5 text-rose-600" />,
   resena_recibida: <Star className="w-3.5 h-3.5 text-amber-500" />,
+  oportunidad_solicitud: <Inbox className="w-3.5 h-3.5 text-indigo-600" />,
+  solicitud_respondida: <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />,
+  pago_confirmado: <CreditCard className="w-3.5 h-3.5 text-emerald-600" />,
+  pago_fallido: <CreditCard className="w-3.5 h-3.5 text-rose-600" />,
+  suscripcion_por_vencer: <Clock className="w-3.5 h-3.5 text-amber-500" />,
+  suscripcion_en_mora: <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />,
+  suscripcion_suspendida: <Ban className="w-3.5 h-3.5 text-rose-600" />,
 };
 
 const FONDO: Record<Notificacion["tipo"], string> = {
   resena_aprobada: "bg-emerald-50",
   resena_rechazada: "bg-rose-50",
   resena_recibida: "bg-amber-50",
+  oportunidad_solicitud: "bg-indigo-50",
+  solicitud_respondida: "bg-emerald-50",
+  pago_confirmado: "bg-emerald-50",
+  pago_fallido: "bg-rose-50",
+  suscripcion_por_vencer: "bg-amber-50",
+  suscripcion_en_mora: "bg-orange-50",
+  suscripcion_suspendida: "bg-rose-50",
 };
 
 function tiempoRelativo(fecha: string): string {

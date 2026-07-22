@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, Search, X } from "lucide-react";
+import { Check, Plus, Search, X } from "lucide-react";
 import {
   TIPO_TAG_LABELS,
   TIPO_TAG_ORDEN,
+  limpiarNombreEtiqueta,
   normalizarTexto,
+  slugEtiqueta,
+  validarEtiquetaLibre,
   type TagOption,
 } from "@/modulos/compartido/etiquetas";
 
@@ -27,6 +30,8 @@ export function SelectorEtiquetas({
   onLimpiar,
   etiquetaCampo = "Etiquetas para el match",
   sugerido = 5,
+  nuevos = [],
+  onNuevosCambian,
 }: {
   tags: TagOption[];
   /** uuids de `tags.id`. */
@@ -35,6 +40,10 @@ export function SelectorEtiquetas({
   onLimpiar: () => void;
   etiquetaCampo?: string;
   sugerido?: number;
+  /** Términos libres (sin id) que el usuario escribió y no están en el catálogo.
+   *  El feature de "agregar término nuevo" se habilita sólo si viene `onNuevosCambian`. */
+  nuevos?: string[];
+  onNuevosCambian?: (nuevos: string[]) => void;
 }) {
   const uid = useId().replace(/:/g, "");
   const [abierto, setAbierto] = useState(false);
@@ -87,6 +96,48 @@ export function SelectorEtiquetas({
     [seleccionados, porId]
   );
 
+  // ── Términos libres ──────────────────────────────────────────────────────
+  const permiteLibres = Boolean(onNuevosCambian);
+
+  /** Slug canónico de cada etiqueta del catálogo, para no ofrecer crear un
+   *  término que en realidad ya existe (aunque se escriba distinto). */
+  const slugsCatalogo = useMemo(
+    () => new Set(tags.map((t) => slugEtiqueta(t.nombre))),
+    [tags]
+  );
+
+  const consultaLimpia = limpiarNombreEtiqueta(consulta);
+  const slugConsulta = slugEtiqueta(consultaLimpia);
+
+  // Sólo ofrecemos "agregar" si el término es válido, no está en el catálogo y
+  // no lo sumamos ya como nuevo. Así el chip nunca falla la validación del server.
+  const agregarVisible =
+    permiteLibres &&
+    consultaLimpia.length > 0 &&
+    !!slugConsulta &&
+    validarEtiquetaLibre(consultaLimpia) === null &&
+    !slugsCatalogo.has(slugConsulta) &&
+    !nuevos.some((n) => slugEtiqueta(n) === slugConsulta);
+
+  // La fila "＋ Agregar" ocupa el índice siguiente al último resultado del
+  // catálogo, para navegarla con las flechas dentro del mismo modelo plano.
+  const idxAgregar = agregarVisible ? planas.length : -1;
+  const totalNavegable = planas.length + (agregarVisible ? 1 : 0);
+  const total = seleccionados.size + nuevos.length;
+
+  function agregarNuevo() {
+    if (!onNuevosCambian || !agregarVisible) return;
+    onNuevosCambian([...nuevos, consultaLimpia]);
+    setConsulta("");
+    setActivo(-1);
+    setArmada(null);
+    inputRef.current?.focus();
+  }
+
+  function quitarNuevo(texto: string) {
+    onNuevosCambian?.(nuevos.filter((n) => n !== texto));
+  }
+
   // Cerrar al clickear afuera.
   useEffect(() => {
     if (!abierto) return;
@@ -115,7 +166,7 @@ export function SelectorEtiquetas({
       case "ArrowDown":
         ev.preventDefault();
         setAbierto(true);
-        setActivo((i) => Math.min(i + 1, planas.length - 1));
+        setActivo((i) => Math.min(i + 1, totalNavegable - 1));
         break;
 
       case "ArrowUp":
@@ -126,20 +177,24 @@ export function SelectorEtiquetas({
       case "Home":
         if (!abierto) break;
         ev.preventDefault();
-        setActivo(planas.length ? 0 : -1);
+        setActivo(totalNavegable ? 0 : -1);
         break;
 
       case "End":
         if (!abierto) break;
         ev.preventDefault();
-        setActivo(planas.length - 1);
+        setActivo(totalNavegable - 1);
         break;
 
       case "Enter":
         // SIEMPRE: es un input dentro del <form> de publicación. Sin esto,
         // Enter publica la oportunidad a medio llenar.
         ev.preventDefault();
-        if (abierto && activo >= 0 && planas[activo]) onToggle(planas[activo].id);
+        if (abierto && activo === idxAgregar && agregarVisible) {
+          agregarNuevo();
+        } else if (abierto && activo >= 0 && planas[activo]) {
+          onToggle(planas[activo].id);
+        }
         break;
 
       case "Escape":
@@ -153,9 +208,20 @@ export function SelectorEtiquetas({
         break;
 
       case "Backspace":
-        if (consulta || elegidas.length === 0) break;
+        if (consulta || (elegidas.length === 0 && nuevos.length === 0)) break;
         ev.preventDefault();
-        {
+        // Los términos nuevos se muestran al final, así que son el primer
+        // candidato del Backspace. Se borra recién en la segunda pulsación.
+        if (nuevos.length > 0) {
+          const ultimo = nuevos[nuevos.length - 1];
+          const clave = `nuevo:${ultimo}`;
+          if (armada === clave) {
+            quitarNuevo(ultimo);
+            setArmada(null);
+          } else {
+            setArmada(clave);
+          }
+        } else {
           const ultima = elegidas[elegidas.length - 1];
           if (armada === ultima.id) {
             onToggle(ultima.id);
@@ -192,20 +258,21 @@ export function SelectorEtiquetas({
         <div className="flex items-center gap-3 shrink-0">
           <span
             className={`text-xs font-bold tabular-nums ${
-              seleccionados.size >= sugerido
+              total >= sugerido
                 ? "text-emerald-600"
-                : seleccionados.size > 0
+                : total > 0
                   ? "text-[#00213f]"
                   : "text-slate-400"
             }`}
           >
-            {seleccionados.size} seleccionada{seleccionados.size === 1 ? "" : "s"}
+            {total} seleccionada{total === 1 ? "" : "s"}
           </span>
-          {seleccionados.size > 0 && (
+          {total > 0 && (
             <button
               type="button"
               onClick={() => {
                 onLimpiar();
+                onNuevosCambian?.([]);
                 setArmada(null);
                 inputRef.current?.focus();
               }}
@@ -248,6 +315,43 @@ export function SelectorEtiquetas({
               </button>
             </span>
           ))}
+
+          {/* Términos nuevos: borde punteado + punto, para distinguirlos del catálogo. */}
+          {nuevos.map((texto) => {
+            const armadaEsta = armada === `nuevo:${texto}`;
+            return (
+              <span
+                key={`nuevo:${texto}`}
+                className={`inline-flex items-center gap-1.5 rounded-sm border border-dashed pl-2 pr-1 py-1 text-xs font-semibold transition-colors ${
+                  armadaEsta
+                    ? "border-red-300 bg-red-50 text-red-700"
+                    : "border-[#10375c]/40 bg-white text-[#10375c]"
+                }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    armadaEsta ? "bg-red-400" : "bg-emerald-500"
+                  }`}
+                  aria-hidden="true"
+                />
+                {texto}
+                <span className="sr-only"> (término nuevo)</span>
+                <button
+                  type="button"
+                  aria-label={`Quitar ${texto}`}
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    quitarNuevo(texto);
+                    setArmada(null);
+                    inputRef.current?.focus();
+                  }}
+                  className="rounded-[2px] p-0.5 text-[#10375c]/60 transition-colors hover:bg-[#00213f]/10 hover:text-[#00213f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10375c]/40"
+                >
+                  <X className="w-3 h-3" aria-hidden="true" />
+                </button>
+              </span>
+            );
+          })}
         </div>
 
         <div className="flex items-center gap-2">
@@ -283,7 +387,7 @@ export function SelectorEtiquetas({
             spellCheck={false}
             enterKeyHint="done"
             placeholder={
-              seleccionados.size
+              total
                 ? "Agregar otra…"
                 : "Escribí para buscar: soldadura, acero, urgente…"
             }
@@ -293,11 +397,13 @@ export function SelectorEtiquetas({
       </div>
 
       <p id={`${uid}-ayuda`} className="mt-2 text-xs text-slate-500">
-        Buscá entre {tags.length} etiquetas. Sugerido: {sugerido} o más.
+        Buscá entre {tags.length} etiquetas
+        {permiteLibres ? " o escribí tu propio término" : ""}. Sugerido: {sugerido} o
+        más.
       </p>
       <p aria-live="polite" role="status" className="sr-only">
         {abierto ? `${planas.length} etiquetas coinciden. ` : ""}
-        {seleccionados.size} seleccionadas.
+        {total} seleccionadas.
       </p>
 
       {abierto && (
@@ -310,7 +416,7 @@ export function SelectorEtiquetas({
             aria-labelledby={`${uid}-lbl`}
             className="max-h-[min(45vh,320px)] overflow-y-auto overscroll-contain py-1"
           >
-            {planas.length === 0 ? (
+            {planas.length === 0 && !agregarVisible ? (
               <div className="px-4 py-8 text-center">
                 <p className="text-sm font-semibold text-slate-600">
                   Sin coincidencias para «{consulta}»
@@ -331,7 +437,8 @@ export function SelectorEtiquetas({
                 </button>
               </div>
             ) : (
-              grupos.map((grupo) => (
+              <>
+                {grupos.map((grupo) => (
                 <div key={grupo.tipo} role="group" aria-labelledby={`${uid}-grp-${grupo.tipo}`}>
                   <div
                     id={`${uid}-grp-${grupo.tipo}`}
@@ -378,7 +485,40 @@ export function SelectorEtiquetas({
                     );
                   })}
                 </div>
-              ))
+                ))}
+
+                {agregarVisible && (
+                  <div
+                    id={`${uid}-opt-${idxAgregar}`}
+                    data-idx={idxAgregar}
+                    role="option"
+                    aria-selected={false}
+                    // Sin esto el mousedown blurea el input, el listener de
+                    // click-outside cierra el panel y el onClick nunca llega.
+                    onMouseDown={(ev) => ev.preventDefault()}
+                    onClick={agregarNuevo}
+                    onMouseEnter={() => setActivo(idxAgregar)}
+                    className={`flex cursor-pointer items-center gap-2.5 border-t border-slate-100 px-3 py-2.5 sm:py-2 text-sm text-[#10375c] transition-colors ${
+                      activo === idxAgregar ? "bg-[#f2f4f6]" : ""
+                    }`}
+                  >
+                    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border border-dashed border-[#10375c]/50 bg-white">
+                      <Plus
+                        className="w-3 h-3 text-[#10375c]"
+                        strokeWidth={3}
+                        aria-hidden="true"
+                      />
+                    </span>
+                    <span className="truncate">
+                      Agregar{" "}
+                      <span className="font-semibold text-[#00213f]">
+                        «{consultaLimpia}»
+                      </span>{" "}
+                      como término nuevo
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

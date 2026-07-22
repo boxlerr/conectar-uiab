@@ -86,8 +86,8 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
     { name: "Datos y Contacto", href: "/perfil/datos", icon: User, tourId: "nav-datos" },
     { name: "Productos y Servicios", href: "/perfil/productos-servicios", icon: PackageSearch, tourId: "nav-productos-servicios" },
     { name: "Rubros y Especialidades", href: "/perfil/servicios", icon: Briefcase, tourId: "nav-servicios" },
-    { name: "Certificaciones", href: "/perfil/certificaciones", icon: Award, tourId: "nav-certificaciones" },
     { name: "Etiquetas de Match", href: "/perfil/etiquetas", icon: Tag, tourId: "nav-etiquetas" },
+    { name: "Certificaciones", href: "/perfil/certificaciones", icon: Award, tourId: "nav-certificaciones" },
     { name: "Bandeja de Entrada", href: "/perfil/solicitudes", icon: Inbox, tourId: "nav-solicitudes" },
     { name: "Mi Suscripción", href: "/perfil/suscripcion", icon: CreditCard, tourId: "nav-suscripcion" },
   ];

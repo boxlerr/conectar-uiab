@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
+import { SelectUIAB } from "@/components/ui/select-uiab";
 import { Card } from "@/components/ui/card";
 import { Save, User, Building, MapPin, Phone, Mail, Globe, FileText, Loader2, Users } from "lucide-react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -395,27 +396,35 @@ export default function MiPerfilDatosPage() {
                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600">Localidad</label>
-                    <select value={formData.localidad} onChange={e => setFormData({...formData, localidad: e.target.value})} className={selectCls}>
-                      <option value="">Seleccioná una localidad…</option>
-                      {formData.localidad && !LOCALIDADES_ALMIRANTE_BROWN.includes(formData.localidad as never) && (
-                        <option value={formData.localidad}>{formData.localidad}</option>
-                      )}
-                      {LOCALIDADES_ALMIRANTE_BROWN.map((l) => (
-                        <option key={l} value={l}>{l}</option>
-                      ))}
-                    </select>
+                    <SelectUIAB
+                      ariaLabel="Localidad"
+                      placeholder="Seleccioná una localidad…"
+                      value={formData.localidad}
+                      onValueChange={(v) => setFormData({ ...formData, localidad: v })}
+                      className={selectCls}
+                      options={[
+                        ...(formData.localidad && !LOCALIDADES_ALMIRANTE_BROWN.includes(formData.localidad as never)
+                          ? [{ value: formData.localidad, label: formData.localidad }]
+                          : []),
+                        ...LOCALIDADES_ALMIRANTE_BROWN.map((l) => ({ value: l, label: l })),
+                      ]}
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600">Provincia</label>
-                    <select value={formData.provincia} onChange={e => setFormData({...formData, provincia: e.target.value})} className={selectCls}>
-                      <option value="">Seleccioná una provincia…</option>
-                      {formData.provincia && !PROVINCIAS_AR.includes(formData.provincia as never) && (
-                        <option value={formData.provincia}>{formData.provincia}</option>
-                      )}
-                      {PROVINCIAS_AR.map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
+                    <SelectUIAB
+                      ariaLabel="Provincia"
+                      placeholder="Seleccioná una provincia…"
+                      value={formData.provincia}
+                      onValueChange={(v) => setFormData({ ...formData, provincia: v })}
+                      className={selectCls}
+                      options={[
+                        ...(formData.provincia && !PROVINCIAS_AR.includes(formData.provincia as never)
+                          ? [{ value: formData.provincia, label: formData.provincia }]
+                          : []),
+                        ...PROVINCIAS_AR.map((p) => ({ value: p, label: p })),
+                      ]}
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600">Dirección</label>

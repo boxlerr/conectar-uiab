@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { SelectUIAB } from "@/components/ui/select-uiab";
 import {
   DollarSign,
   TrendingUp,
@@ -503,24 +504,20 @@ export function PanelSuscripciones({
             </h2>
           </div>
           <div className="flex items-center gap-3">
-            <select
+            <SelectUIAB
+              ariaLabel="Mes"
               value={mesSeleccionado}
-              onChange={(e) => setMesSeleccionado(e.target.value)}
-              className="h-9 px-3 rounded-md bg-slate-50 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              {mesesDisponibles.map((m) => {
+              onValueChange={(v) => setMesSeleccionado(v)}
+              className="h-9 px-3 rounded-md bg-slate-50 text-sm font-semibold text-slate-700"
+              options={mesesDisponibles.map((m) => {
                 const [y, mo] = m.split("-");
                 const label = new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString(
                   "es-AR",
                   { month: "long", year: "numeric" }
                 );
-                return (
-                  <option key={m} value={m}>
-                    {label}
-                  </option>
-                );
+                return { value: m, label };
               })}
-            </select>
+            />
             <div className="text-right">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 Total recaudado
@@ -904,17 +901,19 @@ export function PanelSuscripciones({
 
                         <td className="px-6 py-4 whitespace-nowrap">
                           {isEditing ? (
-                            <select
+                            <SelectUIAB
+                              ariaLabel="Estado de la suscripción"
                               value={estadoProvDraft}
-                              onChange={(ev) => setEstadoProvDraft(ev.target.value)}
-                              className="h-8 px-2 rounded-md bg-slate-50 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            >
-                              <option value="activa">Activa</option>
-                              <option value="pendiente_pago">Pendiente de pago</option>
-                              <option value="en_mora">En mora</option>
-                              <option value="suspendida">Suspendida</option>
-                              <option value="cancelada">Cancelada</option>
-                            </select>
+                              onValueChange={(v) => setEstadoProvDraft(v)}
+                              className="h-8 px-2 rounded-md bg-slate-50 text-sm text-slate-700"
+                              options={[
+                                { value: "activa", label: "Activa" },
+                                { value: "pendiente_pago", label: "Pendiente de pago" },
+                                { value: "en_mora", label: "En mora" },
+                                { value: "suspendida", label: "Suspendida" },
+                                { value: "cancelada", label: "Cancelada" },
+                              ]}
+                            />
                           ) : estadoActual ? (
                             <span
                               className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${

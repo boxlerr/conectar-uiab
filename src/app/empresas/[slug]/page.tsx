@@ -124,9 +124,6 @@ function SeccionCertificaciones({ certs, accent }: { certs: CertFicha[]; accent:
                 {c.fecha_vencimiento && estado === "vencida" && (
                   <span className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded">Vencida</span>
                 )}
-                {c.fecha_vencimiento && estado === "por_vencer" && (
-                  <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">Vence pronto</span>
-                )}
               </div>
               {n && n.codigo !== "otra" && (
                 <p className="text-[14px] font-semibold text-slate-800 mt-2">{n.nombre}</p>

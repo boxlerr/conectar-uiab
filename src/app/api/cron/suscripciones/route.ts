@@ -5,6 +5,7 @@ import {
   plantillaRecordatorioVencimiento,
   plantillaSuscripcionSuspendida,
 } from "@/lib/email/plantillas-suscripciones";
+import { notificarEntidad } from "@/modulos/notificaciones/acciones";
 
 /**
  * GET /api/cron/suscripciones
@@ -52,6 +53,15 @@ export async function GET(req: NextRequest) {
       });
       await enviarEmail({ para: dest.email, asunto: p.asunto, html: p.html, texto: p.texto });
       await admin.from("suscripciones").update({ ultima_notificacion_en: now.toISOString() }).eq("id", s.id);
+      // Notificación in-web atada a la misma cadencia (dedup por ultima_notificacion_en).
+      await notificarEntidad({
+        empresaId: s.empresa_id,
+        proveedorId: s.proveedor_id,
+        tipo: "suscripcion_por_vencer",
+        titulo: "Tu suscripción vence pronto",
+        mensaje: "Tu suscripción está por vencer. Renovala para no perder tu lugar.",
+        url: "/perfil/suscripcion",
+      });
       resumen.recordatorios++;
     }
   }
@@ -59,7 +69,7 @@ export async function GET(req: NextRequest) {
   // 2. Pasar a en_mora
   const { data: morosas } = await admin
     .from("suscripciones")
-    .select("id")
+    .select("id, empresa_id, proveedor_id")
     .eq("estado", "activa")
     .lt("proximo_cobro_en", now.toISOString());
   for (const s of morosas ?? []) {
@@ -67,6 +77,14 @@ export async function GET(req: NextRequest) {
     await admin.from("suscripciones").update({
       estado: "en_mora", gracia_hasta: gracia, actualizado_en: now.toISOString(),
     }).eq("id", s.id);
+    await notificarEntidad({
+      empresaId: s.empresa_id,
+      proveedorId: s.proveedor_id,
+      tipo: "suscripcion_en_mora",
+      titulo: "Tu suscripción está en mora",
+      mensaje: "No registramos tu pago a tiempo. Tenés unos días de gracia para regularizarla.",
+      url: "/perfil/suscripcion",
+    });
     resumen.enMora++;
   }
 
@@ -87,6 +105,14 @@ export async function GET(req: NextRequest) {
       });
       await enviarEmail({ para: dest.email, asunto: p.asunto, html: p.html, texto: p.texto });
     }
+    await notificarEntidad({
+      empresaId: s.empresa_id,
+      proveedorId: s.proveedor_id,
+      tipo: "suscripcion_suspendida",
+      titulo: "Tu suscripción fue suspendida",
+      mensaje: "Suspendimos tu suscripción por falta de pago. Regularizala para reactivarla.",
+      url: "/perfil/suscripcion",
+    });
     resumen.suspendidas++;
   }
 
