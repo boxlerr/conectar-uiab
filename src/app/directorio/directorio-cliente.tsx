@@ -309,7 +309,7 @@ export function DirectorioCliente({
       {/* ─── Hero Header ─── */}
       <div
         data-tour="directorio-hero"
-        className="relative overflow-hidden -mt-24 pt-40 pb-40 mb-16 flex items-center min-h-[560px] lg:min-h-[72vh] bg-[#00182e]"
+        className="relative overflow-hidden -mt-24 pt-32 pb-16 mb-8 bg-[#00182e]"
       >
         {/* Fondo estable: gradiente profundo + textura industrial con opacidad
             FIJA + grilla fina + orbes de profundidad. Solo parallax de posición,
@@ -358,32 +358,13 @@ export function DirectorioCliente({
           >
             <motion.div
               variants={heroItem}
-              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 px-4 py-1.5 mb-7 shadow-xl"
+              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 px-4 py-1.5 mb-5 shadow-xl"
             >
               <LockOpen className="w-4 h-4 text-blue-300" />
               <span className="text-xs font-bold text-white tracking-widest uppercase">
                 Directorio público UIAB
               </span>
             </motion.div>
-
-            <motion.h1
-              variants={heroItem}
-              className="font-manrope text-4xl sm:text-5xl md:text-6xl font-black text-white leading-[1.08] tracking-tight mb-5 drop-shadow-xl"
-            >
-              El ecosistema productivo{" "}
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-cyan-100 to-white">
-                de Almirante Brown
-              </span>
-            </motion.h1>
-
-            <motion.p
-              variants={heroItem}
-              className="text-blue-100/80 text-base sm:text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed mb-9"
-            >
-              Empresas socias, prestadores, entidades financieras y educativas,
-              y cooperativas de la red UIAB. Perfiles verificados, contacto
-              directo.
-            </motion.p>
 
             {/* Buscador protagonista */}
             <motion.div
@@ -460,7 +441,7 @@ export function DirectorioCliente({
 
             <motion.div
               variants={heroItem}
-              className="flex flex-wrap justify-center gap-3 mt-9"
+              className="flex flex-wrap justify-center gap-3 mt-6"
             >
               <Link
                 href="/register"
@@ -487,7 +468,7 @@ export function DirectorioCliente({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           data-tour="directorio-stats"
-          className="bg-white rounded-2xl p-6 shadow-xl shadow-primary/5 border border-slate-200/60 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden -mt-24 z-20"
+          className="bg-white rounded-2xl p-6 shadow-xl shadow-primary/5 border border-slate-200/60 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden -mt-10 z-20"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3" />
 

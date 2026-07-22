@@ -194,13 +194,24 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
     groups?: NavGroup[];
   };
 
-  const navigation: NavItem[] = [
-    { name: currentUser ? "Dashboard" : "Inicio", href: currentUser ? "/dashboard" : "/", icon: null },
-    { name: "Directorio", href: "/directorio", icon: BookOpen },
-    { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
-    { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
-    { name: "Contacto", href: "/contacto", icon: null },
-  ];
+  // Logueado: el Directorio va primero (es a donde caés al entrar y donde más
+  // se trabaja), el Dashboard en tercer lugar y Nosotros al final.
+  // Visitante: arranca en Inicio.
+  const navigation: NavItem[] = currentUser
+    ? [
+        { name: "Directorio", href: "/directorio", icon: BookOpen },
+        { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
+        { name: "Dashboard", href: "/dashboard", icon: null },
+        { name: "Contacto", href: "/contacto", icon: null },
+        { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
+      ]
+    : [
+        { name: "Inicio", href: "/", icon: null },
+        { name: "Directorio", href: "/directorio", icon: BookOpen },
+        { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
+        { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
+        { name: "Contacto", href: "/contacto", icon: null },
+      ];
 
   // Visitantes sin sesión: desplegable informativo con las categorías de la red.
   // OJO: el formulario de alta (/sumate) NO se linkea acá — es solo para socias

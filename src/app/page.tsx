@@ -18,6 +18,7 @@ import {
   Wrench,
   Briefcase,
   CheckCircle2,
+  UserPlus,
 } from "lucide-react";
 import { BannerLogosSocias } from "@/components/ui/directorio/banner-logos-socias";
 import { PreviewDirectorio } from "@/components/ui/directorio/preview-directorio";
@@ -148,18 +149,18 @@ export default function Home() {
                 ) : (
                   <>
                     <Link
-                      href="/empresas"
+                      href="/register"
                       className="h-12 px-7 rounded-sm font-bold text-[14px] bg-white text-[#00213f] hover:bg-primary-50 shadow-xl shadow-black/15 active:scale-[0.98] transition-all inline-flex items-center justify-center"
                     >
-                      <Factory className="w-4 h-4 mr-2" />
-                      Explorar Empresas
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Registrate
                     </Link>
                     <Link
-                      href="/empresas?categoria=proveedores"
+                      href="/directorio"
                       className="h-12 px-7 rounded-sm font-semibold text-[14px] text-white/80 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/[0.06] transition-all inline-flex items-center justify-center"
                     >
-                      <Wrench className="w-4 h-4 mr-2" />
-                      Ver Proveedores
+                      <Factory className="w-4 h-4 mr-2" />
+                      Explorar el directorio
                     </Link>
                   </>
                 )}

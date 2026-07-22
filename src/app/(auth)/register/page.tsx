@@ -162,7 +162,7 @@ const getStrengthColor = (strength: number) => {
 function RegisterContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { refreshUser } = useAuth()
+  const { refreshUser, currentUser } = useAuth()
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -188,6 +188,15 @@ function RegisterContent() {
       form.setValue('role', roleParam)
     }
   }, [searchParams, form])
+
+  // Si ya estás logueado, no tiene sentido ver el registro: te mandamos al
+  // directorio. (Evita el bug de quedar con /register abierto al iniciar sesión
+  // desde acá.) No aplica a la pantalla de éxito recién creada.
+  useEffect(() => {
+    if (currentUser && !isSuccess) {
+      router.replace('/directorio')
+    }
+  }, [currentUser, isSuccess, router])
 
   const selectedRole = form.watch('role')
   const password = form.watch('password')

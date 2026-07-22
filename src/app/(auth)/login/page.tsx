@@ -81,16 +81,16 @@ function LoginContent() {
         .single()
 
       toast.success('Acceso exitoso', {
-        description: 'Redirigiendo a tu panel...',
+        description: 'Redirigiendo al directorio...',
       })
 
       if (redirectParams) {
         router.push(redirectParams)
       } else {
         const rol = profile?.rol_sistema
+        // Admin va a su panel; socios/prestadores caen en el directorio.
         if (rol === 'admin') router.push('/admin')
-        else if (rol === 'company') router.push('/dashboard')
-        else router.push('/dashboard')
+        else router.push('/directorio')
       }
       
       router.refresh()

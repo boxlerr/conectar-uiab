@@ -49,7 +49,7 @@ export function AuthModal() {
       toast.success("Bienvenido de nuevo");
       await refreshUser();
       closeAuthModal();
-      router.push("/dashboard");
+      router.push("/directorio");
       router.refresh();
     } catch (err: any) {
       toast.error("Error del sistema", { description: err.message || "Contacte a soporte." });
