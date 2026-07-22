@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Entidad } from "@/lib/datos/directorio";
 import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
-import { BannerLogosSocias } from "@/components/ui/directorio/banner-logos-socias";
+import { SliderLogosDirectorio, type LogoDirectorio } from "@/components/ui/directorio/slider-logos-directorio";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import {
   Building2,
@@ -215,6 +215,17 @@ export function DirectorioCliente({
     educativas,
     cooperativas,
   };
+
+  // Logos para el slider: vienen del SSR (ya tienen logoUrl), así que se
+  // muestran al instante, sin fetch client-side ni skeleton colgado.
+  const logosSocias: LogoDirectorio[] = [
+    ...empresas,
+    ...financieras,
+    ...educativas,
+    ...cooperativas,
+  ]
+    .filter((e) => !!e.logoUrl)
+    .map((e) => ({ slug: e.slug, nombre: e.nombre, logoUrl: e.logoUrl as string }));
 
   // La URL es la fuente de verdad del tab activo (evita sincronizar estado en
   // un effect). Cambiar de tab navega y el componente re-renderiza.
@@ -457,7 +468,7 @@ export function DirectorioCliente({
               </span>
             </div>
           </div>
-          <BannerLogosSocias />
+          <SliderLogosDirectorio logos={logosSocias} />
         </motion.div>
 
         {/* ─── Tabs ─── */}
