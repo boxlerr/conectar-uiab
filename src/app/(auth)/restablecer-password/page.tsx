@@ -126,17 +126,46 @@ export default function RestablecerPasswordPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f2f4f6] px-4 py-12">
-      <div className="w-full max-w-md overflow-hidden rounded-md bg-white shadow-[0_16px_32px_-16px_rgba(0,33,63,0.18)] ring-1 ring-slate-900/[0.04]">
+      <div
+        className="w-full max-w-[440px] overflow-hidden bg-white shadow-[0_16px_32px_-16px_rgba(0,33,63,0.18)] ring-1 ring-slate-900/[0.04]"
+        style={{ borderRadius: '0.25rem' }}
+      >
+        {/* Header de marca — mismo patrón que /login y /recovery */}
         <div
-          className="px-8 py-5 text-white"
+          className="relative overflow-hidden px-8 pb-6 pt-7"
           style={{ background: 'linear-gradient(135deg, #00213f 0%, #10375c 100%)' }}
         >
-          <p className="font-extrabold tracking-tight text-lg">
-            Conectar <span className="font-semibold opacity-75">UIAB</span>
-          </p>
-          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/65">
-            Restablecer acceso
-          </p>
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: 'radial-gradient(circle at 1px 1px, white 0.5px, transparent 0)',
+              backgroundSize: '32px 32px',
+            }}
+          />
+          <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-primary-400/[0.06] blur-[80px]" />
+
+          <div className="relative z-10 flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 items-center justify-center bg-white/[0.08] backdrop-blur-xl"
+              style={{ borderRadius: '0.25rem' }}
+            >
+              <span className="text-xl font-bold text-white">U</span>
+            </div>
+            <div>
+              <span
+                className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/40"
+                style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+              >
+                UIAB Conecta
+              </span>
+              <h2
+                className="mt-0.5 text-xl font-bold leading-none tracking-tight text-white"
+                style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+              >
+                Restablecer acceso
+              </h2>
+            </div>
+          </div>
         </div>
 
         <div className="px-8 py-9">
@@ -187,7 +216,7 @@ export default function RestablecerPasswordPage() {
                 </h1>
                 <p className="mt-2 text-sm leading-relaxed text-[#525b63]">
                   Elegí una clave segura. La vas a usar para ingresar a tu
-                  cuenta de Conectar UIAB.
+                  cuenta de UIAB Conecta.
                 </p>
               </div>
 
