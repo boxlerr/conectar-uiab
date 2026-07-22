@@ -19,54 +19,11 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { PanelMarcaAuth, MarcaCompactaAuth } from '../_componentes/panel-marca'
 
 const recoverySchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
 })
-
-// Header de marca compartido con /login y /restablecer-password: barra navy con
-// el gradiente institucional. En web el gradiente sí renderiza (a diferencia de
-// los correos), así que acá lo mantenemos para unificar toda la zona de auth.
-function EncabezadoAuth({ titulo }: { titulo: string }) {
-  return (
-    <div
-      className="relative overflow-hidden px-8 pb-6 pt-7"
-      style={{ background: 'linear-gradient(135deg, #00213f 0%, #10375c 100%)' }}
-    >
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, white 0.5px, transparent 0)',
-          backgroundSize: '32px 32px',
-        }}
-      />
-      <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-primary-400/[0.06] blur-[80px]" />
-
-      <div className="relative z-10 flex items-center gap-3">
-        <div
-          className="flex h-10 w-10 items-center justify-center bg-white/[0.08] backdrop-blur-xl"
-          style={{ borderRadius: '0.25rem' }}
-        >
-          <span className="text-xl font-bold text-white">U</span>
-        </div>
-        <div>
-          <span
-            className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/40"
-            style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
-          >
-            UIAB Conecta
-          </span>
-          <h2
-            className="mt-0.5 text-xl font-bold leading-none tracking-tight text-white"
-            style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
-          >
-            {titulo}
-          </h2>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export default function RecoveryPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -85,22 +42,17 @@ export default function RecoveryPage() {
 
   async function onSubmit(values: z.infer<typeof recoverySchema>) {
     setIsLoading(true)
-
     try {
-      // Supabase manda el correo de recuperación usando su plantilla nativa
-      // (configurable en el dashboard). El link vuelve a nuestro callback,
-      // que canjea el token y redirige a /restablecer-password con sesión
-      // activa.
+      // El link vuelve a nuestro callback, que canjea el token y redirige a
+      // /restablecer-password con sesión activa.
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: `${window.location.origin}/api/auth/callback?next=/restablecer-password`,
       })
-
       if (error) {
         toast.error('Error al solicitar recuperación', { description: error.message })
         setIsLoading(false)
         return
       }
-
       setEmailEnviado(values.email)
       setIsSuccess(true)
       toast.success('Solicitud enviada', {
@@ -113,32 +65,31 @@ export default function RecoveryPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f2f4f6] p-4 sm:p-6">
-      <div
-        className="relative z-10 w-full max-w-[440px] overflow-hidden bg-white"
-        style={{ borderRadius: '0.25rem', boxShadow: '0 16px 32px rgba(25, 28, 30, 0.06)' }}
-      >
-        <EncabezadoAuth titulo={isSuccess ? 'Revisá tu correo' : 'Recuperar acceso'} />
+    <div className="flex min-h-screen bg-white">
+      <PanelMarcaAuth />
 
-        <div className="px-8 py-8">
+      <main className="flex flex-1 items-center justify-center px-6 py-10 sm:px-10">
+        <div className="w-full max-w-md">
+          <MarcaCompactaAuth />
+
           {isSuccess ? (
-            <div className="text-center">
+            <div>
               <div
-                className="mx-auto mb-5 flex h-14 w-14 items-center justify-center"
-                style={{ backgroundColor: '#e6ebf2', color: '#001b55', borderRadius: '0.25rem' }}
+                className="mb-6 flex h-12 w-12 items-center justify-center"
+                style={{ backgroundColor: '#e6ebf2', color: '#001b55', borderRadius: '0.3rem' }}
               >
-                <MailCheck className="h-7 w-7" strokeWidth={2.25} />
+                <MailCheck className="h-6 w-6" strokeWidth={2.25} />
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-[#191c1e]">
+              <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-[#191c1e]">
                 Te enviamos el enlace
               </h1>
-              <p className="mx-auto mt-2 max-w-[320px] text-sm leading-relaxed text-[#525b63]">
+              <p className="mt-3 text-sm leading-relaxed text-[#525b63]">
                 Si <strong className="text-[#191c1e]">{emailEnviado}</strong> coincide con una
                 cuenta activa, vas a recibir un enlace para elegir una nueva contraseña. Puede
                 tardar un par de minutos.
               </p>
-              <p className="mt-4 text-xs text-[#525b63]">
-                ¿No lo ves? Revisá la carpeta de spam o correo no deseado.
+              <p className="mt-4 rounded-md bg-[#f2f4f6] px-4 py-3 text-xs leading-relaxed text-[#525b63]">
+                ¿No lo ves en tu bandeja? Revisá la carpeta de spam o correo no deseado.
               </p>
 
               <div className="mt-7 space-y-3">
@@ -155,7 +106,7 @@ export default function RecoveryPage() {
                 </Button>
                 <Link
                   href="/login"
-                  className="inline-flex items-center justify-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[#525b63] transition-colors hover:text-[#191c1e]"
+                  className="flex items-center justify-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[#525b63] transition-colors hover:text-[#191c1e]"
                 >
                   <ArrowLeft className="mr-1 h-3 w-3" />
                   Volver al inicio de sesión
@@ -166,24 +117,22 @@ export default function RecoveryPage() {
             <>
               <Link
                 href="/login"
-                className="inline-flex items-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[#525b63] transition-colors hover:text-[#191c1e]"
+                className="mb-6 inline-flex items-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[#525b63] transition-colors hover:text-[#191c1e]"
               >
                 <ArrowLeft className="mr-1 h-3 w-3" />
                 Volver al inicio de sesión
               </Link>
 
-              <div className="mb-7 mt-5 space-y-2">
-                <h1 className="text-2xl font-extrabold tracking-tight text-[#191c1e]">
-                  ¿Olvidaste tu contraseña?
-                </h1>
-                <p className="text-sm leading-relaxed text-[#525b63]">
-                  Ingresá el correo con el que accedés a UIAB Conecta y te enviamos un enlace
-                  seguro para elegir una nueva contraseña.
-                </p>
-              </div>
+              <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-[#191c1e]">
+                ¿Olvidaste tu contraseña?
+              </h1>
+              <p className="mt-3 text-sm leading-relaxed text-[#525b63]">
+                Ingresá el correo con el que accedés a UIAB Conecta y te enviamos un enlace seguro
+                para elegir una nueva.
+              </p>
 
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="mt-7 space-y-5">
                   <FormField
                     control={form.control}
                     name="email"
@@ -198,6 +147,7 @@ export default function RecoveryPage() {
                             placeholder="responsable@empresa.com"
                             className="h-12 bg-[#f2f4f6] focus:bg-white"
                             autoComplete="email"
+                            autoFocus
                             {...field}
                           />
                         </FormControl>
@@ -208,7 +158,7 @@ export default function RecoveryPage() {
 
                   <Button
                     type="submit"
-                    className="h-11 w-full rounded-md bg-[#00213f] text-white hover:bg-[#10375c]"
+                    className="h-12 w-full rounded-md bg-[#00213f] text-[15px] font-semibold text-white hover:bg-[#10375c]"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -222,7 +172,7 @@ export default function RecoveryPage() {
             </>
           )}
         </div>
-      </div>
+      </main>
     </div>
   )
 }

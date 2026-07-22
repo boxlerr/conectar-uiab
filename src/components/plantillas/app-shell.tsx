@@ -16,6 +16,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // For now, we restore them generally to avoid the "trapped" feeling.
   const isAuthRoute = pathname === "/login" || pathname === "/register" || pathname.startsWith("/recovery");
 
+  // Rutas de auth a pantalla completa: son experiencias enfocadas (llegás por un
+  // link de correo con un token) donde el nav global sólo estorba — empuja el
+  // formulario fuera de pantalla y obliga a scrollear. Estas páginas ya traen su
+  // propia identidad de marca (panel lateral), así que van sin Header ni Footer.
+  const isFullscreenAuth =
+    pathname === "/recovery" ||
+    pathname === "/restablecer-password";
+
+  if (isFullscreenAuth) {
+    return (
+      <>
+        {children}
+        <RecordarSesionGuard />
+      </>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header

@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utilidades'
+import { PanelMarcaAuth, MarcaCompactaAuth } from '../_componentes/panel-marca'
 
 /**
  * Formulario de reseteo de contraseña.
@@ -102,13 +103,9 @@ export default function RestablecerPasswordPage() {
   async function onSubmit(values: Valores) {
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: values.password,
-      })
+      const { error } = await supabase.auth.updateUser({ password: values.password })
       if (error) {
-        toast.error('No pudimos actualizar la contraseña', {
-          description: error.message,
-        })
+        toast.error('No pudimos actualizar la contraseña', { description: error.message })
         setIsLoading(false)
         return
       }
@@ -125,77 +122,40 @@ export default function RestablecerPasswordPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f2f4f6] px-4 py-12">
-      <div
-        className="w-full max-w-[440px] overflow-hidden bg-white shadow-[0_16px_32px_-16px_rgba(0,33,63,0.18)] ring-1 ring-slate-900/[0.04]"
-        style={{ borderRadius: '0.25rem' }}
-      >
-        {/* Header de marca — mismo patrón que /login y /recovery */}
-        <div
-          className="relative overflow-hidden px-8 pb-6 pt-7"
-          style={{ background: 'linear-gradient(135deg, #00213f 0%, #10375c 100%)' }}
-        >
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: 'radial-gradient(circle at 1px 1px, white 0.5px, transparent 0)',
-              backgroundSize: '32px 32px',
-            }}
-          />
-          <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-primary-400/[0.06] blur-[80px]" />
+    <div className="flex min-h-screen bg-white">
+      <PanelMarcaAuth />
 
-          <div className="relative z-10 flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 items-center justify-center bg-white/[0.08] backdrop-blur-xl"
-              style={{ borderRadius: '0.25rem' }}
-            >
-              <span className="text-xl font-bold text-white">U</span>
-            </div>
-            <div>
-              <span
-                className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/40"
-                style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
-              >
-                UIAB Conecta
-              </span>
-              <h2
-                className="mt-0.5 text-xl font-bold leading-none tracking-tight text-white"
-                style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
-              >
-                Restablecer acceso
-              </h2>
-            </div>
-          </div>
-        </div>
+      <main className="flex flex-1 items-center justify-center px-6 py-10 sm:px-10">
+        <div className="w-full max-w-md">
+          <MarcaCompactaAuth />
 
-        <div className="px-8 py-9">
           <Link
             href="/login"
-            className="inline-flex items-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[#525b63] hover:text-[#191c1e]"
+            className="mb-6 inline-flex items-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[#525b63] transition-colors hover:text-[#191c1e]"
           >
             <ArrowLeft className="mr-1 h-3 w-3" />
-            Volver al login
+            Volver al inicio de sesión
           </Link>
 
           {estadoSesion === 'verificando' && (
-            <div className="py-14 text-center">
-              <Loader2 className="mx-auto h-6 w-6 animate-spin text-[#00213f]" />
-              <p className="mt-3 text-sm text-[#525b63]">Verificando el enlace…</p>
+            <div className="flex items-center gap-3 py-6 text-sm text-[#525b63]">
+              <Loader2 className="h-5 w-5 animate-spin text-[#00213f]" />
+              Verificando el enlace…
             </div>
           )}
 
           {estadoSesion === 'sinSesion' && (
-            <div className="mt-4">
-              <h1 className="text-2xl font-extrabold tracking-tight text-[#191c1e]">
+            <div>
+              <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-[#191c1e]">
                 Enlace no válido o expirado
               </h1>
-              <p className="mt-2 text-sm leading-relaxed text-[#525b63]">
-                Para tu seguridad, los enlaces de recuperación tienen una
-                duración limitada. Pedí uno nuevo y volvé a intentarlo.
+              <p className="mt-3 text-sm leading-relaxed text-[#525b63]">
+                Para tu seguridad, los enlaces de recuperación tienen una duración limitada. Pedí
+                uno nuevo y volvé a intentarlo.
               </p>
               <Button
                 asChild
-                className="mt-6 h-11 w-full rounded-md bg-[#00213f] text-white hover:bg-[#10375c]"
+                className="mt-7 h-12 w-full rounded-md bg-[#00213f] text-[15px] font-semibold text-white hover:bg-[#10375c]"
               >
                 <Link href="/recovery">Pedir un nuevo enlace</Link>
               </Button>
@@ -204,30 +164,27 @@ export default function RestablecerPasswordPage() {
 
           {estadoSesion === 'ok' && !isSuccess && (
             <>
-              <div className="mt-4 mb-7">
-                <div
-                  className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md"
-                  style={{ backgroundColor: '#e6ebf2', color: '#001b55' }}
-                >
-                  <KeyRound className="h-5 w-5" strokeWidth={2.25} />
-                </div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-[#191c1e]">
-                  Definí tu nueva contraseña
-                </h1>
-                <p className="mt-2 text-sm leading-relaxed text-[#525b63]">
-                  Elegí una clave segura. La vas a usar para ingresar a tu
-                  cuenta de UIAB Conecta.
-                </p>
+              <div
+                className="mb-6 flex h-12 w-12 items-center justify-center"
+                style={{ backgroundColor: '#e6ebf2', color: '#001b55', borderRadius: '0.3rem' }}
+              >
+                <KeyRound className="h-6 w-6" strokeWidth={2.25} />
               </div>
+              <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-[#191c1e]">
+                Definí tu nueva contraseña
+              </h1>
+              <p className="mt-3 text-sm leading-relaxed text-[#525b63]">
+                Elegí una clave segura. La vas a usar para ingresar a tu cuenta de UIAB Conecta.
+              </p>
 
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="mt-7 space-y-5">
                   <FormField
                     control={form.control}
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[#191c1e]">
+                        <FormLabel className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#191c1e]/80">
                           Nueva contraseña
                         </FormLabel>
                         <FormControl>
@@ -235,7 +192,8 @@ export default function RestablecerPasswordPage() {
                             <Input
                               type={showPass ? 'text' : 'password'}
                               placeholder="••••••••"
-                              className="bg-[#f2f4f6] pr-10 focus:bg-white"
+                              className="h-12 bg-[#f2f4f6] pr-10 focus:bg-white"
+                              autoFocus
                               {...field}
                             />
                             <button
@@ -244,11 +202,7 @@ export default function RestablecerPasswordPage() {
                               className="absolute right-3 top-1/2 -translate-y-1/2 text-[#525b63] hover:text-[#191c1e]"
                               tabIndex={-1}
                             >
-                              {showPass ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
+                              {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                           </div>
                         </FormControl>
@@ -257,18 +211,18 @@ export default function RestablecerPasswordPage() {
                     )}
                   />
 
-                  <ul className="space-y-1.5">
+                  <ul className="grid grid-cols-3 gap-2">
                     {requisitos.map((r) => (
                       <li
                         key={r.label}
                         className={cn(
-                          'flex items-center gap-2 text-xs',
+                          'flex items-center gap-1.5 text-[11px]',
                           r.ok ? 'text-[#001b55]' : 'text-[#525b63]'
                         )}
                       >
                         <span
                           className={cn(
-                            'flex h-4 w-4 items-center justify-center rounded-sm',
+                            'flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-sm',
                             r.ok ? 'bg-[#001b55] text-white' : 'bg-[#d8dadc]'
                           )}
                         >
@@ -284,14 +238,14 @@ export default function RestablecerPasswordPage() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[#191c1e]">
+                        <FormLabel className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#191c1e]/80">
                           Confirmar contraseña
                         </FormLabel>
                         <FormControl>
                           <Input
                             type={showPass ? 'text' : 'password'}
                             placeholder="••••••••"
-                            className="bg-[#f2f4f6] focus:bg-white"
+                            className="h-12 bg-[#f2f4f6] focus:bg-white"
                             {...field}
                           />
                         </FormControl>
@@ -302,11 +256,11 @@ export default function RestablecerPasswordPage() {
 
                   <Button
                     type="submit"
-                    className="h-11 w-full rounded-md bg-[#00213f] text-white hover:bg-[#10375c]"
+                    className="h-12 w-full rounded-md bg-[#00213f] text-[15px] font-semibold text-white hover:bg-[#10375c]"
                     disabled={isLoading}
                   >
                     {isLoading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       'Actualizar contraseña'
                     )}
@@ -317,23 +271,21 @@ export default function RestablecerPasswordPage() {
           )}
 
           {isSuccess && (
-            <div className="py-8 text-center">
+            <div>
               <div
-                className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-md"
-                style={{ backgroundColor: '#e6ebf2', color: '#001b55' }}
+                className="mb-6 flex h-12 w-12 items-center justify-center"
+                style={{ backgroundColor: '#e6ebf2', color: '#001b55', borderRadius: '0.3rem' }}
               >
-                <ShieldCheck className="h-7 w-7" strokeWidth={2.25} />
+                <ShieldCheck className="h-6 w-6" strokeWidth={2.25} />
               </div>
-              <h2 className="text-2xl font-extrabold tracking-tight text-[#191c1e]">
+              <h1 className="text-[26px] font-extrabold leading-tight tracking-tight text-[#191c1e]">
                 Contraseña actualizada
-              </h2>
-              <p className="mt-2 text-sm text-[#525b63]">
-                Te estamos llevando al login…
-              </p>
+              </h1>
+              <p className="mt-3 text-sm text-[#525b63]">Te estamos llevando al login…</p>
             </div>
           )}
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   )
 }
