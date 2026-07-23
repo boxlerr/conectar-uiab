@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@/tipos";
-import { createClient } from "@/lib/supabase/cliente";
+import { createClient, resetClient } from "@/lib/supabase/cliente";
 
 // ─── Logger condicional ──────────────────────────────────────────────────────
 // Activá logs detallados con `localStorage.setItem('auth-debug', '1')` en la
@@ -142,20 +142,28 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
   // Uses getUser() which validates the JWT server-side (NOT getSession() which only reads localStorage)
   const refreshUser = useCallback(async () => {
     dbg('refreshUser:start');
-    setLoading(true);
+    // `loading` es un latch de una sola vía: sólo blanqueamos la UI con spinner
+    // en la PRIMERA carga (cuando todavía no hay usuario). Los refrescos
+    // posteriores (guardar datos, volver al tab, token refresh, health-check)
+    // corren en segundo plano SIN blanquear el contenido. Esto mata el bug
+    // "de repente queda en blanco y cargando" sin que el usuario toque nada.
+    if (!currentUserRef.current) setLoading(true);
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error || !user) {
         dbg('refreshUser: no user', error?.message);
-        setCurrentUser(null);
+        // No borramos el contenido por un fallo transitorio si YA teníamos
+        // sesión: la sesión realmente muerta la maneja el health-check.
+        if (!currentUserRef.current) setCurrentUser(null);
       } else {
         const profile = await fetchProfile(user.id, user.email!);
-        setCurrentUser(profile);
+        if (profile) setCurrentUser(profile);
+        else if (!currentUserRef.current) setCurrentUser(null);
       }
     } catch (err) {
       console.error('[auth] refreshUser error', err);
-      setCurrentUser(null);
+      // Error transitorio (timeout/red): mantenemos el usuario actual.
     } finally {
       setLoading(false);
       dbg('refreshUser:done');
@@ -203,23 +211,31 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
           new Promise<any>((_, rej) => setTimeout(() => rej(new Error('healthcheck timeout')), 8000)),
         ]);
         if (res.error || !res.data?.user) {
+          // El server respondió que NO hay usuario: posible sesión muerta.
           healthFailCount++;
-          dbg('healthcheck: FAILED', healthFailCount, '/', 2, res.error?.message);
+          dbg('healthcheck: auth FAILED', healthFailCount, res.error?.message);
           if (healthFailCount >= 2) {
-            console.warn('[auth] Sesión perdida detectada por health-check — recargando');
-            if (typeof window !== 'undefined') window.location.href = '/';
+            // Último intento antes de rendirnos: refrescar la sesión.
+            const { data: refreshed } = await supabase.auth.refreshSession();
+            if (refreshed?.session) {
+              healthFailCount = 0;
+              dbg('healthcheck: sesión recuperada con refreshSession');
+            } else {
+              console.warn('[auth] Sesión muerta confirmada — a /login');
+              if (typeof window !== 'undefined') window.location.href = '/login';
+            }
           }
         } else {
           if (healthFailCount > 0) dbg('healthcheck: recovered');
           healthFailCount = 0;
         }
       } catch (err) {
-        healthFailCount++;
-        dbg('healthcheck: exception', healthFailCount, err);
-        if (healthFailCount >= 2 && typeof window !== 'undefined') {
-          console.warn('[auth] Health-check sigue fallando — recargando');
-          window.location.reload();
-        }
+        // Timeout / red: NO es una sesión muerta, es un cuelgue transitorio.
+        // Reciclamos el cliente por si hay un lock huérfano, pero NUNCA
+        // recargamos la página ni sacamos al usuario (eso causaba el
+        // "de repente queda en blanco cargando" sin acción del usuario).
+        dbg('healthcheck: timeout/red — reset cliente sin recargar', err);
+        resetClient();
       }
     };
     const healthInterval = setInterval(healthCheck, 60_000);
