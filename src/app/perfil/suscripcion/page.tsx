@@ -9,7 +9,15 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { toast } from "sonner";
-import { PRECIO_MENSUAL, PRECIO_ANUAL, type CicloSuscripcion } from "@/lib/mercadopago/suscripciones";
+import { PRECIO_MENSUAL, PRECIO_ANUAL, calcularTarifaPorEmpleados, type CicloSuscripcion } from "@/lib/mercadopago/suscripciones";
+
+// Rango de empleados por categoría (informativo: la tarifa es plana, pero
+// mostramos el tamaño de la empresa porque tenemos el dato).
+const RANGO_TARIFA: Record<number, string> = {
+  1: "hasta 30 empleados",
+  2: "31 a 99 empleados",
+  3: "100 o más empleados",
+};
 
 const formatARS = (n: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
@@ -20,6 +28,7 @@ export default function MiPerfilSuscripcionPage() {
   const supabase = useMemo(() => createClient(), []);
 
   const [payments, setPayments] = useState<any[]>([]);
+  const [empleados, setEmpleados] = useState<number | null>(null);
   const [suscripcion, setSuscripcion] = useState<{
     id: string;
     estado: string;
@@ -65,6 +74,16 @@ export default function MiPerfilSuscripcionPage() {
 
       if (pagosRes.data) setPayments(pagosRes.data);
       if (susRes.data) setSuscripcion(susRes.data as any);
+
+      // Categoría por tamaño (sólo empresas): informativa.
+      if (currentUser.role === 'company') {
+        const { data: emp } = await supabase
+          .from('empresas')
+          .select('cantidad_empleados')
+          .eq('id', currentUser.entityId)
+          .maybeSingle();
+        setEmpleados(emp?.cantidad_empleados ?? null);
+      }
       setLoading(false);
     }
     loadData();
@@ -80,6 +99,35 @@ export default function MiPerfilSuscripcionPage() {
     suscripcion.metodo_pago === 'cortesia' ||
     (suscripcion.monto != null && Number(suscripcion.monto) === 0)
   );
+
+  // Categoría por tamaño de la empresa (informativa; la tarifa es plana).
+  const categoria = currentUser?.role === 'company' && empleados != null
+    ? calcularTarifaPorEmpleados(empleados)
+    : null;
+
+  // Historial: pagos reales; si es socia de cortesía y no hay pagos, mostramos
+  // un historial mensual en $0 (bonificado) para que la sección sea útil igual.
+  const filas = useMemo(() => {
+    if (payments.length > 0) {
+      return payments.map((p) => ({
+        id: p.id as string,
+        fecha: new Date(p.pagado_en || p.creado_en),
+        monto: p.monto != null ? Number(p.monto) : 0,
+        moneda: (p.moneda as string) || 'ARS',
+        estado: (p.estado as string) || 'Pendiente',
+        recibo: (p.external_reference as string) || null,
+        cortesia: false,
+      }));
+    }
+    if (esCortesia) {
+      const hoy = new Date();
+      return Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+        return { id: `cortesia-${i}`, fecha: d, monto: 0, moneda: 'ARS', estado: 'Bonificado', recibo: null, cortesia: true };
+      });
+    }
+    return [] as { id: string; fecha: Date; monto: number; moneda: string; estado: string; recibo: string | null; cortesia: boolean }[];
+  }, [payments, esCortesia]);
 
   const estadoBadge = (() => {
     const e = suscripcion?.estado;
@@ -100,17 +148,11 @@ export default function MiPerfilSuscripcionPage() {
     return 'Sin método configurado';
   })();
 
-  async function iniciarPago() {
+  function iniciarPago() {
+    // Mandamos al checkout, donde se elige el ciclo (mensual/anual) y se arma
+    // el preapproval con el monto correcto.
     setIniciandoPago(true);
-    try {
-      const res = await fetch('/api/mercadopago/crear-preapproval', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error creando suscripción');
-      window.location.href = data.init_point;
-    } catch (err: any) {
-      toast.error(err.message || 'Error inesperado');
-      setIniciandoPago(false);
-    }
+    router.push('/suscripcion/checkout');
   }
 
   async function cancelarSuscripcion() {
@@ -220,6 +262,11 @@ export default function MiPerfilSuscripcionPage() {
                       Acceso hasta {new Date(suscripcion.finaliza_en).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
                     </Badge>
                   )}
+                  {categoria && (
+                    <Badge variant="outline" className="border-slate-700 bg-slate-800 text-slate-300">
+                      Categoría: Tarifa {categoria} · {RANGO_TARIFA[categoria]}
+                    </Badge>
+                  )}
                 </div>
                 
                 <h2 className="text-3xl font-bold text-white mb-2">
@@ -304,9 +351,9 @@ export default function MiPerfilSuscripcionPage() {
                    </p>
                  </div>
               </div>
-              {esCortesia ? null : (!suscripcion || ['pendiente_pago','suspendida','cancelada'].includes(suscripcion.estado)) ? (
+              {esCortesia ? null : (!suscripcion || ['pendiente_pago','en_mora','suspendida','cancelada'].includes(suscripcion.estado)) ? (
                 <Button className="w-full sm:w-auto" onClick={iniciarPago} disabled={iniciandoPago}>
-                  {iniciandoPago ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : 'Pagar con Mercado Pago'}
+                  {iniciandoPago ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : (suscripcion?.estado === 'en_mora' || suscripcion?.estado === 'suspendida' ? 'Regularizar pago' : 'Activar suscripción')}
                 </Button>
               ) : (
                 <Button variant="outline" className="w-full sm:w-auto" onClick={iniciarPago} disabled={iniciandoPago}>
@@ -361,35 +408,39 @@ export default function MiPerfilSuscripcionPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
-                {payments.length === 0 ? (
+                {filas.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500">
-                      No tienes historial de pagos registrado aún.
+                      No tenés historial de pagos registrado aún.
                     </td>
                   </tr>
                 ) : (
-                  payments.map((p) => {
-                    const dateObj = new Date(p.pagado_en || p.creado_en);
-                    const formattedDate = dateObj.toLocaleDateString("es-AR", { year: 'numeric', month: 'short', day: 'numeric' });
-                    const amnt = p.monto ? parseFloat(p.monto).toLocaleString('es-AR') : '0';
-                    
+                  filas.map((f) => {
+                    const formattedDate = f.fecha.toLocaleDateString("es-AR", { year: 'numeric', month: 'short', day: f.cortesia ? undefined : 'numeric' });
+                    const aprobado = f.estado === 'aprobado' || f.estado === 'aprobada' || f.cortesia;
                     return (
-                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{formattedDate}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${amnt} {p.moneda || 'ARS'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${f.monto.toLocaleString('es-AR')} {f.moneda}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge variant="outline" className={
-                            p.estado === 'aprobado' || p.estado === 'aprobada'
-                              ? "text-emerald-700 bg-emerald-50 border-emerald-200" 
-                              : "text-amber-700 bg-amber-50 border-amber-200"
+                            f.cortesia
+                              ? "text-primary-700 bg-primary-50 border-primary-200"
+                              : aprobado
+                                ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                                : "text-amber-700 bg-amber-50 border-amber-200"
                           }>
-                            {p.estado || 'Pendiente'}
+                            {f.estado}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <Button variant="link" size="sm" className="text-primary-600 disabled:opacity-50" disabled={!p.external_reference}>
-                            {p.external_reference ? "Descargar PDF" : "N/A"}
-                          </Button>
+                          {f.cortesia ? (
+                            <span className="text-xs text-slate-400">Sin cargo</span>
+                          ) : (
+                            <Button variant="link" size="sm" className="text-primary-600 disabled:opacity-50" disabled={!f.recibo}>
+                              {f.recibo ? "Descargar PDF" : "N/A"}
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     );
