@@ -71,6 +71,7 @@ export async function GET(req: NextRequest) {
     .from("suscripciones")
     .select("id, empresa_id, proveedor_id")
     .eq("estado", "activa")
+    .eq("metodo_pago", "mercadopago")
     .lt("proximo_cobro_en", now.toISOString());
   for (const s of morosas ?? []) {
     const gracia = new Date(now.getTime() + 7 * 24 * 3600 * 1000).toISOString();

@@ -3,20 +3,13 @@
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CreditCard, CheckCircle2, History, ShieldCheck, Loader2, AlertCircle, Users } from "lucide-react";
+import { CreditCard, CheckCircle2, History, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { toast } from "sonner";
-
-// Precios MENSUALES por tarifa (fallback si aún no cargaron los de DB).
-const TARIFA_PRECIO_FALLBACK: Record<number, number> = { 1: 108_000, 2: 216_000, 3: 360_000 };
-const TARIFA_RANGO: Record<number, string> = {
-  1: "Hasta 30 empleados",
-  2: "31 a 99 empleados",
-  3: "100+ empleados",
-};
+import { PRECIO_MENSUAL, PRECIO_ANUAL, type CicloSuscripcion } from "@/lib/mercadopago/suscripciones";
 
 const formatARS = (n: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
@@ -27,22 +20,18 @@ export default function MiPerfilSuscripcionPage() {
   const supabase = useMemo(() => createClient(), []);
 
   const [payments, setPayments] = useState<any[]>([]);
-  const [empresa, setEmpresa] = useState<{
-    tarifa: number | null;
-    cantidad_empleados: number | null;
-    tarifa_vigente_hasta: string | null;
-  } | null>(null);
   const [suscripcion, setSuscripcion] = useState<{
     id: string;
     estado: string;
     metodo_pago: string;
+    monto: number | null;
+    ciclo: string | null;
     proximo_cobro_en: string | null;
     mercado_pago_preapproval_id: string | null;
     cancelada_en: string | null;
     finaliza_en: string | null;
     gracia_hasta: string | null;
   } | null>(null);
-  const [precios, setPrecios] = useState<Record<number, number>>(TARIFA_PRECIO_FALLBACK);
   const [loading, setLoading] = useState(true);
   const [cancelando, setCancelando] = useState(false);
   const [iniciandoPago, setIniciandoPago] = useState(false);
@@ -59,23 +48,15 @@ export default function MiPerfilSuscripcionPage() {
 
       const columnFk = currentUser.role === 'company' ? 'empresa_id' : 'proveedor_id';
 
-      const [pagosRes, empresaRes, tarifasRes, susRes] = await Promise.all([
+      const [pagosRes, susRes] = await Promise.all([
         supabase
           .from('pagos_suscripciones')
           .select('*')
           .eq(columnFk, currentUser.entityId)
           .order('pagado_en', { ascending: false, nullsFirst: false }),
-        currentUser.role === 'company'
-          ? supabase
-              .from('empresas')
-              .select('tarifa, cantidad_empleados, tarifa_vigente_hasta')
-              .eq('id', currentUser.entityId)
-              .maybeSingle()
-          : Promise.resolve({ data: null }),
-        supabase.from('tarifas_precios').select('nivel, precio_mensual'),
         supabase
           .from('suscripciones')
-          .select('id, estado, metodo_pago, proximo_cobro_en, mercado_pago_preapproval_id, cancelada_en, finaliza_en, gracia_hasta')
+          .select('id, estado, metodo_pago, monto, ciclo, proximo_cobro_en, mercado_pago_preapproval_id, cancelada_en, finaliza_en, gracia_hasta')
           .eq(columnFk, currentUser.entityId)
           .order('creado_en', { ascending: false })
           .limit(1)
@@ -83,24 +64,22 @@ export default function MiPerfilSuscripcionPage() {
       ]);
 
       if (pagosRes.data) setPayments(pagosRes.data);
-      if (empresaRes && 'data' in empresaRes && empresaRes.data) setEmpresa(empresaRes.data as any);
       if (susRes.data) setSuscripcion(susRes.data as any);
-      if (tarifasRes.data && tarifasRes.data.length > 0) {
-        const map: Record<number, number> = { ...TARIFA_PRECIO_FALLBACK };
-        tarifasRes.data.forEach((t: any) => {
-          map[t.nivel] = Number(t.precio_mensual) || map[t.nivel];
-        });
-        setPrecios(map);
-      }
       setLoading(false);
     }
     loadData();
   }, [authLoading, currentUser?.entityId, currentUser?.role]);
 
-  const montoMensual = currentUser?.role === 'company'
-    ? (empresa && empresa.tarifa ? precios[empresa.tarifa] ?? 0 : 0)
-    : 5000;
-  const montoAnual = montoMensual * 12;
+  // Modelo único: $50.000/mes ó $500.000/año (el anual tiene descuento, no es ×12).
+  const montoMensual = PRECIO_MENSUAL;
+  const montoAnual = PRECIO_ANUAL;
+  const ciclo: CicloSuscripcion = suscripcion?.ciclo === 'anual' ? 'anual' : 'mensual';
+  const montoCiclo = ciclo === 'anual' ? montoAnual : montoMensual;
+  // Las socias UIAB no pagan: acceso de cortesía (metodo_pago 'cortesia' o monto 0).
+  const esCortesia = !!suscripcion && (
+    suscripcion.metodo_pago === 'cortesia' ||
+    (suscripcion.monto != null && Number(suscripcion.monto) === 0)
+  );
 
   const estadoBadge = (() => {
     const e = suscripcion?.estado;
@@ -244,37 +223,53 @@ export default function MiPerfilSuscripcionPage() {
                 </div>
                 
                 <h2 className="text-3xl font-bold text-white mb-2">
-                  {currentUser.role === 'company' && empresa?.tarifa
-                    ? `Tarifa ${empresa.tarifa} — Socio UIAB`
-                    : currentUser.role === 'company'
-                      ? 'Socio UIAB (tarifa por asignar)'
-                      : 'Plan Profesional'}
+                  {esCortesia ? 'Socia UIAB' : 'UIAB Conecta'}
                 </h2>
-                {currentUser.role === 'company' ? (
+
+                {esCortesia ? (
+                  <>
+                    <div className="flex items-center gap-3 text-white mb-6">
+                      <ShieldCheck className="w-7 h-7 text-emerald-400 flex-shrink-0" />
+                      <div>
+                        <p className="text-xl font-bold leading-tight">Acceso sin cargo</p>
+                        <p className="text-sm text-slate-400">Cortesía por ser socia de la UIAB</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 text-slate-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-primary-400" />
+                        <span>Membresía activa sin costo de suscripción</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-slate-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-primary-400" />
+                        <span>Visibilidad prioritaria en el buscador industrial</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-slate-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-primary-400" />
+                        <span>Acceso a panel de clientes y estadísticas</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
                   <>
                     <div className="flex items-baseline gap-2 text-white mb-2 flex-wrap min-w-0">
                       <span
                         className="font-black tabular-nums break-words"
                         style={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)" }}
                       >
-                        {formatARS(montoMensual)}
+                        {formatARS(montoCiclo)}
                       </span>
-                      <span className="text-slate-400 font-medium">/mes (ARS)</span>
+                      <span className="text-slate-400 font-medium">
+                        {ciclo === 'anual' ? '/año (ARS)' : '/mes (ARS)'}
+                      </span>
                     </div>
                     <p className="text-xs text-slate-400 mb-6">
-                      Equivalente a {formatARS(montoAnual)}/año
+                      {ciclo === 'anual'
+                        ? `Equivale a ${formatARS(montoMensual)}/mes`
+                        : `O ${formatARS(montoAnual)}/año pagando de una (ahorrás ${formatARS(montoMensual * 12 - montoAnual)})`}
                     </p>
 
                     <div className="space-y-3">
-                      <div className="flex items-center gap-3 text-slate-300 text-sm">
-                        <Users className="w-4 h-4 text-primary-400" />
-                        <span>
-                          {empresa?.cantidad_empleados
-                            ? `${empresa.cantidad_empleados} empleados declarados`
-                            : 'Cantidad de empleados sin declarar'}
-                          {empresa?.tarifa && <span className="text-slate-500"> · {TARIFA_RANGO[empresa.tarifa]}</span>}
-                        </span>
-                      </div>
                       <div className="flex items-center gap-3 text-slate-300 text-sm">
                         <CheckCircle2 className="w-4 h-4 text-primary-400" />
                         <span>Visibilidad prioritaria en el buscador industrial</span>
@@ -285,28 +280,7 @@ export default function MiPerfilSuscripcionPage() {
                       </div>
                       <div className="flex items-center gap-3 text-slate-300 text-sm">
                         <CheckCircle2 className="w-4 h-4 text-primary-400" />
-                        <span>
-                          Tarifa vigente hasta {empresa?.tarifa_vigente_hasta
-                            ? new Date(empresa.tarifa_vigente_hasta).toLocaleDateString("es-AR", { month: "long", year: "numeric" })
-                            : "mayo 2026"} · UIAB ajusta trimestralmente por IPC
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-baseline gap-1 text-white mb-6">
-                      <span className="text-4xl font-black">$5.000</span>
-                      <span className="text-slate-400 font-medium">/mes (ARS)</span>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 text-slate-300 text-sm">
-                        <CheckCircle2 className="w-4 h-4 text-primary-400" />
-                        <span>Visibilidad prioritaria en el buscador industrial</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-slate-300 text-sm">
-                        <CheckCircle2 className="w-4 h-4 text-primary-400" />
-                        <span>Recepción de reseñas certificadas</span>
+                        <span>Mismo plan para empresas y particulares</span>
                       </div>
                     </div>
                   </>
@@ -322,13 +296,15 @@ export default function MiPerfilSuscripcionPage() {
                  <div>
                    <p className="text-sm font-semibold text-slate-900">{nombreMetodo}</p>
                    <p className="text-xs text-slate-500">
-                     {suscripcion?.proximo_cobro_en
-                       ? `Próximo cobro: ${new Date(suscripcion.proximo_cobro_en).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                       : 'Sin fecha de próximo cobro'}
+                     {esCortesia
+                       ? 'Sin cobros — acceso de cortesía'
+                       : suscripcion?.proximo_cobro_en
+                         ? `Próximo cobro: ${new Date(suscripcion.proximo_cobro_en).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                         : 'Sin fecha de próximo cobro'}
                    </p>
                  </div>
               </div>
-              {(!suscripcion || ['pendiente_pago','suspendida','cancelada'].includes(suscripcion.estado)) ? (
+              {esCortesia ? null : (!suscripcion || ['pendiente_pago','suspendida','cancelada'].includes(suscripcion.estado)) ? (
                 <Button className="w-full sm:w-auto" onClick={iniciarPago} disabled={iniciandoPago}>
                   {iniciandoPago ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirigiendo...</> : 'Pagar con Mercado Pago'}
                 </Button>
@@ -343,19 +319,27 @@ export default function MiPerfilSuscripcionPage() {
         {/* Quick Actions & Help */}
         <div className="space-y-6 flex flex-col">
 
-
-          <Card className="p-6 border-slate-100 border-dashed bg-slate-50 relative overflow-hidden group">
-             <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-2">¿Necesitas pausar?</h3>
-             <p className="text-xs text-slate-500 mb-4">Si cancelas, tu perfil dejará de ser público al finalizar el mes actual.</p>
-             <Button
-               variant="ghost"
-               className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-semibold h-10 border border-transparent hover:border-rose-100"
-               onClick={() => setMostrarModalCancelacion(true)}
-               disabled={cancelando || !suscripcion || suscripcion.estado === 'cancelada'}
-             >
-               {cancelando ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Cancelando...</> : 'Cancelar Suscripción'}
-             </Button>
-          </Card>
+          {esCortesia ? (
+            <Card className="p-6 border-slate-100 border-dashed bg-slate-50 relative overflow-hidden">
+               <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-2">Membresía de cortesía</h3>
+               <p className="text-xs text-slate-500">
+                 Como socia de la UIAB tu acceso es sin cargo. No hay suscripción que gestionar ni cobros asociados.
+               </p>
+            </Card>
+          ) : (
+            <Card className="p-6 border-slate-100 border-dashed bg-slate-50 relative overflow-hidden group">
+               <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-2">¿Necesitas pausar?</h3>
+               <p className="text-xs text-slate-500 mb-4">Si cancelas, tu perfil dejará de ser público al finalizar el mes actual.</p>
+               <Button
+                 variant="ghost"
+                 className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-semibold h-10 border border-transparent hover:border-rose-100"
+                 onClick={() => setMostrarModalCancelacion(true)}
+                 disabled={cancelando || !suscripcion || suscripcion.estado === 'cancelada'}
+               >
+                 {cancelando ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Cancelando...</> : 'Cancelar Suscripción'}
+               </Button>
+            </Card>
+          )}
         </div>
       </div>
 

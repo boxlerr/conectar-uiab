@@ -3,8 +3,9 @@ import { createClient } from "@/lib/supabase/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { crearPreapproval } from "@/lib/mercadopago/cliente";
 import {
-  calcularMontoMensual,
+  montoPorCiclo,
   nombrePlan,
+  type CicloSuscripcion,
 } from "@/lib/mercadopago/suscripciones";
 
 /**
@@ -26,6 +27,10 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
+  // Ciclo elegido en el checkout (mensual por defecto).
+  const body = await req.json().catch(() => null);
+  const ciclo: CicloSuscripcion = body?.ciclo === "anual" ? "anual" : "mensual";
+
   // 1. Perfil + entidad asociada
   const { data: perfil } = await admin
     .from("perfiles")
@@ -37,15 +42,20 @@ export async function POST(req: NextRequest) {
   let empresa_id: string | null = null;
   let proveedor_id: string | null = null;
   let tarifa: number | null = null;
-  let empleados: number | null = null;
 
   if (perfil.rol_sistema === "company") {
     const { data: m } = await admin.from("miembros_empresa").select("empresa_id").eq("perfil_id", user.id).maybeSingle();
     empresa_id = m?.empresa_id ?? null;
     if (empresa_id) {
-      const { data: emp } = await admin.from("empresas").select("tarifa, cantidad_empleados").eq("id", empresa_id).maybeSingle();
+      const { data: emp } = await admin.from("empresas").select("tarifa, n_socio").eq("id", empresa_id).maybeSingle();
       tarifa = emp?.tarifa ?? null;
-      empleados = emp?.cantidad_empleados ?? null;
+      // Las socias UIAB (n_socio presente) tienen acceso sin cargo: no pasan por el checkout.
+      if (emp?.n_socio) {
+        return NextResponse.json(
+          { error: "Sos socia de la UIAB: tu acceso es sin cargo, no necesitás suscripción." },
+          { status: 400 }
+        );
+      }
     }
   } else if (perfil.rol_sistema === "provider") {
     const { data: m } = await admin.from("miembros_proveedor").select("proveedor_id").eq("perfil_id", user.id).maybeSingle();
@@ -58,20 +68,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No se encontró la entidad del usuario" }, { status: 400 });
   }
 
-  // 2. Precios desde DB
-  const { data: precios } = await admin.from("tarifas_precios").select("nivel, precio_mensual");
-  const mapaPrecios: Record<number, number> = {};
-  (precios ?? []).forEach((p: any) => {
-    mapaPrecios[p.nivel] = Number(p.precio_mensual);
-  });
-
-  const monto = calcularMontoMensual({
-    role: perfil.rol_sistema,
-    tarifa,
-    empleados,
-    preciosDb: mapaPrecios,
-  });
-  const plan = nombrePlan(perfil.rol_sistema, tarifa);
+  // 2. Monto plano según ciclo ($50.000/mes ó $500.000/año).
+  const monto = montoPorCiclo(ciclo);
+  const plan = nombrePlan(perfil.rol_sistema, tarifa, ciclo);
 
   // 3. Upsert suscripción pendiente
   const filtro = empresa_id ? { empresa_id } : { proveedor_id };
@@ -95,6 +94,7 @@ export async function POST(req: NextRequest) {
         nombre_plan: plan,
         estado: "pendiente_pago",
         metodo_pago: "mercadopago",
+        ciclo,
       })
       .select("id")
       .single();
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
   } else {
     await admin
       .from("suscripciones")
-      .update({ monto, nombre_plan: plan, estado: "pendiente_pago", metodo_pago: "mercadopago", actualizado_en: new Date().toISOString() })
+      .update({ monto, nombre_plan: plan, estado: "pendiente_pago", metodo_pago: "mercadopago", ciclo, actualizado_en: new Date().toISOString() })
       .eq("id", suscripcionId);
   }
 
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         payer_email: payerEmail,
         back_url: `${appUrl}/pendiente-aprobacion?mp=ok`,
         auto_recurring: {
-          frequency: 1,
+          frequency: ciclo === "anual" ? 12 : 1,
           frequency_type: "months",
           transaction_amount: monto,
           currency_id: "ARS",

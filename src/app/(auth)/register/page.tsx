@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utilidades'
 import { useAuth } from '@/modulos/autenticacion/contexto-autenticacion'
-import { TARIFA_PRECIO_MENSUAL_FALLBACK } from '@/lib/mercadopago/suscripciones'
+import { PRECIO_MENSUAL, PRECIO_ANUAL } from '@/lib/mercadopago/suscripciones'
 
 // ─── OFFICIAL TAXONOMY ───
 
@@ -202,7 +202,6 @@ function RegisterContent() {
   const password = form.watch('password')
   const sectorId = form.watch('sectorId')
   const [categorias, setCategorias] = useState<CategoriaDB[]>([])
-  const [precios, setPrecios] = useState<Record<number, number>>(TARIFA_PRECIO_MENSUAL_FALLBACK)
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -214,15 +213,7 @@ function RegisterContent() {
       .then((r) => r.json())
       .then((d) => setCategorias(d.categorias || []))
       .catch(() => setCategorias([]))
-
-    supabase.from('tarifas_precios').select('nivel, precio_mensual').then(({ data, error }) => {
-      if (data && !error) {
-        const map = { ...TARIFA_PRECIO_MENSUAL_FALLBACK };
-        data.forEach((t: any) => { map[t.nivel as 1|2|3] = Number(t.precio_mensual) || map[t.nivel as 1|2|3]; });
-        setPrecios(map);
-      }
-    });
-  }, [supabase])
+  }, [])
 
   const passRequirements = useMemo(() => [
     { label: "8+ Caracteres", met: password.length >= 8 },
@@ -994,22 +985,9 @@ function RegisterContent() {
                         </div>
                       )}
 
-                      {/* ─── PHASE 7: SUSCRIPCIÓN (plan único según rol/empleados) ─── */}
+                      {/* ─── PHASE 7: SUSCRIPCIÓN (plan único UIAB Conecta) ─── */}
                       {step === 7 && (() => {
                         const esEmpresa = selectedRole === 'company';
-                        const empleadosNum = parseInt(String(form.getValues('size') || '').replace(/\D/g, ''), 10);
-                        const nivel: 1 | 2 | 3 = !esEmpresa
-                          ? 1
-                          : empleadosNum <= 30 ? 1
-                            : empleadosNum <= 99 ? 2
-                              : 3;
-                        const precio = esEmpresa
-                          ? precios[nivel]
-                          : 5_000;
-                        const nombrePlan = esEmpresa
-                          ? `UIAB Conecta · Tarifa ${nivel}`
-                          : 'UIAB Conecta · Particular';
-                        const rangoEmpleados = nivel === 1 ? '0–30 empleados' : nivel === 2 ? '31–99 empleados' : '100+ empleados';
                         const beneficios = esEmpresa
                           ? [
                             'Ficha institucional en el directorio oficial UIAB',
@@ -1032,9 +1010,7 @@ function RegisterContent() {
                               <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-0.5 text-[10px] tracking-widest uppercase rounded-sm">Membresía Oficial</Badge>
                               <h2 className="text-2xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Tu suscripción.</h2>
                               <p className="text-slate-500 font-inter text-xs">
-                                {esEmpresa
-                                  ? `Calculada según empleados declarados (${rangoEmpleados}).`
-                                  : 'Membresía fija para proveedores de servicios y profesionales.'}
+                                Una sola membresía para acceder a toda la red UIAB Conecta, igual para empresas y particulares.
                               </p>
                             </div>
 
@@ -1048,13 +1024,12 @@ function RegisterContent() {
                                   </div>
                                   <div>
                                     <p className="text-[9px] font-bold uppercase tracking-widest text-white/50">Plan asignado</p>
-                                    <h3 className="text-base font-black text-white leading-tight">{nombrePlan}</h3>
+                                    <h3 className="text-base font-black text-white leading-tight">UIAB Conecta</h3>
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <span className="text-2xl font-black text-white tracking-tighter">${precio.toLocaleString('es-AR')}</span>
+                                  <span className="text-2xl font-black text-white tracking-tighter">${PRECIO_MENSUAL.toLocaleString('es-AR')}</span>
                                   <span className="text-xs text-white/60 ml-1">/ mes</span>
-                                  {esEmpresa && <Badge className="ml-2 bg-white/15 text-white border border-white/20 font-black text-[10px] uppercase">T{nivel}</Badge>}
                                 </div>
                               </div>
 
@@ -1078,11 +1053,23 @@ function RegisterContent() {
                                 <div>
                                   <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Total mensual</p>
                                   <p className="text-lg font-black text-[#00213f] tracking-tighter">
-                                    ${precio.toLocaleString('es-AR')} <span className="text-xs font-semibold text-slate-400">/ mes</span>
+                                    ${PRECIO_MENSUAL.toLocaleString('es-AR')} <span className="text-xs font-semibold text-slate-400">/ mes</span>
                                   </p>
                                 </div>
                                 <p className="text-[10px] font-semibold text-slate-400">Mes a mes · sin permanencia</p>
                               </div>
+                            </div>
+
+                            {/* Aclaración: pago anual y cortesía para socias UIAB */}
+                            <div className="rounded-xl border border-primary-100 bg-primary-50/60 px-4 py-3 space-y-1.5">
+                              <p className="text-xs font-semibold text-[#00213f] flex items-start gap-1.5">
+                                <Sparkles className="h-3.5 w-3.5 text-primary-600 shrink-0 mt-0.5" />
+                                <span>También podés pagar el año completo por <span className="font-black">${PRECIO_ANUAL.toLocaleString('es-AR')}</span>.</span>
+                              </p>
+                              <p className="text-xs font-semibold text-[#00213f] flex items-start gap-1.5">
+                                <ShieldCheck className="h-3.5 w-3.5 text-primary-600 shrink-0 mt-0.5" />
+                                <span>¿Ya sos socia de la UIAB? Tu acceso es sin cargo.</span>
+                              </p>
                             </div>
 
                             <div className="space-y-2 pt-1">

@@ -389,6 +389,33 @@ export async function crearCuentaDesdeAlta(altaId: string) {
         es_principal: true,
       });
     }
+
+    // 3.5 Suscripción de cortesía para socias UIAB: si la empresa tiene N° de
+    // socio, el acceso es sin cargo (no pasa por el checkout).
+    const { data: empSocia } = await db
+      .from("empresas")
+      .select("n_socio")
+      .eq("id", empresaIdFinal)
+      .maybeSingle();
+    if (empSocia?.n_socio) {
+      const { data: yaSusc } = await db
+        .from("suscripciones")
+        .select("id")
+        .eq("empresa_id", empresaIdFinal)
+        .maybeSingle();
+      if (!yaSusc) {
+        await db.from("suscripciones").insert({
+          empresa_id: empresaIdFinal,
+          monto: 0,
+          moneda: "ARS",
+          nombre_plan: "Socia UIAB (sin cargo)",
+          estado: "activa",
+          metodo_pago: "cortesia",
+          ciclo: "mensual",
+          notas_admin: "Acceso sin cargo por ser socia de la UIAB.",
+        });
+      }
+    }
   }
 
   // 4. Invitación para definir contraseña (token propio, válido 30 días, single-use).
