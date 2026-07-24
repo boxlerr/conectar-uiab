@@ -17,6 +17,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -142,6 +143,12 @@ export default function OportunidadDetail({
         </Card>
       </div>
     );
+
+  // Etiquetas de la oportunidad: se cruzan con las de cada candidato para
+  // mostrar "qué tienen en común" en vez de puntajes crudos.
+  const opTags = (op?.oportunidades_tags ?? [])
+    .map((ot) => ot.tags?.nombre)
+    .filter((n): n is string => Boolean(n));
 
   const empresasCandidatas = candidates.filter((m) => m.empresa_candidata_id);
   const proveedoresCandidatos = candidates.filter(
@@ -423,9 +430,14 @@ export default function OportunidadDetail({
               <div className="bg-white p-16 text-center rounded-sm">
                 <Sparkles className="w-10 h-10 text-slate-200 mx-auto mb-4" />
                 <p className="text-slate-500 font-inter font-medium leading-relaxed max-w-sm mx-auto">
-                  Todavía no hay candidatos con compatibilidad suficiente.
-                  Sumá más etiquetas para ampliar la búsqueda.
+                  Todavía no hay candidatos con compatibilidad suficiente. Cuantas
+                  más etiquetas tenga tu oportunidad, más coincidencias encontramos.
                 </p>
+                <Link href="/oportunidades/nueva" className="inline-block mt-6">
+                  <Button className="bg-[#00213f] hover:bg-[#10375c] text-white rounded-sm h-10 px-6 font-bold font-inter text-[10px] uppercase tracking-[0.2em]">
+                    Publicar otra necesidad
+                  </Button>
+                </Link>
               </div>
             ) : (
               <div className="space-y-12">
@@ -437,6 +449,7 @@ export default function OportunidadDetail({
                     }
                     items={empresasCandidatas}
                     tipo="empresa"
+                    opTags={opTags}
                   />
                 )}
                 {proveedoresCandidatos.length > 0 && (
@@ -445,6 +458,7 @@ export default function OportunidadDetail({
                     icono={<User className="w-4 h-4 text-[#10375c]" />}
                     items={proveedoresCandidatos}
                     tipo="proveedor"
+                    opTags={opTags}
                   />
                 )}
               </div>
@@ -556,11 +570,13 @@ function CandidatosSection({
   icono,
   items,
   tipo,
+  opTags,
 }: {
   titulo: string;
   icono: React.ReactNode;
   items: Match[];
   tipo: "empresa" | "proveedor";
+  opTags: string[];
 }) {
   return (
     <section className="space-y-6">
@@ -578,7 +594,7 @@ function CandidatosSection({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {items.map((match) => (
-          <MatchCard key={match.id} match={match} tipo={tipo} />
+          <MatchCard key={match.id} match={match} tipo={tipo} opTags={opTags} />
         ))}
       </div>
     </section>
@@ -588,9 +604,11 @@ function CandidatosSection({
 function MatchCard({
   match,
   tipo,
+  opTags,
 }: {
   match: Match;
   tipo: "empresa" | "proveedor";
+  opTags: string[];
 }) {
   const nombre =
     tipo === "empresa"
@@ -608,18 +626,55 @@ function MatchCard({
       ? `/empresas/${match.empresa_candidata_id}`
       : `/proveedor/proveedores/${match.proveedor_candidato_id}`;
 
+  // Logo real del candidato (bucket público de Supabase Storage).
+  const bucket =
+    tipo === "empresa" ? match.empresa?.bucket_logo : match.proveedor?.bucket_logo;
+  const ruta =
+    tipo === "empresa" ? match.empresa?.ruta_logo : match.proveedor?.ruta_logo;
+  const logoUrl =
+    bucket && ruta
+      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${ruta}`
+      : null;
+
+  // Etiquetas que el candidato comparte con la oportunidad — el "por qué"
+  // del match en palabras, en vez de puntajes crudos.
+  const tagsCandidato = (
+    (tipo === "empresa"
+      ? match.empresa?.empresas_tags
+      : match.proveedor?.proveedores_tags) ?? []
+  )
+    .map((t) => t.tags?.nombre)
+    .filter((n): n is string => Boolean(n));
+  const opTagsLower = opTags.map((t) => t.toLowerCase());
+  const compartidas = tagsCandidato.filter((n) =>
+    opTagsLower.includes(n.toLowerCase())
+  );
+  const compartidasVisibles = compartidas.slice(0, 3);
+
   return (
     <Card className="border-none bg-white p-6 rounded-sm shadow-sm hover:shadow-lg transition-all group overflow-hidden relative">
       <div className="absolute top-0 left-0 h-1 w-full bg-[#00213f] opacity-0 group-hover:opacity-100 transition-opacity" />
       <div className="flex flex-col h-full">
         <div className="flex justify-between items-start mb-5">
-          <div className="w-12 h-12 bg-[#f2f4f6] rounded-sm flex items-center justify-center">
-            {tipo === "empresa" ? (
-              <Building2 className="w-6 h-6 text-slate-400" />
-            ) : (
-              <User className="w-6 h-6 text-slate-400" />
-            )}
-          </div>
+          {logoUrl ? (
+            <div className="w-12 h-12 bg-white border border-slate-100 rounded-sm flex items-center justify-center overflow-hidden">
+              <Image
+                src={logoUrl}
+                alt=""
+                width={48}
+                height={48}
+                className="w-full h-full object-contain p-1"
+              />
+            </div>
+          ) : (
+            <div className="w-12 h-12 bg-[#f2f4f6] rounded-sm flex items-center justify-center">
+              {tipo === "empresa" ? (
+                <Building2 className="w-6 h-6 text-slate-400" />
+              ) : (
+                <User className="w-6 h-6 text-slate-400" />
+              )}
+            </div>
+          )}
           <div className="text-right">
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.18em] mb-0.5">
               Match
@@ -645,17 +700,27 @@ function MatchCard({
         )}
 
         <div className="flex flex-wrap gap-1.5 mb-5">
-          <span className="text-[10px] font-bold text-slate-600 bg-[#f2f4f6] px-2 py-1 rounded-sm">
-            Cat {match.detalle_puntaje.categoria}
-          </span>
-          {match.detalle_puntaje.tags > 0 && (
-            <span className="text-[10px] font-bold text-slate-600 bg-[#f2f4f6] px-2 py-1 rounded-sm flex items-center gap-1">
-              <Tag className="w-2.5 h-2.5" /> {match.detalle_puntaje.tags}
+          {compartidasVisibles.map((tag) => (
+            <span
+              key={tag}
+              className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 px-2 py-1 rounded-sm flex items-center gap-1"
+            >
+              <Tag className="w-2.5 h-2.5" /> {tag}
+            </span>
+          ))}
+          {compartidas.length > 3 && (
+            <span className="text-[10px] font-bold text-slate-500 bg-[#f2f4f6] px-2 py-1 rounded-sm">
+              +{compartidas.length - 3} en común
             </span>
           )}
           {match.detalle_puntaje.ubicacion > 0 && (
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-sm flex items-center gap-1">
+              <MapPin className="w-2.5 h-2.5" /> Misma zona
+            </span>
+          )}
+          {compartidasVisibles.length === 0 && match.detalle_puntaje.categoria > 0 && (
             <span className="text-[10px] font-bold text-slate-600 bg-[#f2f4f6] px-2 py-1 rounded-sm">
-              Misma zona
+              Mismo rubro
             </span>
           )}
         </div>

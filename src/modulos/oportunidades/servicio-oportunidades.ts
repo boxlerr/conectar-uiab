@@ -15,6 +15,7 @@ export interface Oportunidad {
   creado_en: string;
   categoria?: { nombre: string };
   empresa?: { razon_social: string };
+  oportunidades_tags?: { tags: { nombre: string } | null }[] | null;
 }
 
 export interface MatchCandidateEmpresa {
@@ -23,6 +24,7 @@ export interface MatchCandidateEmpresa {
   localidad?: string | null;
   ruta_logo?: string | null;
   bucket_logo?: string | null;
+  empresas_tags?: { tags: { nombre: string } | null }[] | null;
 }
 
 export interface MatchCandidateProveedor {
@@ -32,6 +34,7 @@ export interface MatchCandidateProveedor {
   localidad?: string | null;
   ruta_logo?: string | null;
   bucket_logo?: string | null;
+  proveedores_tags?: { tags: { nombre: string } | null }[] | null;
 }
 
 export interface Match {
@@ -107,7 +110,8 @@ export const oportunidadesService = {
         .select(`
           *,
           categoria:categorias(nombre),
-          empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
+          empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social),
+          oportunidades_tags ( tags ( nombre ) )
         `)
         .eq('id', id)
         .single())(),
@@ -151,8 +155,8 @@ export const oportunidadesService = {
         .from('oportunidades_matches')
         .select(`
           *,
-          empresa:empresas!oportunidades_matches_empresa_candidata_id_fkey(razon_social, nombre_comercial, localidad, ruta_logo, bucket_logo),
-          proveedor:proveedores!oportunidades_matches_proveedor_candidato_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, ruta_logo, bucket_logo)
+          empresa:empresas!oportunidades_matches_empresa_candidata_id_fkey(razon_social, nombre_comercial, localidad, ruta_logo, bucket_logo, empresas_tags ( tags ( nombre ) )),
+          proveedor:proveedores!oportunidades_matches_proveedor_candidato_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, ruta_logo, bucket_logo, proveedores_tags ( tags ( nombre ) ))
         `)
         .eq('oportunidad_id', oportunidadId)
         .order('puntaje', { ascending: false }))(),
