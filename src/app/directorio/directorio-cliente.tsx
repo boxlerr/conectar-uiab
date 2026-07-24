@@ -281,21 +281,28 @@ export function DirectorioCliente({
 
   const entidadesActivas = datosPorTab[tabActiva.key];
 
+  // Sectores filtrables: la categoría principal + las secundarias de cada
+  // entidad (pedido reunión 2-jul: poder buscar/filtrar por sector).
   const categoriasActivas = useMemo(() => {
-    return Array.from(new Set(entidadesActivas.map((e) => e.categoria)))
+    return Array.from(
+      new Set(entidadesActivas.flatMap((e) => [e.categoria, ...e.servicios]))
+    )
       .filter(Boolean)
-      .sort();
+      .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
   }, [entidadesActivas]);
 
   const entidadesFiltradas = useMemo(() => {
     return entidadesActivas.filter((e) => {
+      // El sector elegido matchea la categoría principal O cualquier secundaria.
       const matchCategoria = categoriaSeleccionada
-        ? e.categoria === categoriaSeleccionada
+        ? e.categoria === categoriaSeleccionada ||
+          e.servicios.includes(categoriaSeleccionada)
         : true;
       const term = searchTerm.toLowerCase();
       const matchSearch =
         term === "" ||
         e.nombre.toLowerCase().includes(term) ||
+        e.categoria.toLowerCase().includes(term) ||
         e.descripcionCorta.toLowerCase().includes(term) ||
         e.servicios.some((s: string) => s.toLowerCase().includes(term)) ||
         e.tags.some((t: string) => t.toLowerCase().includes(term)) ||
