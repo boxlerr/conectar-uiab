@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
@@ -20,9 +20,18 @@ export function AuthModal() {
   // Form State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [recordar, setRecordar] = useState(true);
 
   // Shared Supabase Browser Client
   const supabase = createClient();
+
+  // Pre-completar el email recordado cuando se abre el modal. La contraseña
+  // la guarda el navegador (autocomplete="current-password"), nunca nosotros.
+  useEffect(() => {
+    if (!isAuthModalOpen) return;
+    const guardado = localStorage.getItem("uiab_login_email");
+    if (guardado) setEmail(guardado);
+  }, [isAuthModalOpen]);
 
   if (!isAuthModalOpen) return null;
 
@@ -45,6 +54,12 @@ export function AuthModal() {
         setIsLoading(false);
         return;
       }
+
+      // Preferencia "recordar sesión" + email recordado (paridad con /login).
+      localStorage.setItem("uiab_recordar", recordar ? "1" : "0");
+      localStorage.setItem("uiab_last_seen", String(Date.now()));
+      if (recordar) localStorage.setItem("uiab_login_email", email);
+      else localStorage.removeItem("uiab_login_email");
 
       toast.success("Bienvenido de nuevo");
       await refreshUser();
@@ -160,6 +175,8 @@ export function AuthModal() {
                   </div>
                   <input
                     type="email"
+                    name="email"
+                    autoComplete="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -203,6 +220,8 @@ export function AuthModal() {
                   </div>
                   <input
                     type={showPassword ? "text" : "password"}
+                    name="password"
+                    autoComplete="current-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -232,8 +251,24 @@ export function AuthModal() {
                 </div>
               </div>
               
+              {/* Recordar sesión + email */}
+              <label className="flex items-center gap-2.5 cursor-pointer select-none -mt-1">
+                <input
+                  type="checkbox"
+                  checked={recordar}
+                  onChange={(e) => setRecordar(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-[#00213f] focus:ring-[#00213f]/30"
+                />
+                <span
+                  className="text-[12px] font-semibold text-[#191c1e]/60"
+                  style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+                >
+                  Mantener mi sesión iniciada y recordar mi email
+                </span>
+              </label>
+
               {/* Primary CTA — DESIGN.md: solid primary bg, on_primary text, DEFAULT roundedness */}
-              <Button 
+              <Button
                 type="submit" 
                 className="w-full h-12 text-[14px] font-bold bg-[#00213f] hover:bg-[#10375c] text-white active:scale-[0.98] transition-all cursor-pointer"
                 style={{ borderRadius: "0.25rem" }}

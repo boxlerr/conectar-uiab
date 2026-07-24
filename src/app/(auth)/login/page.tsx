@@ -50,6 +50,13 @@ function LoginContent() {
     }
   }, [searchParams])
 
+  // Pre-completar el email recordado del último login. La contraseña la
+  // guarda el navegador (autocomplete="current-password"), nunca nosotros.
+  useEffect(() => {
+    const guardado = localStorage.getItem('uiab_login_email')
+    if (guardado) setEmail(guardado)
+  }, [])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setIsLoading(true)
@@ -73,6 +80,9 @@ function LoginContent() {
       // Preferencia "recordar sesión" (la aplica RecordarSesionGuard).
       localStorage.setItem('uiab_recordar', recordar ? '1' : '0')
       localStorage.setItem('uiab_last_seen', String(Date.now()))
+      // Email recordado para pre-completar el próximo login.
+      if (recordar) localStorage.setItem('uiab_login_email', email)
+      else localStorage.removeItem('uiab_login_email')
 
       const { data: profile } = await supabase
         .from('perfiles')
@@ -162,6 +172,8 @@ function LoginContent() {
               <div className="relative group">
                 <input
                   type="email"
+                  name="email"
+                  autoComplete="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -202,6 +214,8 @@ function LoginContent() {
               <div className="relative group">
                 <input
                   type={showPassword ? "text" : "password"}
+                  name="password"
+                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -242,7 +256,7 @@ function LoginContent() {
                 className="text-[12px] font-semibold text-[#191c1e]/60"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
               >
-                Mantener mi sesión iniciada en este dispositivo
+                Mantener mi sesión iniciada y recordar mi email
               </span>
             </label>
 
