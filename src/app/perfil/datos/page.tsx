@@ -56,38 +56,44 @@ export default function MiPerfilDatosPage() {
       return;
     }
 
-    const table = currentUser.role === "company" ? "empresas" : "proveedores";
-    const { data } = await supabase.from(table).select("*").eq("id", currentUser.entityId).single();
+    // try/finally: el spinner siempre se apaga aunque la query lance.
+    try {
+      const table = currentUser.role === "company" ? "empresas" : "proveedores";
+      const { data } = await supabase.from(table).select("*").eq("id", currentUser.entityId).single();
 
-    if (data) {
-      setFormData({
-        razon_social: data.razon_social || "",
-        nombre_comercial: data.nombre_comercial || "",
-        email: data.email || "",
-        email_compras: data.email_compras || "",
-        telefono: data.telefono || "",
-        whatsapp: data.whatsapp || "",
-        sitio_web: data.sitio_web || "",
-        pais: data.pais || "Argentina",
-        provincia: data.provincia || "Buenos Aires",
-        localidad: data.localidad || "",
-        direccion: data.direccion || "",
-        descripcion: data.descripcion || "",
-        cuit: data.cuit || "",
-        cantidad_empleados: data.cantidad_empleados != null ? String(data.cantidad_empleados) : "",
-        ruta_logo: data.ruta_logo || "",
-        bucket_logo: data.bucket_logo || "",
-        nombre_logo: data.nombre_logo || "",
-        mime_logo: data.mime_logo || "",
-        tamano_logo_bytes: data.tamano_logo_bytes || 0,
-        fecha_inicio_experiencia: data.fecha_inicio_experiencia || "",
-      });
-      if (data.bucket_logo && data.ruta_logo) {
-        const { data: urlData } = supabase.storage.from(data.bucket_logo).getPublicUrl(data.ruta_logo);
-        setLogoPreviewUrl(urlData.publicUrl);
+      if (data) {
+        setFormData({
+          razon_social: data.razon_social || "",
+          nombre_comercial: data.nombre_comercial || "",
+          email: data.email || "",
+          email_compras: data.email_compras || "",
+          telefono: data.telefono || "",
+          whatsapp: data.whatsapp || "",
+          sitio_web: data.sitio_web || "",
+          pais: data.pais || "Argentina",
+          provincia: data.provincia || "Buenos Aires",
+          localidad: data.localidad || "",
+          direccion: data.direccion || "",
+          descripcion: data.descripcion || "",
+          cuit: data.cuit || "",
+          cantidad_empleados: data.cantidad_empleados != null ? String(data.cantidad_empleados) : "",
+          ruta_logo: data.ruta_logo || "",
+          bucket_logo: data.bucket_logo || "",
+          nombre_logo: data.nombre_logo || "",
+          mime_logo: data.mime_logo || "",
+          tamano_logo_bytes: data.tamano_logo_bytes || 0,
+          fecha_inicio_experiencia: data.fecha_inicio_experiencia || "",
+        });
+        if (data.bucket_logo && data.ruta_logo) {
+          const { data: urlData } = supabase.storage.from(data.bucket_logo).getPublicUrl(data.ruta_logo);
+          setLogoPreviewUrl(urlData.publicUrl);
+        }
       }
+    } catch (err) {
+      console.error("[perfil/datos] loadData falló:", err);
+    } finally {
+      setFetching(false);
     }
-    setFetching(false);
   }, [currentUser?.entityId, currentUser?.role, supabase]);
 
   useEffect(() => {

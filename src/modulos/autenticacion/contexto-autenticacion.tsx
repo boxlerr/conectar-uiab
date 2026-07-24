@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@/tipos";
-import { createClient, resetClient } from "@/lib/supabase/cliente";
+import { createClient } from "@/lib/supabase/cliente";
 
 // ─── Logger condicional ──────────────────────────────────────────────────────
 // Activá logs detallados con `localStorage.setItem('auth-debug', '1')` en la
@@ -231,11 +231,11 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
         }
       } catch (err) {
         // Timeout / red: NO es una sesión muerta, es un cuelgue transitorio.
-        // Reciclamos el cliente por si hay un lock huérfano, pero NUNCA
-        // recargamos la página ni sacamos al usuario (eso causaba el
+        // No recargamos la página ni tocamos al usuario (eso causaba el
         // "de repente queda en blanco cargando" sin acción del usuario).
-        dbg('healthcheck: timeout/red — reset cliente sin recargar', err);
-        resetClient();
+        // Tampoco reciclamos el cliente: dos clientes vivos refrescando el
+        // mismo token hacen que Supabase revoque la familia (ver cliente.ts).
+        dbg('healthcheck: timeout/red — se ignora, reintenta en 60s', err);
       }
     };
     const healthInterval = setInterval(healthCheck, 60_000);

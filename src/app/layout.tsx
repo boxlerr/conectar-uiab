@@ -32,6 +32,7 @@ const inter = Inter({
 import { AuthProvider } from "@/modulos/autenticacion/contexto-autenticacion";
 import { TourProvider } from "@/modulos/onboarding/contexto-tour";
 import { AppShell } from "@/components/plantillas/app-shell";
+import { RecargaTrasDeploy } from "@/components/plantillas/recarga-tras-deploy";
 import { cn } from "@/lib/utilidades";
 import { Toaster } from "@/components/ui/sonner";
 import { createClient } from "@/lib/supabase/servidor";
@@ -226,6 +227,7 @@ export default async function RootLayout({
           </TourProvider>
         </AuthProvider>
         <Toaster />
+        <RecargaTrasDeploy />
         <Analytics />
       </body>
     </html>

@@ -62,48 +62,54 @@ export default function MiPerfilPage() {
         return;
       }
 
-      const table = currentUser.role === "company" ? "empresas" : "proveedores";
-      const { data } = await supabase.from(table).select("*").eq("id", currentUser.entityId).single();
-      if (data) setProfileDetails(data);
+      // try/finally: si una query lanza (p.ej. el timeout de 15s del cliente),
+      // el spinner SIEMPRE se apaga en vez de quedar cargando para siempre.
+      try {
+        const table = currentUser.role === "company" ? "empresas" : "proveedores";
+        const { data } = await supabase.from(table).select("*").eq("id", currentUser.entityId).single();
+        if (data) setProfileDetails(data);
 
-      if (currentUser.role === "company") {
-        const { data: rels } = await supabase
-          .from("empresas_categorias")
-          .select("categoria_id, categorias(nombre)")
-          .eq("empresa_id", currentUser.entityId);
-        if (rels) setServices(rels.map((r: any) => r.categorias?.nombre).filter(Boolean));
-      } else if (currentUser.role === "provider") {
-        const { data: rels } = await supabase
-          .from("proveedores_categorias")
-          .select("categoria_id, categorias(nombre)")
-          .eq("proveedor_id", currentUser.entityId);
-        if (rels) setServices(rels.map((r: any) => r.categorias?.nombre).filter(Boolean));
+        if (currentUser.role === "company") {
+          const { data: rels } = await supabase
+            .from("empresas_categorias")
+            .select("categoria_id, categorias(nombre)")
+            .eq("empresa_id", currentUser.entityId);
+          if (rels) setServices(rels.map((r: any) => r.categorias?.nombre).filter(Boolean));
+        } else if (currentUser.role === "provider") {
+          const { data: rels } = await supabase
+            .from("proveedores_categorias")
+            .select("categoria_id, categorias(nombre)")
+            .eq("proveedor_id", currentUser.entityId);
+          if (rels) setServices(rels.map((r: any) => r.categorias?.nombre).filter(Boolean));
+        }
+
+        // Reseñas recibidas aprobadas
+        const resenadaCol = currentUser.role === "company" ? "empresa_resenada_id" : "proveedor_resenado_id";
+        const { data: resenasData } = await supabase
+          .from("resenas")
+          .select(
+            `id, calificacion, comentario, creada_en,
+             empresa_autora:empresa_autora_id(razon_social, nombre_comercial),
+             proveedor_autor:proveedor_autor_id(nombre, nombre_comercial)`
+          )
+          .eq(resenadaCol, currentUser.entityId)
+          .eq("estado", "aprobada")
+          .order("creada_en", { ascending: false })
+          .limit(3);
+        if (resenasData) setResenas(resenasData as unknown as Resena[]);
+
+        // Conteo de certificaciones cargadas
+        const certCol = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
+        const { count: certCount } = await supabase
+          .from("certificaciones")
+          .select("id", { count: "exact", head: true })
+          .eq(certCol, currentUser.entityId);
+        setCertsCount(certCount ?? 0);
+      } catch (err) {
+        console.error("[perfil] loadData falló:", err);
+      } finally {
+        setIsLoading(false);
       }
-
-      // Reseñas recibidas aprobadas
-      const resenadaCol = currentUser.role === "company" ? "empresa_resenada_id" : "proveedor_resenado_id";
-      const { data: resenasData } = await supabase
-        .from("resenas")
-        .select(
-          `id, calificacion, comentario, creada_en,
-           empresa_autora:empresa_autora_id(razon_social, nombre_comercial),
-           proveedor_autor:proveedor_autor_id(nombre, nombre_comercial)`
-        )
-        .eq(resenadaCol, currentUser.entityId)
-        .eq("estado", "aprobada")
-        .order("creada_en", { ascending: false })
-        .limit(3);
-      if (resenasData) setResenas(resenasData as unknown as Resena[]);
-
-      // Conteo de certificaciones cargadas
-      const certCol = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
-      const { count: certCount } = await supabase
-        .from("certificaciones")
-        .select("id", { count: "exact", head: true })
-        .eq(certCol, currentUser.entityId);
-      setCertsCount(certCount ?? 0);
-
-      setIsLoading(false);
     }
     loadData();
   }, [authLoading, currentUser?.entityId, currentUser?.role]);

@@ -95,10 +95,14 @@ export default function MiPerfilCertificacionesPage() {
     }
     let vivo = true;
     (async () => {
-      const data = await listarCertificaciones(role, entityId);
-      if (vivo) {
-        setCerts(data);
-        setFetching(false);
+      // try/finally: el spinner siempre se apaga aunque la query lance.
+      try {
+        const data = await listarCertificaciones(role, entityId);
+        if (vivo) setCerts(data);
+      } catch (err) {
+        console.error("[perfil/certificaciones] listar falló:", err);
+      } finally {
+        if (vivo) setFetching(false);
       }
     })();
     return () => {

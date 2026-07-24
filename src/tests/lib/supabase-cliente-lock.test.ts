@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  * FIX:
  *   1. Custom `lock` con timeout de 3s: si no se adquiere, salta el lock y
  *      corre la operación igual. Mejor corromper un refresh que colgar la UI.
- *   2. `resetClient()` expuesto para rehidratar el singleton.
+ *   2. `resetClient()` es deliberadamente no-op (el singleton nunca se recicla).
  *   3. Reset automático cuando la tab vuelve de background tras >30s.
  */
 
@@ -112,7 +112,7 @@ describe('cliente Supabase browser — anti-deadlock de navigator.locks', () => 
     vi.useRealTimers();
   });
 
-  it('resetClient(): el próximo createClient() construye una instancia fresca', async () => {
+  it('resetClient(): es no-op — el singleton nunca se recicla (dos clientes vivos duplican el refresh y Supabase revoca la familia de tokens)', async () => {
     // Mock de @supabase/ssr para aislar el test
     vi.doMock('@supabase/ssr', () => ({
       createBrowserClient: vi.fn(() => ({ id: Math.random() })),
@@ -130,7 +130,7 @@ describe('cliente Supabase browser — anti-deadlock de navigator.locks', () => 
     resetClient();
 
     const c3 = createClient();
-    expect(c3).not.toBe(c1); // instancia nueva tras reset
+    expect(c3).toBe(c1); // misma instancia: reset es deliberadamente no-op
   });
 
   it('lockConTimeout: si navigator.locks no existe (SSR), ejecuta directo', async () => {

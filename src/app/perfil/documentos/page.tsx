@@ -28,28 +28,34 @@ export default function MiPerfilDocumentosPage() {
         setLoading(false);
         return;
       }
-      const { data } = await supabase.storage
-        .from(BUCKET_DOCS)
-        .list(folderPath, {
-          limit: 100,
-          offset: 0,
-          sortBy: { column: "created_at", order: "desc" },
-        });
+      // try/finally: el spinner siempre se apaga aunque la query lance.
+      try {
+        const { data } = await supabase.storage
+          .from(BUCKET_DOCS)
+          .list(folderPath, {
+            limit: 100,
+            offset: 0,
+            sortBy: { column: "created_at", order: "desc" },
+          });
 
-      if (data) {
-        const validFiles = data.filter((f: any) => f.name !== ".emptyFolderPlaceholder" && f.metadata);
-        setFiles(
-          validFiles.map((f: any) => ({
-            id: f.id || f.name,
-            name: f.name,
-            size: f.metadata?.size ? (f.metadata.size / 1024 / 1024).toFixed(2) + " MB" : "Desconocido",
-            status: "verifying",
-            date: new Date(f.created_at || Date.now()).toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" }),
-            path: `${folderPath}/${f.name}`,
-          }))
-        );
+        if (data) {
+          const validFiles = data.filter((f: any) => f.name !== ".emptyFolderPlaceholder" && f.metadata);
+          setFiles(
+            validFiles.map((f: any) => ({
+              id: f.id || f.name,
+              name: f.name,
+              size: f.metadata?.size ? (f.metadata.size / 1024 / 1024).toFixed(2) + " MB" : "Desconocido",
+              status: "verifying",
+              date: new Date(f.created_at || Date.now()).toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" }),
+              path: `${folderPath}/${f.name}`,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("[perfil/documentos] fetchFiles falló:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     fetchFiles();
   }, [folderPath, supabase]);

@@ -55,36 +55,42 @@ export default function MiPerfilSuscripcionPage() {
         return;
       }
 
-      const columnFk = currentUser.role === 'company' ? 'empresa_id' : 'proveedor_id';
+      // try/finally: el spinner siempre se apaga aunque una query lance.
+      try {
+        const columnFk = currentUser.role === 'company' ? 'empresa_id' : 'proveedor_id';
 
-      const [pagosRes, susRes] = await Promise.all([
-        supabase
-          .from('pagos_suscripciones')
-          .select('*')
-          .eq(columnFk, currentUser.entityId)
-          .order('pagado_en', { ascending: false, nullsFirst: false }),
-        supabase
-          .from('suscripciones')
-          .select('id, estado, metodo_pago, monto, ciclo, proximo_cobro_en, mercado_pago_preapproval_id, cancelada_en, finaliza_en, gracia_hasta')
-          .eq(columnFk, currentUser.entityId)
-          .order('creado_en', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
+        const [pagosRes, susRes] = await Promise.all([
+          supabase
+            .from('pagos_suscripciones')
+            .select('*')
+            .eq(columnFk, currentUser.entityId)
+            .order('pagado_en', { ascending: false, nullsFirst: false }),
+          supabase
+            .from('suscripciones')
+            .select('id, estado, metodo_pago, monto, ciclo, proximo_cobro_en, mercado_pago_preapproval_id, cancelada_en, finaliza_en, gracia_hasta')
+            .eq(columnFk, currentUser.entityId)
+            .order('creado_en', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
 
-      if (pagosRes.data) setPayments(pagosRes.data);
-      if (susRes.data) setSuscripcion(susRes.data as any);
+        if (pagosRes.data) setPayments(pagosRes.data);
+        if (susRes.data) setSuscripcion(susRes.data as any);
 
-      // Categoría por tamaño (sólo empresas): informativa.
-      if (currentUser.role === 'company') {
-        const { data: emp } = await supabase
-          .from('empresas')
-          .select('cantidad_empleados')
-          .eq('id', currentUser.entityId)
-          .maybeSingle();
-        setEmpleados(emp?.cantidad_empleados ?? null);
+        // Categoría por tamaño (sólo empresas): informativa.
+        if (currentUser.role === 'company') {
+          const { data: emp } = await supabase
+            .from('empresas')
+            .select('cantidad_empleados')
+            .eq('id', currentUser.entityId)
+            .maybeSingle();
+          setEmpleados(emp?.cantidad_empleados ?? null);
+        }
+      } catch (err) {
+        console.error('[perfil/suscripcion] loadData falló:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadData();
   }, [authLoading, currentUser?.entityId, currentUser?.role]);
