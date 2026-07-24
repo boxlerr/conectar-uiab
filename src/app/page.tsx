@@ -484,6 +484,129 @@ export default function Home() {
       </section>
 
       {/* ═══════════════════════════════════════════
+          PRECIO — MEMBRESÍA ÚNICA (visible desde el inicio)
+          Los montos reales del billing viven en src/lib/mercadopago/suscripciones.ts
+      ═══════════════════════════════════════════ */}
+      <section className="py-24 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* initial={false}: con "reducir movimiento" activo, whileInView deja
+              el contenido en opacity:0 para siempre (gotcha ya conocido). */}
+          <motion.div initial={false} animate="visible" variants={stagger}>
+            <motion.div variants={fadeUp} custom={0} className="text-center mb-12">
+              <span
+                className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#00213f]/40"
+                style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+              >
+                Precio claro, sin sorpresas
+              </span>
+              <h2
+                className="text-3xl md:text-4xl font-bold text-[#00213f] mt-3 tracking-tight"
+                style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+              >
+                Una membresía única y simple
+              </h2>
+              <p className="text-slate-500 mt-3 max-w-xl mx-auto text-[15px] leading-relaxed">
+                El mismo acceso completo para todas las empresas: directorio, oportunidades
+                de negocio y coincidencias con potenciales clientes y proveedores.
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-5">
+              {/* Mensual */}
+              <motion.div
+                variants={fadeUp}
+                custom={1}
+                className="rounded-2xl border border-slate-200 bg-[#f7f9fb] p-8 flex flex-col"
+              >
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  Plan mensual
+                </span>
+                <div className="mt-4 flex items-baseline gap-1.5">
+                  <span
+                    className="text-4xl font-black text-[#00213f] tracking-tight"
+                    style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                  >
+                    $50.000
+                  </span>
+                  <span className="text-slate-400 font-semibold text-sm">/mes</span>
+                </div>
+                <p className="text-sm text-slate-500 mt-3 leading-relaxed">
+                  Acceso completo a la plataforma, sin permanencia mínima. Cancelás cuando
+                  quieras.
+                </p>
+              </motion.div>
+
+              {/* Anual — destacado */}
+              <motion.div
+                variants={fadeUp}
+                custom={2}
+                className="relative rounded-2xl bg-gradient-to-br from-[#00213f] to-[#10375c] p-8 flex flex-col shadow-xl shadow-[#00213f]/20"
+              >
+                <span className="absolute -top-3 right-6 rounded-full bg-amber-400 text-[#00213f] text-[10px] font-black uppercase tracking-wider px-3 py-1 shadow-md">
+                  2 meses bonificados
+                </span>
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/40">
+                  Plan anual
+                </span>
+                <div className="mt-4 flex items-baseline gap-1.5">
+                  <span
+                    className="text-4xl font-black text-white tracking-tight"
+                    style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                  >
+                    $500.000
+                  </span>
+                  <span className="text-white/40 font-semibold text-sm">/año</span>
+                </div>
+                <p className="text-sm text-white/60 mt-3 leading-relaxed">
+                  Equivale a 10 meses: ahorrás $100.000 al año pagando una sola vez.
+                </p>
+              </motion.div>
+
+              {/* Socias UIAB */}
+              <motion.div
+                variants={fadeUp}
+                custom={3}
+                className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-8 flex flex-col"
+              >
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-600">
+                  Socias UIAB
+                </span>
+                <div className="mt-4 flex items-baseline gap-1.5">
+                  <span
+                    className="text-4xl font-black text-emerald-700 tracking-tight"
+                    style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                  >
+                    Sin cargo
+                  </span>
+                </div>
+                <p className="text-sm text-slate-600 mt-3 leading-relaxed">
+                  La membresía está incluida para las empresas socias de la Unión. Activá el
+                  acceso de tu empresa desde el{" "}
+                  <Link href="/sumate" className="font-bold text-emerald-700 underline underline-offset-2 hover:text-emerald-900">
+                    alta de socias
+                  </Link>
+                  .
+                </p>
+              </motion.div>
+            </div>
+
+            <motion.div variants={fadeUp} custom={4} className="text-center mt-10">
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center h-12 px-8 rounded-sm font-bold text-[14px] bg-[#00213f] text-white hover:bg-[#10375c] shadow-lg active:scale-[0.98] transition-all"
+              >
+                Crear mi cuenta
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Link>
+              <p className="text-xs text-slate-400 mt-3">
+                El ciclo de pago (mensual o anual) se elige al final del registro.
+              </p>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
           CTA BOTTOM
       ═══════════════════════════════════════════ */}
       <section className="relative py-24 lg:py-28 overflow-hidden">

@@ -74,6 +74,26 @@ export default async function SumatePage() {
         </div>
       </section>
 
+      {/* Precio a la vista (pedido reunión 21-jul): socias sin cargo; el resto,
+          membresía única. Montos reales en src/lib/mercadopago/suscripciones.ts */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+        <div className="rounded-xl bg-[#00213f] text-white px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 shadow-xl shadow-[#00213f]/10">
+          <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-5 h-5 text-emerald-300" />
+          </div>
+          <p
+            className="text-sm leading-relaxed text-white/80"
+            style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+          >
+            <span className="font-bold text-white">Las socias UIAB acceden sin cargo: la membresía está incluida.</span>{" "}
+            ¿Tu empresa todavía no es socia? El acceso a UIAB Conecta cuesta{" "}
+            <span className="font-bold text-white">$50.000/mes</span> o{" "}
+            <span className="font-bold text-white">$500.000/año</span>{" "}
+            <span className="text-emerald-300 font-bold">(2 meses bonificados)</span>.
+          </p>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* ─── Formulario ─── */}
