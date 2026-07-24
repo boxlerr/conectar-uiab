@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { AvisoEtiquetasPrecargadas } from "@/components/ui/aviso-etiquetas-precargadas";
 import { createClient } from "@/lib/supabase/cliente";
 import { cn } from "@/lib/utilidades";
 
@@ -163,6 +164,8 @@ export default function MiPerfilPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <AvisoEtiquetasPrecargadas />
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

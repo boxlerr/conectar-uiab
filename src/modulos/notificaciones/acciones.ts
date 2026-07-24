@@ -22,7 +22,8 @@ export interface Notificacion {
     | "pago_fallido"
     | "suscripcion_por_vencer"
     | "suscripcion_en_mora"
-    | "suscripcion_suspendida";
+    | "suscripcion_suspendida"
+    | "etiquetas_precargadas";
   titulo: string;
   mensaje: string;
   leida: boolean;

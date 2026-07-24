@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { BannerSuscripcion, DashboardBlurGate } from '@/components/ui/BannerSuscripcion';
+import { AvisoEtiquetasPrecargadas } from '@/components/ui/aviso-etiquetas-precargadas';
 import { BotonReiniciarTour } from '@/modulos/onboarding/componentes/boton-reiniciar-tour';
 import { AvisoConflictosPadron } from '@/modulos/altas/componentes/aviso-conflictos-padron';
 import { conflictosPendientes, type ConflictoPadron } from '@/modulos/altas/padron';
@@ -335,6 +336,8 @@ export default async function DashboardPage() {
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-5">
 
         <AvisoConflictosPadron conflictos={conflictosPadron} />
+
+        <AvisoEtiquetasPrecargadas />
 
         {/* ── HERO HEADER ── */}
         <header

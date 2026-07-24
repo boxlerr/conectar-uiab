@@ -13,6 +13,7 @@ import {
   Clock,
   AlertTriangle,
   Ban,
+  Tag,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utilidades";
@@ -35,6 +36,7 @@ const ICONO: Record<Notificacion["tipo"], React.ReactNode> = {
   suscripcion_por_vencer: <Clock className="w-3.5 h-3.5 text-amber-500" />,
   suscripcion_en_mora: <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />,
   suscripcion_suspendida: <Ban className="w-3.5 h-3.5 text-rose-600" />,
+  etiquetas_precargadas: <Tag className="w-3.5 h-3.5 text-sky-600" />,
 };
 
 const FONDO: Record<Notificacion["tipo"], string> = {
@@ -48,6 +50,7 @@ const FONDO: Record<Notificacion["tipo"], string> = {
   suscripcion_por_vencer: "bg-amber-50",
   suscripcion_en_mora: "bg-orange-50",
   suscripcion_suspendida: "bg-rose-50",
+  etiquetas_precargadas: "bg-sky-50",
 };
 
 function tiempoRelativo(fecha: string): string {
