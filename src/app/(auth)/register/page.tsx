@@ -125,6 +125,48 @@ const registerSchema = z.object({
 
 type RegisterValues = z.infer<typeof registerSchema>
 
+// ─── QUIÉN SE REGISTRA ───
+// El campo sigue siendo 'company' | 'provider'; lo que cambia es cómo lo
+// contamos. "Socio" confundía: socio de la UIAB es otra cosa (esas empresas
+// entran por /sumate y no pagan).
+
+const OPCIONES_REGISTRO = [
+  {
+    value: 'company' as const,
+    icon: Factory,
+    titulo: 'Empresa u organización',
+    resumen: 'Aparecés en el directorio con tu razón social y los datos de tu empresa.',
+    ejemplos: [
+      'Industrias',
+      'Comercios',
+      'Entidades financieras',
+      'Cooperativas',
+      'Entidades educativas',
+      'Instituciones',
+    ],
+  },
+  {
+    value: 'provider' as const,
+    icon: User,
+    titulo: 'Particular o profesional',
+    resumen: 'Ofrecés tus productos o servicios a las empresas e industrias de la red.',
+    ejemplos: [
+      'Profesionales independientes',
+      'Monotributistas y oficios',
+      'Empresas de servicios',
+      'Consultores',
+    ],
+  },
+]
+
+// Lo mismo para los dos: el precio y el acceso no dependen del tipo de cuenta.
+const INCLUYE_CUENTA = [
+  { icon: Building2, label: 'Tu ficha en el directorio', desc: 'Visible para toda la red industrial de Almirante Brown.' },
+  { icon: Megaphone, label: 'Publicá lo que necesitás', desc: 'Cargá búsquedas y recibí propuestas de la red.' },
+  { icon: Zap, label: 'Coincidencias automáticas', desc: 'Te avisamos cuando alguien busca lo que ofrecés.' },
+  { icon: Phone, label: 'Contacto directo', desc: 'Teléfono, email y web de cada empresa, sin intermediarios.' },
+]
+
 // ─── ANIMATION VARIANTS ───
 
 const pageTransition: Variants = {
@@ -388,15 +430,15 @@ function RegisterContent() {
   const checklistItems = useMemo(() => {
     if (selectedRole === 'company') {
       return [
-        { icon: Award, label: "Beneficios Exclusivos", desc: "Convenios, descuentos y servicios para socios." },
-        { icon: LayoutDashboard, label: "Capacitaciones y Eventos", desc: "Actividades, formación y novedades institucionales." },
-        { icon: Globe, label: "Red de Vinculación", desc: "Conectá con empresas, instituciones y miembros." }
+        { icon: Building2, label: "Tu ficha en el directorio", desc: "Razón social, rubro, catálogo y datos de contacto." },
+        { icon: Megaphone, label: "Publicá lo que necesitás", desc: "Tus búsquedas de proveedores llegan a toda la red." },
+        { icon: Zap, label: "Coincidencias automáticas", desc: "Te avisamos cuando aparece una empresa que encaja." }
       ]
     }
     return [
-      { icon: Megaphone, label: "Visibilidad en la Red", desc: "Aparecé en el directorio oficial de proveedores de servicios." },
-      { icon: Target, label: "Oportunidades Comerciales", desc: "Ofrecé tus productos y servicios a los socios." },
-      { icon: Award, label: "Contacto con Empresas", desc: "Accedé a industrias, comercios y potenciales clientes." }
+      { icon: Megaphone, label: "Visibilidad en la red", desc: "Aparecés en el directorio oficial de la UIAB." },
+      { icon: Target, label: "Oportunidades comerciales", desc: "Respondé las búsquedas que publican las empresas." },
+      { icon: Phone, label: "Contacto directo", desc: "Las empresas te escriben sin intermediarios." }
     ]
   }, [selectedRole])
 
@@ -450,17 +492,43 @@ function RegisterContent() {
             <AnimatePresence mode="wait">
               <motion.div key={selectedRole || 'intro'} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}>
                 <h1 className="text-3xl lg:text-4xl xl:text-5xl font-black leading-[1.1] tracking-tighter mb-3 lg:mb-4" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>
-                  {step === 1 && "Elegí tu tipo de registro."}
-                  {step > 1 && selectedRole === 'company' && "Ser Socio UIAB."}
-                  {step > 1 && selectedRole === 'provider' && "Ser Particular."}
+                  {step === 1 && "Todo lo que incluye tu cuenta."}
+                  {step > 1 && selectedRole === 'company' && "Empresa u organización."}
+                  {step > 1 && selectedRole === 'provider' && "Particular o profesional."}
                 </h1>
                 <p className="text-white/60 text-sm lg:text-base leading-relaxed mb-6 lg:mb-8 font-inter max-w-sm">
-                  {step === 1 && "Registrate como Socio para acceder a beneficios, capacitaciones, actividades y servicios exclusivos. O como Particular para ofrecer tus productos o servicios y vincularte con empresas y socios de la institución."}
-                  {step > 1 && selectedRole === 'company' && "Accedé a beneficios exclusivos, capacitaciones, convenios y oportunidades de vinculación con otras empresas, instituciones y miembros de la red."}
-                  {step > 1 && selectedRole === 'provider' && "Ganá visibilidad dentro de la red, ofrecé tus productos y servicios a los socios y conectá con empresas, industrias y potenciales clientes."}
+                  {step === 1 && "Una sola membresía, sin planes recortados ni funciones bloqueadas. Contanos quién se registra y en unos minutos tu empresa queda publicada en el directorio."}
+                  {step > 1 && selectedRole === 'company' && "Tu empresa en el directorio de la red industrial de Almirante Brown: te encuentran, publicás lo que necesitás y contactás directo."}
+                  {step > 1 && selectedRole === 'provider' && "Ofrecé tus productos y servicios a las empresas de la red, respondé sus búsquedas y ganá presencia en el directorio oficial."}
                 </p>
 
-                {selectedRole && (
+                {/* Paso 1: qué se obtiene al pagar. Después, el detalle por tipo de cuenta. */}
+                {step === 1 ? (
+                  <div className="space-y-2.5">
+                    {INCLUYE_CUENTA.map((item, i) => (
+                      <motion.div key={item.label} variants={itemFade} initial="initial" animate="animate" transition={{ delay: 0.08 * i }} className="flex items-center gap-3.5 px-4 py-3 rounded-xl bg-white/5 backdrop-blur-xl border border-white/5">
+                        <div className="h-9 w-9 flex items-center justify-center text-primary-200 rounded-lg bg-white/10 ring-1 ring-white/20 shrink-0">
+                          <item.icon className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-white text-sm leading-tight">{item.label}</h3>
+                          <p className="text-white/40 text-[11px] leading-tight mt-0.5">{item.desc}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+
+                    <motion.div variants={itemFade} initial="initial" animate="animate" transition={{ delay: 0.4 }} className="rounded-xl border border-white/10 bg-white/[0.07] px-4 py-3.5">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Membresía</p>
+                      <p className="text-white font-black text-2xl tracking-tight mt-0.5">
+                        ${PRECIO_MENSUAL.toLocaleString('es-AR')}
+                        <span className="text-sm font-semibold text-white/40 ml-1">/ mes</span>
+                      </p>
+                      <p className="text-white/50 text-xs mt-1">
+                        O ${PRECIO_ANUAL.toLocaleString('es-AR')} al año — 2 meses bonificados. Cancelás cuando quieras.
+                      </p>
+                    </motion.div>
+                  </div>
+                ) : selectedRole && (
                   <div className="space-y-3">
                     {checklistItems.map((item, i) => (
                       <motion.div key={i} variants={itemFade} initial="initial" animate="animate" transition={{ delay: 0.1 * i }} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 backdrop-blur-xl border border-white/5">
@@ -522,48 +590,102 @@ function RegisterContent() {
 
                       {/* ─── PHASE 1: ROLE ─── */}
                       {step === 1 && (
-                        <div className="space-y-4 lg:space-y-6">
+                        <div className="space-y-4 lg:space-y-5">
                           <div className="space-y-1">
-                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">Registro</Badge>
-                            <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter leading-none" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>¿Cómo querés<br />registrarte?</h2>
-                            <p className="text-sm text-slate-500 font-inter pt-2 max-w-md">Elegí tu tipo de registro. Podés ser parte de UIAB como Socio o como Particular de productos y servicios.</p>
+                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">Registro · Paso 1 de 7</Badge>
+                            <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter leading-none" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>¿Quién se registra?</h2>
+                            <p className="text-sm text-slate-500 font-inter pt-2 max-w-md">
+                              Elegí la opción que describe a tu organización. El acceso y el precio son los
+                              mismos en los dos casos: sólo cambia cómo te mostramos en el directorio.
+                            </p>
                           </div>
 
-                          <div className="grid gap-4">
-                            <FormField control={form.control} name="role" render={({ field }) => (
-                              <>
-                                <div onClick={() => field.onChange('company')} className={cn("p-4 sm:p-5 rounded-xl border-2 transition-all cursor-pointer flex items-start gap-4", field.value === 'company' ? "bg-primary-50 border-primary-600 shadow-xl ring-1 ring-primary-100" : "bg-white border-slate-200 hover:border-slate-300")}>
-                                  <div className={cn("h-12 w-12 shrink-0 rounded-lg flex items-center justify-center transition-all", field.value === 'company' ? "bg-primary-600 text-white shadow-lg shadow-primary-600/30" : "bg-slate-100 text-slate-500")}>
-                                    <Factory className="h-6 w-6" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <div className="flex items-center justify-between mb-1">
-                                      <h3 className="text-xl font-bold text-[#00213f] leading-none">Quiero ser Socio</h3>
-                                      <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", field.value === 'company' ? "border-primary-600 bg-primary-600 text-white" : "border-slate-300")}><Check className="h-2.5 w-2.5 opacity-0" style={{ opacity: field.value === 'company' ? 1 : 0 }} /></div>
+                          <FormField control={form.control} name="role" render={({ field }) => (
+                            <div className="grid gap-3" role="radiogroup" aria-label="Tipo de registro">
+                              {OPCIONES_REGISTRO.map((op) => {
+                                const activa = field.value === op.value
+                                return (
+                                  <button
+                                    key={op.value}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={activa}
+                                    onClick={() => field.onChange(op.value)}
+                                    className={cn(
+                                      "text-left p-4 sm:p-5 rounded-xl border-2 transition-all flex items-start gap-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
+                                      activa
+                                        ? "bg-primary-50 border-primary-600 shadow-xl ring-1 ring-primary-100"
+                                        : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60"
+                                    )}
+                                  >
+                                    <div className={cn("h-12 w-12 shrink-0 rounded-lg flex items-center justify-center transition-all", activa ? "bg-primary-600 text-white shadow-lg shadow-primary-600/30" : "bg-slate-100 text-slate-500")}>
+                                      <op.icon className="h-6 w-6" />
                                     </div>
-                                    <p className="text-xs font-inter text-slate-500 pr-4">Empresa, institución, comercio u organización que quiere acceder a beneficios, capacitaciones, eventos, convenios y oportunidades de la institución.</p>
-                                  </div>
-                                </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between gap-3 mb-1">
+                                        <h3 className="text-lg sm:text-xl font-bold text-[#00213f] leading-tight">{op.titulo}</h3>
+                                        <div className={cn("h-5 w-5 shrink-0 rounded-full border-2 flex items-center justify-center", activa ? "border-primary-600 bg-primary-600 text-white" : "border-slate-300")}>
+                                          <Check className="h-2.5 w-2.5" style={{ opacity: activa ? 1 : 0 }} />
+                                        </div>
+                                      </div>
+                                      <p className="text-xs font-inter text-slate-500">{op.resumen}</p>
+                                      {/* Los ejemplos evitan la duda de "¿yo dónde entro?" */}
+                                      <div className="flex flex-wrap gap-1.5 mt-2.5">
+                                        {op.ejemplos.map((ej) => (
+                                          <span
+                                            key={ej}
+                                            className={cn(
+                                              "text-[11px] font-semibold px-2 py-0.5 rounded-full border",
+                                              activa
+                                                ? "bg-white border-primary-200 text-primary-700"
+                                                : "bg-slate-50 border-slate-200 text-slate-500"
+                                            )}
+                                          >
+                                            {ej}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )} />
 
-                                <div onClick={() => field.onChange('provider')} className={cn("p-4 sm:p-5 rounded-xl border-2 transition-all cursor-pointer flex items-start gap-4", field.value === 'provider' ? "bg-primary-50 border-primary-600 shadow-xl ring-1 ring-primary-100" : "bg-white border-slate-200 hover:border-slate-300")}>
-                                  <div className={cn("h-12 w-12 shrink-0 rounded-lg flex items-center justify-center transition-all", field.value === 'provider' ? "bg-primary-600 text-white shadow-lg shadow-primary-600/30" : "bg-slate-100 text-slate-500")}>
-                                    <User className="h-6 w-6" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <div className="flex items-center justify-between mb-1">
-                                      <h3 className="text-xl font-bold text-[#00213f] leading-none">Quiero ser Particular</h3>
-                                      <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", field.value === 'provider' ? "border-primary-600 bg-primary-600 text-white" : "border-slate-300")}><Check className="h-2.5 w-2.5 opacity-0" style={{ opacity: field.value === 'provider' ? 1 : 0 }} /></div>
-                                    </div>
-                                    <p className="text-xs font-inter text-slate-500 pr-4">Empresa o persona que ofrece productos o servicios. Ganá visibilidad, presencia en el directorio y contacto directo con empresas, industrias y socios de la institución.</p>
-                                  </div>
-                                </div>
-                              </>
-                            )} />
-                          </div>
+                          {/* Las socias UIAB no pagan: mejor desviarlas acá que cobrarles de más */}
+                          <Link
+                            href="/sumate"
+                            className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 hover:bg-emerald-50 transition-colors"
+                          >
+                            <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <p className="text-xs text-slate-600 leading-relaxed">
+                              <span className="font-bold text-emerald-800">¿Tu empresa ya es socia de la UIAB?</span>{' '}
+                              Tu acceso está incluido en la cuota: activalo desde el alta de socias, sin cargo.
+                              <span className="font-bold text-emerald-700 underline underline-offset-2 ml-1">Ir al alta →</span>
+                            </p>
+                          </Link>
 
                           <Button type="button" onClick={() => validateStep(1)} className="w-full h-12 sm:h-14 bg-[#00213f] hover:bg-black text-white font-black text-base sm:text-lg rounded-xl transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98]">
                             Continuar <ArrowRight className="ml-3 h-5 w-5" />
                           </Button>
+
+                          {/* En desktop el detalle vive en la columna oscura; en mobile esa
+                              columna no existe, así que dejamos la versión corta. */}
+                          <div className="lg:hidden rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                            <p className="text-xs text-slate-600 leading-relaxed">
+                              <span className="font-bold text-[#00213f]">Incluye todo:</span> ficha en el
+                              directorio, publicación de necesidades, coincidencias automáticas y contacto
+                              directo.
+                            </p>
+                            <p className="text-xs text-slate-500 mt-1.5">
+                              <span className="font-black text-[#00213f]">${PRECIO_MENSUAL.toLocaleString('es-AR')}</span> por mes o{' '}
+                              <span className="font-black text-[#00213f]">${PRECIO_ANUAL.toLocaleString('es-AR')}</span> al año
+                              (2 meses bonificados). Cancelás cuando quieras.
+                            </p>
+                          </div>
+                          <p className="text-[11px] text-slate-400 text-center">
+                            Son 7 pasos cortos. Podés volver atrás en cualquier momento.
+                          </p>
                         </div>
                       )}
 
@@ -572,12 +694,12 @@ function RegisterContent() {
                         <div className="space-y-4 lg:space-y-5 text-center">
                           <div className="space-y-1 lg:space-y-2">
                             <h2 className="text-3xl lg:text-4xl font-black text-[#00213f] tracking-tighter leading-none" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>
-                              {selectedRole === 'company' ? "Beneficios de Socio." : "Visibilidad Profesional."}
+                              {selectedRole === 'company' ? "Así se ve tu empresa." : "Así te ven las empresas."}
                             </h2>
                             <p className="text-sm lg:text-base text-slate-500 max-w-md mx-auto">
                               {selectedRole === 'company'
-                                ? "Accedé a beneficios exclusivos, capacitaciones, eventos, convenios, oportunidades y novedades institucionales. Conectá con otras empresas, instituciones y miembros de la red."
-                                : "Ofrecé tus productos y servicios a los socios, participá en oportunidades comerciales y ganá presencia en el directorio oficial."}
+                                ? "Tu ficha queda publicada en el directorio de la red industrial: te encuentran por rubro, publicás lo que necesitás comprar y contactás directo con otras empresas."
+                                : "Ofrecé tus productos y servicios a las empresas de la red, respondé las búsquedas que publican y ganá presencia en el directorio oficial."}
                             </p>
                           </div>
 
@@ -589,7 +711,7 @@ function RegisterContent() {
                           </div>
 
                           <Button type="button" onClick={nextStep} className="w-full h-12 lg:h-13 bg-[#00213f] hover:bg-black text-white font-black text-base lg:text-lg rounded-xl transition-all active:scale-[0.98]">
-                            Aceptar y Configurar Perfil <ArrowRight className="ml-3 h-5 w-5" />
+                            Continuar y armar mi perfil <ArrowRight className="ml-3 h-5 w-5" />
                           </Button>
                         </div>
                       )}
@@ -609,18 +731,20 @@ function RegisterContent() {
                               <>
                                 <FormField control={form.control} name="tipoEmpresa" render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo de Socio *</FormLabel>
+                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo de organización *</FormLabel>
                                     <FormControl>
                                       <BuscadorLista
                                         value={field.value || ''}
                                         onChange={field.onChange}
                                         items={[
                                           { value: 'empresa', label: 'Empresa / Industria' },
-                                          { value: 'institucion', label: 'Institución / Organización' },
                                           { value: 'comercio', label: 'Comercio Minorista/Mayorista' },
+                                          { value: 'entidad_financiera', label: 'Entidad financiera' },
+                                          { value: 'cooperativa', label: 'Cooperativa / Mutual' },
+                                          { value: 'educacion', label: 'Entidad educativa / Capacitación' },
+                                          { value: 'institucion', label: 'Institución / Organización' },
                                           { value: 'gastronomia', label: 'Gastronomía y Alimentos' },
                                           { value: 'salud', label: 'Salud y Estética' },
-                                          { value: 'educacion', label: 'Educación y Capacitación' },
                                           { value: 'servicios_generales', label: 'Servicios Generales' },
                                         ]}
                                         placeholder="Selecciona tipo..."
