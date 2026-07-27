@@ -530,12 +530,12 @@ export default function Home() {
           PRECIO — MEMBRESÍA ÚNICA (visible desde el inicio)
           Los montos reales del billing viven en src/lib/mercadopago/suscripciones.ts
       ═══════════════════════════════════════════ */}
-      <section id="precio" className="py-24 bg-white scroll-mt-24">
+      <section id="precio" className="py-14 lg:py-16 bg-white scroll-mt-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* initial={false}: con "reducir movimiento" activo, whileInView deja
               el contenido en opacity:0 para siempre (gotcha ya conocido). */}
           <motion.div initial={false} animate="visible" variants={stagger}>
-            <motion.div variants={fadeUp} custom={0} className="text-center mb-10">
+            <motion.div variants={fadeUp} custom={0} className="text-center mb-7 lg:mb-9">
               <span
                 className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#00213f]/40"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
@@ -543,191 +543,161 @@ export default function Home() {
                 Precio claro, sin sorpresas
               </span>
               <h2
-                className="text-3xl md:text-4xl font-bold text-[#00213f] mt-3 tracking-tight"
+                className="text-3xl md:text-[2.5rem] font-bold text-[#00213f] mt-2.5 tracking-tight leading-tight"
                 style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
               >
                 Una membresía. Todo incluido.
               </h2>
-              <p className="text-slate-500 mt-3 max-w-xl mx-auto text-[15px] leading-relaxed">
-                No hay planes con funciones recortadas: todas las empresas acceden a lo
-                mismo. Lo único que elegís es cada cuánto pagás.
+              <p className="text-slate-500 mt-2.5 max-w-xl mx-auto text-[15px] leading-relaxed">
+                Todas las empresas acceden a lo mismo. Lo único que elegís es cada cuánto pagás.
               </p>
             </motion.div>
 
-            {/* ─── Qué se obtiene (antes del precio: primero el valor) ─── */}
-            <motion.div
-              variants={fadeUp}
-              custom={1}
-              className="rounded-2xl border border-slate-200 bg-[#f7f9fb] p-7 sm:p-9 mb-8"
-            >
-              <p
-                className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#00213f]/40 mb-6"
-                style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
-              >
-                Lo que obtenés desde el primer día
-              </p>
-              {/* En mobile mostramos sólo los títulos: si no, el precio queda
-                  demasiado abajo y hay que scrollear de más para llegar. */}
-              <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 sm:gap-y-6">
-                {INCLUYE_MEMBRESIA.map((item) => (
-                  <li key={item.titulo} className="flex items-center sm:items-start gap-3.5">
-                    <span className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                      <item.icon className="w-4 h-4 text-primary-600" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[14px] font-bold text-[#00213f] leading-snug">
-                        {item.titulo}
+            {/* Dos columnas: a la izquierda qué se obtiene, a la derecha cuánto
+                sale. Entra completo en una pantalla, sin scroll intermedio. */}
+            <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+
+              {/* ─── Qué incluye ─── */}
+              <motion.div variants={fadeUp} custom={1} className="lg:col-span-5">
+                <p
+                  className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#00213f]/40 mb-5"
+                  style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+                >
+                  Lo que obtenés desde el primer día
+                </p>
+                <ul className="space-y-3 sm:space-y-3.5">
+                  {/* En mobile sólo los títulos: si no, el precio queda muy abajo. */}
+                  {INCLUYE_MEMBRESIA.map((item) => (
+                    <li key={item.titulo} className="flex items-center sm:items-start gap-3.5">
+                      <span className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center shrink-0">
+                        <item.icon className="w-4 h-4 text-primary-600" />
                       </span>
-                      <span className="hidden sm:block text-[13px] text-slate-500 leading-relaxed mt-1">
-                        {item.detalle}
+                      <span className="min-w-0">
+                        <span className="block text-[14px] font-bold text-[#00213f] leading-snug">
+                          {item.titulo}
+                        </span>
+                        <span className="hidden sm:block text-[12.5px] text-slate-500 leading-snug mt-0.5">
+                          {item.detalle}
+                        </span>
                       </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-
-            {/* ─── Planes: la tarjeta entera es el botón ─── */}
-            <div className="grid lg:grid-cols-3 gap-5 items-start">
-              {/* Mensual */}
-              <motion.div variants={fadeUp} custom={2}>
-                <Link
-                  href="/register?ciclo=mensual"
-                  aria-label={`Elegir plan mensual de ${ars(PRECIO_MENSUAL)} por mes`}
-                  className="group h-full rounded-2xl border border-slate-200 bg-white p-8 flex flex-col hover:border-[#00213f]/30 hover:shadow-xl hover:shadow-[#00213f]/[0.07] hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00213f] focus-visible:ring-offset-2 transition-all duration-300"
-                >
-                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                    Plan mensual
-                  </span>
-                  <div className="mt-4 flex items-baseline gap-1.5">
-                    <span
-                      className="text-[2.75rem] leading-none font-black text-[#00213f] tracking-tight"
-                      style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
-                    >
-                      {ars(PRECIO_MENSUAL)}
-                    </span>
-                    <span className="text-slate-400 font-semibold text-sm">/mes</span>
-                  </div>
-                  <p className="text-[13px] text-slate-500 mt-4 leading-relaxed">
-                    Ideal para probar la plataforma. Sin permanencia mínima: cancelás cuando
-                    quieras, desde tu perfil.
-                  </p>
-                  <span className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2 text-[12px] font-semibold text-slate-500">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    Incluye todo lo de arriba
-                  </span>
-                  <span className="mt-auto pt-6 block">
-                    <span className="flex items-center justify-center gap-1.5 min-h-11 py-2.5 px-3 text-center rounded-lg border border-[#00213f]/15 bg-white text-[13px] font-bold text-[#00213f] group-hover:bg-[#00213f] group-hover:text-white group-hover:border-[#00213f] transition-colors">
-                      Empezar por mes
-                      <ArrowRight className="w-4 h-4" />
-                    </span>
-                  </span>
-                </Link>
+                    </li>
+                  ))}
+                </ul>
               </motion.div>
 
-              {/* Anual — destacado */}
-              <motion.div variants={fadeUp} custom={3} className="lg:-mt-4">
-                <Link
-                  href="/register?ciclo=anual"
-                  aria-label={`Elegir plan anual de ${ars(PRECIO_ANUAL)} por año, con ${ars(AHORRO_ANUAL)} de ahorro`}
-                  className="group relative h-full rounded-2xl bg-gradient-to-br from-[#00213f] to-[#10375c] p-8 pt-9 flex flex-col shadow-xl shadow-[#00213f]/20 ring-1 ring-[#00213f]/10 hover:shadow-2xl hover:shadow-[#00213f]/30 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 transition-all duration-300"
-                >
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-400 text-[#00213f] text-[10px] font-black uppercase tracking-wider px-3.5 py-1 shadow-md">
-                    Recomendado · 2 meses gratis
-                  </span>
-                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/40">
-                    Plan anual
-                  </span>
-                  <div className="mt-4 flex items-baseline gap-1.5">
-                    <span
-                      className="text-[2.75rem] leading-none font-black text-white tracking-tight"
-                      style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
-                    >
-                      {ars(PRECIO_ANUAL)}
-                    </span>
-                    <span className="text-white/40 font-semibold text-sm">/año</span>
-                  </div>
-                  <p className="mt-2.5 text-[13px] text-white/50">
-                    <span className="line-through">{ars(PAGANDO_MES_A_MES)}</span> pagando mes
-                    a mes · equivale a{" "}
-                    <span className="font-bold text-white/80">{ars(EQUIVALENTE_MENSUAL)}/mes</span>
-                  </p>
-                  <span className="mt-4 inline-flex items-center gap-2 self-start rounded-lg bg-emerald-400/15 border border-emerald-300/25 px-3 py-1.5 text-[12px] font-bold text-emerald-300">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Ahorrás {ars(AHORRO_ANUAL)} por año
-                  </span>
-                  <span className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2 text-[12px] font-semibold text-white/60">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                    Incluye todo lo de arriba
-                  </span>
-                  <span className="mt-auto pt-6 block">
-                    <span className="flex items-center justify-center gap-1.5 min-h-11 py-2.5 px-3 text-center rounded-lg bg-amber-400 text-[13px] font-black text-[#00213f] group-hover:bg-amber-300 shadow-lg shadow-black/10 transition-colors">
-                      Elegir el plan anual
-                      <ArrowRight className="w-4 h-4" />
-                    </span>
-                  </span>
-                </Link>
-              </motion.div>
+              {/* ─── Planes: cada fila entera es el botón ─── */}
+              <div className="lg:col-span-7 space-y-3">
 
-              {/* Socias UIAB */}
-              <motion.div variants={fadeUp} custom={4}>
-                <Link
-                  href="/sumate"
-                  aria-label="Activar el acceso sin cargo de una empresa socia de la UIAB"
-                  className="group h-full rounded-2xl border border-emerald-200 bg-emerald-50/60 p-8 flex flex-col hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-600/10 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 transition-all duration-300"
-                >
-                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-600">
-                    ¿Ya sos socia UIAB?
-                  </span>
-                  <div className="mt-4 flex items-baseline gap-1.5">
-                    <span
-                      className="text-[2.75rem] leading-none font-black text-emerald-700 tracking-tight"
-                      style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
-                    >
-                      Sin cargo
-                    </span>
-                  </div>
-                  <p className="text-[13px] text-slate-600 mt-4 leading-relaxed">
-                    La membresía ya está incluida en tu cuota de socia de la Unión. Cargá los
-                    datos de tu empresa y te activamos el acceso completo.
-                  </p>
-                  <span className="mt-4 pt-4 border-t border-emerald-200/70 flex items-center gap-2 text-[12px] font-semibold text-emerald-700/80">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    Incluye todo lo de arriba
-                  </span>
-                  <span className="mt-auto pt-6 block">
-                    <span className="flex items-center justify-center gap-1.5 min-h-11 py-2.5 px-3 text-center rounded-lg border border-emerald-600/30 bg-white text-[13px] font-bold text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 transition-colors">
-                      Activar mi acceso de socia
-                      <ArrowRight className="w-4 h-4" />
-                    </span>
-                  </span>
-                </Link>
-              </motion.div>
+                {/* Mensual */}
+                <motion.div variants={fadeUp} custom={2}>
+                  <Link
+                    href="/register?ciclo=mensual"
+                    aria-label={`Elegir plan mensual de ${ars(PRECIO_MENSUAL)} por mes`}
+                    className="group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 rounded-2xl border border-slate-200 bg-[#f7f9fb] p-5 sm:p-6 hover:bg-white hover:border-[#00213f]/30 hover:shadow-xl hover:shadow-[#00213f]/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00213f] focus-visible:ring-offset-2 transition-all duration-300"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                        Plan mensual
+                      </span>
+                      <p className="text-[13px] text-slate-500 mt-1.5 leading-relaxed">
+                        Sin permanencia mínima: cancelás cuando quieras desde tu perfil.
+                      </p>
+                    </div>
+                    <div className="shrink-0 sm:text-right">
+                      <div className="flex items-baseline gap-1 sm:justify-end">
+                        <span
+                          className="text-3xl font-black text-[#00213f] tracking-tight"
+                          style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                        >
+                          {ars(PRECIO_MENSUAL)}
+                        </span>
+                        <span className="text-slate-400 font-semibold text-sm">/mes</span>
+                      </div>
+                      <span className="mt-1 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#00213f] group-hover:gap-2.5 transition-all">
+                        Empezar por mes
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
+                  </Link>
+                </motion.div>
+
+                {/* Anual — destacado */}
+                <motion.div variants={fadeUp} custom={3}>
+                  <Link
+                    href="/register?ciclo=anual"
+                    aria-label={`Elegir plan anual de ${ars(PRECIO_ANUAL)} por año, con ${ars(AHORRO_ANUAL)} de ahorro`}
+                    className="group flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 rounded-2xl bg-gradient-to-br from-[#00213f] to-[#10375c] p-5 sm:p-6 shadow-xl shadow-[#00213f]/20 hover:shadow-2xl hover:shadow-[#00213f]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 transition-all duration-300"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/40">
+                          Plan anual
+                        </span>
+                        <span className="rounded-full bg-amber-400 text-[#00213f] text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5">
+                          Recomendado · 2 meses gratis
+                        </span>
+                      </div>
+                      <p className="text-[13px] text-white/50 mt-1.5 leading-relaxed">
+                        <span className="line-through">{ars(PAGANDO_MES_A_MES)}</span> pagando mes a
+                        mes · equivale a{" "}
+                        <span className="font-bold text-white/80">{ars(EQUIVALENTE_MENSUAL)}/mes</span>
+                      </p>
+                      <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-emerald-400/15 border border-emerald-300/25 px-2.5 py-1 text-[11.5px] font-bold text-emerald-300">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Ahorrás {ars(AHORRO_ANUAL)} por año
+                      </span>
+                    </div>
+                    <div className="shrink-0 sm:text-right">
+                      <div className="flex items-baseline gap-1 sm:justify-end">
+                        <span
+                          className="text-4xl font-black text-white tracking-tight"
+                          style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                        >
+                          {ars(PRECIO_ANUAL)}
+                        </span>
+                        <span className="text-white/40 font-semibold text-sm">/año</span>
+                      </div>
+                      <span className="mt-2.5 flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg bg-amber-400 text-[12.5px] font-black text-[#00213f] group-hover:bg-amber-300 shadow-lg shadow-black/10 transition-colors">
+                        Elegir el plan anual
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
+                  </Link>
+                </motion.div>
+
+                {/* Socias UIAB */}
+                <motion.div variants={fadeUp} custom={4}>
+                  <Link
+                    href="/sumate"
+                    aria-label="Activar el acceso sin cargo de una empresa socia de la UIAB"
+                    className="group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 sm:p-6 hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-600/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 transition-all duration-300"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-600">
+                        ¿Ya sos socia UIAB?
+                      </span>
+                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">
+                        La membresía ya está incluida en tu cuota. Cargá los datos de tu empresa y te
+                        activamos el acceso completo.
+                      </p>
+                    </div>
+                    <div className="shrink-0 sm:text-right">
+                      <span
+                        className="block text-3xl font-black text-emerald-700 tracking-tight"
+                        style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                      >
+                        Sin cargo
+                      </span>
+                      <span className="mt-1 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-emerald-700 group-hover:gap-2.5 transition-all">
+                        Activar mi acceso
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
+                  </Link>
+                </motion.div>
+
+              </div>
             </div>
-
-            {/* ─── Barra de confianza: quita las objeciones típicas ─── */}
-            <motion.div
-              variants={fadeUp}
-              custom={5}
-              className="mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-2.5 text-[12.5px] text-slate-500"
-            >
-              {[
-                "Cancelás cuando quieras",
-                "Sin costo de alta",
-                "Sin permanencia mínima",
-                "Precios en pesos argentinos",
-              ].map((item) => (
-                <span key={item} className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  {item}
-                </span>
-              ))}
-            </motion.div>
-
-            <motion.p variants={fadeUp} custom={6} className="text-center text-xs text-slate-400 mt-5">
-              Elegís el ciclo ahora y lo confirmás al final del registro. Podés cambiarlo
-              después desde tu perfil.
-            </motion.p>
           </motion.div>
         </div>
       </section>
