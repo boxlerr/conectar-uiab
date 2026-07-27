@@ -189,6 +189,15 @@ function RegisterContent() {
     }
   }, [searchParams, form])
 
+  // Ciclo elegido en la landing (?ciclo=mensual|anual). Lo arrastramos hasta el
+  // checkout para que no tengan que elegirlo dos veces.
+  const cicloElegido = searchParams.get('ciclo') === 'anual' ? 'anual'
+    : searchParams.get('ciclo') === 'mensual' ? 'mensual'
+    : null
+  const destinoCheckout = cicloElegido
+    ? `/suscripcion/checkout?ciclo=${cicloElegido}`
+    : '/suscripcion/checkout'
+
   // Si ya estás logueado, no tiene sentido ver el registro: te mandamos al
   // directorio. (Evita el bug de quedar con /register abierto al iniciar sesión
   // desde acá.) No aplica a la pantalla de éxito recién creada.
@@ -320,7 +329,7 @@ function RegisterContent() {
           data: { nombre_completo: fullName },
           emailRedirectTo: esPrueba
             ? `${window.location.origin}/api/auth/callback?next=/dashboard`
-            : `${window.location.origin}/api/auth/callback?next=/suscripcion/checkout`,
+            : `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(destinoCheckout)}`,
         }
       })
 
@@ -367,7 +376,7 @@ function RegisterContent() {
         window.scrollTo({ top: 0, behavior: 'smooth' })
       } else {
         await refreshUser()
-        router.push('/suscripcion/checkout')
+        router.push(destinoCheckout)
       }
 
     } catch (err) {
@@ -1027,9 +1036,15 @@ function RegisterContent() {
                                     <h3 className="text-base font-black text-white leading-tight">UIAB Conecta</h3>
                                   </div>
                                 </div>
+                                {/* Mostramos el ciclo que eligió en la landing para
+                                    que el precio no le cambie de golpe acá. */}
                                 <div className="text-right">
-                                  <span className="text-2xl font-black text-white tracking-tighter">${PRECIO_MENSUAL.toLocaleString('es-AR')}</span>
-                                  <span className="text-xs text-white/60 ml-1">/ mes</span>
+                                  <span className="text-2xl font-black text-white tracking-tighter">
+                                    ${(cicloElegido === 'anual' ? PRECIO_ANUAL : PRECIO_MENSUAL).toLocaleString('es-AR')}
+                                  </span>
+                                  <span className="text-xs text-white/60 ml-1">
+                                    {cicloElegido === 'anual' ? '/ año' : '/ mes'}
+                                  </span>
                                 </div>
                               </div>
 
@@ -1051,12 +1066,19 @@ function RegisterContent() {
                               {/* Footer total */}
                               <div className="px-5 py-3 bg-white border-t border-slate-100 flex items-center justify-between">
                                 <div>
-                                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Total mensual</p>
+                                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                                    {cicloElegido === 'anual' ? 'Total anual' : 'Total mensual'}
+                                  </p>
                                   <p className="text-lg font-black text-[#00213f] tracking-tighter">
-                                    ${PRECIO_MENSUAL.toLocaleString('es-AR')} <span className="text-xs font-semibold text-slate-400">/ mes</span>
+                                    ${(cicloElegido === 'anual' ? PRECIO_ANUAL : PRECIO_MENSUAL).toLocaleString('es-AR')}{' '}
+                                    <span className="text-xs font-semibold text-slate-400">
+                                      {cicloElegido === 'anual' ? '/ año' : '/ mes'}
+                                    </span>
                                   </p>
                                 </div>
-                                <p className="text-[10px] font-semibold text-slate-400">Mes a mes · sin permanencia</p>
+                                <p className="text-[10px] font-semibold text-slate-400">
+                                  {cicloElegido === 'anual' ? 'Un pago al año · 2 meses bonificados' : 'Mes a mes · sin permanencia'}
+                                </p>
                               </div>
                             </div>
 
@@ -1064,7 +1086,13 @@ function RegisterContent() {
                             <div className="rounded-xl border border-primary-100 bg-primary-50/60 px-4 py-3 space-y-1.5">
                               <p className="text-xs font-semibold text-[#00213f] flex items-start gap-1.5">
                                 <Sparkles className="h-3.5 w-3.5 text-primary-600 shrink-0 mt-0.5" />
-                                <span>También podés pagar el año completo por <span className="font-black">${PRECIO_ANUAL.toLocaleString('es-AR')}</span>.</span>
+                                <span>
+                                  {cicloElegido === 'anual' ? (
+                                    <>Si preferís, también podés pagar mes a mes por <span className="font-black">${PRECIO_MENSUAL.toLocaleString('es-AR')}</span>.</>
+                                  ) : (
+                                    <>También podés pagar el año completo por <span className="font-black">${PRECIO_ANUAL.toLocaleString('es-AR')}</span>.</>
+                                  )}
+                                </span>
                               </p>
                               <p className="text-xs font-semibold text-[#00213f] flex items-start gap-1.5">
                                 <ShieldCheck className="h-3.5 w-3.5 text-primary-600 shrink-0 mt-0.5" />

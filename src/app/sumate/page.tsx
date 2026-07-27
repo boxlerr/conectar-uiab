@@ -1,4 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import Image from "next/image";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Building2, CheckCircle2, Users } from "lucide-react";
 import { FormularioAlta } from "./FormularioAlta";
 import { CATEGORIA_ALTA_LABEL } from "@/modulos/altas/constantes";
@@ -18,21 +19,121 @@ type AltaPublica = {
   categoria: string;
   localidad: string | null;
   creado_en: string;
+  /** Logo de la empresa ya cargada en la plataforma, si la pudimos identificar. */
+  logoUrl: string | null;
 };
 
+type EmpresaConLogo = {
+  razon_social: string | null;
+  nombre_comercial: string | null;
+  cuit: string | null;
+  bucket_logo: string | null;
+  ruta_logo: string | null;
+};
+
+type AltaFila = {
+  razon_social: string;
+  nombre_comercial: string | null;
+  cuit: string | null;
+  categoria: string;
+  localidad: string | null;
+  creado_en: string;
+};
+
+/** CUIT comparable: sólo dígitos ("30-71232689-8" → "30712326898"). */
+const normalizarCuit = (v: string | null | undefined) => (v ?? "").replace(/\D/g, "");
+
+/**
+ * Nombre comparable: sin acentos, sin espacios ni puntuación y sin la forma
+ * societaria del final. Así "A. D. BARBIERI S.A." (padrón) y "A.D. Barbieri"
+ * (formulario) caen en la misma clave.
+ */
+const FORMA_SOCIETARIA = /(sas|srl|saic|sacif|sacifia|sca|scs|sh|sa|ltda)$/;
+
+function clavesDeNombre(v: string | null | undefined): string[] {
+  if (!v) return [];
+  const base = v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // marcas de acento
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  if (base.length < 6) return []; // demasiado corto: se presta a falsos positivos
+  const sinForma = base.replace(FORMA_SOCIETARIA, "");
+  // Sólo usamos la versión recortada si sigue siendo un nombre reconocible.
+  return sinForma.length >= 6 && sinForma !== base ? [base, sinForma] : [base];
+}
+
+/**
+ * Logos de las empresas ya cargadas, indexados por CUIT y por nombre para poder
+ * cruzarlos con las altas. El CUIT manda; el nombre es el plan B y se descarta
+ * si dos empresas comparten la misma clave (mejor sin logo que con el ajeno).
+ */
+async function getIndiceLogos(supabase: SupabaseClient) {
+  const { data } = await supabase
+    .from("empresas")
+    .select("razon_social, nombre_comercial, cuit, bucket_logo, ruta_logo")
+    .eq("estado", "aprobada")
+    .not("ruta_logo", "is", null);
+
+  const porCuit = new Map<string, string>();
+  const porNombre = new Map<string, string | null>(); // null = clave ambigua
+
+  for (const emp of (data as EmpresaConLogo[] | null) ?? []) {
+    if (!emp.bucket_logo || !emp.ruta_logo) continue;
+    const logoUrl = supabase.storage.from(emp.bucket_logo).getPublicUrl(emp.ruta_logo)
+      .data.publicUrl;
+
+    const cuit = normalizarCuit(emp.cuit);
+    if (cuit) porCuit.set(cuit, logoUrl);
+
+    const claves = new Set([
+      ...clavesDeNombre(emp.razon_social),
+      ...clavesDeNombre(emp.nombre_comercial),
+    ]);
+    for (const clave of claves) {
+      const previo = porNombre.get(clave);
+      porNombre.set(clave, previo === undefined || previo === logoUrl ? logoUrl : null);
+    }
+  }
+
+  return { porCuit, porNombre };
+}
+
 async function getAltasPublicas(): Promise<AltaPublica[]> {
-  // Sólo columnas NO sensibles. Email/teléfono nunca salen al público.
+  // Sólo columnas NO sensibles. Email/teléfono nunca salen al público; el CUIT
+  // se usa acá dentro para cruzar el logo y tampoco se renderiza.
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-  const { data } = await supabase
-    .from("altas_socios")
-    .select("razon_social, nombre_comercial, categoria, localidad, creado_en")
-    .neq("estado", "descartado")
-    .order("creado_en", { ascending: false })
-    .limit(120);
-  return (data as AltaPublica[]) ?? [];
+
+  const [{ data }, { porCuit, porNombre }] = await Promise.all([
+    supabase
+      .from("altas_socios")
+      .select("razon_social, nombre_comercial, cuit, categoria, localidad, creado_en")
+      .neq("estado", "descartado")
+      .order("creado_en", { ascending: false })
+      .limit(120),
+    getIndiceLogos(supabase),
+  ]);
+
+  return ((data as AltaFila[] | null) ?? []).map((alta) => {
+    const porNombreAlta = [
+      ...clavesDeNombre(alta.razon_social),
+      ...clavesDeNombre(alta.nombre_comercial),
+    ]
+      .map((clave) => porNombre.get(clave))
+      .find((url) => !!url);
+
+    return {
+      razon_social: alta.razon_social,
+      nombre_comercial: alta.nombre_comercial,
+      categoria: alta.categoria,
+      localidad: alta.localidad,
+      creado_en: alta.creado_en,
+      logoUrl: porCuit.get(normalizarCuit(alta.cuit)) ?? porNombreAlta ?? null,
+    };
+  });
 }
 
 export default async function SumatePage() {
@@ -129,9 +230,23 @@ export default async function SumatePage() {
                     const nombre = a.nombre_comercial || a.razon_social;
                     return (
                       <li key={i} className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50/60 transition-colors">
-                        <div className="w-9 h-9 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center font-bold uppercase shrink-0 text-sm">
-                          {nombre.charAt(0)}
-                        </div>
+                        {a.logoUrl ? (
+                          // Caja apaisada: la mayoría de los logos son horizontales
+                          // y en un cuadrado de 40px quedan ilegibles.
+                          <div className="w-16 h-12 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+                            <Image
+                              src={a.logoUrl}
+                              alt={`Logo de ${nombre}`}
+                              width={128}
+                              height={96}
+                              className="w-full h-full object-contain p-1.5"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-12 rounded-lg bg-primary-50 text-primary-700 flex items-center justify-center font-bold uppercase shrink-0 text-base">
+                            {nombre.charAt(0)}
+                          </div>
+                        )}
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-slate-800 text-sm truncate">{nombre}</p>
                           <p className="text-xs text-slate-400 truncate">

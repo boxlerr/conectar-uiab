@@ -30,8 +30,16 @@ const loginSchema = z.object({
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectParams = searchParams.get('redirect')
-  
+  // El resto de la app manda a veces ?redirect= y otras ?next= (el checkout y
+  // el callback de Supabase usan "next"). Aceptamos los dos, y sólo rutas
+  // internas: nunca redirigimos a un dominio externo.
+  const destinoCrudo = searchParams.get('redirect') ?? searchParams.get('next')
+  const redirectParams =
+    destinoCrudo && destinoCrudo.startsWith('/') && !destinoCrudo.startsWith('//')
+      ? destinoCrudo
+      : null
+
+
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 

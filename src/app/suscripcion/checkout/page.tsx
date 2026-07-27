@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,18 +20,39 @@ const formatARS = (n: number) =>
 const AHORRO_ANUAL = PRECIO_MENSUAL * 12 - PRECIO_ANUAL;
 
 export default function CheckoutSuscripcionPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+        </div>
+      }
+    >
+      <CheckoutContenido />
+    </Suspense>
+  );
+}
+
+function CheckoutContenido() {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [ciclo, setCiclo] = useState<CicloSuscripcion>("mensual");
+  const searchParams = useSearchParams();
+  // El ciclo puede venir preelegido desde la landing (?ciclo=anual). Si no
+  // viene, arrancamos en mensual como siempre.
+  const [ciclo, setCiclo] = useState<CicloSuscripcion>(
+    searchParams.get("ciclo") === "anual" ? "anual" : "mensual"
+  );
   const [monto, setMonto] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !currentUser) {
-      router.replace("/login?next=/suscripcion/checkout");
+      // Conservamos el ciclo elegido para no perderlo al pasar por el login.
+      const destino = ciclo === "anual" ? "/suscripcion/checkout?ciclo=anual" : "/suscripcion/checkout";
+      router.replace(`/login?next=${encodeURIComponent(destino)}`);
     }
-  }, [authLoading, currentUser, router]);
+  }, [authLoading, currentUser, router, ciclo]);
 
   async function iniciarPago() {
     setLoading(true);
