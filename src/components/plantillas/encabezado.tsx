@@ -335,13 +335,16 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
               className="flex-shrink-0 flex items-center gap-2.5"
             >
               <Link href="/" className="flex items-center group" aria-label="UIAB Conecta">
-                {/* Logo completo (UIAB | Conecta) en desktop */}
+                {/* Logo completo (UIAB Conecta) en desktop.
+                    Este SVG viene sin margen interno —el trazo toca los bordes
+                    del viewBox—, así que a la misma altura que el anterior se
+                    veía un 6% más grande: por eso h-11/h-[52px] y no h-12/h-14. */}
                 <Image
-                  src="/logo-uiab-conecta-header.svg"
+                  src="/logo-uiab-conecta.svg"
                   alt="UIAB Conecta"
-                  width={1112}
-                  height={191}
-                  className="hidden sm:block h-12 lg:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                  width={189}
+                  height={36}
+                  className="hidden sm:block h-11 lg:h-[52px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   priority
                 />
                 {/* Solo isotipo en mobile */}
