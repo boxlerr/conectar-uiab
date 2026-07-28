@@ -78,10 +78,14 @@ export function SeccionBeneficios() {
             className="lg:col-span-5 relative"
           >
             <div className="relative aspect-[4/3] rounded-sm overflow-hidden shadow-2xl shadow-primary-900/10 border border-slate-200/50">
+              {/* Sala de reuniones real de la UIAB. La foto es vertical (2:3)
+                  y el contenedor 4:3: se recorta la banda de las banderas + la
+                  mesa, que es lo que cuenta, y se descarta el cielorraso. */}
               <Image
-                src="/industrial-b2b-header.png"
-                alt="Planta industrial en Almirante Brown — Directorio de empresas y proveedores B2B UIAB Conecta"
+                src="/landing/uiab-sala-reuniones.webp"
+                alt="Sala de reuniones de la Unión Industrial de Almirante Brown, con las banderas argentina y bonaerense"
                 fill
+                sizes="(min-width: 1024px) 500px, 100vw"
                 className="object-cover transition-transform duration-700 hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-tr from-[#00213f]/20 to-transparent" />
