@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   ChevronRight,
   Award,
+  Search,
   TrendingUp,
   Wrench,
   Briefcase,
@@ -64,47 +65,57 @@ const float = {
    Los montos salen de lib/mercadopago/suscripciones para que la landing no se
    desincronice del billing: si cambia el precio, cambia acá solo.          */
 const ars = (n: number) => `$${n.toLocaleString("es-AR")}`;
-const PAGANDO_MES_A_MES = PRECIO_MENSUAL * 12; // 600.000 → sirve de ancla
+const PAGANDO_MES_A_MES = PRECIO_MENSUAL * 12; // 600.000 → ancla del plan anual
 const AHORRO_ANUAL = PAGANDO_MES_A_MES - PRECIO_ANUAL; // 100.000
 const EQUIVALENTE_MENSUAL = Math.round(PRECIO_ANUAL / 12); // 41.667
+const MESES_GRATIS = Math.round(AHORRO_ANUAL / PRECIO_MENSUAL); // 2
 
-/* Lo mismo para todos los planes: el ciclo de pago cambia, el acceso no. */
-const INCLUYE_MEMBRESIA = [
+/* Tres promesas, no seis features: la lista larga hacía que nadie la leyera.
+   Cada una es una SECCIÓN real de la plataforma y se llama igual que en el
+   menú, así lo que se promete acá es lo que se encuentra adentro. Las dos
+   primeras se pueden ir a ver antes de pagar. */
+const PROMESAS = [
   {
-    icon: Building,
-    titulo: "Tu ficha en el directorio",
-    detalle: "Perfil completo, visible para toda la red industrial de Almirante Brown.",
-  },
-  {
-    icon: Users,
-    titulo: "Contacto directo",
-    detalle: "Teléfono, email y web de cada empresa. Sin intermediarios ni comisiones.",
-  },
-  {
-    icon: Briefcase,
-    titulo: "Publicá lo que necesitás",
-    detalle: "Cargá búsquedas de proveedores o servicios y recibí propuestas de la red.",
+    icon: Search,
+    seccion: "Directorio",
+    titulo: "Que te encuentren",
+    detalle:
+      "Tu ficha con el sello de socia verificada, a la vista de toda la red industrial de Almirante Brown.",
+    href: "/directorio",
+    cta: "Ver el directorio",
   },
   {
     icon: Zap,
-    titulo: "Coincidencias automáticas",
-    detalle: "Te avisamos cuando otra empresa busca justo lo que tu empresa ofrece.",
+    seccion: "Oportunidades",
+    titulo: "Que te lleguen pedidos",
+    detalle:
+      "Publicá lo que necesitás y respondé lo que otros buscan. Te avisamos apenas alguien pide lo que hacés.",
+    href: "/oportunidades",
+    cta: "Ver oportunidades",
   },
   {
-    icon: Award,
-    titulo: "Catálogo y certificaciones",
-    detalle: "Mostrá tus productos, tus normas ISO y tu capacidad productiva real.",
+    icon: Users,
+    seccion: "Contacto directo",
+    titulo: "Que cierres vos",
+    detalle: "Teléfono, email y web de cada empresa. Sin intermediarios ni comisiones.",
+    href: null,
+    cta: null,
   },
-  {
-    icon: ShieldCheck,
-    titulo: "Acompañamiento UIAB",
-    detalle: "Te ayudamos a cargar el perfil y a sacarle provecho a la plataforma.",
-  },
+];
+
+const TAMBIEN_INCLUYE = [
+  "Catálogo de productos",
+  "Certificaciones ISO",
+  "Reseñas de la red",
+  "Acompañamiento UIAB",
 ];
 
 export default function Home() {
   const { openAuthModal, currentUser, loading } = useAuth();
   const router = useRouter();
+  // Anual por defecto: es el plan que conviene y el que queremos comparar.
+  const [ciclo, setCiclo] = useState<"mensual" | "anual">("anual");
+  const esAnual = ciclo === "anual";
   useEffect(() => {
     if (!loading && currentUser) {
       router.replace('/dashboard');
@@ -233,10 +244,16 @@ export default function Home() {
               <div className="relative max-w-2xl ml-auto">
                 {/* Main Industrial Illustration */}
                 <div className="relative z-10 w-full aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
+                  {/* Foto aérea real de la zona industrial del partido. El
+                      4:3 nativo (1448×1086) calza con el aspect del contenedor,
+                      así que object-cover no recorta nada. */}
                   <Image
-                    src="/landing/hero-industrial.webp"
-                    alt="Ecosistema industrial conectado — Directorio B2B UIAB Conecta, empresas y proveedores de Almirante Brown"
+                    src="/landing/hero-industrial-aereo.webp"
+                    alt="Vista aérea de la zona industrial de Almirante Brown: plantas, depósitos y el barrio alrededor"
                     fill
+                    /* Sólo se renderiza en lg+ y como máximo a 672px de ancho:
+                       sin esto Next sirve el candidato de viewport completo. */
+                    sizes="(min-width: 1024px) 672px, 0px"
                     className="object-cover"
                     priority
                   />
@@ -549,154 +566,198 @@ export default function Home() {
                 Una membresía. Todo incluido.
               </h2>
               <p className="text-slate-500 mt-2.5 max-w-xl mx-auto text-[15px] leading-relaxed">
-                Todas las empresas acceden a lo mismo. Lo único que elegís es cada cuánto pagás.
+                Lo único que elegís es cada cuánto pagás.
               </p>
             </motion.div>
 
             {/* Dos columnas: a la izquierda qué se obtiene, a la derecha cuánto
                 sale. Entra completo en una pantalla, sin scroll intermedio. */}
-            <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
 
-              {/* ─── Qué incluye ─── */}
-              <motion.div variants={fadeUp} custom={1} className="lg:col-span-5">
-                <p
-                  className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#00213f]/40 mb-5"
-                  style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
-                >
-                  Lo que obtenés desde el primer día
-                </p>
-                <ul className="space-y-3 sm:space-y-3.5">
-                  {/* En mobile sólo los títulos: si no, el precio queda muy abajo. */}
-                  {INCLUYE_MEMBRESIA.map((item) => (
-                    <li key={item.titulo} className="flex items-center sm:items-start gap-3.5">
-                      <span className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center shrink-0">
-                        <item.icon className="w-4 h-4 text-primary-600" />
+              {/* ─── Qué incluye: 3 promesas en vez de 6 features ───
+                  En mobile va después del precio: el visitante ya viene de toda
+                  la página, lo que le falta es el número. */}
+              <motion.div variants={fadeUp} custom={1} className="lg:col-span-5 order-2 lg:order-1">
+                <ul className="space-y-5">
+                  {PROMESAS.map((item) => (
+                    <li key={item.titulo} className="flex items-start gap-4">
+                      <span className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
+                        <item.icon className="w-[18px] h-[18px] text-primary-600" />
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-[14px] font-bold text-[#00213f] leading-snug">
+                        <span className="block text-[10.5px] font-black uppercase tracking-[0.16em] text-primary-600 mb-1">
+                          {item.seccion}
+                        </span>
+                        <span className="block text-[16px] font-bold text-[#00213f] leading-snug">
                           {item.titulo}
                         </span>
-                        <span className="hidden sm:block text-[12.5px] text-slate-500 leading-snug mt-0.5">
+                        <span className="block text-[13.5px] text-slate-500 leading-snug mt-1">
                           {item.detalle}
                         </span>
+                        {/* Se puede ir a ver antes de pagar: baja la fricción y
+                            de paso muestra que la sección existe de verdad. */}
+                        {item.href && (
+                          <Link
+                            href={item.href}
+                            className="group/link mt-1.5 inline-flex items-center gap-1 text-[12.5px] font-bold text-primary-600 hover:text-primary-700 transition-colors"
+                          >
+                            {item.cta}
+                            <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
+                          </Link>
+                        )}
                       </span>
                     </li>
                   ))}
                 </ul>
+
+                {/* Lo secundario, en chips: se ve que hay más sin obligar a leerlo. */}
+                <div className="flex flex-wrap gap-1.5 mt-6 pt-5 border-t border-slate-100">
+                  {TAMBIEN_INCLUYE.map((extra) => (
+                    <span
+                      key={extra}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[12px] font-semibold text-slate-600"
+                    >
+                      <CheckCircle2 className="w-3 h-3 text-primary-600" />
+                      {extra}
+                    </span>
+                  ))}
+                </div>
               </motion.div>
 
-              {/* ─── Planes: cada fila entera es el botón ─── */}
-              <div className="lg:col-span-7 space-y-3">
+              {/* ─── Un solo precio + selector de ciclo ───
+                  Antes había 3 tarjetas compitiendo. Ahora se compara siempre en
+                  $/mes: al pasar a anual el número baja a la vista y ahí se
+                  entiende el descuento sin tener que explicarlo. */}
+              <motion.div variants={fadeUp} custom={2} className="lg:col-span-7 order-1 lg:order-2">
 
-                {/* Mensual */}
-                <motion.div variants={fadeUp} custom={2}>
-                  <Link
-                    href="/register?ciclo=mensual"
-                    aria-label={`Elegir plan mensual de ${ars(PRECIO_MENSUAL)} por mes`}
-                    className="group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 rounded-2xl border border-slate-200 bg-[#f7f9fb] p-5 sm:p-6 hover:bg-white hover:border-[#00213f]/30 hover:shadow-xl hover:shadow-[#00213f]/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00213f] focus-visible:ring-offset-2 transition-all duration-300"
+                {/* Selector */}
+                <div
+                  role="radiogroup"
+                  aria-label="Cada cuánto querés pagar"
+                  className="flex p-1 rounded-xl bg-slate-100 mb-4"
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!esAnual}
+                    onClick={() => setCiclo("mensual")}
+                    className={`basis-1/2 h-11 rounded-lg text-[13.5px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00213f] ${
+                      !esAnual ? "bg-white text-[#00213f] shadow-sm" : "text-slate-500 hover:text-[#00213f]"
+                    }`}
                   >
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                        Plan mensual
-                      </span>
-                      <p className="text-[13px] text-slate-500 mt-1.5 leading-relaxed">
-                        Sin permanencia mínima: cancelás cuando quieras desde tu perfil.
-                      </p>
-                    </div>
-                    <div className="shrink-0 sm:text-right">
-                      <div className="flex items-baseline gap-1 sm:justify-end">
-                        <span
-                          className="text-3xl font-black text-[#00213f] tracking-tight"
-                          style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
-                        >
-                          {ars(PRECIO_MENSUAL)}
-                        </span>
-                        <span className="text-slate-400 font-semibold text-sm">/mes</span>
-                      </div>
-                      <span className="mt-1 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#00213f] group-hover:gap-2.5 transition-all">
-                        Empezar por mes
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </span>
-                    </div>
-                  </Link>
-                </motion.div>
+                    Mes a mes
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={esAnual}
+                    onClick={() => setCiclo("anual")}
+                    className={`basis-1/2 h-11 rounded-lg text-[13.5px] font-bold inline-flex items-center justify-center gap-1.5 sm:gap-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00213f] ${
+                      esAnual ? "bg-white text-[#00213f] shadow-sm" : "text-slate-500 hover:text-[#00213f]"
+                    }`}
+                  >
+                    Anual
+                    <span className="rounded-full bg-amber-400 text-[#00213f] text-[9px] sm:text-[10px] font-black uppercase tracking-wide px-1.5 sm:px-2 py-0.5">
+                      {MESES_GRATIS} meses gratis
+                    </span>
+                  </button>
+                </div>
 
-                {/* Anual — destacado */}
-                <motion.div variants={fadeUp} custom={3}>
-                  <Link
-                    href="/register?ciclo=anual"
-                    aria-label={`Elegir plan anual de ${ars(PRECIO_ANUAL)} por año, con ${ars(AHORRO_ANUAL)} de ahorro`}
-                    className="group flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 rounded-2xl bg-gradient-to-br from-[#00213f] to-[#10375c] p-5 sm:p-6 shadow-xl shadow-[#00213f]/20 hover:shadow-2xl hover:shadow-[#00213f]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 transition-all duration-300"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/40">
-                          Plan anual
-                        </span>
-                        <span className="rounded-full bg-amber-400 text-[#00213f] text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5">
-                          Recomendado · 2 meses gratis
-                        </span>
-                      </div>
-                      <p className="text-[13px] text-white/50 mt-1.5 leading-relaxed">
-                        <span className="line-through">{ars(PAGANDO_MES_A_MES)}</span> pagando mes a
-                        mes · equivale a{" "}
-                        <span className="font-bold text-white/80">{ars(EQUIVALENTE_MENSUAL)}/mes</span>
-                      </p>
-                      <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-emerald-400/15 border border-emerald-300/25 px-2.5 py-1 text-[11.5px] font-bold text-emerald-300">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Ahorrás {ars(AHORRO_ANUAL)} por año
-                      </span>
-                    </div>
-                    <div className="shrink-0 sm:text-right">
-                      <div className="flex items-baseline gap-1 sm:justify-end">
-                        <span
-                          className="text-4xl font-black text-white tracking-tight"
-                          style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
-                        >
-                          {ars(PRECIO_ANUAL)}
-                        </span>
-                        <span className="text-white/40 font-semibold text-sm">/año</span>
-                      </div>
-                      <span className="mt-2.5 flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg bg-amber-400 text-[12.5px] font-black text-[#00213f] group-hover:bg-amber-300 shadow-lg shadow-black/10 transition-colors">
-                        Elegir el plan anual
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </span>
-                    </div>
-                  </Link>
-                </motion.div>
+                {/* Tarjeta de precio */}
+                <div className="rounded-2xl bg-gradient-to-br from-[#00213f] to-[#10375c] p-6 sm:p-8 shadow-2xl shadow-[#00213f]/20">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/40">
+                    Membresía completa
+                  </p>
 
-                {/* Socias UIAB */}
-                <motion.div variants={fadeUp} custom={4}>
-                  <Link
-                    href="/sumate"
-                    aria-label="Activar el acceso sin cargo de una empresa socia de la UIAB"
-                    className="group flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 sm:p-6 hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-600/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 transition-all duration-300"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-600">
-                        ¿Ya sos socia UIAB?
-                      </span>
-                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">
-                        La membresía ya está incluida en tu cuota. Cargá los datos de tu empresa y te
-                        activamos el acceso completo.
+                  <div className="flex items-baseline gap-2 mt-2">
+                    <span
+                      className="text-[3.25rem] sm:text-6xl font-black text-white tracking-tight leading-none tabular-nums"
+                      style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                    >
+                      {ars(esAnual ? EQUIVALENTE_MENSUAL : PRECIO_MENSUAL)}
+                    </span>
+                    <span className="text-white/40 font-semibold text-[15px]">/mes</span>
+                  </div>
+
+                  {/* El ancla tachada sólo aparece en anual: es la prueba visual
+                      del descuento. En mensual no hay nada que tachar. */}
+                  <div className="mt-2 min-h-[22px]">
+                    {esAnual && (
+                      <p className="text-[13.5px] text-white/50">
+                        <span className="line-through">{ars(PRECIO_MENSUAL)}/mes</span> pagando mes a mes
                       </p>
-                    </div>
-                    <div className="shrink-0 sm:text-right">
-                      <span
-                        className="block text-3xl font-black text-emerald-700 tracking-tight"
-                        style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                    )}
+                  </div>
+
+                  <p className="text-[13.5px] text-white/70 mt-3 leading-relaxed">
+                    {esAnual ? (
+                      <>
+                        Un solo pago de{" "}
+                        <span className="font-bold text-white">{ars(PRECIO_ANUAL)}</span> al año, en
+                        lugar de {ars(PAGANDO_MES_A_MES)}.
+                      </>
+                    ) : (
+                      <>Se cobra todos los meses. Cancelás cuando quieras desde tu perfil.</>
+                    )}
+                  </p>
+
+                  {/* Alto reservado para que el precio no salte al cambiar de
+                      ciclo. En mensual el espacio no queda vacío: ofrece el
+                      anual justo en el momento de decidir. */}
+                  <div className="mt-3 min-h-[34px]">
+                    {esAnual ? (
+                      <p className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-400/15 border border-emerald-300/25 px-3 py-1.5 text-[13px] font-bold text-emerald-300">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Te quedan {ars(AHORRO_ANUAL)} en el bolsillo
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setCiclo("anual")}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400/10 border border-amber-300/25 px-3 py-1.5 text-[13px] font-bold text-amber-300 hover:bg-amber-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 transition-colors"
                       >
-                        Sin cargo
-                      </span>
-                      <span className="mt-1 inline-flex items-center gap-1.5 text-[12.5px] font-bold text-emerald-700 group-hover:gap-2.5 transition-all">
-                        Activar mi acceso
+                        Pagá el año y te queda en {ars(EQUIVALENTE_MENSUAL)}/mes
                         <ArrowRight className="w-3.5 h-3.5" />
-                      </span>
-                    </div>
-                  </Link>
-                </motion.div>
+                      </button>
+                    )}
+                  </div>
 
-              </div>
+                  <Link
+                    href={`/register?ciclo=${ciclo}`}
+                    aria-label={
+                      esAnual
+                        ? `Empezar con el plan anual: ${ars(PRECIO_ANUAL)} al año, ${ars(AHORRO_ANUAL)} de ahorro`
+                        : `Empezar con el plan mensual: ${ars(PRECIO_MENSUAL)} por mes`
+                    }
+                    className="mt-6 flex items-center justify-center gap-2 h-14 w-full rounded-xl bg-amber-400 text-[15px] font-black text-[#00213f] hover:bg-amber-300 shadow-lg shadow-black/15 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#00213f] transition-all"
+                  >
+                    Empezar ahora
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+
+                  <p className="text-center text-[12px] text-white/40 mt-3">
+                    Sin permanencia · Cancelás cuando quieras · +60 empresas ya publicadas
+                  </p>
+                </div>
+
+                {/* Socias UIAB: una línea, para que no compita con la decisión. */}
+                <Link
+                  href="/sumate"
+                  className="group mt-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-5 py-3.5 hover:border-emerald-400 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 transition-colors"
+                >
+                  <span className="flex items-start sm:items-center gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
+                    <span className="text-[13.5px] text-slate-600 leading-snug">
+                      <span className="font-bold text-emerald-800">¿Ya sos socia UIAB?</span> Tu
+                      membresía está incluida en la cuota.
+                    </span>
+                  </span>
+                  <span className="pl-6 sm:pl-0 sm:ml-auto shrink-0 inline-flex items-center gap-1 text-[13px] font-bold text-emerald-700 group-hover:gap-2 transition-all">
+                    Activar
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </Link>
+              </motion.div>
             </div>
           </motion.div>
         </div>

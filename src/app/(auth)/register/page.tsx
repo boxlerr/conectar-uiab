@@ -26,6 +26,10 @@ import { cn } from '@/lib/utilidades'
 import { useAuth } from '@/modulos/autenticacion/contexto-autenticacion'
 import { PRECIO_MENSUAL, PRECIO_ANUAL } from '@/lib/mercadopago/suscripciones'
 
+// Mismo número que se muestra en la landing para el plan anual: comparar
+// siempre en $/mes es lo que hace evidente el descuento.
+const EQUIVALENTE_MENSUAL = Math.round(PRECIO_ANUAL / 12) // 41.667
+
 // ─── OFFICIAL TAXONOMY ───
 
 const ALL_SECTORS = [
@@ -519,12 +523,21 @@ function RegisterContent() {
 
                     <motion.div variants={itemFade} initial="initial" animate="animate" transition={{ delay: 0.4 }} className="rounded-xl border border-white/10 bg-white/[0.07] px-4 py-3.5">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Membresía</p>
+                      {/* Mostramos el mismo número que vio en la landing: si eligió
+                          anual, el precio por mes ya viene con el descuento. */}
                       <p className="text-white font-black text-2xl tracking-tight mt-0.5">
-                        ${PRECIO_MENSUAL.toLocaleString('es-AR')}
+                        ${(cicloElegido === 'anual' ? EQUIVALENTE_MENSUAL : PRECIO_MENSUAL).toLocaleString('es-AR')}
                         <span className="text-sm font-semibold text-white/40 ml-1">/ mes</span>
+                        {cicloElegido === 'anual' && (
+                          <span className="text-sm font-semibold text-white/30 ml-2 line-through">
+                            ${PRECIO_MENSUAL.toLocaleString('es-AR')}
+                          </span>
+                        )}
                       </p>
                       <p className="text-white/50 text-xs mt-1">
-                        O ${PRECIO_ANUAL.toLocaleString('es-AR')} al año — 2 meses bonificados. Cancelás cuando quieras.
+                        {cicloElegido === 'anual'
+                          ? `Un solo pago de $${PRECIO_ANUAL.toLocaleString('es-AR')} al año — 2 meses gratis.`
+                          : `O $${PRECIO_ANUAL.toLocaleString('es-AR')} al año y te ahorrás 2 meses. Cancelás cuando quieras.`}
                       </p>
                     </motion.div>
                   </div>

@@ -186,11 +186,12 @@ export default async function SumatePage() {
             className="text-sm leading-relaxed text-white/80"
             style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
           >
-            <span className="font-bold text-white">Las socias UIAB acceden sin cargo: la membresía está incluida.</span>{" "}
-            ¿Tu empresa todavía no es socia? El acceso a UIAB Conecta cuesta{" "}
-            <span className="font-bold text-white">$50.000/mes</span> o{" "}
-            <span className="font-bold text-white">$500.000/año</span>{" "}
-            <span className="text-emerald-300 font-bold">(2 meses bonificados)</span>.
+            <span className="font-bold text-white">Sos socia UIAB: no pagás nada.</span> La membresía
+            ya está incluida en tu cuota.{" "}
+            <span className="text-white/50">
+              ¿Todavía no sos socia? La membresía sale $50.000/mes, o $41.667/mes pagando el año
+              (<span className="text-emerald-300 font-bold">2 meses gratis</span>).
+            </span>
           </p>
         </div>
       </div>
