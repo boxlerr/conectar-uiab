@@ -4,6 +4,12 @@ import { useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Entidad } from "@/lib/datos/directorio";
+import {
+  TIPOS_ENTIDAD,
+  TIPOS_ENTIDAD_META,
+  parseTipoEntidad,
+  type TipoEntidad,
+} from "@/lib/datos/tipos-entidad";
 import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
 import { SliderLogosDirectorio, type LogoDirectorio } from "@/components/ui/directorio/slider-logos-directorio";
@@ -22,20 +28,12 @@ import {
   ArrowRight,
   Search,
   Sparkles,
+  X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import type { Variants } from "framer-motion";
 import Image from "next/image";
-
-type TabKey =
-  | "empresas"
-  | "prestadores"
-  | "financieras"
-  | "educativas"
-  | "cooperativas";
-
-type Esquema = "blue" | "emerald" | "violet" | "amber" | "teal";
 
 /** Criterio del control "Ordenar por". `sugerido` = orden justo que llega del SSR. */
 type Orden = "sugerido" | "az" | "za" | "certificaciones";
@@ -47,142 +45,14 @@ const OPCIONES_ORDEN: { valor: Orden; etiqueta: string }[] = [
   { valor: "certificaciones", etiqueta: "Con certificaciones primero" },
 ];
 
-interface ConfigTab {
-  key: TabKey;
-  etiqueta: string;
-  Icono: LucideIcon;
-  esquema: Esquema;
-  /** Badge extra en la pestaña (p.ej. "No socios" para prestadores). */
-  badge?: string;
-  singular: string;
-  plural: string;
-  /** Formas breves para los slots que truncan (mini-stats del CTA). Default: singular/plural. */
-  singularCorto?: string;
-  pluralCorto?: string;
-  genero: "f" | "m";
-  /** Título del empty state invitacional cuando la pestaña no tiene entidades. */
-  tituloVacio: string;
-  /** Si permite alternar vista grid/list (los prestadores van siempre en lista). */
-  permiteVista: boolean;
-}
-
-const TABS: ConfigTab[] = [
-  {
-    key: "empresas",
-    etiqueta: "Empresas socias",
-    Icono: Building2,
-    esquema: "blue",
-    singular: "empresa socia",
-    plural: "empresas socias",
-    genero: "f",
-    tituloVacio: "Todavía no hay empresas socias publicadas en el directorio",
-    permiteVista: true,
-  },
-  {
-    key: "prestadores",
-    etiqueta: "Prestadores de productos y servicios",
-    Icono: Wrench,
-    esquema: "emerald",
-    badge: "No socios",
-    singular: "prestador de productos y servicios",
-    plural: "prestadores de productos y servicios",
-    singularCorto: "prestador",
-    pluralCorto: "prestadores",
-    genero: "m",
-    tituloVacio:
-      "Todavía no hay prestadores de productos y servicios publicados en el directorio",
-    permiteVista: false,
-  },
-  {
-    key: "financieras",
-    etiqueta: "Entidades financieras",
-    Icono: Landmark,
-    esquema: "violet",
-    singular: "entidad financiera",
-    plural: "entidades financieras",
-    genero: "f",
-    tituloVacio:
-      "Todavía no hay entidades financieras publicadas en el directorio",
-    permiteVista: true,
-  },
-  {
-    key: "educativas",
-    etiqueta: "Entidades educativas",
-    Icono: GraduationCap,
-    esquema: "amber",
-    singular: "entidad educativa",
-    plural: "entidades educativas",
-    genero: "f",
-    tituloVacio:
-      "Todavía no hay entidades educativas publicadas en el directorio",
-    permiteVista: true,
-  },
-  {
-    key: "cooperativas",
-    etiqueta: "Cooperativas",
-    Icono: HeartHandshake,
-    esquema: "teal",
-    singular: "cooperativa",
-    plural: "cooperativas",
-    genero: "f",
-    tituloVacio: "Todavía no hay cooperativas publicadas en el directorio",
-    permiteVista: true,
-  },
-];
-
-/** Rótulo completo según el conteo ("1 prestador de productos y servicios"). */
-const rotulo = (tab: ConfigTab, n: number) => (n === 1 ? tab.singular : tab.plural);
-
-/** Rótulo breve, sólo para los slots que truncan. */
-const rotuloCorto = (tab: ConfigTab, n: number) =>
-  n === 1 ? (tab.singularCorto ?? tab.singular) : (tab.pluralCorto ?? tab.plural);
-
-// Mapas de clases estáticas por esquema (nunca interpolar colores en Tailwind).
-const ESTILOS_TAB_ACTIVA: Record<Esquema, string> = {
-  blue: "bg-white text-blue-700 shadow-sm border border-slate-200",
-  emerald: "bg-white text-emerald-700 shadow-sm border border-slate-200",
-  violet: "bg-white text-violet-700 shadow-sm border border-slate-200",
-  amber: "bg-white text-amber-700 shadow-sm border border-slate-200",
-  teal: "bg-white text-teal-700 shadow-sm border border-slate-200",
-};
-
-const ESTILOS_VISTA_ACTIVA: Record<Esquema, string> = {
-  blue: "bg-white text-blue-600 shadow-sm",
-  emerald: "bg-white text-emerald-600 shadow-sm",
-  violet: "bg-white text-violet-600 shadow-sm",
-  amber: "bg-white text-amber-600 shadow-sm",
-  teal: "bg-white text-teal-600 shadow-sm",
-};
-
-const ESTILOS_VACIO: Record<
-  Esquema,
-  { circulo: string; icono: string; boton: string }
-> = {
-  blue: {
-    circulo: "bg-blue-50 border-blue-100",
-    icono: "text-blue-300",
-    boton: "bg-primary hover:bg-blue-800",
-  },
-  emerald: {
-    circulo: "bg-emerald-50 border-emerald-100",
-    icono: "text-emerald-400",
-    boton: "bg-emerald-700 hover:bg-emerald-800",
-  },
-  violet: {
-    circulo: "bg-violet-50 border-violet-100",
-    icono: "text-violet-400",
-    boton: "bg-violet-700 hover:bg-violet-800",
-  },
-  amber: {
-    circulo: "bg-amber-50 border-amber-100",
-    icono: "text-amber-400",
-    boton: "bg-amber-600 hover:bg-amber-700",
-  },
-  teal: {
-    circulo: "bg-teal-50 border-teal-100",
-    icono: "text-teal-400",
-    boton: "bg-teal-700 hover:bg-teal-800",
-  },
+/** Íconos por tipo. Viven acá y no en el meta compartido para no arrastrar
+    lucide a los módulos que importa el servidor. */
+const ICONO_TIPO: Record<TipoEntidad, LucideIcon> = {
+  empresa: Building2,
+  prestador: Wrench,
+  financiera: Landmark,
+  educativa: GraduationCap,
+  cooperativa: HeartHandshake,
 };
 
 // Variants de entrada del hero (stagger sutil).
@@ -201,56 +71,33 @@ const heroItem: Variants = {
 };
 
 interface DirectorioClienteProps {
-  empresas: Entidad[];
-  prestadores: Entidad[];
-  financieras: Entidad[];
-  educativas: Entidad[];
-  cooperativas: Entidad[];
+  /** Directorio unificado: todos los tipos en una sola lista. */
+  entidades: Entidad[];
 }
 
-export function DirectorioCliente({
-  empresas,
-  prestadores,
-  financieras,
-  educativas,
-  cooperativas,
-}: DirectorioClienteProps) {
+export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { currentUser } = useAuth();
 
-  const datosPorTab: Record<TabKey, Entidad[]> = {
-    empresas,
-    prestadores,
-    financieras,
-    educativas,
-    cooperativas,
-  };
-
   // Logos para el slider: vienen del SSR (ya tienen logoUrl), así que se
-  // muestran al instante, sin fetch client-side ni skeleton colgado.
-  const logosSocias: LogoDirectorio[] = [
-    ...empresas,
-    ...financieras,
-    ...educativas,
-    ...cooperativas,
-  ]
-    .filter((e) => !!e.logoUrl)
+  // muestran al instante, sin fetch client-side ni skeleton colgado. Sólo
+  // socias: los prestadores particulares no tienen logo institucional.
+  const logosSocias: LogoDirectorio[] = entidades
+    .filter((e) => !!e.logoUrl && e.esSocio !== false)
     .map((e) => ({ slug: e.slug, nombre: e.nombre, logoUrl: e.logoUrl as string }));
 
-  // La URL es la fuente de verdad del tab activo (evita sincronizar estado en
-  // un effect). Cambiar de tab navega y el componente re-renderiza.
-  const tabParam = searchParams.get("tab");
-  const tabActiva: ConfigTab =
-    TABS.find((t) => t.key === tabParam) ?? TABS[0];
+  // La URL manda sobre el tipo activo: así `/directorio?tipo=financiera` es un
+  // link compartible y los viejos `?tab=prestadores` siguen funcionando.
+  const tipoSeleccionado = parseTipoEntidad(
+    searchParams.get("tipo") ?? searchParams.get("tab")
+  );
 
-  // Shared filter state. searchTerm se inicializa desde ?q= para que el cuadro
-  // de búsqueda de Google (SearchAction) lleve directo al término buscado.
+  // searchTerm se inicializa desde ?q= para que el cuadro de búsqueda de Google
+  // (SearchAction) lleve directo al término buscado.
   const [searchTerm, setSearchTerm] = useState(() => searchParams.get("q") ?? "");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  // Criterio de orden elegido por el usuario. `sugerido` respeta el orden justo
-  // (shuffle diario) que ya viene del SSR.
   const [orden, setOrden] = useState<Orden>("sugerido");
 
   // Parallax sutil de posición del fondo del hero. Nunca tocamos la opacidad:
@@ -258,12 +105,19 @@ export function DirectorioCliente({
   const { scrollY } = useScroll();
   const fondoY = useTransform(scrollY, [0, 700], [0, 110]);
 
-  // Reset filters on tab change
-  const handleTabChange = (key: TabKey) => {
-    setSearchTerm("");
+  /**
+   * Cambiar el tipo NO borra lo que escribiste: la búsqueda corre sobre todo el
+   * directorio y el tipo sólo la acota. Sí se resetea el sector, porque el
+   * listado de sectores depende del tipo elegido.
+   */
+  const handleTipoChange = (tipo: TipoEntidad | null) => {
     setCategoriaSeleccionada(null);
-    const url = key === "empresas" ? "/directorio" : `/directorio?tab=${key}`;
-    router.replace(url, { scroll: false });
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tab"); // el alias viejo no debe pisar al nuevo
+    if (tipo) params.set("tipo", tipo);
+    else params.delete("tipo");
+    const qs = params.toString();
+    router.replace(qs ? `/directorio?${qs}` : "/directorio", { scroll: false });
   };
 
   // Scroll suave desde el buscador del hero hasta la zona de resultados.
@@ -279,41 +133,63 @@ export function DirectorioCliente({
     if (empezoAEscribir) scrollAResultados();
   };
 
-  const entidadesActivas = datosPorTab[tabActiva.key];
+  // Conteos por tipo sobre el total (no sobre lo filtrado): el facet tiene que
+  // mostrar cuántas hay de cada tipo aunque estés viendo otro.
+  const conteosPorTipo = useMemo(() => {
+    const mapa = new Map<TipoEntidad, number>();
+    for (const e of entidades) {
+      const t = e.tipoEntidad ?? "empresa";
+      mapa.set(t, (mapa.get(t) ?? 0) + 1);
+    }
+    return TIPOS_ENTIDAD.map((tipo) => ({ tipo, count: mapa.get(tipo) ?? 0 })).filter(
+      (c) => c.count > 0
+    );
+  }, [entidades]);
+
+  // Universo sobre el que se ofrecen sectores y se filtra: todo el directorio,
+  // o sólo el tipo elegido.
+  const entidadesDelTipo = useMemo(
+    () =>
+      tipoSeleccionado
+        ? entidades.filter((e) => (e.tipoEntidad ?? "empresa") === tipoSeleccionado)
+        : entidades,
+    [entidades, tipoSeleccionado]
+  );
 
   // Sectores filtrables: la categoría principal + las secundarias de cada
   // entidad (pedido reunión 2-jul: poder buscar/filtrar por sector).
   const categoriasActivas = useMemo(() => {
     return Array.from(
-      new Set(entidadesActivas.flatMap((e) => [e.categoria, ...e.servicios]))
+      new Set(entidadesDelTipo.flatMap((e) => [e.categoria, ...e.servicios]))
     )
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
-  }, [entidadesActivas]);
+  }, [entidadesDelTipo]);
 
   const entidadesFiltradas = useMemo(() => {
-    return entidadesActivas.filter((e) => {
+    const term = searchTerm.trim().toLowerCase();
+    return entidadesDelTipo.filter((e) => {
       // El sector elegido matchea la categoría principal O cualquier secundaria.
       const matchCategoria = categoriaSeleccionada
         ? e.categoria === categoriaSeleccionada ||
           e.servicios.includes(categoriaSeleccionada)
         : true;
-      const term = searchTerm.toLowerCase();
       const matchSearch =
         term === "" ||
         e.nombre.toLowerCase().includes(term) ||
         e.categoria.toLowerCase().includes(term) ||
         e.descripcionCorta.toLowerCase().includes(term) ||
+        e.ubicacion.toLowerCase().includes(term) ||
         e.servicios.some((s: string) => s.toLowerCase().includes(term)) ||
         e.tags.some((t: string) => t.toLowerCase().includes(term)) ||
         (e.certificaciones ?? []).some((c) => c.etiqueta.toLowerCase().includes(term));
       return matchCategoria && matchSearch;
     });
-  }, [entidadesActivas, categoriaSeleccionada, searchTerm]);
+  }, [entidadesDelTipo, categoriaSeleccionada, searchTerm]);
 
   // Orden aplicado DESPUÉS del filtrado, sobre una copia (nunca mutamos props).
   // `sugerido` devuelve tal cual el orden justo del SSR. Para "con
-  // certificaciones/logo primero" agrupamos ese subconjunto adelante y, como
+  // certificaciones primero" agrupamos ese subconjunto adelante y, como
   // Array.sort es estable, dentro de cada grupo se respeta el orden sugerido.
   const entidadesOrdenadas = useMemo(() => {
     if (orden === "sugerido") return entidadesFiltradas;
@@ -333,28 +209,25 @@ export function DirectorioCliente({
     }
   }, [entidadesFiltradas, orden]);
 
-  const effectiveViewMode = tabActiva.permiteVista ? viewMode : "list";
-  const colorAccent = tabActiva.esquema;
   const basePath = "/empresas";
+  const hayFiltrosActivos =
+    searchTerm !== "" || categoriaSeleccionada !== null || tipoSeleccionado !== null;
 
-  const hayFiltrosActivos = searchTerm !== "" || categoriaSeleccionada !== null;
-  const estilosVacio = ESTILOS_VACIO[colorAccent];
-  const IconoTab = tabActiva.Icono;
+  const metaTipo = tipoSeleccionado ? TIPOS_ENTIDAD_META[tipoSeleccionado] : null;
+  const n = entidadesFiltradas.length;
 
-  // Counts por categoría para el hero y la barra de stats (solo > 0).
-  const conteos = TABS.map((tab) => ({
-    tab,
-    count: datosPorTab[tab.key].length,
-  })).filter((c) => c.count > 0);
+  // "3 empresas socias encontradas" / "58 organizaciones encontradas".
+  const rotuloResultados = metaTipo
+    ? `${n === 1 ? metaTipo.singular : metaTipo.plural} encontrad${
+        metaTipo.genero === "f" ? "a" : "o"
+      }${n === 1 ? "" : "s"}`
+    : `${n === 1 ? "organización" : "organizaciones"} encontrada${n === 1 ? "" : "s"}`;
 
-  const totalEntidades = TABS.reduce(
-    (acc, tab) => acc + datosPorTab[tab.key].length,
-    0
-  );
-
-  const sufijoEncontrado = `encontrad${tabActiva.genero === "f" ? "a" : "o"}${
-    entidadesFiltradas.length === 1 ? "" : "s"
-  }`;
+  const limpiarFiltros = () => {
+    setSearchTerm("");
+    setCategoriaSeleccionada(null);
+    if (tipoSeleccionado) handleTipoChange(null);
+  };
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] font-inter pb-20">
@@ -422,14 +295,15 @@ export function DirectorioCliente({
               variants={heroItem}
               className="font-manrope text-2xl sm:text-3xl font-black text-white tracking-tight mb-2"
             >
-              Directorio de la red UIAB
+              Toda la red UIAB, en un solo buscador
             </motion.h1>
 
             <motion.p
               variants={heroItem}
               className="text-blue-100/80 text-sm sm:text-base font-medium max-w-xl mx-auto mb-6"
             >
-              Empresas socias, prestadores e instituciones de Almirante Brown. Buscá y contactá directo.
+              Empresas socias, prestadores, entidades financieras y educativas y
+              cooperativas de Almirante Brown. Buscá una vez y contactá directo.
             </motion.p>
 
             {/* Buscador protagonista */}
@@ -450,18 +324,26 @@ export function DirectorioCliente({
                       scrollAResultados();
                     }
                   }}
-                  placeholder="Buscá por empresa, rubro o especialidad…"
-                  aria-label="Buscar en el directorio"
+                  placeholder="Buscá una empresa, un banco, un rubro o una especialidad…"
+                  aria-label="Buscar en todo el directorio"
                   className="w-full bg-transparent py-4 sm:py-[18px] text-slate-800 placeholder:text-slate-400 font-medium text-sm sm:text-base focus:outline-none"
                 />
-                <kbd className="hidden md:inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-400 shrink-0">
-                  Enter
-                </kbd>
+                {searchTerm ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm("")}
+                    aria-label="Borrar la búsqueda"
+                    className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <kbd className="hidden md:inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-400 shrink-0">
+                    Enter
+                  </kbd>
+                )}
               </div>
             </motion.div>
-
-            {/* Los conteos/pestañas por categoría viven una sola vez, en la
-                barra de tabs de abajo (evita el duplicado con el hero). */}
 
             {/* CTAs solo para visitantes: si ya estás logueado no tienen sentido. */}
             {!currentUser && (
@@ -489,8 +371,7 @@ export function DirectorioCliente({
       </div>
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-        {/* Slider de logos de las empresas de la red (reemplaza la vieja barra
-            de conteos; los conteos ya viven en las pestañas). */}
+        {/* Slider de logos de las empresas de la red. */}
         <motion.div
           initial={false}
           animate={{ opacity: 1, y: 0 }}
@@ -514,37 +395,6 @@ export function DirectorioCliente({
           <SliderLogosDirectorio logos={logosSocias} />
         </motion.div>
 
-        {/* ─── Tabs ─── */}
-        <div className="mb-8 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto hide-scrollbar">
-          <div className="flex gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200 w-max">
-            {TABS.map((tab) => {
-              const activa = tab.key === tabActiva.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => handleTabChange(tab.key)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
-                    activa
-                      ? ESTILOS_TAB_ACTIVA[tab.esquema]
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  <tab.Icono className="w-4 h-4" />
-                  {tab.etiqueta}
-                  {tab.badge && (
-                    <span className="ml-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
-                      {tab.badge}
-                    </span>
-                  )}
-                  <span className="ml-1 text-xs font-black text-slate-400">
-                    {datosPorTab[tab.key].length}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
           {/* Sidebar */}
           <aside data-tour="directorio-sidebar" className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
@@ -554,19 +404,22 @@ export function DirectorioCliente({
               onCategoriaChange={setCategoriaSeleccionada}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
-              colorScheme={colorAccent}
+              colorScheme="blue"
+              tipos={conteosPorTipo}
+              tipoSeleccionado={tipoSeleccionado}
+              onTipoChange={handleTipoChange}
+              totalTipos={entidades.length}
             />
           </aside>
 
           {/* Main Grid */}
           <main className="w-full lg:w-9/12 xl:w-3/4">
             {/* Toolbar */}
-            <div data-tour="directorio-toolbar" className="mb-8 scroll-mt-28 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
+            <div data-tour="directorio-toolbar" className="mb-6 scroll-mt-28 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
               <div>
-                <h3 className="font-manrope text-lg font-bold text-slate-800">
-                  {entidadesFiltradas.length}{" "}
-                  {rotulo(tabActiva, entidadesFiltradas.length)} {sufijoEncontrado}
-                </h3>
+                <h2 className="font-manrope text-lg font-bold text-slate-800">
+                  {n} {rotuloResultados}
+                </h2>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
@@ -589,45 +442,84 @@ export function DirectorioCliente({
                   />
                 </div>
 
-                {tabActiva.permiteVista && (
-                  <div data-tour="directorio-vista" className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      Vista:
-                    </span>
-                    <div className="bg-slate-100 p-1 rounded-lg flex gap-1 border border-slate-200">
-                      <button
-                        onClick={() => setViewMode("grid")}
-                        className={`p-2 rounded-md transition-all ${
-                          effectiveViewMode === "grid"
-                            ? ESTILOS_VISTA_ACTIVA[colorAccent]
-                            : "text-slate-400 hover:text-slate-700"
-                        }`}
-                      >
-                        <LayoutGrid className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setViewMode("list")}
-                        className={`p-2 rounded-md transition-all ${
-                          effectiveViewMode === "list"
-                            ? ESTILOS_VISTA_ACTIVA[colorAccent]
-                            : "text-slate-400 hover:text-slate-700"
-                        }`}
-                      >
-                        <List className="w-4 h-4" />
-                      </button>
-                    </div>
+                <div data-tour="directorio-vista" className="flex items-center gap-3">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Vista:
+                  </span>
+                  <div className="bg-slate-100 p-1 rounded-lg flex gap-1 border border-slate-200">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      aria-label="Vista en grilla"
+                      aria-pressed={viewMode === "grid"}
+                      className={`p-2 rounded-md transition-all ${
+                        viewMode === "grid"
+                          ? "bg-white text-blue-600 shadow-sm"
+                          : "text-slate-400 hover:text-slate-700"
+                      }`}
+                    >
+                      <LayoutGrid className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      aria-label="Vista en lista"
+                      aria-pressed={viewMode === "list"}
+                      className={`p-2 rounded-md transition-all ${
+                        viewMode === "list"
+                          ? "bg-white text-blue-600 shadow-sm"
+                          : "text-slate-400 hover:text-slate-700"
+                      }`}
+                    >
+                      <List className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 
+            {/* Filtros activos: se ven y se sacan de a uno. Sin esto, un filtro
+                de tipo puesto desde la barra lateral queda invisible al
+                scrollear y parece que faltan empresas. */}
+            {hayFiltrosActivos && (
+              <div className="mb-6 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">
+                  Filtros:
+                </span>
+                {metaTipo && (
+                  <ChipFiltro
+                    etiqueta={metaTipo.etiqueta}
+                    onQuitar={() => handleTipoChange(null)}
+                  />
+                )}
+                {categoriaSeleccionada && (
+                  <ChipFiltro
+                    etiqueta={categoriaSeleccionada}
+                    onQuitar={() => setCategoriaSeleccionada(null)}
+                  />
+                )}
+                {searchTerm && (
+                  <ChipFiltro
+                    etiqueta={`“${searchTerm}”`}
+                    onQuitar={() => setSearchTerm("")}
+                    /* Tal cual lo escribió: capitalizarlo confunde. */
+                    respetarMayusculas
+                  />
+                )}
+                <button
+                  onClick={limpiarFiltros}
+                  className="text-[12px] font-bold text-slate-500 hover:text-[#10375c] underline underline-offset-2 ml-1"
+                >
+                  Limpiar todo
+                </button>
+              </div>
+            )}
+
             {/* Results */}
-            {entidadesFiltradas.length > 0 ? (
+            {n > 0 ? (
               <div
-                key={`${effectiveViewMode}-${tabActiva.key}`}
+                key={viewMode}
                 data-tour="directorio-resultados"
                 className={
-                  effectiveViewMode === "grid"
+                  viewMode === "grid"
                     ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
                     : "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_32px_-12px_rgba(15,23,42,0.08)] overflow-hidden divide-y divide-slate-200/70"
                 }
@@ -637,25 +529,23 @@ export function DirectorioCliente({
                     key={entidad.id}
                     entidad={entidad}
                     basePath={basePath}
-                    variant={effectiveViewMode}
-                    colorScheme={colorAccent}
+                    variant={viewMode}
+                    colorScheme="blue"
                   />
                 ))}
               </div>
-            ) : entidadesActivas.length === 0 && !hayFiltrosActivos ? (
-              /* Empty state invitacional: la pestaña todavía no tiene entidades */
+            ) : entidades.length === 0 ? (
+              /* Empty state invitacional: el directorio todavía no tiene nada */
               <motion.div
                 initial={false}
                 animate={{ opacity: 1 }}
                 className="bg-white rounded-2xl p-20 text-center border border-slate-200 shadow-sm"
               >
-                <div
-                  className={`w-24 h-24 ${estilosVacio.circulo} rounded-full flex items-center justify-center mx-auto mb-6 border`}
-                >
-                  <IconoTab className={`w-10 h-10 ${estilosVacio.icono}`} />
+                <div className="w-24 h-24 bg-blue-50 border-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 border">
+                  <Building2 className="w-10 h-10 text-blue-300" />
                 </div>
                 <h3 className="font-manrope text-2xl font-bold text-slate-800 mb-3">
-                  {tabActiva.tituloVacio}
+                  Todavía no hay organizaciones publicadas
                 </h3>
                 <p className="text-slate-500 max-w-sm mx-auto mb-8 font-medium">
                   ¿Todavía no estás en el directorio? Creá tu cuenta y sumá tu
@@ -663,7 +553,7 @@ export function DirectorioCliente({
                 </p>
                 <Link
                   href="/register"
-                  className={`inline-flex items-center gap-2 ${estilosVacio.boton} text-white px-8 py-3.5 rounded-lg font-bold shadow-lg transition-all uppercase tracking-widest text-xs`}
+                  className="inline-flex items-center gap-2 bg-primary hover:bg-blue-800 text-white px-8 py-3.5 rounded-lg font-bold shadow-lg transition-all uppercase tracking-widest text-xs"
                 >
                   Sumá tu organización
                   <ArrowRight className="w-4 h-4" />
@@ -674,28 +564,24 @@ export function DirectorioCliente({
               <motion.div
                 initial={false}
                 animate={{ opacity: 1 }}
-                className="bg-white rounded-2xl p-20 text-center border border-slate-200 shadow-sm"
+                className="bg-white rounded-2xl p-16 sm:p-20 text-center border border-slate-200 shadow-sm"
               >
-                <div
-                  className={`w-24 h-24 ${estilosVacio.circulo} rounded-full flex items-center justify-center mx-auto mb-6 border`}
-                >
-                  <IconoTab className={`w-10 h-10 ${estilosVacio.icono}`} />
+                <div className="w-24 h-24 bg-blue-50 border-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 border">
+                  <Search className="w-10 h-10 text-blue-300" />
                 </div>
                 <h3 className="font-manrope text-2xl font-bold text-slate-800 mb-3">
-                  No se encontraron {tabActiva.plural}
+                  No encontramos organizaciones con esos filtros
                 </h3>
                 <p className="text-slate-500 max-w-sm mx-auto mb-8 font-medium">
-                  Probá ajustando los filtros o ingresando otro término de
-                  búsqueda.
+                  {tipoSeleccionado
+                    ? "Probá buscar en todo el directorio: puede estar cargada con otro tipo de organización."
+                    : "Probá con otro término o quitá algún filtro."}
                 </p>
                 <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setCategoriaSeleccionada(null);
-                  }}
-                  className={`${estilosVacio.boton} text-white px-8 py-3.5 rounded-lg font-bold shadow-lg transition-all uppercase tracking-widest text-xs`}
+                  onClick={limpiarFiltros}
+                  className="bg-primary hover:bg-blue-800 text-white px-8 py-3.5 rounded-lg font-bold shadow-lg transition-all uppercase tracking-widest text-xs"
                 >
-                  Restablecer
+                  Buscar en todo el directorio
                 </button>
               </motion.div>
             )}
@@ -770,31 +656,35 @@ export function DirectorioCliente({
                       </span>
                     </div>
                     <p className="font-manrope text-5xl font-black text-white leading-none">
-                      {totalEntidades}
+                      {entidades.length}
                     </p>
                     <p className="text-sm font-semibold text-blue-100/70 mt-1">
                       organizaciones publicadas
                     </p>
                   </div>
 
-                  {conteos.length > 0 && (
+                  {conteosPorTipo.length > 0 && (
                     <div className="grid grid-cols-2 gap-3 mt-4 lg:pl-6">
-                      {conteos.slice(0, 4).map(({ tab, count }) => (
-                        <div
-                          key={tab.key}
-                          className="flex items-center gap-3 bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3"
-                        >
-                          <tab.Icono className="w-4 h-4 text-blue-300 shrink-0" />
-                          <div className="min-w-0">
-                            <p className="font-manrope text-lg font-black text-white leading-none">
-                              {count}
-                            </p>
-                            <p className="text-[11px] font-semibold text-blue-100/60 truncate first-letter:uppercase">
-                              {rotuloCorto(tab, count)}
-                            </p>
+                      {conteosPorTipo.slice(0, 4).map(({ tipo, count }) => {
+                        const Icono = ICONO_TIPO[tipo];
+                        const meta = TIPOS_ENTIDAD_META[tipo];
+                        return (
+                          <div
+                            key={tipo}
+                            className="flex items-center gap-3 bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3"
+                          >
+                            <Icono className="w-4 h-4 text-blue-300 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="font-manrope text-lg font-black text-white leading-none">
+                                {count}
+                              </p>
+                              <p className="text-[11px] font-semibold text-blue-100/60 truncate first-letter:uppercase">
+                                {count === 1 ? meta.chip : `${meta.chip}s`}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -804,5 +694,34 @@ export function DirectorioCliente({
         </section>
       </div>
     </div>
+  );
+}
+
+/** Chip de filtro activo con su "x" para quitarlo. */
+function ChipFiltro({
+  etiqueta,
+  onQuitar,
+  respetarMayusculas = false,
+}: {
+  etiqueta: string;
+  onQuitar: () => void;
+  respetarMayusculas?: boolean;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#10375c]/8 border border-[#10375c]/15 pl-3 pr-1.5 py-1 text-[12px] font-bold text-[#10375c]">
+      <span
+        className={`max-w-[220px] truncate ${respetarMayusculas ? "" : "first-letter:uppercase"}`}
+      >
+        {etiqueta}
+      </span>
+      <button
+        type="button"
+        onClick={onQuitar}
+        aria-label={`Quitar el filtro ${etiqueta}`}
+        className="rounded-full p-0.5 hover:bg-[#10375c]/15 transition-colors"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </span>
   );
 }

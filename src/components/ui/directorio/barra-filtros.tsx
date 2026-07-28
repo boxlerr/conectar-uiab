@@ -1,6 +1,13 @@
 "use client";
 
 import { Search, ShieldCheck } from "lucide-react";
+import { TIPOS_ENTIDAD_META, type TipoEntidad } from "@/lib/datos/tipos-entidad";
+
+/** Un tipo de organización con su conteo, para el facet de arriba. */
+export interface ConteoTipo {
+  tipo: TipoEntidad;
+  count: number;
+}
 
 interface FilterSidebarProps {
   categorias: string[];
@@ -9,6 +16,15 @@ interface FilterSidebarProps {
   searchTerm: string;
   onSearchChange: (term: string) => void;
   colorScheme?: 'blue' | 'emerald' | 'amber' | 'violet' | 'teal';
+  /**
+   * Facet de tipo de organización. Si no se pasa, la barra queda como antes
+   * (las landings por categoría ya están acotadas a un solo tipo).
+   */
+  tipos?: ConteoTipo[];
+  tipoSeleccionado?: TipoEntidad | null;
+  onTipoChange?: (tipo: TipoEntidad | null) => void;
+  /** Total de organizaciones, para la opción "Todas". */
+  totalTipos?: number;
 }
 
 export function FilterSidebar({
@@ -17,7 +33,11 @@ export function FilterSidebar({
   onCategoriaChange,
   searchTerm,
   onSearchChange,
-  colorScheme = 'blue'
+  colorScheme = 'blue',
+  tipos,
+  tipoSeleccionado = null,
+  onTipoChange,
+  totalTipos = 0,
 }: FilterSidebarProps) {
   // Theme variants
   const isEmerald = colorScheme === 'emerald';
@@ -56,8 +76,75 @@ export function FilterSidebar({
         </div>
       </div>
 
+      {/* ── Tipo de organización ──
+          Reemplaza a las pestañas viejas: el directorio es UNA lista y el tipo
+          es un filtro. Por eso "Todas" viene seleccionado por defecto. */}
+      {tipos && tipos.length > 0 && onTipoChange && (
+        <div className="px-6 pt-2 pb-4 shrink-0 border-b border-slate-100">
+          <div className="flex items-center space-x-2 mb-3">
+            <div className={`w-1.5 h-5 rounded-sm ${themeAccent}`} />
+            <h3 className="font-manrope font-extrabold text-slate-800 uppercase tracking-widest text-[11px]">
+              Tipo de organización
+            </h3>
+          </div>
+          <ul className="space-y-1">
+            <li>
+              <button
+                onClick={() => onTipoChange(null)}
+                aria-pressed={tipoSeleccionado === null}
+                className={`w-full text-left px-3 py-2 rounded-lg text-[13px] transition-all flex justify-between items-center gap-2 ${
+                  tipoSeleccionado === null
+                    ? `${activeBg} text-white font-bold shadow-sm`
+                    : `text-slate-600 font-medium border border-transparent hover:border-slate-200 ${hoverBg}`
+                }`}
+              >
+                <span className="truncate">Todas</span>
+                <span
+                  className={`text-[11px] font-black shrink-0 ${
+                    tipoSeleccionado === null ? "text-white/70" : "text-slate-400"
+                  }`}
+                >
+                  {totalTipos}
+                </span>
+              </button>
+            </li>
+            {tipos.map(({ tipo, count }) => {
+              const meta = TIPOS_ENTIDAD_META[tipo];
+              const activo = tipoSeleccionado === tipo;
+              return (
+                <li key={tipo}>
+                  <button
+                    onClick={() => onTipoChange(activo ? null : tipo)}
+                    aria-pressed={activo}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-[13px] transition-all flex items-center gap-2 ${
+                      activo
+                        ? `${activeBg} text-white font-bold shadow-sm`
+                        : `text-slate-600 font-medium border border-transparent hover:border-slate-200 ${hoverBg}`
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        activo ? "bg-white/80" : meta.puntoClases
+                      }`}
+                    />
+                    <span className="truncate flex-1">{meta.etiqueta}</span>
+                    <span
+                      className={`text-[11px] font-black shrink-0 ${
+                        activo ? "text-white/70" : "text-slate-400"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {/* ── Header sectores ── */}
-      <div className="px-6 pt-2 pb-3 shrink-0">
+      <div className="px-6 pt-4 pb-3 shrink-0">
         <div className="flex items-center space-x-2">
           <div className={`w-1.5 h-5 rounded-sm ${themeAccent}`} />
           <h3 className="font-manrope font-extrabold text-slate-800 uppercase tracking-widest text-[11px]">

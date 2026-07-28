@@ -3,6 +3,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { crearSlug } from "@/lib/utilidades";
 import type { Entidad } from "@/lib/datos/directorio";
+import type { TipoEntidad } from "@/lib/datos/tipos-entidad";
 import {
   mapearCertificaciones,
   SELECT_CERTIFICACIONES_DIRECTORIO,
@@ -12,11 +13,12 @@ import {
 type FilaTag = { tags?: { nombre?: string; administrado_por_admin?: boolean } | null };
 
 export interface DatosDirectorio {
-  empresas: Entidad[];
-  prestadores: Entidad[];
-  financieras: Entidad[];
-  educativas: Entidad[];
-  cooperativas: Entidad[];
+  /**
+   * Directorio unificado: empresas socias, prestadores, financieras,
+   * educativas y cooperativas en UNA sola lista. Cada entidad trae su
+   * `tipoEntidad` para que el cliente pueda filtrar sin partir los datos.
+   */
+  entidades: Entidad[];
 }
 
 /**
@@ -78,6 +80,13 @@ const CATEGORIA_DEFAULT_POR_TIPO: Record<string, string> = {
   cooperativas: "Cooperativa",
 };
 
+/** `empresas.categoria_socio` → tipo del directorio. null = empresa industrial. */
+const TIPO_POR_CATEGORIA_SOCIO: Record<string, TipoEntidad> = {
+  instituciones_bancarias: "financiera",
+  instituciones_educativas: "educativa",
+  cooperativas: "cooperativa",
+};
+
 /**
  * Trae el directorio completo (empresas socias + prestadores) para renderizar
  * de forma pública, sin requerir sesión. Usa el admin client (service role)
@@ -85,9 +94,9 @@ const CATEGORIA_DEFAULT_POR_TIPO: Record<string, string> = {
  * contacto sensibles: el teléfono/whatsapp real se resuelve en la ficha según
  * el estado de autenticación.
  *
- * Las empresas aprobadas se parten en cuatro listas según `categoria_socio`:
- * empresas industriales, entidades financieras, entidades educativas y
- * cooperativas. Los prestadores (tabla `proveedores`) van aparte.
+ * Devuelve UNA sola lista. Cada entidad lleva su `tipoEntidad` derivado de
+ * `empresas.categoria_socio` (o `prestador` si viene de la tabla `proveedores`),
+ * así el buscador corre sobre el conjunto completo y el tipo queda como filtro.
  */
 export async function obtenerDirectorio(): Promise<DatosDirectorio> {
   const supabase = createAdminClient();
@@ -141,7 +150,7 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
 
   const certsPorEntidad = mapearCertificaciones(certsRes.data);
 
-  const empresasConTipo = (empresasRes.data || []).map((emp: any) => {
+  const empresasTodas: Entidad[] = (empresasRes.data || []).map((emp: any) => {
     const categoriaSocio: string | null = emp.categoria_socio || null;
     const cats =
       emp.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
@@ -168,9 +177,10 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
             .getPublicUrl(emp.ruta_logo).data.publicUrl
         : null;
 
-    const entidad: Entidad = {
+    return {
       id: emp.id,
       tipo: "empresa",
+      tipoEntidad: TIPO_POR_CATEGORIA_SOCIO[categoriaSocio ?? ""] ?? "empresa",
       slug: crearSlug(emp.razon_social),
       nombre: emp.razon_social,
       categoria: mainCat,
@@ -199,8 +209,6 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
         sitioWeb: emp.sitio_web || "",
       },
     };
-
-    return { categoriaSocio, entidad };
   });
 
   const prestadores: Entidad[] = (proveedoresRes.data || []).map((p: any) => {
@@ -227,6 +235,7 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
     return {
       id: p.id,
       tipo: "proveedor",
+      tipoEntidad: "prestador",
       slug: crearSlug(displayName),
       nombre: displayName,
       categoria,
@@ -250,48 +259,24 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
   });
 
   // Agregación de reseñas aprobadas → rating promedio + cantidad.
-  // Se aplica sobre TODAS las empresas (de cualquier categoría de socia)
-  // antes de partir en listas; los prestadores no reciben reseñas.
-  const todasLasEmpresas = empresasConTipo.map((e) => e.entidad);
-  aplicarResenas(todasLasEmpresas, resenasEmpRes.data, "empresa_resenada_id");
-
-  const empresas: Entidad[] = [];
-  const financieras: Entidad[] = [];
-  const educativas: Entidad[] = [];
-  const cooperativas: Entidad[] = [];
-
-  for (const { categoriaSocio, entidad } of empresasConTipo) {
-    switch (categoriaSocio) {
-      case "instituciones_bancarias":
-        financieras.push(entidad);
-        break;
-      case "instituciones_educativas":
-        educativas.push(entidad);
-        break;
-      case "cooperativas":
-        cooperativas.push(entidad);
-        break;
-      default:
-        // null o 'proveedores_servicios_productos' → empresa socia industrial
-        empresas.push(entidad);
-    }
-  }
+  // Se aplica sobre TODAS las empresas (de cualquier categoría de socia);
+  // los prestadores no reciben reseñas.
+  aplicarResenas(empresasTodas, resenasEmpRes.data, "empresa_resenada_id");
 
   // Justicia del directorio: Postgres devuelve las filas en un orden físico
   // arbitrario y sin ORDER BY siempre salían casi igual, favoreciendo de hecho
-  // a las mismas socias. Barajamos cada lista con una semilla derivada del DÍA
-  // (no del request): así el orden rota todos los días —nadie queda fijo
-  // arriba, tampoco las que empiezan con "A"— pero es estable dentro del mismo
-  // día (no salta en cada carga). Como la página es force-dynamic y esto corre
-  // sólo en el servidor, SSR y cliente reciben el MISMO orden: no hay mismatch
-  // de hidratación. Es el orden "Sugerido" (default) del cliente.
+  // a las mismas socias. Barajamos con una semilla derivada del DÍA (no del
+  // request): así el orden rota todos los días —nadie queda fijo arriba,
+  // tampoco las que empiezan con "A"— pero es estable dentro del mismo día (no
+  // salta en cada carga). Como la página es force-dynamic y esto corre sólo en
+  // el servidor, SSR y cliente reciben el MISMO orden: no hay mismatch de
+  // hidratación. Es el orden "Sugerido" (default) del cliente.
+  //
+  // El barajado va sobre la lista YA unificada: si se barajara por tipo y
+  // después se concatenara, los prestadores quedarían siempre al final.
   const seed = semillaDelDia();
   return {
-    empresas: barajarConSemilla(empresas, seed),
-    prestadores: barajarConSemilla(prestadores, seed),
-    financieras: barajarConSemilla(financieras, seed),
-    educativas: barajarConSemilla(educativas, seed),
-    cooperativas: barajarConSemilla(cooperativas, seed),
+    entidades: barajarConSemilla([...empresasTodas, ...prestadores], seed),
   };
 }
 

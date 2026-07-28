@@ -1,8 +1,15 @@
 import type { CertificacionChip } from "@/modulos/certificaciones/normas";
+import type { TipoEntidad } from "@/lib/datos/tipos-entidad";
 
 export interface Entidad {
   id: string;
   tipo: "empresa" | "proveedor";
+  /**
+   * Tipo de organización para el directorio unificado (empresa, financiera,
+   * educativa, cooperativa, prestador). Opcional: las landings por categoría
+   * arman entidades sin él y ahí no hay lista mezclada que desambiguar.
+   */
+  tipoEntidad?: TipoEntidad;
   slug: string;
   nombre: string;
   categoria: string;

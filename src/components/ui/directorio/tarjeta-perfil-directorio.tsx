@@ -1,8 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, MapPin, BadgeCheck, Star, User, Mail, Phone } from "lucide-react";
+import { ArrowRight, MapPin, Star, User, Mail, Phone } from "lucide-react";
 import { Entidad } from "@/lib/datos/directorio";
+import { TIPOS_ENTIDAD_META } from "@/lib/datos/tipos-entidad";
 import { ChipNorma } from "@/modulos/certificaciones/chip-norma";
+import { SelloVerificado } from "@/components/ui/directorio/sello-verificado";
 
 interface ProfileCardProps {
   entidad: Entidad;
@@ -13,6 +15,14 @@ interface ProfileCardProps {
 
 export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colorScheme = 'blue' }: ProfileCardProps) {
   const isParticular = entidad.esSocio === false;
+  // En el directorio unificado la lista viene mezclada: el chip de tipo es lo
+  // que permite distinguir de un vistazo una financiera de una cooperativa.
+  // Las landings por categoría no mandan `tipoEntidad` y no lo necesitan.
+  const metaTipo = entidad.tipoEntidad ? TIPOS_ENTIDAD_META[entidad.tipoEntidad] : null;
+  // `rating > 0` como boolean: `entidad.rating && …` devuelve el 0 y React lo
+  // pinta como un "0" suelto arriba de la tarjeta.
+  const tieneRating = (entidad.rating ?? 0) > 0;
+  const tieneReviews = (entidad.reviews ?? 0) > 0;
   const isEmerald = colorScheme === 'emerald';
   const isViolet = colorScheme === 'violet';
   const isTeal = colorScheme === 'teal';
@@ -80,25 +90,35 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
 
           {/* Identidad */}
           <div className="min-w-0 md:pr-6">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className={`inline-block w-1 h-1 rounded-full ${accentDot}`} />
-              <span className={`text-[9px] font-bold uppercase tracking-[0.22em] ${accentText}`}>
-                {isParticular ? "Particular" : "Verificado UIAB"}
-              </span>
-              {(entidad.rating && entidad.rating > 0) ? (
-                <>
-                  <span className="w-1 h-1 rounded-full bg-slate-200" />
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 rounded-[2px] text-[10px] font-black text-amber-700">
-                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                    {entidad.rating.toFixed(1)}
-                    {entidad.reviews && (
-                      <span className="text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1.5 ml-0.5">
-                        {entidad.reviews}
-                      </span>
-                    )}
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+              {isParticular ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className={`inline-block w-1 h-1 rounded-full ${accentDot}`} />
+                  <span className={`text-[9px] font-bold uppercase tracking-[0.22em] ${accentText}`}>
+                    Particular
                   </span>
-                </>
-              ) : null}
+                </span>
+              ) : (
+                <SelloVerificado size="sm" />
+              )}
+              {metaTipo && (
+                <span
+                  className={`inline-flex items-center text-[9px] font-black uppercase tracking-[0.16em] px-1.5 py-0.5 rounded-[3px] ${metaTipo.chipClases}`}
+                >
+                  {metaTipo.chip}
+                </span>
+              )}
+              {tieneRating && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 rounded-[2px] text-[10px] font-black text-amber-700">
+                  <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                  {entidad.rating!.toFixed(1)}
+                  {tieneReviews && (
+                    <span className="text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1.5 ml-0.5">
+                      {entidad.reviews}
+                    </span>
+                  )}
+                </span>
+              )}
             </div>
             <h3 className={`font-manrope text-[17px] md:text-[19px] font-bold text-[#191c1e] leading-[1.25] tracking-tight transition-colors duration-500 line-clamp-2 break-words ${hoverText}`}>
               {entidad.nombre}
@@ -185,25 +205,25 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
             )}
           </div>
 
-          {/* Badges: verificado (solo icono) + rating */}
+          {/* Badges: sello de socia (o "particular") + rating */}
           <div className="flex flex-col items-end gap-1.5 ml-3">
-            {/* Verificado — solo ícono */}
-            <div
-              className={`w-7 h-7 rounded-sm flex items-center justify-center transition-colors duration-300 ${verifiedBg}`}
-              title={isParticular ? "Particular" : "Verificado UIAB"}
-            >
-              {isParticular
-                ? <User className="w-4 h-4" />
-                : <BadgeCheck className="w-4 h-4" />
-              }
-            </div>
+            {isParticular ? (
+              <div
+                className={`w-7 h-7 rounded-sm flex items-center justify-center transition-colors duration-300 ${verifiedBg}`}
+                title="Particular"
+              >
+                <User className="w-4 h-4" />
+              </div>
+            ) : (
+              <SelloVerificado />
+            )}
 
             {/* Rating */}
-            {(entidad.rating && entidad.rating > 0) && (
+            {tieneRating && (
               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-amber-50 text-amber-700 group-hover:bg-amber-100 transition-colors">
                 <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                <span className="text-[10px] font-black leading-none">{entidad.rating.toFixed(1)}</span>
-                {entidad.reviews && (
+                <span className="text-[10px] font-black leading-none">{entidad.rating!.toFixed(1)}</span>
+                {tieneReviews && (
                   <span className="text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1 ml-0.5">
                     {entidad.reviews}
                   </span>
@@ -213,8 +233,14 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
           </div>
         </div>
 
-        {/* Sector chip — Data Chip per design.md */}
-        <div className="mt-3">
+        {/* Chips: tipo de organización + sector. El primero sólo aparece en el
+            directorio unificado, donde la lista viene mezclada. */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {metaTipo && (
+            <span className={`inline-flex items-center text-[10px] font-black uppercase tracking-[0.14em] px-2 py-1 rounded-[2px] ${metaTipo.chipClases}`}>
+              {metaTipo.chip}
+            </span>
+          )}
           <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-1 rounded-[2px] ${sectorChip}`}>
             {entidad.categoria}
           </span>
