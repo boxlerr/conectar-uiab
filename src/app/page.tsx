@@ -381,11 +381,16 @@ export default function Home() {
             <motion.div variants={fadeUp} custom={0} className="hidden lg:flex justify-center">
               <div className="relative w-full max-w-xl">
                 <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-[0_32px_80px_-20px_rgba(0,33,63,0.35),0_8px_24px_-8px_rgba(0,33,63,0.15)] ring-1 ring-white/60">
+                  {/* Foto aérea real del parque industrial de Almirante Brown
+                      con el logo montado en placa: el lockup es navy y sobre la
+                      foto pelada no se leía. 3:2 nativo, sin recorte. */}
                   <Image
-                    src="/landing/uiab-conecta-red-industrial.png"
-                    alt="Red industrial B2B de UIAB Conecta — empresas y proveedores conectados en Almirante Brown"
-                    width={700}
-                    height={530}
+                    src="/landing/uiab-conecta-parque-industrial.webp"
+                    alt="Vista aérea del parque industrial de Almirante Brown con el logo de UIAB Conecta"
+                    width={1600}
+                    height={1067}
+                    /* Sólo se muestra en lg+ y el contenedor es max-w-xl. */
+                    sizes="(min-width: 1024px) 576px, 0px"
                     className="w-full h-auto block"
                   />
                 </div>
