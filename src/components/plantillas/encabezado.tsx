@@ -164,13 +164,27 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Prevent scroll when mobile menu is open
+  // Bloquea el scroll del fondo mientras el drawer está abierto.
+  // En iOS `overflow: hidden` sobre el body no alcanza (Safari sigue
+  // scrolleando el documento), así que se fija el body con position:fixed
+  // guardando el scrollY y se restaura al cerrar.
   useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+    if (!isMobileMenuOpen) return;
+    const y = window.scrollY;
+    const prev = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow,
+    };
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${y}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      Object.assign(document.body.style, prev);
+      window.scrollTo(0, y);
+    };
   }, [isMobileMenuOpen]);
 
   type NavChild = {
@@ -195,13 +209,13 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
   };
 
   // Logueado: el Directorio va primero (es a donde caés al entrar y donde más
-  // se trabaja), el Dashboard en tercer lugar y Nosotros al final.
+  // se trabaja), el Panel de Control en tercer lugar y Nosotros al final.
   // Visitante: arranca en Inicio.
   const navigation: NavItem[] = currentUser
     ? [
         { name: "Directorio", href: "/directorio", icon: BookOpen },
         { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
-        { name: "Dashboard", href: "/dashboard", icon: null },
+        { name: "Panel de Control", href: "/panel-de-control", icon: null },
         { name: "Contacto", href: "/contacto", icon: null },
         { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
       ]
@@ -338,13 +352,15 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                 {/* Logo completo (UIAB Conecta) en desktop.
                     Este SVG viene sin margen interno —el trazo toca los bordes
                     del viewBox—, así que a la misma altura que el anterior se
-                    veía un 6% más grande: por eso h-11/h-[52px] y no h-12/h-14. */}
+                    veía un 6% más grande: por eso h-11/h-[52px] y no h-12/h-14.
+                    El salto a 52px va en xl: y no en lg: porque entre 1024 y 1279
+                    (iPad apaisado) el nav completo necesita ese ancho. */}
                 <Image
                   src="/logo-uiab-conecta.svg"
                   alt="UIAB Conecta"
                   width={189}
                   height={36}
-                  className="hidden sm:block h-11 lg:h-[52px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                  className="hidden sm:block h-11 xl:h-[52px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   priority
                 />
                 {/* Solo isotipo en mobile */}
@@ -359,12 +375,14 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
               </Link>
             </motion.div>
 
-            {/* Desktop Navigation */}
-            <nav 
-              className="hidden md:flex relative items-center justify-center"
+            {/* Desktop Navigation.
+                Va en lg: y no en md: — a 768px el nav no entra (necesita ~1157px)
+                y encima el hamburguesa desaparecía, dejando al iPad sin navegación. */}
+            <nav
+              className="hidden lg:flex relative items-center justify-center"
               onMouseLeave={handleMouseLeave}
             >
-              <div ref={navContainerRef} className="flex relative bg-slate-100/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/50">
+              <div ref={navContainerRef} className="flex relative bg-slate-100/50 backdrop-blur-md p-1 xl:p-1.5 rounded-2xl border border-slate-200/50">
                 
                 {/* Active Pill (Animated by state to avoid layoutId bugs on scroll) */}
                 <motion.div
@@ -375,7 +393,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                     opacity: activePill.opacity 
                   }}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  className="absolute top-1.5 bottom-1.5 bg-white rounded-xl shadow-sm border border-slate-200/50"
+                  className="absolute top-1 bottom-1 xl:top-1.5 xl:bottom-1.5 bg-white rounded-xl shadow-sm border border-slate-200/50"
                   style={{ zIndex: 0 }}
                 />
 
@@ -388,7 +406,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                     opacity: hoveredPath && hoveredPath !== pathname ? hoverPill.opacity : 0 
                   }}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  className="absolute top-1.5 bottom-1.5 bg-slate-200/50 rounded-xl"
+                  className="absolute top-1 bottom-1 xl:top-1.5 xl:bottom-1.5 bg-slate-200/50 rounded-xl"
                   style={{ zIndex: 1 }}
                 />
 
@@ -414,7 +432,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                           type="button"
                           onClick={() => setOpenDropdown(isOpen ? null : item.name)}
                           className={cn(
-                            "relative px-4 py-2 text-sm font-semibold transition-colors duration-300 rounded-xl flex w-full items-center gap-2",
+                            "relative px-2.5 xl:px-4 py-2 text-[13px] xl:text-sm font-semibold transition-colors duration-300 rounded-xl flex w-full items-center gap-1.5 xl:gap-2",
                             isActive ? "text-primary-700" : "text-slate-600 hover:text-slate-900"
                           )}
                           style={{ zIndex: 10 }}
@@ -527,7 +545,9 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                       target={item.external ? "_blank" : undefined}
                       rel={item.external ? "noopener noreferrer" : undefined}
                       className={cn(
-                        "relative px-4 py-2 text-sm font-semibold transition-colors duration-300 rounded-xl flex items-center gap-2",
+                        // px/gap/tamaño compactados en el escalón lg (1024-1279):
+                        // con los valores de xl el nav desbordaba ~133px en iPad apaisado.
+                        "relative px-2.5 xl:px-4 py-2 text-[13px] xl:text-sm font-semibold transition-colors duration-300 rounded-xl flex items-center gap-1.5 xl:gap-2",
                         isActive ? "text-primary-700" : "text-slate-600 hover:text-slate-900"
                       )}
                       style={{ zIndex: 10 }}
@@ -550,7 +570,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="hidden md:flex items-center gap-4"
+              className="hidden lg:flex items-center gap-4"
             >
               {currentUser ? (
                 <div className="flex items-center gap-2" onMouseLeave={() => setHoveredPath(null)}>
@@ -569,22 +589,24 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
             </motion.div>
 
             {/* Mobile menu button */}
-            <div className="flex items-center md:hidden">
+            <div className="flex items-center lg:hidden">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="relative z-50 h-10 w-10 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-700"
+                className="relative z-50 h-11 w-11 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-700"
               >
-                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* spacer to prevent content from going under the fixed header */}
-      <div className="h-16 sm:h-20 w-full" />
+      {/* spacer to prevent content from going under the fixed header.
+          Tiene que coincidir exacto con el h-20 lg:h-24 del header: antes
+          era h-16 sm:h-20 y quedaban 16px de contenido tapado. */}
+      <div className="h-20 lg:h-24 w-full" />
 
       {/* Mobile menu overlay */}
       <AnimatePresence>
@@ -596,7 +618,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
             />
             
             {/* Menu Panel */}
@@ -605,9 +627,9 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 z-40 w-full max-w-sm bg-white shadow-2xl md:hidden overflow-y-auto"
+              className="fixed inset-y-0 right-0 z-40 w-full max-w-sm bg-white shadow-2xl lg:hidden overflow-y-auto"
             >
-              <div className="flex flex-col h-full pt-20 px-6 pb-6">
+              <div className="flex flex-col h-full pt-20 lg:pt-24 px-6 pb-6">
                 
                 {/* Mobile User Profile or Login */}
                 <div className="mb-8">

@@ -98,7 +98,7 @@ export default function DialogoPostularse({
           onClick={() => !isPending && setOpen(false)}
         >
           <div
-            className="bg-white rounded-sm shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200"
+            className="bg-white rounded-sm shadow-2xl w-full max-w-xl max-h-[85svh] overflow-y-auto animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

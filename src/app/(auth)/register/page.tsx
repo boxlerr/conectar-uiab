@@ -39,7 +39,7 @@ const ALL_SECTORS = [
   { id: 'construccion', label: 'Construcción y Materiales', sub: ['Hormigón/Viguetas', 'Cerámicas y Revestimientos', 'Aberturas Industriales', 'Obras de Planta', 'Sanitaria Industrial'] },
   { id: 'farma', label: 'Farma y Cosmética', sub: ['Laboratorio Industrial', 'Instalaciones Médicas', 'Insumos Hospitalarios'] },
   { id: 'madera', label: 'Madera y Papel', sub: ['Aserradero', 'Muebles Industriales', 'Cartón y Embalaje', 'Carpintería Industrial'] },
-  { id: 'metal', label: 'Metalmecánica y Metalurgia', sub: ['Tornería y CNC', 'Soldadura Industrial', 'Fundición', 'Corte Láser/Plasma', 'Matricería', 'Chapa, Perfiles y Corte', 'Fabricación de Estructuras'] },
+  { id: 'metal', label: 'Metalmecánica y Metalurgia', sub: ['Tornería y CNC', 'Soldadura Industrial', 'Fundición', 'Corte Láser/Plasma', 'Matricería', 'Chapas', 'Perfiles', 'Corte y Plegado', 'Herrería Industrial', 'Cerrajería Industrial', 'Fabricación de Estructuras'] },
   { id: 'ceramica', label: 'Minerales y Cerámica', sub: ['Refractarios/Aislantes', 'Vidrio Industrial', 'Cal y Cemento Especial'] },
   { id: 'plasticos', label: 'Plásticos y Envases', sub: ['Inyección y Soplado', 'Packaging Industrial', 'Caucho y Gomas', 'Fibra de Vidrio'] },
   { id: 'quimica', label: 'Química y Petroquímica', sub: ['Productos Químicos', 'Pinturas', 'Lubricantes', 'Gases Industriales', 'Plásticos/Polímeros', 'Agroquímicos'] },
@@ -374,7 +374,7 @@ function RegisterContent() {
         options: {
           data: { nombre_completo: fullName },
           emailRedirectTo: esPrueba
-            ? `${window.location.origin}/api/auth/callback?next=/dashboard`
+            ? `${window.location.origin}/api/auth/callback?next=/panel-de-control`
             : `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(destinoCheckout)}`,
         }
       })
@@ -453,8 +453,8 @@ function RegisterContent() {
 
   if (isSuccess) {
     return (
-      <div className="flex flex-col min-h-screen w-full items-center justify-center p-6 bg-slate-50">
-        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="text-center max-w-lg bg-white p-12 rounded-2xl shadow-xl border border-slate-100">
+      <div className="flex flex-col min-h-svh w-full items-center justify-center p-6 bg-slate-50">
+        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="text-center max-w-lg bg-white p-6 sm:p-10 lg:p-12 rounded-2xl shadow-xl border border-slate-100">
           <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-amber-50 mb-8 border border-amber-100 shadow-xl shadow-amber-900/5">
             <Lock className="h-10 w-10 text-amber-600" />
           </div>
@@ -479,15 +479,17 @@ function RegisterContent() {
 
   return (
     <div className="flex w-full bg-white font-sans selection:bg-primary-100 flex-1 min-h-0 h-full pt-0" onKeyDown={handleKeyDown}>
-      <div className="w-full bg-white overflow-hidden grid lg:grid-cols-[450px_1fr] xl:grid-cols-[500px_1fr] flex-1 min-h-0">
+      {/* Sin overflow-hidden: recortaba los pasos altos sin generar scroll y comía
+          los dropdowns absolute de BuscadorLista / BuscadorJerarquico. */}
+      <div className="w-full bg-white grid md:grid-cols-[280px_1fr] lg:grid-cols-[450px_1fr] xl:grid-cols-[500px_1fr] flex-1 min-h-0">
 
         {/* SIDEBAR EDITORIAL */}
-        <div className="relative hidden lg:flex flex-col justify-between p-8 lg:p-12 bg-[#00213f] text-white pt-12 lg:pt-16">
+        <div className="relative hidden md:flex flex-col justify-between p-6 lg:p-12 bg-[#00213f] text-white pt-10 md:pt-12 lg:pt-16">
           <AnimatePresence mode="wait">
             <motion.div key={selectedRole || 'intro'} initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 0.25, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 1 }} className="absolute inset-0 z-0">
               {(!selectedRole) && <Image src="/landing/hero-industrial.webp" alt="Industrial" fill className="object-cover grayscale" priority />}
-              {(selectedRole === 'company') && <Image src="/landing/hero-dashboard.png" alt="Analítica" fill className="object-cover" priority />}
-              {(selectedRole === 'provider') && <Image src="/landing/provider-hero-v2.png" alt="Oficios" fill className="object-cover grayscale" priority />}
+              {(selectedRole === 'company') && <Image src="/landing/hero-dashboard.png" alt="Analítica" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" priority />}
+              {(selectedRole === 'provider') && <Image src="/landing/provider-hero-v2.png" alt="Oficios" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover grayscale" priority />}
             </motion.div>
           </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-[#00213f] via-[#00213f]/60 to-transparent z-0" />
@@ -571,7 +573,7 @@ function RegisterContent() {
 
         {/* ─── FORM CONTENT ─── */}
         <div className="flex flex-col p-4 sm:p-5 lg:p-6 relative w-full flex-1 min-h-0">
-          <div className="w-full max-w-xl mx-auto flex-1 flex flex-col justify-center">
+          <div className="w-full max-w-xl mx-auto flex-1 flex flex-col justify-start lg:justify-center">
 
             <div className="flex items-center justify-between mb-4 sm:mb-6 w-full">
               <div className="flex items-center gap-4">
@@ -583,14 +585,14 @@ function RegisterContent() {
                     <ChevronLeft className="h-6 w-6" />
                   </motion.button>
                 )}
-                <div className="flex items-center gap-1.5 hidden sm:flex">
+                <div className="flex items-center gap-1 sm:gap-1.5">
                   {[1, 2, 3, 4, 5, 6, 7].map(i => (
                     <div key={i} className={cn("h-2 rounded-full transition-all duration-500", step === i ? "w-10 bg-primary-600" : (i < step ? "w-4 bg-slate-300" : "w-2 bg-slate-100"))} />
                   ))}
                 </div>
               </div>
               <div>
-                <span className="text-sm font-bold text-slate-400">¿Ya tienes cuenta? </span>
+                <span className="hidden sm:inline text-sm font-bold text-slate-400">¿Ya tienes cuenta? </span>
                 <Link href="/login" className="text-sm font-bold text-primary-600 hover:underline">Ingresar</Link>
               </div>
             </div>
@@ -682,9 +684,9 @@ function RegisterContent() {
                             Continuar <ArrowRight className="ml-3 h-5 w-5" />
                           </Button>
 
-                          {/* En desktop el detalle vive en la columna oscura; en mobile esa
+                          {/* De md para arriba el detalle vive en la columna oscura; abajo esa
                               columna no existe, así que dejamos la versión corta. */}
-                          <div className="lg:hidden rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                          <div className="md:hidden rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
                             <p className="text-xs text-slate-600 leading-relaxed">
                               <span className="font-bold text-[#00213f]">Incluye todo:</span> ficha en el
                               directorio, publicación de necesidades, coincidencias automáticas y contacto
@@ -806,7 +808,7 @@ function RegisterContent() {
                                     <FormMessage />
                                   </FormItem>
                                 )} />
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <FormField control={form.control} name="nombre" render={({ field }) => (
                                     <FormItem>
                                       <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nombre *</FormLabel>
@@ -925,7 +927,7 @@ function RegisterContent() {
                                 <FormControl>
                                   <textarea
                                     placeholder={selectedRole === 'company' ? "Describe la capacidad productiva de tu planta, productos principales..." : "Describe tu experiencia, certificaciones o servicios destacados..."}
-                                    className="flex w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[120px] resize-none font-inter text-base focus:ring-primary-100"
+                                    className="flex w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[120px] resize-none font-inter text-base focus:ring-primary-100"
                                     {...field}
                                   />
                                 </FormControl>
@@ -1078,7 +1080,7 @@ function RegisterContent() {
                                 <FormItem>
                                   <div className="flex items-center justify-between ml-1 mb-1">
                                     <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest">Contraseña Segura *</FormLabel>
-                                    <button type="button" onClick={() => setShowPass(!showPass)} className="text-xs font-bold text-primary-600 uppercase hover:underline">
+                                    <button type="button" onClick={() => setShowPass(!showPass)} className="flex min-h-11 items-center px-2 -mr-2 text-xs font-bold text-primary-600 uppercase hover:underline">
                                       {showPass ? 'Ocultar' : 'Mostrar'}
                                     </button>
                                   </div>
@@ -1316,7 +1318,7 @@ function BuscadorLista({
         <span className="ml-2 text-slate-400 shrink-0 flex items-center gap-1">
           {value && (
             <X
-              className="w-4 h-4 hover:text-rose-600"
+              className="h-9 w-9 -mr-1 p-2.5 hover:text-rose-600"
               onClick={(e) => {
                 e.stopPropagation();
                 onChange('');
@@ -1336,7 +1338,7 @@ function BuscadorLista({
               <input
                 autoFocus
                 type="text"
-                className="w-full pl-8 pr-2 py-2 text-sm bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                className="w-full pl-8 pr-2 py-2 text-base bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                 placeholder={searchPlaceholder}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -1426,7 +1428,7 @@ function BuscadorJerarquico({
         <span className="ml-2 text-slate-400 shrink-0 flex items-center gap-1">
           {value ? (
             <X
-              className="w-4 h-4 hover:text-rose-600"
+              className="h-9 w-9 -mr-1 p-2.5 hover:text-rose-600"
               onClick={(e) => {
                 e.stopPropagation();
                 onChange('', '');
@@ -1447,7 +1449,7 @@ function BuscadorJerarquico({
               <input
                 autoFocus
                 type="text"
-                className="w-full pl-8 pr-2 py-2 text-sm bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                className="w-full pl-8 pr-2 py-2 text-base bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                 placeholder="Buscar categoría..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -1510,7 +1512,7 @@ function BuscadorJerarquico({
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-bold text-[#00213f] animate-pulse">Cargando...</div>}>
+    <Suspense fallback={<div className="min-h-svh flex items-center justify-center font-bold text-[#00213f] animate-pulse">Cargando...</div>}>
       <RegisterContent />
     </Suspense>
   )

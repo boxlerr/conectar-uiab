@@ -66,7 +66,7 @@ export function ActividadReciente({ items }: { items: ActividadItem[] }) {
             <button
               onClick={() => setPagina((p) => Math.max(0, p - 1))}
               disabled={pagina === 0}
-              className="w-7 h-7 flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -76,7 +76,7 @@ export function ActividadReciente({ items }: { items: ActividadItem[] }) {
             <button
               onClick={() => setPagina((p) => Math.min(totalPaginas - 1, p + 1))}
               disabled={pagina === totalPaginas - 1}
-              className="w-7 h-7 flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

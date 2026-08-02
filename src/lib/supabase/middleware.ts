@@ -50,7 +50,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/empresa/') ||
     pathname.startsWith('/proveedor/') ||
     pathname.startsWith('/perfil') ||
-    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/panel-de-control') ||
     pathname.startsWith('/pendiente-aprobacion');
 
   // 1. Authentication Check (Require JWT)
@@ -118,7 +118,7 @@ export async function updateSession(request: NextRequest) {
   // 3. Redirect logged in users away from auth pages and root landing
   if (user && !userError && (pathname === '/' || pathname === '/login' || pathname === '/register')) {
     const url = request.nextUrl.clone()
-    url.pathname = isApproved ? '/dashboard' : '/pendiente-aprobacion'
+    url.pathname = isApproved ? '/panel-de-control' : '/pendiente-aprobacion'
     return NextResponse.redirect(url)
   }
 

@@ -18,6 +18,7 @@ import { marcarTourVisto, resetearTour } from "./acciones";
 import type { TourId } from "./tipos";
 import { createClient } from "@/lib/supabase/cliente";
 import { crearSlug } from "@/lib/utilidades";
+import { toast } from "sonner";
 
 // react-joyride v3 expone `Joyride` como named export y toca el DOM — lo
 // cargamos solo del lado cliente.
@@ -340,6 +341,12 @@ export function TourProvider({ children }: TourProviderProps) {
         const idActual = tourActivo;
         setCorriendo(false);
         if (idActual) guardarProgreso(idActual, index);
+        // Sin este aviso el tutorial se desvanece y parece que se rompió: la
+        // tecla ESC lo cierra (dismissKeyAction de joyride) y el socio la usa
+        // sin querer, por ejemplo para sacarse de encima un cartel del browser.
+        toast("Pausamos el tutorial", {
+          description: 'Lo retomás donde ibas con el botón "Ver tutorial".',
+        });
         setTimeout(() => {
           setTourActivo(null);
           setStepIndex(0);
@@ -495,11 +502,13 @@ export function TourProvider({ children }: TourProviderProps) {
         styles={{
           tooltip: {
             borderRadius: 8,
-            padding: 24,
+            // Padding y ancho elásticos: con 400px fijos el tooltip se salía
+            // de pantalla en celulares angostos (320-375px).
+            padding: "clamp(16px, 4vw, 24px)",
             fontFamily: "var(--font-manrope), var(--font-inter), sans-serif",
             boxShadow:
               "0 16px 32px rgba(25, 28, 30, 0.06), 0 2px 8px rgba(25, 28, 30, 0.04)",
-            maxWidth: 400,
+            maxWidth: "min(400px, calc(100vw - 32px))",
           },
           tooltipTitle: {
             fontWeight: 700,
@@ -562,7 +571,7 @@ function decidirTourPorRuta(pathname: string, role: string): TourId | null {
   // exacto para no re-disparar en sub-rutas tipo /empresas/[slug].
   if (pathname === "/empresas") return "directorio";
   if (pathname === "/oportunidades") return "oportunidades";
-  if (pathname === "/dashboard") return "dashboard";
+  if (pathname === "/panel-de-control") return "dashboard";
   return null;
 }
 

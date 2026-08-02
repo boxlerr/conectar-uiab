@@ -230,11 +230,15 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] font-inter pb-20">
-      {/* ─── Hero Header ─── */}
+    // svh y no vh: en Safari iOS vh cuenta la barra de direcciones y la página
+    // termina cortada. Nunca dvh, que hace reflow mientras la barra entra/sale.
+    <div className="min-h-svh bg-[#f7f9fb] font-inter pb-20">
+      {/* ─── Hero Header ───
+          El margen negativo compensa el spacer del header (h-20 lg:h-24), así
+          que tiene que escalar igual que él: -20 abajo de lg, -24 arriba. */}
       <div
         data-tour="directorio-hero"
-        className="relative overflow-hidden -mt-24 pt-32 pb-16 mb-8 bg-[#00182e]"
+        className="relative overflow-hidden -mt-20 lg:-mt-24 pt-28 lg:pt-32 pb-16 mb-8 bg-[#00182e]"
       >
         {/* Fondo estable: gradiente profundo + textura industrial con opacidad
             FIJA + grilla fina + orbes de profundidad. Solo parallax de posición,
@@ -314,6 +318,8 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
               <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-blue-400/30 via-cyan-300/25 to-blue-400/30 blur-md opacity-60 group-focus-within:opacity-100 transition-opacity duration-300" />
               <div className="relative flex items-center gap-3 bg-white rounded-xl shadow-2xl shadow-[#00182e]/40 px-4 sm:px-5 ring-1 ring-white/40">
                 <Search className="w-5 h-5 text-slate-400 shrink-0" />
+                {/* text-base fijo: con menos de 16px Safari iOS hace zoom al
+                    enfocar el campo y deja el hero corrido. */}
                 <input
                   type="text"
                   value={searchTerm}
@@ -326,14 +332,14 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
                   }}
                   placeholder="Buscá una empresa, un banco, un rubro o una especialidad…"
                   aria-label="Buscar en todo el directorio"
-                  className="w-full bg-transparent py-4 sm:py-[18px] text-slate-800 placeholder:text-slate-400 font-medium text-sm sm:text-base focus:outline-none"
+                  className="w-full bg-transparent py-4 sm:py-[18px] text-slate-800 placeholder:text-slate-400 font-medium text-base focus:outline-none"
                 />
                 {searchTerm ? (
                   <button
                     type="button"
                     onClick={() => setSearchTerm("")}
                     aria-label="Borrar la búsqueda"
-                    className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                    className="shrink-0 p-2.5 -mr-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -395,9 +401,14 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
           <SliderLogosDirectorio logos={logosSocias} />
         </motion.div>
 
-        <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
+        {/* A partir de tab: (720px, cubre iPad mini) los filtros pasan a ser un
+            rail angosto y pegajoso en vez de un bloque arriba de la grilla. */}
+        <div className="flex flex-col tab:flex-row gap-8 tab:gap-6 lg:gap-14">
           {/* Sidebar */}
-          <aside data-tour="directorio-sidebar" className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
+          <aside
+            data-tour="directorio-sidebar"
+            className="w-full tab:w-52 md:w-60 lg:w-3/12 xl:w-1/4 shrink-0 tab:sticky tab:top-24 tab:self-start"
+          >
             <FilterSidebar
               categorias={categoriasActivas}
               categoriaSeleccionada={categoriaSeleccionada}
@@ -413,7 +424,7 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
           </aside>
 
           {/* Main Grid */}
-          <main className="w-full lg:w-9/12 xl:w-3/4">
+          <main className="w-full tab:flex-1 tab:min-w-0 lg:w-9/12 xl:w-3/4">
             {/* Toolbar */}
             <div data-tour="directorio-toolbar" className="mb-6 scroll-mt-28 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
               <div>
@@ -451,7 +462,7 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
                       onClick={() => setViewMode("grid")}
                       aria-label="Vista en grilla"
                       aria-pressed={viewMode === "grid"}
-                      className={`p-2 rounded-md transition-all ${
+                      className={`flex h-11 w-11 items-center justify-center rounded-md transition-all lg:h-9 lg:w-9 ${
                         viewMode === "grid"
                           ? "bg-white text-blue-600 shadow-sm"
                           : "text-slate-400 hover:text-slate-700"
@@ -463,7 +474,7 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
                       onClick={() => setViewMode("list")}
                       aria-label="Vista en lista"
                       aria-pressed={viewMode === "list"}
-                      className={`p-2 rounded-md transition-all ${
+                      className={`flex h-11 w-11 items-center justify-center rounded-md transition-all lg:h-9 lg:w-9 ${
                         viewMode === "list"
                           ? "bg-white text-blue-600 shadow-sm"
                           : "text-slate-400 hover:text-slate-700"
@@ -520,7 +531,9 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
                 data-tour="directorio-resultados"
                 className={
                   viewMode === "grid"
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+                    ? // sin sm:grid-cols-2: con el rail de filtros al costado el
+                      // main queda en ~460px y dos columnas no entran.
+                      "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
                     : "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_32px_-12px_rgba(15,23,42,0.08)] overflow-hidden divide-y divide-slate-200/70"
                 }
               >
@@ -608,9 +621,9 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
               </div>
 
-              <div className="relative z-10 grid lg:grid-cols-12 gap-12 lg:gap-8 items-center px-6 py-14 sm:px-12 md:px-14 lg:py-16">
+              <div className="relative z-10 grid md:grid-cols-12 gap-10 lg:gap-8 items-center px-6 py-14 sm:px-12 md:px-14 lg:py-16">
                 {/* Columna texto (asimétrica: más ancha) */}
-                <div className="lg:col-span-7">
+                <div className="md:col-span-7 lg:col-span-7">
                   <span className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-6 text-xs font-bold text-white tracking-widest uppercase">
                     <HeartHandshake className="w-4 h-4 text-blue-300" />
                     Red UIAB
@@ -647,7 +660,7 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
                 </div>
 
                 {/* Columna mini-stats de la red (counts reales) */}
-                <div className="lg:col-span-5">
+                <div className="md:col-span-5 lg:col-span-5">
                   <div className="bg-white/[0.06] backdrop-blur-md border border-white/15 rounded-2xl p-6 shadow-xl shadow-[#00182e]/30 lg:-rotate-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Sparkles className="w-4 h-4 text-blue-300" />

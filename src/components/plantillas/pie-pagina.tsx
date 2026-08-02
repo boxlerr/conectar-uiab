@@ -45,17 +45,19 @@ export function Footer() {
 
       {/* ─── Main Content ─── */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 lg:pt-20 lg:pb-16">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 lg:gap-8">
+        {/* Las 12 columnas recién entran en lg: a 768px dejaban pistas de 16px.
+            En el medio (sm) van 2 columnas. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8">
 
           {/* Brand Column */}
-          <div className="md:col-span-4 space-y-6">
+          <div className="sm:col-span-2 lg:col-span-4 space-y-6">
             <div className="space-y-2">
               <Image
                 src="/logo-uiab-conecta-header.svg"
                 alt="UIAB Conecta"
                 width={1112}
                 height={191}
-                className="h-14 w-auto object-contain filter brightness-0 invert opacity-95"
+                className="h-12 xl:h-14 w-auto max-w-full object-contain filter brightness-0 invert opacity-95"
               />
               <p className="text-[11px] text-slate-500 tracking-[0.08em] uppercase leading-none">
                 Directorio Comercial
@@ -90,7 +92,7 @@ export function Footer() {
           </div>
 
           {/* Navigation Column */}
-          <div className="md:col-span-2">
+          <div className="lg:col-span-2">
             <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] mb-5">
               Navegación
             </h4>
@@ -110,7 +112,7 @@ export function Footer() {
           </div>
 
           {/* Contact Column */}
-          <div className="md:col-span-3">
+          <div className="lg:col-span-3">
             <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] mb-5">
               Contacto
             </h4>
@@ -145,13 +147,15 @@ export function Footer() {
                   +54 9 11 3062 2001
                 </a>
               </li>
-              <li className="flex items-center gap-3">
+              <li className="flex items-center gap-3 min-w-0">
                 <div className="w-7 h-7 rounded-md bg-white/[0.04] flex flex-shrink-0 items-center justify-center">
                   <Mail className="w-3.5 h-3.5 text-slate-500" />
                 </div>
+                {/* break-all: el mail es más ancho que la columna en pantallas
+                    chicas y desbordaba el footer. */}
                 <a
                   href="mailto:gerencia.ejecutiva@uiab.org"
-                  className="text-[13px] text-slate-400 hover:text-white transition-colors"
+                  className="text-[13px] text-slate-400 hover:text-white transition-colors break-all min-w-0"
                 >
                   gerencia.ejecutiva@uiab.org
                 </a>
@@ -160,7 +164,7 @@ export function Footer() {
           </div>
 
           {/* Institutional Column */}
-          <div className="md:col-span-3">
+          <div className="lg:col-span-3">
             <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] mb-5">
               Institucional
             </h4>

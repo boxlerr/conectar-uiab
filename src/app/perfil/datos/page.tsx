@@ -4,17 +4,19 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 import { SelectUIAB } from "@/components/ui/select-uiab";
 import { Card } from "@/components/ui/card";
-import { Save, User, Building, MapPin, Phone, Mail, Globe, FileText, Loader2, Users } from "lucide-react";
+import { Save, User, Building, MapPin, Phone, Mail, Globe, FileText, Loader2, Users, Wrench } from "lucide-react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { updateCompanyOrProvider } from "../acciones";
 import { toast } from "sonner";
 import Image from "next/image";
 import { PROVINCIAS_AR, LOCALIDADES_ALMIRANTE_BROWN } from "@/lib/datos/geografia-ar";
+import { normalizarSitioWeb } from "@/lib/utilidades";
 import { AvisoConflictosPadronAuto } from "@/modulos/altas/componentes/aviso-conflictos-padron-auto";
 
+// text-base en mobile: abajo de 16px Safari iOS hace zoom solo al enfocar el campo.
 const selectCls =
-  "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-primary-500";
+  "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:border-primary-500";
 
 export default function MiPerfilDatosPage() {
   const { currentUser, refreshUser, loading: authLoading } = useAuth();
@@ -28,6 +30,7 @@ export default function MiPerfilDatosPage() {
     nombre_comercial: "",
     email: "",
     email_compras: "",
+    email_mantenimiento: "",
     telefono: "",
     whatsapp: "",
     sitio_web: "",
@@ -67,6 +70,7 @@ export default function MiPerfilDatosPage() {
           nombre_comercial: data.nombre_comercial || "",
           email: data.email || "",
           email_compras: data.email_compras || "",
+          email_mantenimiento: data.email_mantenimiento || "",
           telefono: data.telefono || "",
           whatsapp: data.whatsapp || "",
           sitio_web: data.sitio_web || "",
@@ -148,7 +152,9 @@ export default function MiPerfilDatosPage() {
 
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
-        .upload(filePath, file, { upsert: true, contentType: file.type, cacheControl: "3600" });
+        // 31 días: la ruta ya es única por subida (logo-<timestamp>), así que el
+        // archivo nunca cambia. Con 1 h, Vercel re-optimizaba cada logo 6 veces al día.
+        .upload(filePath, file, { upsert: true, contentType: file.type, cacheControl: "2678400" });
 
       if (uploadError) throw uploadError;
 
@@ -177,6 +183,9 @@ export default function MiPerfilDatosPage() {
     try {
       // Filter data based on user role to avoid sending non-existent columns
       const dataToSave = { ...formData };
+
+      // El socio puede haber mandado Enter sin pasar por el onBlur del campo.
+      (dataToSave as any).sitio_web = normalizarSitioWeb(formData.sitio_web);
 
       if (currentUser.role === "company") {
         // cantidad_empleados es entero en `empresas`; recalcula la tarifa vía trigger.
@@ -224,7 +233,7 @@ export default function MiPerfilDatosPage() {
       <Card data-tour="datos-form" className="p-6 border-slate-100 shadow-sm">
         <form onSubmit={handleSave} className="space-y-6">
 
-          <div className="flex items-center gap-6 pb-6 border-b border-slate-100">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 pb-6 border-b border-slate-100">
             <input
               type="file"
               ref={fileInputRef}
@@ -263,7 +272,7 @@ export default function MiPerfilDatosPage() {
                 type="text" 
                 value={formData.razon_social}
                 onChange={e => setFormData({ ...formData, razon_social: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
                 placeholder="Nombre legal completo"
               />
             </div>
@@ -274,7 +283,7 @@ export default function MiPerfilDatosPage() {
                  type="text"
                  value={formData.cuit}
                  onChange={e => setFormData({ ...formData, cuit: e.target.value })}
-                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
                  placeholder="XX-XXXXXXXX-X"
                />
             </div>
@@ -285,7 +294,7 @@ export default function MiPerfilDatosPage() {
                 type="text"
                 value={formData.nombre_comercial}
                 onChange={e => setFormData({ ...formData, nombre_comercial: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
                 placeholder="Nombre que usas comercialmente"
               />
             </div>
@@ -312,7 +321,7 @@ export default function MiPerfilDatosPage() {
                     fecha.setFullYear(fecha.getFullYear() - años);
                     setFormData({ ...formData, fecha_inicio_experiencia: fecha.toISOString().split('T')[0] });
                   }}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
                   placeholder="Ej: 15"
                 />
                 <p className="text-xs text-slate-400">Se actualiza automáticamente cada año.</p>
@@ -328,7 +337,7 @@ export default function MiPerfilDatosPage() {
                   max={100000}
                   value={formData.cantidad_empleados}
                   onChange={e => setFormData({ ...formData, cantidad_empleados: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
                   placeholder="Ej: 45"
                 />
                 <p className="text-xs text-slate-400">Define tu nivel de tarifa de socio. Se recalcula automáticamente al guardar.</p>
@@ -341,7 +350,7 @@ export default function MiPerfilDatosPage() {
                 type="email"
                 value={formData.email}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
                 placeholder="contacto@empresa.com"
               />
             </div>
@@ -355,10 +364,25 @@ export default function MiPerfilDatosPage() {
                 type="email"
                 value={formData.email_compras}
                 onChange={e => setFormData({ ...formData, email_compras: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
                 placeholder="compras@empresa.com"
               />
               <p className="text-xs text-slate-400">Si lo cargás, se muestra en tu ficha del directorio para consultas de compras.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                <Wrench className="w-4 h-4 text-slate-400" /> Correo de Mantenimiento
+                <span className="text-sm font-normal text-slate-400 ml-1">(Opcional)</span>
+              </label>
+              <input
+                type="email"
+                value={formData.email_mantenimiento}
+                onChange={e => setFormData({ ...formData, email_mantenimiento: e.target.value })}
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                placeholder="mantenimiento@empresa.com"
+              />
+              <p className="text-xs text-slate-400">Si lo cargás, se muestra en tu ficha del directorio para consultas técnicas y de mantenimiento.</p>
             </div>
 
             {/* Teléfono unificado: un solo número, con toggle WhatsApp */}
@@ -371,7 +395,7 @@ export default function MiPerfilDatosPage() {
                   type="text"
                   value={formData.whatsapp || formData.telefono}
                   onChange={e => setFormData({ ...formData, whatsapp: e.target.value, telefono: e.target.value })}
-                  className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                  className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
                   placeholder="+54 9 11 XXXX-XXXX"
                 />
                 {/* Badge visual WhatsApp — siempre activo, solo informativo */}
@@ -387,19 +411,26 @@ export default function MiPerfilDatosPage() {
 
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><Globe className="w-4 h-4 text-slate-400" /> Sitio Web <span className="text-sm font-normal text-slate-400 ml-1">(Opcional)</span></label>
-              <input 
-                type="url" 
+              {/* type="text", no "url": con type="url" el browser bloqueaba el
+                  submit del formulario entero si el socio escribía
+                  "www.miempresa.com". El https:// lo ponemos nosotros al salir
+                  del campo (y de nuevo al guardar, por las dudas). */}
+              <input
+                type="text"
+                inputMode="url"
                 value={formData.sitio_web}
                 onChange={e => setFormData({ ...formData, sitio_web: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
-                placeholder="https://www.miempresa.com"
+                onBlur={e => setFormData({ ...formData, sitio_web: normalizarSitioWeb(e.target.value) ?? "" })}
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                placeholder="www.miempresa.com"
               />
+              <p className="text-xs text-slate-400">Podés escribirlo sin https://, lo completamos nosotros.</p>
             </div>
 
             {/* Ubicación Agrupada */}
             <div className="md:col-span-2 pt-4 border-t border-slate-100">
                <h4 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2"><MapPin className="w-5 h-5 text-primary-600" /> Sede Principal <span className="text-sm font-normal text-slate-400 ml-2">(Opcional)</span></h4>
-               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600">Localidad</label>
                     <SelectUIAB
@@ -434,7 +465,7 @@ export default function MiPerfilDatosPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600">Dirección</label>
-                    <input type="text" value={formData.direccion} onChange={e => setFormData({...formData, direccion: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-primary-500" placeholder="Calle, Lote, Planta..." />
+                    <input type="text" value={formData.direccion} onChange={e => setFormData({...formData, direccion: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:border-primary-500" placeholder="Calle, Lote, Planta..." />
                   </div>
                </div>
             </div>
@@ -445,7 +476,7 @@ export default function MiPerfilDatosPage() {
                 rows={4}
                 value={formData.descripcion}
                 onChange={e => setFormData({ ...formData, descripcion: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all resize-none"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all resize-none"
               />
               <p className="text-xs text-slate-400 text-right">Escribe qué hacen y cuáles son sus fuertes para destacar.</p>
             </div>

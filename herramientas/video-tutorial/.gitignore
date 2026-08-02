@@ -1,0 +1,9 @@
+node_modules/
+grabaciones/
+# El render final pesa 23 MB: en git queda en la historia para siempre.
+# Va por Drive/YouTube, no acá. Se regenera con `node montar.mjs`.
+*.mp4
+tmp-montaje/
+sesion.json
+demo-ids.json
+sonda.txt

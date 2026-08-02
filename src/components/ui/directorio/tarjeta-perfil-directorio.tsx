@@ -76,7 +76,10 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
         {/* Hairline accent izquierda */}
         <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${indicatorLine} opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-r-sm`} />
 
-        <div className="grid grid-cols-[auto_1fr] md:grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-5 md:gap-8 px-6 md:px-8 py-5">
+        {/* Las 4 columnas recién en xl: en la vista lista la tarjeta vive dentro
+            del main del directorio, que a 768px no llega a los ~900px que pide
+            metadata + botón sin apretar el nombre. */}
+        <div className="grid grid-cols-[auto_1fr] xl:grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-5 xl:gap-8 px-6 md:px-8 py-5">
           {/* Logo */}
           <div className={`relative w-14 h-14 md:w-[60px] md:h-[60px] overflow-hidden flex items-center justify-center font-manrope font-black text-2xl ${bgLogo} ${
             isParticular ? "rounded-full ring-1 ring-amber-200/60" : "rounded-md"
@@ -157,7 +160,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
           </div>
 
           {/* Metadata editorial */}
-          <div className="hidden md:flex flex-col gap-2 w-[170px] lg:w-[200px] shrink-0 pl-6 lg:pl-8 border-l border-[#191c1e]/6">
+          <div className="hidden xl:flex flex-col gap-2 w-[170px] 2xl:w-[200px] shrink-0 pl-6 2xl:pl-8 border-l border-[#191c1e]/6">
             <div>
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.22em]">Sector</span>
               <p className="text-sm font-semibold text-[#191c1e] leading-tight mt-0.5 line-clamp-1">{entidad.categoria}</p>
@@ -171,7 +174,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
           </div>
 
           {/* Acción */}
-          <div className="hidden md:flex items-center shrink-0">
+          <div className="hidden xl:flex items-center shrink-0">
             <div className={`inline-flex items-center justify-center whitespace-nowrap px-5 py-2.5 text-[12px] font-semibold tracking-wide text-slate-700 rounded-sm border border-[#191c1e]/12 transition-all duration-500 ${buttonHover}`}>
               Ver expediente
               <ArrowRight className="w-3.5 h-3.5 ml-2 transition-transform duration-500 group-hover:translate-x-1" />

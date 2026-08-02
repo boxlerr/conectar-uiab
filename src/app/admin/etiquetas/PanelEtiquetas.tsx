@@ -251,7 +251,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
             return (
               <Card
                 key={etiqueta.id}
-                className={`p-5 flex flex-col sm:flex-row gap-4 sm:items-center shadow-sm border-slate-100 transition-all ${
+                className={`p-5 flex flex-col lg:flex-row gap-4 lg:items-center shadow-sm border-slate-100 transition-all ${
                   !etiqueta.activo ? "opacity-75 bg-slate-50" : ""
                 }`}
               >
@@ -292,7 +292,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
                   </div>
                 </div>
 
-                <div className="flex gap-1 items-center sm:pl-4 sm:border-l sm:border-slate-100 mt-2 sm:mt-0">
+                <div className="flex flex-wrap gap-1 items-center shrink-0 lg:pl-4 lg:border-l lg:border-slate-100 mt-2 lg:mt-0">
                   {propuesta && (
                     <>
                       <Button
@@ -377,9 +377,11 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
             onClick={() => setEnEdicion(null)}
           />
-          <div className="fixed z-50 inset-0 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-              <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          {/* items-start + overflow-y-auto: centrado el modal no scrollea y en pantallas bajas se corta */}
+          <div className="fixed z-50 inset-0 flex items-start justify-center overflow-y-auto p-4">
+            {/* sin overflow-hidden: recortaba el dropdown absolute del SelectUIAB de «Tipo» */}
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in zoom-in-95 duration-200">
+              <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-2xl">
                 <h3 className="text-lg font-bold text-slate-900">Editar etiqueta</h3>
                 <Button
                   variant="ghost"
@@ -452,7 +454,8 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
             onClick={() => setAFusionar(null)}
           />
-          <div className="fixed z-50 inset-0 flex items-center justify-center p-4">
+          {/* items-start + overflow-y-auto: centrado el modal no scrollea y en pantallas bajas se corta */}
+          <div className="fixed z-50 inset-0 flex items-start justify-center overflow-y-auto p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
               <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <h3 className="text-lg font-bold text-slate-900">Fusionar etiqueta</h3>
@@ -514,7 +517,8 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
             onClick={() => setAEliminar(null)}
           />
-          <div className="fixed z-50 inset-0 flex items-center justify-center p-4">
+          {/* items-start + overflow-y-auto: centrado el modal no scrollea y en pantallas bajas se corta */}
+          <div className="fixed z-50 inset-0 flex items-start justify-center overflow-y-auto p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
               <div className="p-6">
                 <div className="flex items-start gap-4">

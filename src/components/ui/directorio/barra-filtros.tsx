@@ -68,7 +68,8 @@ export function FilterSidebar({
           <input
             type="text"
             placeholder="Nombre, servicio, especialidad..."
-            className={`w-full pl-10 pr-4 py-3 bg-[#f8fafc] border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 font-medium ${focusRing}`}
+            /* text-base en mobile: abajo de 16px Safari iOS hace zoom solo al enfocar. */
+            className={`w-full pl-10 pr-4 py-3 bg-[#f8fafc] border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400 font-medium ${focusRing}`}
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
           />
@@ -153,8 +154,10 @@ export function FilterSidebar({
         </div>
       </div>
 
-      {/* ── Lista scrolleable ── */}
-      <ul data-tour="directorio-categorias" className="px-4 pb-3 space-y-1 overflow-y-auto flex-1 min-h-0 max-h-[46vh] custom-scrollbar">
+      {/* ── Lista scrolleable ──
+          Alto fijo en mobile/tablet: el 46vh sólo tiene sentido cuando la barra
+          es un rail al costado; arriba de la grilla se comía media pantalla. */}
+      <ul data-tour="directorio-categorias" className="px-4 pb-3 space-y-1 overflow-y-auto flex-1 min-h-0 max-h-56 sm:max-h-[22rem] lg:max-h-[46vh] custom-scrollbar">
         <li>
           <button
             onClick={() => onCategoriaChange(null)}

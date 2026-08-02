@@ -10,6 +10,11 @@ import {
   slugEtiqueta,
   validarEtiquetaLibre,
 } from "@/modulos/compartido/etiquetas";
+import {
+  limpiarNombreEspecialidad,
+  slugEspecialidad,
+  validarEspecialidadLibre,
+} from "@/modulos/compartido/especialidades";
 
 // Server Action strictly bypassing RLS (if needed) for Profile Syncing using the Service Role Key
 const supabaseAdmin = createClient(
@@ -351,6 +356,111 @@ export async function crearEtiquetaLibre(
 
   revalidatePath("/admin/etiquetas");
   return { success: true, tag: creada as TagCreada, reutilizada: false };
+}
+
+export type CategoriaCreada = {
+  id: string;
+  nombre: string;
+  categoria_padre_id: string | null;
+  administrado_por_admin: boolean;
+};
+
+export type ResultadoEspecialidadLibre =
+  | { error: string }
+  | { success: true; categoria: CategoriaCreada; reutilizada: boolean };
+
+/**
+ * Crea (o reutiliza) una especialidad escrita por el socio.
+ *
+ * El catálogo oficial agrupa oficios que en la práctica se venden por separado
+ * ("Chapa, Perfiles y Corte"), así que el socio necesita poder nombrar lo suyo
+ * mientras el padrón se acomoda. Queda con `administrado_por_admin = false`:
+ * no ensucia el catálogo de nadie, pero sí aparece en su ficha.
+ *
+ * No escribe el pivote: devuelve la categoría y la UI la suma a la selección.
+ * La relación se persiste recién con «Guardar Servicios» (`saveCategories`),
+ * así queda un solo camino de escritura de los pivotes.
+ */
+export async function crearEspecialidadLibre(
+  texto: string,
+  padreId?: string | null
+): Promise<ResultadoEspecialidadLibre> {
+  const entidad = await resolverEntidadDelUsuario();
+  if ("error" in entidad) return { error: entidad.error };
+
+  const errorValidacion = validarEspecialidadLibre(texto ?? "");
+  if (errorValidacion) return { error: errorValidacion };
+
+  const nombre = limpiarNombreEspecialidad(texto);
+  const slug = slugEspecialidad(nombre);
+
+  const esEmpresa = entidad.tipo === "company";
+  const columnaAutor = esEmpresa ? "creado_por_empresa" : "creado_por_proveedor";
+
+  // Dedupe contra todo el catálogo: si ya existe (oficial o propuesta por otro
+  // socio) la reutilizamos en vez de crear un duplicado con otro slug.
+  const buscarExistente = async (): Promise<CategoriaCreada | null> => {
+    const { data } = await supabaseAdmin
+      .from("categorias")
+      .select("id, nombre, slug, categoria_padre_id, administrado_por_admin");
+
+    const candidatas = (data ?? []) as (CategoriaCreada & { slug: string })[];
+    return (
+      candidatas.find(
+        (c) =>
+          c.slug === slug ||
+          slugEspecialidad(c.slug) === slug ||
+          slugEspecialidad(c.nombre) === slug
+      ) ?? null
+    );
+  };
+
+  const existente = await buscarExistente();
+  if (existente) {
+    return { success: true, categoria: existente, reutilizada: true };
+  }
+
+  // El padre se valida contra la base: si el cliente manda cualquier cosa, la
+  // especialidad queda suelta en la raíz en vez de fallar.
+  let padreValido: string | null = null;
+  if (padreId) {
+    const { data: padre } = await supabaseAdmin
+      .from("categorias")
+      .select("id")
+      .eq("id", padreId)
+      .is("categoria_padre_id", null)
+      .maybeSingle();
+    padreValido = padre?.id ?? null;
+  }
+
+  const { data: creada, error: insertError } = await supabaseAdmin
+    .from("categorias")
+    .insert({
+      nombre,
+      slug,
+      categoria_padre_id: padreValido,
+      activa: true,
+      administrado_por_admin: false,
+      creado_por: entidad.perfilId,
+      [columnaAutor]: entidad.entityId,
+    })
+    .select("id, nombre, categoria_padre_id, administrado_por_admin")
+    .single();
+
+  if (insertError) {
+    // 23505: dos socios escribieron lo mismo a la vez. Gana la que entró.
+    if (insertError.code === "23505") {
+      const ganadora = await buscarExistente();
+      if (ganadora) return { success: true, categoria: ganadora, reutilizada: true };
+    }
+    console.error("[crearEspecialidadLibre]", insertError.message);
+    return {
+      error: "No pudimos guardar la especialidad. Probá de nuevo en un momento.",
+    };
+  }
+
+  revalidatePath("/admin/servicios");
+  return { success: true, categoria: creada as CategoriaCreada, reutilizada: false };
 }
 
 export async function saveCategories(

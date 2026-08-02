@@ -179,7 +179,7 @@ export async function postularseAOportunidad(
   // 8) Revalidar cachés
   revalidatePath(`/oportunidades/${oportunidadId}`);
   revalidatePath("/oportunidades");
-  revalidatePath("/dashboard");
+  revalidatePath("/panel-de-control");
 
   return { success: true, solicitudId: solicitud.id };
 }

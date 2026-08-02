@@ -25,7 +25,7 @@ export default function PrivacidadPage() {
   const fechaActualizacion = "20 de abril de 2026";
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] selection:bg-primary/10">
+    <div className="min-h-svh bg-[#f7f9fb] selection:bg-primary/10">
       {/* Hero */}
       <section className="relative pt-12 md:pt-16 pb-16 md:pb-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">

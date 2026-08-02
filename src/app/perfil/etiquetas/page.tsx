@@ -229,9 +229,9 @@ export default function MiPerfilEtiquetasPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 lg:gap-8">
         {/* Catálogo de tags */}
-        <Card className="p-6 border-slate-100 shadow-sm lg:col-span-3">
+        <Card className="p-6 border-slate-100 shadow-sm md:col-span-3 lg:col-span-3">
           <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
             <TagIcon className="w-5 h-5 text-primary-600" /> Catálogo de Etiquetas
           </h3>
@@ -342,7 +342,7 @@ export default function MiPerfilEtiquetasPage() {
         </Card>
 
         {/* Resumen */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="md:col-span-2 lg:col-span-2 space-y-4">
           <Card className="p-6 bg-slate-900 border-none shadow-xl text-white">
             <h3 className="font-semibold mb-2 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary-300" />

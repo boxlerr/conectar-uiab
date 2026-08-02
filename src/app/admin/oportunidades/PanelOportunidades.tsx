@@ -146,7 +146,7 @@ export function PanelOportunidades({ oportunidades }: { oportunidades: Oportunid
                     <XCircle className="w-3.5 h-3.5 mr-1" /> Cerrar
                   </Button>
                 )}
-                <Button size="sm" variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50 h-8 w-8 p-0"
+                <Button size="sm" variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50 h-11 w-11 sm:h-9 sm:w-9 p-0"
                   onClick={(e) => { e.stopPropagation(); setConfirmarEliminar(op.id); }}>
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
@@ -222,7 +222,8 @@ export function PanelOportunidades({ oportunidades }: { oportunidades: Oportunid
       {confirmarEliminar && (
         <>
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setConfirmarEliminar(null)} />
-          <div className="fixed z-50 inset-0 flex items-center justify-center p-4">
+          {/* items-start + overflow-y-auto: centrado el modal no scrollea y en pantallas bajas se corta */}
+          <div className="fixed z-50 inset-0 flex items-start justify-center overflow-y-auto p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in zoom-in-95 duration-200">
               <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trash2 className="w-6 h-6 text-rose-600" />

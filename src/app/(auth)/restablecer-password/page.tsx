@@ -122,7 +122,7 @@ export default function RestablecerPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-svh bg-white">
       <PanelMarcaAuth />
 
       <main className="flex flex-1 items-center justify-center px-6 py-10 sm:px-10">

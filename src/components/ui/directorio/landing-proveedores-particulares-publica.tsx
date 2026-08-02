@@ -138,8 +138,10 @@ export function PublicProveedoresParticularesLanding() {
       {/* ═══════════════════════════════════════════
           SECTION 1: HERO — FULL BLEED CINEMATIC
       ═══════════════════════════════════════════ */}
+      {/* El margen negativo tiene que ser igual al spacer del header
+          (h-20 lg:h-24), si no queda una franja del fondo de la página. */}
       <section
-        className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-16 sm:-mt-20"
+        className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-20 lg:-mt-24"
       >
         {/* Background Image (static — sin parallax para mejor performance) */}
         <div className="absolute inset-0 z-0 overflow-hidden">
@@ -1076,7 +1078,7 @@ export function PublicProveedoresParticularesLanding() {
             variants={stagger}
             className="relative"
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {empresasPreview.map((emp, i) => (
                 <motion.div key={`emp-${emp.id}`} variants={fadeUp} custom={i}>
                   <LandingProfileCard entidad={emp} basePath="/empresas" />

@@ -32,7 +32,9 @@ const manrope = { fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" } as 
 
 const inputCls =
   "h-11 w-full rounded-sm border border-slate-200 bg-white px-3.5 " +
-  "text-base sm:text-sm text-slate-900 placeholder:text-slate-400 shadow-sm " +
+  // text-base fijo: con `sm:text-sm` Safari iOS vuelve a hacer zoom al enfocar
+  // (el iPhone apaisado ya entra en el breakpoint sm).
+  "text-base text-slate-900 placeholder:text-slate-400 shadow-sm " +
   "transition-colors hover:border-slate-300 " +
   "focus:border-[#10375c] focus:outline-none focus:ring-2 focus:ring-[#10375c]/20 " +
   "disabled:bg-slate-50 disabled:text-slate-400";
@@ -136,7 +138,7 @@ function RichTextEditor({
   };
 
   const botonCls = (activo: boolean) =>
-    `p-1.5 rounded-sm transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10375c]/40 ${
+    `h-11 w-11 sm:h-9 sm:w-9 rounded-sm transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10375c]/40 ${
       activo
         ? "bg-[#00213f] text-white"
         : "text-slate-500 hover:bg-slate-200/70 hover:text-slate-800"
@@ -208,7 +210,7 @@ function RichTextEditor({
         aria-describedby="ayuda-descripcion"
         aria-required="true"
         aria-invalid={invalido || undefined}
-        className="min-h-[240px] max-h-[400px] overflow-y-auto w-full px-4 py-3.5 text-sm text-slate-800 focus:outline-none leading-relaxed break-words empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none empty:before:block [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_li]:mb-1 [&_b]:font-bold [&_strong]:font-bold [&_i]:italic [&_em]:italic"
+        className="min-h-[240px] max-h-[400px] overflow-y-auto w-full px-4 py-3.5 text-base text-slate-800 focus:outline-none leading-relaxed break-words empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none empty:before:block [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 [&_li]:mb-1 [&_b]:font-bold [&_strong]:font-bold [&_i]:italic [&_em]:italic"
         style={{ cursor: "text" }}
         suppressContentEditableWarning={true}
       />

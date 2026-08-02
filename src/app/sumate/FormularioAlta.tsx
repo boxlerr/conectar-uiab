@@ -22,6 +22,7 @@ const ESTADO_INICIAL = {
   referente_cargo: "",
   email: "",
   email_compras: "",
+  email_mantenimiento: "",
   telefono: "",
   sitio_web: "",
   localidad: "",
@@ -29,8 +30,9 @@ const ESTADO_INICIAL = {
   mensaje: "",
 };
 
+// text-base (16px) y no text-sm: por debajo de 16px Safari iOS hace zoom al enfocar.
 const inputCls =
-  "block w-full bg-[#f2f4f6] text-[#00213f] rounded px-4 py-3 text-sm outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all font-medium border-none placeholder:text-slate-400";
+  "block w-full bg-[#f2f4f6] text-[#00213f] rounded px-4 py-3 text-base outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all font-medium border-none placeholder:text-slate-400";
 const labelCls =
   "text-[10px] font-bold text-primary/50 uppercase tracking-widest ml-1 mb-1.5 block";
 
@@ -313,6 +315,23 @@ export function FormularioAlta() {
             Opcional. Este correo <strong>se muestra en tu perfil del directorio</strong> para que te contacten por compras.
           </p>
         </div>
+
+        <div>
+          <label htmlFor="email_mantenimiento" className={labelCls}>
+            Email de mantenimiento <span className="text-slate-400 font-medium normal-case tracking-normal">(opcional)</span>
+          </label>
+          <input
+            id="email_mantenimiento"
+            type="email"
+            className={inputCls}
+            placeholder="mantenimiento@empresa.com"
+            value={form.email_mantenimiento}
+            onChange={(e) => set("email_mantenimiento", e.target.value)}
+          />
+          <p className="text-[11px] text-slate-400 mt-1.5 ml-1">
+            Opcional. Este correo <strong>se muestra en tu perfil del directorio</strong> para consultas técnicas y de mantenimiento.
+          </p>
+        </div>
       </fieldset>
 
       {/* Ubicación y extras */}
@@ -400,7 +419,7 @@ export function FormularioAlta() {
           </span>
         </label>
 
-        <div className="flex items-center justify-between gap-4 mt-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6">
           <p className="text-xs text-slate-400 flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
             Tus datos los ve el equipo de UIAB (salvo el correo de compras, si lo cargás).
@@ -408,7 +427,7 @@ export function FormularioAlta() {
           <Button
             type="submit"
             disabled={isPending}
-            className="bg-[#00213f] hover:bg-[#10375c] text-white h-12 px-8 rounded text-[13px] uppercase tracking-widest font-bold transition-all hover:translate-y-[-2px] active:translate-y-[0px] disabled:opacity-60 disabled:translate-y-0"
+            className="w-full sm:w-auto bg-[#00213f] hover:bg-[#10375c] text-white h-12 px-8 rounded text-[13px] uppercase tracking-widest font-bold transition-all hover:translate-y-[-2px] active:translate-y-[0px] disabled:opacity-60 disabled:translate-y-0"
           >
             {isPending ? (
               <>

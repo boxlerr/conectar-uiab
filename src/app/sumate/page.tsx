@@ -140,7 +140,7 @@ export default async function SumatePage() {
   const altas = await getAltasPublicas();
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] selection:bg-primary/10">
+    <div className="min-h-svh bg-[#f7f9fb] selection:bg-primary/10">
       {/* ─── Hero ─── */}
       <section className="relative pt-20 md:pt-28 pb-14 md:pb-20 overflow-hidden">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-[#f2f4f6] -z-0 hidden lg:block" />

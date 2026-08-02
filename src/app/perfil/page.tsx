@@ -23,7 +23,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AvisoEtiquetasPrecargadas } from "@/components/ui/aviso-etiquetas-precargadas";
 import { createClient } from "@/lib/supabase/cliente";
-import { cn } from "@/lib/utilidades";
+import { cn, normalizarSitioWeb } from "@/lib/utilidades";
 
 interface Resena {
   id: string;
@@ -169,7 +169,7 @@ export default function MiPerfilPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             Bienvenido, {profileDetails.razon_social || profileDetails.nombre_comercial || currentUser.name}
           </h1>
           <p className="text-slate-500 mt-1">Revisión general del estado de tu perfil y suscripción.</p>
@@ -241,7 +241,7 @@ export default function MiPerfilPage() {
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Sitio web</p>
                   <a
-                    href={profileDetails.sitio_web}
+                    href={normalizarSitioWeb(profileDetails.sitio_web) ?? "#"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm font-medium text-primary-600 hover:underline truncate block"

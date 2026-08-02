@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
  * Destino del botón "Acceder a la plataforma" del correo
  * `plantillaAprobacion`. El enlace del correo apunta directamente acá
  * (no requiere sesión); si el usuario no está logueado, el botón lo
- * manda al login, y desde ahí el flujo de login lo llevará a /dashboard.
+ * manda al login, y desde ahí el flujo de login lo llevará a /panel-de-control.
  */
 export default function BienvenidoPage() {
   const puntos = [
@@ -42,7 +42,7 @@ export default function BienvenidoPage() {
   ]
 
   return (
-    <main className="min-h-screen bg-[#f2f4f6]">
+    <main className="min-h-svh bg-[#f2f4f6]">
       {/* Encabezado con gradiente industrial */}
       <section
         className="text-white"

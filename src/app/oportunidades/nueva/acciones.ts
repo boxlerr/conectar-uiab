@@ -215,7 +215,7 @@ export async function crearOportunidad(
 
   // Revalidate cache paths
   revalidatePath("/oportunidades");
-  revalidatePath("/dashboard");
+  revalidatePath("/panel-de-control");
 
   return { success: true, redirect: `/oportunidades/${newOp.id}`, avisoTags };
 }

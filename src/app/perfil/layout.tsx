@@ -92,12 +92,14 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
     { name: "Mi Suscripción", href: "/perfil/suscripcion", icon: CreditCard, tourId: "nav-suscripcion" },
   ];
 
+  // svh (viewport chico) y no vh: en iOS la barra de Safari hace que 100vh no entre en pantalla.
+  // Los offsets siguen el alto real del header (h-20 lg:h-24).
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
+    <div className="flex min-h-[calc(100svh-5rem)] lg:min-h-[calc(100svh-6rem)]">
       {/* Sidebar Navigation */}
       <aside
         data-tour="perfil-nav"
-        className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col flex-shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto"
+        className="w-64 bg-white border-r border-slate-200 hidden lg:flex flex-col flex-shrink-0 sticky top-24 h-[calc(100svh-6rem)] overflow-y-auto"
       >
         <div className="py-6 px-4 space-y-6">
           <div className="px-2">
@@ -143,6 +145,29 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
 
       {/* Main Content */}
       <main className="flex-1 bg-slate-50/50 min-w-0">
+        {/* Tira de navegación horizontal: es la única forma de moverse por /perfil
+            mientras la sidebar está oculta (abajo de lg). Mismos items que la sidebar. */}
+        <nav className="lg:hidden sticky top-20 z-30 bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex gap-2 overflow-x-auto">
+          {profileNav.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "shrink-0 whitespace-nowrap min-h-[44px] inline-flex items-center gap-2 px-3 rounded-lg text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary-50 text-primary-700"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                )}
+              >
+                <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-primary-600" : "text-slate-400")} />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
         <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
           {children}
         </div>

@@ -217,7 +217,7 @@ export function ImportarExcelModal({ role, entityId, onClose, onSuccess }: Props
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90svh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
@@ -254,8 +254,8 @@ export function ImportarExcelModal({ role, entityId, onClose, onSuccess }: Props
                 <h3 className="font-semibold text-slate-900 mb-3">
                   Columnas de la plantilla (respetar nombre y orden)
                 </h3>
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
+                <div className="border border-slate-200 rounded-xl overflow-x-auto">
+                  <table className="w-full min-w-[560px] text-sm">
                     <thead className="bg-slate-50 text-slate-600">
                       <tr>
                         <th className="px-3 py-2 text-left w-10">#</th>
@@ -395,7 +395,7 @@ export function ImportarExcelModal({ role, entityId, onClose, onSuccess }: Props
         </div>
 
         {filas.length > 0 && (
-          <div className="border-t border-slate-200 px-6 py-4 flex items-center justify-between gap-3 bg-slate-50">
+          <div className="border-t border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50">
             <p className="text-xs text-slate-500">
               Se importarán <strong className="text-slate-900">{validas.length}</strong> ítem(s).
             </p>

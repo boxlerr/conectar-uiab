@@ -78,8 +78,9 @@ export function ModalPagoManual({
     }
   }
 
+  // items-start + overflow-y-auto: centrado el modal no scrollea y en pantallas bajas se corta
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4">
       <Card className="w-full max-w-lg p-6 bg-white">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -88,7 +89,7 @@ export function ModalPagoManual({
             </div>
             <h2 className="text-lg font-bold text-slate-900">Registrar pago manual</h2>
           </div>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded">
+          <button onClick={onClose} className="p-2.5 -m-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
             <X className="w-5 h-5" />
           </button>
         </div>

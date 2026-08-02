@@ -149,9 +149,11 @@ function SeccionCertificaciones({ certs, accent }: { certs: CertFicha[]; accent:
 }
 
 // ── Gate overlay shown to unauthenticated visitors ──
+// El min-h del wrapper es necesario: las 3 filas fantasma suman ~204px pero la tarjeta
+// absolute inset-0 mide ~340px, asi que sin alto minimo sobresale y pisa la seccion de al lado.
 function LoginGate({ currentPath }: { currentPath: string }) {
   return (
-    <div className="relative">
+    <div className="relative min-h-[360px] sm:min-h-[300px]">
       {/* Blurred preview rows */}
       <div className="pointer-events-none select-none" aria-hidden>
         {[...Array(3)].map((_, i) => (
@@ -173,13 +175,13 @@ function LoginGate({ currentPath }: { currentPath: string }) {
           </p>
           <Link
             href={`/login?redirect=${encodeURIComponent(currentPath)}`}
-            className="flex items-center justify-center w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-2.5 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase mb-2"
+            className="flex items-center justify-center w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase mb-2"
           >
             Ingresar
           </Link>
           <Link
             href={`/register?redirect=${encodeURIComponent(currentPath)}`}
-            className="flex items-center justify-center w-full border border-slate-200 hover:border-[#00213f] px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-[#00213f] rounded transition-colors tracking-[0.15em] uppercase"
+            className="flex items-center justify-center w-full border border-slate-200 hover:border-[#00213f] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-slate-600 hover:text-[#00213f] rounded transition-colors tracking-[0.15em] uppercase"
           >
             Crear cuenta gratis
           </Link>
@@ -351,6 +353,7 @@ export default async function EmpresaProfilePage({
         sitio_web,
         email,
         email_compras,
+        email_mantenimiento,
         telefono,
         whatsapp,
         referente,
@@ -386,6 +389,7 @@ export default async function EmpresaProfilePage({
         tipo_proveedor,
         email,
         email_compras,
+        email_mantenimiento,
         telefono,
         localidad,
         provincia,
@@ -540,6 +544,7 @@ async function EmpresaProfile({
     contacto: {
       email: empresaDb.email || "No disponible",
       emailCompras: empresaDb.email_compras || "",
+      emailMantenimiento: empresaDb.email_mantenimiento || "",
       // El contacto es público (se ve sin cuenta): ese es el valor de ser socio.
       telefono: empresaDb.telefono || "",
       whatsapp: empresaDb.whatsapp || empresaDb.telefono || "",
@@ -548,7 +553,7 @@ async function EmpresaProfile({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-inter pb-20">
+    <div className="min-h-svh bg-slate-50 font-inter pb-20">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -566,8 +571,9 @@ async function EmpresaProfile({
         }}
       />
       <RegistrarVisita tipo="empresa" entidadId={empresaDb.id} />
-      {/* Hero — always visible for SEO */}
-      <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24">
+      {/* Hero — always visible for SEO. min-h en vez de h: con alto fijo + overflow-hidden un nombre
+          de 3 renglones recortaba los chips y el link "Directorio" por arriba */}
+      <div className="relative min-h-[320px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
         <div className="absolute inset-0 z-0">
           <Image src="/landing/hero-industrial.webp" alt="" fill className="object-cover object-center" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
@@ -632,14 +638,14 @@ async function EmpresaProfile({
             sitioWeb={empresa.contacto.sitioWeb}
             ubicacion={empresa.ubicacion ?? undefined}
             colorScheme="blue"
-            className="inline-flex items-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-2.5 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase"
+            className="inline-flex items-center justify-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase"
           />
         </div>
       </div>
 
       <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 mt-10 relative z-10">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <main className="w-full lg:w-[72%] space-y-6">
+        <div className="flex flex-col tab:flex-row gap-6 tab:gap-8">
+          <main className="w-full tab:w-[62%] lg:w-[72%] min-w-0 space-y-6">
             {/* Always visible for SEO */}
             {empresa.actividad && (
               <section className="bg-white p-7 rounded-md border border-slate-200">
@@ -758,8 +764,9 @@ async function EmpresaProfile({
             )}
           </main>
 
-          <aside data-tour="ficha-sidebar-contacto" className="w-full lg:w-[28%]">
-            <div className="bg-white rounded-md border border-slate-200 sticky top-28 overflow-hidden">
+          <aside data-tour="ficha-sidebar-contacto" className="w-full tab:w-[38%] lg:w-[28%]">
+            {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo */}
+            <div className="bg-white rounded-md border border-slate-200 sticky top-24 overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
                 <h3 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
                   Datos de contacto
@@ -795,6 +802,18 @@ async function EmpresaProfile({
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de compras</p>
                         <a href={`mailto:${empresa.contacto.emailCompras}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
                           {empresa.contacto.emailCompras}
+                        </a>
+                      </div>
+                    </li>
+                  )}
+
+                  {empresa.contacto.emailMantenimiento && (
+                    <li className="flex items-start gap-3">
+                      <Wrench className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de mantenimiento</p>
+                        <a href={`mailto:${empresa.contacto.emailMantenimiento}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
+                          {empresa.contacto.emailMantenimiento}
                         </a>
                       </div>
                     </li>
@@ -898,12 +917,13 @@ async function ProveedorProfile({
     contacto: {
       email: provDb.email || "No disponible",
       emailCompras: provDb.email_compras || "",
+      emailMantenimiento: provDb.email_mantenimiento || "",
       telefono: provDb.telefono || "",
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] font-inter pb-24">
+    <div className="min-h-svh bg-[#f7f9fb] font-inter pb-24">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -922,7 +942,7 @@ async function ProveedorProfile({
       />
       <RegistrarVisita tipo="proveedor" entidadId={provDb.id} />
       {/* Hero */}
-      <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24">
+      <div className="relative min-h-[320px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
         <div className="absolute inset-0 z-0">
           <Image src="/landing/hero-industrial.webp" alt="Fondo" fill className="object-cover object-center" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
@@ -978,14 +998,14 @@ async function ProveedorProfile({
             telefono={proveedor.contacto.telefono}
             ubicacion={proveedor.ubicacion ?? undefined}
             colorScheme="amber"
-            className="inline-flex items-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-2.5 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase"
+            className="inline-flex items-center justify-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase"
           />
         </div>
       </div>
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-10 relative z-10">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <main className="w-full lg:w-[65%] space-y-6">
+        <div className="flex flex-col tab:flex-row gap-6 tab:gap-8">
+          <main className="w-full tab:w-[60%] lg:w-[65%] min-w-0 space-y-6">
             {/* Always visible for SEO */}
             <section className="bg-white p-7 rounded-md border border-[#191c1e]/8">
               <div className="flex items-center gap-2.5 mb-5">
@@ -1038,8 +1058,9 @@ async function ProveedorProfile({
           </main>
 
           {/* Sidebar */}
-          <aside className="w-full lg:w-[35%]">
-            <div className="bg-white rounded-md border border-[#191c1e]/8 sticky top-28 overflow-hidden">
+          <aside className="w-full tab:w-[40%] lg:w-[35%]">
+            {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo */}
+            <div className="bg-white rounded-md border border-[#191c1e]/8 sticky top-24 overflow-hidden">
               <div className="px-6 py-4 border-b border-[#191c1e]/6 bg-[#f7f9fb]">
                 <h3 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
                   Datos de Contacto
@@ -1086,6 +1107,18 @@ async function ProveedorProfile({
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de compras</p>
                         <a href={`mailto:${proveedor.contacto.emailCompras}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
                           {proveedor.contacto.emailCompras}
+                        </a>
+                      </div>
+                    </li>
+                  )}
+
+                  {proveedor.contacto.emailMantenimiento && (
+                    <li className="flex items-start gap-3">
+                      <Wrench className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de mantenimiento</p>
+                        <a href={`mailto:${proveedor.contacto.emailMantenimiento}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
+                          {proveedor.contacto.emailMantenimiento}
                         </a>
                       </div>
                     </li>

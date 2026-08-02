@@ -279,14 +279,15 @@ export default function InstitucionesBancariasPage() {
   const mostrarDirectorio  = !loading && !!currentUser && tieneAcceso;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-inter">
+    <div className="min-h-svh overflow-x-hidden bg-slate-50 font-inter">
       {mostrarInformativo && (
       <>
       {/* ─────────────────────────────────────────────────────────────────────────
           HERO — Layout SPLIT minimalista, fondo claro, sin imagen AI
           Texto izquierda + Card visual derecha con stats
       ───────────────────────────────────────────────────────────────────────── */}
-      <section className="relative min-h-[calc(100vh-5rem)] flex items-center overflow-hidden bg-white">
+      {/* svh (no vh ni dvh): en iOS el 100vh incluye la barra de Safari y el hero salia cortado */}
+      <section className="relative min-h-[calc(100svh-5rem)] flex items-center overflow-hidden bg-white">
         {/* Subtle background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-emerald-50/30" />
 
@@ -303,7 +304,7 @@ export default function InstitucionesBancariasPage() {
         />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 lg:py-16 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div className="grid grid-cols-1 tab:grid-cols-2 gap-10 lg:gap-20 items-center">
             {/* Left: Content */}
             <motion.div
               variants={stagger}
@@ -398,7 +399,7 @@ export default function InstitucionesBancariasPage() {
               className="relative"
             >
               {/* Main card */}
-              <div className="bg-slate-900 p-8 md:p-10 relative overflow-hidden">
+              <div className="bg-slate-900 p-6 lg:p-10 relative overflow-hidden">
                 {/* Corner accent */}
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10" />
                 <div className="absolute top-0 right-0 w-12 h-12 bg-emerald-500/20" />
@@ -489,7 +490,8 @@ export default function InstitucionesBancariasPage() {
       ───────────────────────────────────────────────────────────────────────── */}
       <section className="bg-slate-900 border-y border-slate-800">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-800">
+          {/* En 2 columnas el divide-x deja una linea vertical suelta arriba de la 2da fila */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-800 border-slate-800 [&>*:nth-child(3)]:border-l-0 [&>*:nth-child(n+3)]:border-t lg:[&>*:nth-child(3)]:border-l lg:[&>*:nth-child(n+3)]:border-t-0">
             {cifrasRed.map((stat, idx) => (
               <motion.div
                 key={stat.label}
@@ -519,7 +521,7 @@ export default function InstitucionesBancariasPage() {
       ───────────────────────────────────────────────────────────────────────── */}
       <section className="py-24 md:py-32">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16 items-center">
             {/* Imagen lado izquierdo */}
             <motion.div
               initial={{ opacity: 0, x: -40 }}
@@ -532,20 +534,20 @@ export default function InstitucionesBancariasPage() {
                 <Image
                   src="/landing/bancarias-red.jpg"
                   alt="Red de negocios UIAB"
-                  fill
+                  fill sizes="(min-width: 1024px) 50vw, 100vw"
                   className="object-cover"
                 />
                 {/* Overlay accent */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-emerald-900/30 to-transparent" />
               </div>
 
-              {/* Floating stat card */}
+              {/* Floating stat card — fuera de lg se salia del viewport y generaba scroll horizontal */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.3, duration: 0.5 }}
-                className="absolute -bottom-8 -right-8 bg-white p-6 shadow-2xl border border-slate-100"
+                className="absolute -bottom-6 right-4 lg:-bottom-8 lg:-right-8 bg-white p-4 sm:p-6 shadow-2xl border border-slate-100"
               >
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-emerald-50 flex items-center justify-center">
@@ -717,7 +719,7 @@ export default function InstitucionesBancariasPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-8"
           >
             {comoFunciona.map((step, idx) => (
               <motion.div
@@ -731,7 +733,7 @@ export default function InstitucionesBancariasPage() {
                   <div className="hidden md:block absolute top-16 -right-4 w-8 h-px bg-gradient-to-r from-emerald-500/50 to-transparent" />
                 )}
 
-                <div className="bg-white/[0.06] border border-white/10 p-8 h-full transition-colors duration-300 hover:bg-white/10 hover:border-emerald-500/30">
+                <div className="bg-white/[0.06] border border-white/10 p-6 lg:p-8 h-full transition-colors duration-300 hover:bg-white/10 hover:border-emerald-500/30">
                   <div className="flex items-start justify-between mb-8">
                     <span className="font-manrope text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 to-emerald-600/30">
                       {step.paso}
@@ -759,13 +761,13 @@ export default function InstitucionesBancariasPage() {
       ───────────────────────────────────────────────────────────────────────── */}
       <section className="py-24">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-0 overflow-hidden border border-slate-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-0 overflow-hidden border border-slate-200">
             {/* Imagen - ocupa 3 columnas */}
-            <div className="lg:col-span-3 relative aspect-[16/10] lg:aspect-auto">
+            <div className="lg:col-span-3 relative aspect-[16/10] md:aspect-auto">
               <Image
                 src="/landing/bancarias-meeting.jpg"
                 alt="Reunion de negocios"
-                fill
+                fill sizes="(min-width: 1024px) 50vw, 100vw"
                 className="object-cover"
               />
             </div>
@@ -815,7 +817,7 @@ export default function InstitucionesBancariasPage() {
       {mostrarBloqueado && currentUser && (
         <AccesoRequerido
           estado={resolverEstadoGate(currentUser.subscriptionEstado ?? null, currentUser.isMember)}
-          className="min-h-[calc(100vh-5rem)]"
+          className="min-h-[calc(100svh-5rem)]"
         />
       )}
 
@@ -853,9 +855,9 @@ export default function InstitucionesBancariasPage() {
             </p>
           </motion.div>
 
-          <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
+          <div className="flex flex-col md:flex-row gap-8 lg:gap-14">
               {/* Sidebar */}
-              <aside className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
+              <aside className="w-full md:w-4/12 lg:w-3/12 xl:w-1/4 shrink-0">
                 <FilterSidebar
                   categorias={categorias}
                   categoriaSeleccionada={categoriaSeleccionada}
@@ -867,7 +869,7 @@ export default function InstitucionesBancariasPage() {
               </aside>
 
               {/* Main area */}
-              <main className="w-full lg:w-9/12 xl:w-3/4">
+              <main className="w-full md:w-8/12 lg:w-9/12 xl:w-3/4 min-w-0">
                 <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 border border-slate-200">
                   <div>
                     <h3 className="font-manrope text-lg font-bold text-slate-900">
@@ -882,7 +884,7 @@ export default function InstitucionesBancariasPage() {
                     <div className="bg-slate-100 p-1 flex gap-1 border border-slate-200">
                       <button
                         onClick={() => setViewMode("grid")}
-                        className={`p-2 transition-all ${viewMode === "grid"
+                        className={`inline-flex items-center justify-center min-w-11 min-h-11 p-2 transition-all ${viewMode === "grid"
                           ? "bg-white text-emerald-700 shadow-sm"
                           : "text-slate-400 hover:text-emerald-700"
                           }`}
@@ -892,7 +894,7 @@ export default function InstitucionesBancariasPage() {
                       </button>
                       <button
                         onClick={() => setViewMode("list")}
-                        className={`p-2 transition-all ${viewMode === "list"
+                        className={`inline-flex items-center justify-center min-w-11 min-h-11 p-2 transition-all ${viewMode === "list"
                           ? "bg-white text-emerald-700 shadow-sm"
                           : "text-slate-400 hover:text-emerald-700"
                           }`}
@@ -911,7 +913,7 @@ export default function InstitucionesBancariasPage() {
                     key={viewMode}
                     className={
                       viewMode === "grid"
-                        ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
+                        ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
                         : "bg-white border border-slate-200 overflow-hidden divide-y divide-slate-100"
                     }
                   >

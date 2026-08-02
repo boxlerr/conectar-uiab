@@ -33,8 +33,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // svh y no vh/dvh: en iOS el 100vh incluye la barra de Safari (el contenido
+  // sale cortado) y el dvh reflowea sin parar mientras la barra entra y sale.
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-svh">
       <Header
         currentUser={currentUser}
         onLogout={logout}

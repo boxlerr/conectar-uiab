@@ -27,7 +27,7 @@ const DESTINOS_POR_DEFECTO: Record<string, string> = {
   recovery: '/restablecer-password',
   email_change: '/perfil',
   invite: '/restablecer-password',
-  magiclink: '/dashboard',
+  magiclink: '/panel-de-control',
 }
 
 export async function GET(request: NextRequest) {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type') || 'signup'
   const nextParam = searchParams.get('next')
 
-  const destino = nextParam || DESTINOS_POR_DEFECTO[type] || '/dashboard'
+  const destino = nextParam || DESTINOS_POR_DEFECTO[type] || '/panel-de-control'
   const supabase = await createClient()
 
   try {

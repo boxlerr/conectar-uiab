@@ -484,7 +484,7 @@ export function PanelAltas({
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
             <UserPlus className="w-8 h-8 text-primary-600" />
@@ -494,7 +494,7 @@ export function PanelAltas({
             Solicitudes cargadas desde el formulario de alta de socios. Compartí el link con cada empresa, revisá los datos y dale acceso.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           <Button onClick={copiarLinkFormulario} className="bg-primary-600 hover:bg-primary-700 text-white">
             <Link2 className="w-4 h-4 mr-2" />
             Compartir formulario
@@ -539,7 +539,8 @@ export function PanelAltas({
 
       <Card className="shadow-sm border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          {/* min-w: con w-full sola la tabla se comprime y el wrapper overflow-x-auto nunca llega a scrollear */}
+          <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50">
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Empresa</th>
@@ -888,8 +889,9 @@ function DetalleFila({
     <div className="flex items-center gap-3 group">
       <Icon className="w-4 h-4 text-slate-400 shrink-0" />
       <span className="text-slate-700 flex-1 min-w-0 break-words">{valor}</span>
+      {/* En touch no hay hover: si queda opacity-0 el boton es invisible y la accion no existe */}
       {onCopy && (
-        <button onClick={onCopy} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-primary-600 shrink-0" title="Copiar">
+        <button onClick={onCopy} className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity text-slate-400 hover:text-primary-600 shrink-0 p-2 -m-2" title="Copiar">
           <Copy className="w-3.5 h-3.5" />
         </button>
       )}

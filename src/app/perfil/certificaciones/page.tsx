@@ -563,7 +563,7 @@ function FormularioCertificacion({
 
         {/* Preview del chip */}
         <div className="lg:w-52 shrink-0">
-          <div className="lg:sticky lg:top-20 bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+          <div className="lg:sticky lg:top-28 bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
               Así se ve en el directorio
             </p>
@@ -659,7 +659,7 @@ function FilaCertificacion({
           {cert.bucket && cert.ruta_archivo && (
             <button
               onClick={onVerArchivo}
-              className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition"
+              className="h-11 w-11 sm:h-9 sm:w-9 inline-flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition"
               title="Ver certificado"
             >
               <FileText className="w-4 h-4" />
@@ -667,14 +667,14 @@ function FilaCertificacion({
           )}
           <button
             onClick={onEditar}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+            className="h-11 w-11 sm:h-9 sm:w-9 inline-flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
             title="Editar"
           >
             <Pencil className="w-4 h-4" />
           </button>
           <button
             onClick={onEliminar}
-            className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition"
+            className="h-11 w-11 sm:h-9 sm:w-9 inline-flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition"
             title="Eliminar"
           >
             <Trash2 className="w-4 h-4" />

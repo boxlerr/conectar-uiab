@@ -39,7 +39,7 @@ export async function marcarSolicitudVista(solicitudId: string) {
   }
 
   revalidatePath("/perfil/solicitudes");
-  revalidatePath("/dashboard");
+  revalidatePath("/panel-de-control");
   return { success: true };
 }
 
@@ -90,7 +90,7 @@ export async function marcarSolicitudRespondida(solicitudId: string) {
   }
 
   revalidatePath("/perfil/solicitudes");
-  revalidatePath("/dashboard");
+  revalidatePath("/panel-de-control");
   return { success: true };
 }
 
@@ -114,6 +114,6 @@ export async function cerrarSolicitud(solicitudId: string) {
   }
 
   revalidatePath("/perfil/solicitudes");
-  revalidatePath("/dashboard");
+  revalidatePath("/panel-de-control");
   return { success: true };
 }

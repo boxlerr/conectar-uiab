@@ -327,14 +327,14 @@ export default function EmpresasPage() {
     return (
       <AccesoRequerido
         estado={resolverEstadoGate(currentUser.subscriptionEstado ?? null, currentUser.isMember)}
-        className="min-h-screen"
+        className="min-h-svh"
       />
     );
   }
 
   // Authenticated directory view - PREMIUM B2B
   return (
-    <div className="min-h-screen bg-[#f7f9fb] font-inter pb-20">
+    <div className="min-h-svh bg-[#f7f9fb] font-inter pb-20">
       
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-16">
 
@@ -392,7 +392,7 @@ export default function EmpresasPage() {
         {/* ─── Tabs (cuando la vista mezcla socios + particulares) ─── */}
         {mezclaParticulares && (
           <>
-            <div className="flex gap-2 mb-8 bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit">
+            <div className="flex flex-wrap gap-2 mb-8 bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit max-w-full">
               <button
                 onClick={() => handleTabChange('socios')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
@@ -425,10 +425,11 @@ export default function EmpresasPage() {
           </>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
+        <div className="flex flex-col tab:flex-row gap-8 md:gap-10 lg:gap-14">
           {/* Sidebar */}
-          <aside className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
-            <div className="lg:sticky lg:top-28">
+          <aside className="w-full tab:w-[38%] lg:w-3/12 xl:w-1/4 shrink-0">
+            {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo */}
+            <div className="tab:sticky tab:top-24">
               <FilterSidebar
                 categorias={categorias}
                 categoriaSeleccionada={categoriaSeleccionada}
@@ -441,7 +442,7 @@ export default function EmpresasPage() {
           </aside>
           
           {/* Main Grid Area */}
-          <main className="w-full lg:w-9/12 xl:w-3/4">
+          <main className="w-full tab:w-[62%] lg:w-9/12 xl:w-3/4 min-w-0">
             
             {/* Toolbar */}
             <div data-tour="directorio-toolbar" className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
@@ -476,7 +477,7 @@ export default function EmpresasPage() {
             {/* Results */}
             {cargandoDatos ? (
               <div className={viewMode === 'grid'
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+                ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
                 : "bg-white rounded-2xl border border-slate-200/70 overflow-hidden divide-y divide-slate-200/70"
               }>
                 {Array.from({ length: viewMode === 'grid' ? 6 : 5 }).map((_, i) => (
@@ -515,7 +516,7 @@ export default function EmpresasPage() {
                 key={viewMode}
                 data-tour="directorio-resultados"
                 className={viewMode === 'grid'
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+                  ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
                   : "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_32px_-12px_rgba(15,23,42,0.08)] overflow-hidden divide-y divide-slate-200/70"
                 }
               >
@@ -535,7 +536,7 @@ export default function EmpresasPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="bg-white rounded-2xl p-20 text-center border border-amber-200 shadow-sm"
+                className="bg-white rounded-2xl p-8 sm:p-12 lg:p-20 text-center border border-amber-200 shadow-sm"
               >
                 <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-100">
                   <Building2 className="w-10 h-10 text-amber-400" />
@@ -553,7 +554,7 @@ export default function EmpresasPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="bg-white rounded-2xl p-20 text-center border border-slate-200 shadow-sm"
+                className="bg-white rounded-2xl p-8 sm:p-12 lg:p-20 text-center border border-slate-200 shadow-sm"
               >
                 <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-100">
                   <Building2 className="w-10 h-10 text-blue-300" />

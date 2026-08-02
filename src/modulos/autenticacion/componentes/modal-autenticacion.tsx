@@ -90,13 +90,15 @@ export function AuthModal() {
           className="absolute inset-0 bg-[#191c1e]/40 backdrop-blur-md"
         />
 
-        {/* Modal — Ambient shadow: on_surface 6% opacity, blur 32px, Y-offset 16px */}
+        {/* Modal — Ambient shadow: on_surface 6% opacity, blur 32px, Y-offset 16px.
+            svh y sin overflow-hidden: el hidden pisaba al overflow-y-auto y dejaba el
+            modal sin scroll propio en pantallas bajas. */}
         <motion.div
           initial={{ opacity: 0, scale: 0.97, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.97, y: 16 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] as const }}
-          className="relative w-full max-w-[440px] max-h-[90vh] overflow-y-auto overflow-hidden"
+          className="relative w-full max-w-[440px] max-h-[90svh] overflow-y-auto rounded-sm"
           style={{ 
             borderRadius: "0.25rem",
             boxShadow: "0 16px 32px rgba(25, 28, 30, 0.06)",

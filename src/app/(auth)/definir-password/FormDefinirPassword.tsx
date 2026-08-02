@@ -122,9 +122,9 @@ export function FormDefinirPassword({
         toast.success('¡Listo! Bienvenido a UIAB Conecta', {
           description: 'Te estamos llevando a tu panel…',
         })
-        // Redirect a /dashboard: ahí se dispara el tutorial de primer ingreso.
+        // Redirect a /panel-de-control: ahí se dispara el tutorial de primer ingreso.
         setTimeout(() => {
-          router.push('/dashboard')
+          router.push('/panel-de-control')
           router.refresh()
         }, 1200)
       }
@@ -136,7 +136,7 @@ export function FormDefinirPassword({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f2f4f6] px-4 py-12">
+    <main className="flex min-h-svh items-center justify-center bg-[#f2f4f6] px-4 py-12">
       <div className="w-full max-w-md overflow-hidden rounded-md bg-white shadow-[0_16px_32px_-16px_rgba(0,33,63,0.18)] ring-1 ring-slate-900/[0.04]">
         <div
           className="px-8 py-5 text-white"

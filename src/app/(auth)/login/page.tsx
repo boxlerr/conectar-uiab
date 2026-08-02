@@ -121,8 +121,10 @@ function LoginContent() {
     }
   }
 
+  // svh (no vh) para que la barra de Safari no corte la tarjeta; sin overflow-hidden,
+  // que recortaba el formulario cuando no entra a lo alto.
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f2f4f6] p-4 sm:p-6 overflow-hidden relative">
+    <div className="flex min-h-svh items-center justify-center bg-[#f2f4f6] p-4 sm:p-6 relative">
       <div 
         className="relative w-full max-w-[440px] overflow-hidden z-10 bg-white"
         style={{ 
@@ -185,7 +187,7 @@ function LoginContent() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex h-12 w-full bg-[#f2f4f6] px-4 py-3 pl-4 text-[15px] font-semibold text-[#191c1e] placeholder:text-[#191c1e]/30 placeholder:font-normal focus:bg-white focus:outline-none transition-all"
+                  className="flex h-12 w-full bg-[#f2f4f6] px-4 py-3 pl-4 text-base font-semibold text-[#191c1e] placeholder:text-[#191c1e]/30 placeholder:font-normal focus:bg-white focus:outline-none transition-all"
                   style={{ 
                     borderRadius: "0.25rem",
                     boxShadow: "none",
@@ -227,7 +229,7 @@ function LoginContent() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="flex h-12 w-full bg-[#f2f4f6] px-4 py-3 pl-4 pr-12 text-[15px] font-semibold text-[#191c1e] placeholder:text-[#191c1e]/30 placeholder:font-normal focus:bg-white focus:outline-none transition-all tracking-wider"
+                  className="flex h-12 w-full bg-[#f2f4f6] px-4 py-3 pl-4 pr-12 text-base font-semibold text-[#191c1e] placeholder:text-[#191c1e]/30 placeholder:font-normal focus:bg-white focus:outline-none transition-all tracking-wider"
                   style={{ 
                     borderRadius: "0.25rem",
                     boxShadow: "none",
@@ -313,7 +315,7 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <div className="flex min-h-svh items-center justify-center bg-slate-50 p-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
       </div>
     }>

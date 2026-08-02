@@ -28,9 +28,11 @@ export default async function NuevaOportunidadPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] pb-24">
+    <div className="min-h-svh bg-[#f7f9fb] pb-24">
       {/* ─── Premium Header ─── */}
-      <div className="relative h-[320px] flex items-center overflow-hidden -mt-24 pt-24 mb-12">
+      {/* min-h en vez de h: con alto fijo + overflow-hidden un título largo se recorta.
+          El margen negativo compensa el spacer del header (h-20 lg:h-24). */}
+      <div className="relative min-h-[320px] flex items-center overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24 mb-12">
         <div className="absolute inset-0 z-0">
           <Image
             src="/landing/hero-industrial.webp"

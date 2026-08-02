@@ -514,6 +514,22 @@ export async function toggleActivarCategoria(id: string, activa: boolean) {
   return { success: true };
 }
 
+/**
+ * Sube una especialidad propuesta por un socio al catálogo oficial (o la baja
+ * de vuelta). No toca los pivotes: quien ya la tenía elegida la conserva, sólo
+ * cambia si el resto de los socios la ve en el picker de /perfil/servicios.
+ */
+export async function promoverCategoria(id: string, oficial: boolean) {
+  const { error } = await adminClient()
+    .from("categorias")
+    .update({ administrado_por_admin: oficial })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/servicios");
+  revalidatePath("/perfil/servicios");
+  return { success: true };
+}
+
 export async function eliminarCategoria(id: string) {
   const { error } = await adminClient()
     .from("categorias")

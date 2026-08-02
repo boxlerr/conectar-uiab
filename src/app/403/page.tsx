@@ -3,7 +3,7 @@ import { ShieldAlert, ArrowLeft } from 'lucide-react';
 
 export default function ForbiddenPage() {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-svh bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
       {/* Ghost Background Anchor */}
       <div className="absolute top-10 left-10 opacity-5 pointer-events-none">
         <span className="text-[20rem] font-black tracking-tighter text-primary-900 leading-none">

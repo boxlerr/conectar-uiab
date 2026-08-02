@@ -1,0 +1,6 @@
+{
+  "name": "uiab-video-tutorial",
+  "private": true,
+  "type": "module",
+  "dependencies": { "playwright": "^1.57.0" }
+}

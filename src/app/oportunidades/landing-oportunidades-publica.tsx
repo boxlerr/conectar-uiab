@@ -80,7 +80,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
   const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
 
   return (
-    <div className="bg-white min-h-screen pt-0 overflow-x-hidden">
+    <div className="bg-white min-h-svh pt-0 overflow-x-hidden">
       
       {/* ═══════════════════════════════════════════
           SECTION 1: HERO (DARK MULTIMEDIA B2B)
@@ -93,14 +93,14 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
         }} />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex items-center">
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-center w-full">
+          <div className="grid md:grid-cols-12 gap-10 lg:gap-16 items-center w-full">
             
             {/* Left Column — Copy */}
             <motion.div
               initial="hidden"
               animate="visible"
               variants={stagger}
-              className="lg:col-span-6 xl:col-span-5"
+              className="md:col-span-6 lg:col-span-6 xl:col-span-5"
             >
               <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2.5 bg-white/[0.06] backdrop-blur-md rounded-sm px-4 py-1.5 mb-4 border border-white/[0.08]">
                 <Briefcase className="w-4 h-4 text-emerald-400" />
@@ -135,10 +135,10 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                   Ver Oportunidades
                   <ArrowRight className="w-5 h-5 ml-2 text-primary-600" />
                 </Button>
-                <Link href="/oportunidades/nueva">
+                <Link href="/oportunidades/nueva" className="w-full sm:w-auto">
                   <Button
                     variant="outline"
-                    className="h-14 px-8 rounded-sm font-bold text-[15px] border-white/20 text-white hover:bg-white/10 transition-all bg-transparent"
+                    className="w-full sm:w-auto h-14 px-8 rounded-sm font-bold text-[15px] border-white/20 text-white hover:bg-white/10 transition-all bg-transparent"
                   >
                     Soy Empresa (Publicar)
                   </Button>
@@ -146,7 +146,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
               </motion.div>
               
               {/* Trust signals */}
-              <motion.div variants={fadeUp} custom={4} className="flex items-center gap-6 text-[12px] text-white/90">
+              <motion.div variants={fadeUp} custom={4} className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-white/90">
                 <span className="flex items-center gap-1.5 font-bold"><ShieldCheck className="w-4 h-4 text-emerald-400" /> Red Privada UIAB</span>
                 <span className="flex items-center gap-1.5 font-bold"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Trato Directo</span>
               </motion.div>
@@ -157,7 +157,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
               initial="hidden"
               animate="visible"
               variants={slideInRight}
-              className="lg:col-span-6 xl:col-span-7 relative hidden lg:block"
+              className="md:col-span-6 lg:col-span-6 xl:col-span-7 relative hidden md:block"
             >
               <div className="relative w-full aspect-[4/3] max-w-2xl ml-auto">
                 <motion.div style={{ y: heroY }} className="relative w-full h-full">
@@ -169,7 +169,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                      <Image
                        src="/landing/platform-preview.png"
                        alt="Dashboard de licitaciones y oportunidades comerciales B2B en Almirante Brown — UIAB Conecta"
-                       fill
+                       fill sizes="(min-width: 1024px) 50vw, 100vw"
                        className="object-cover"
                        priority
                      />
@@ -291,7 +291,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
       ═══════════════════════════════════════════ */}
       <section className="bg-white py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
              {/* Left: Image composition */}
              <motion.div
                initial={{ opacity: 0, x: -40 }}
@@ -300,18 +300,19 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                transition={{ duration: 0.8 }}
                className="relative order-2 lg:order-1"
              >
-                <div className="relative aspect-square sm:aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl bg-slate-100">
+                <div className="relative aspect-square sm:aspect-[16/10] lg:aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl bg-slate-100">
                   <Image 
                     src="/landing/b2b-trust-partnership.png" 
                     alt="Empresas de Almirante Brown cerrando acuerdos B2B verificados por UIAB Conecta" 
-                    fill 
+                    fill sizes="(min-width: 1024px) 50vw, 100vw" 
                     className="object-cover" 
                   />
                   <div className="absolute inset-0 bg-[#00213f]/10" />
                 </div>
                 
                 {/* Floating UI element */}
-                <div className="absolute -right-8 bottom-12 bg-white rounded-2xl p-6 shadow-2xl border border-slate-100 max-w-[240px] hidden sm:block">
+                {/* Hasta lg la tarjeta queda adentro: el -right-8 empujaba 8px de scroll horizontal. */}
+                <div className="absolute right-4 lg:-right-8 bottom-12 bg-white rounded-2xl p-6 shadow-2xl border border-slate-100 max-w-[240px] hidden sm:block">
                    <div className="flex justify-between items-start mb-4">
                       <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center">
                          <Building2 className="w-5 h-5 text-primary-600" />

@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  *   4. Cookie NO se toca (es httpOnly, el browser no puede borrarla vía JS)
  *   5. window.location.href = '/'
  *   6. Middleware corre server-side, lee cookies, ve sesión válida
- *   7. getUser() retorna user → redirige a /dashboard
+ *   7. getUser() retorna user → redirige a /panel-de-control
  *   8. "Se cerró y se abrió solo" → el bug reportado
  *
  * Verifica que el FIX (llamar a /api/auth/logout) sí borra la cookie.

@@ -487,7 +487,7 @@ export default async function AdminDashboardPage() {
         <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
           Accesos rápidos
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {accesosRapidos.map((a) => {
             const Icon = a.icon;
             return (
@@ -496,7 +496,7 @@ export default async function AdminDashboardPage() {
                 href={a.href}
                 className="bg-white rounded-md p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-100 hover:ring-slate-300 hover:bg-slate-50 transition-all flex items-center gap-3 group"
               >
-                <div className="w-9 h-9 rounded-md bg-slate-100 text-slate-600 flex items-center justify-center group-hover:bg-primary-50 group-hover:text-primary-700 transition-colors">
+                <div className="w-9 h-9 shrink-0 rounded-md bg-slate-100 text-slate-600 flex items-center justify-center group-hover:bg-primary-50 group-hover:text-primary-700 transition-colors">
                   <Icon className="w-4 h-4" />
                 </div>
                 <span className="text-sm font-semibold text-slate-800">{a.label}</span>

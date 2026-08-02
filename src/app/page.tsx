@@ -118,17 +118,20 @@ export default function Home() {
   const esAnual = ciclo === "anual";
   useEffect(() => {
     if (!loading && currentUser) {
-      router.replace('/dashboard');
+      router.replace('/panel-de-control');
     }
   }, [currentUser, loading, router]);
 
   return (
-    <main className="min-h-screen bg-[#f7f9fb] overflow-x-hidden selection:bg-primary-200">
+    <main className="min-h-svh bg-[#f7f9fb] overflow-x-hidden selection:bg-primary-200">
 
       {/* ═══════════════════════════════════════════
           HERO — Split layout: Copy left + Platform visual right
       ═══════════════════════════════════════════ */}
-      <section className="relative overflow-hidden min-h-[100vh] flex items-center">
+      {/* svh (viewport chico) y no vh/dvh: en Safari iOS el 100vh incluye la barra
+          de direcciones, así que el hero quedaba cortado por abajo. dvh tampoco
+          sirve: reflowea todo el rato mientras la barra entra y sale. */}
+      <section className="relative overflow-hidden min-h-[100svh] flex items-center">
         {/* Background (estático — sin parallax para mejor performance) */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-[#00213f] via-[#10375c] to-[#0c2d4a]" />
@@ -140,14 +143,17 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-0 w-full">
-          <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          <div className="grid md:grid-cols-12 gap-12 md:gap-8 items-center">
 
             {/* LEFT — Copy */}
+            {/* initial={false}: con "reducir movimiento" activo el hero se quedaba
+                en opacity:0 para siempre y la portada salía en blanco (mismo
+                gotcha ya resuelto en la sección de precio). */}
             <motion.div
-              initial="hidden"
+              initial={false}
               animate="visible"
               variants={stagger}
-              className="lg:col-span-5 xl:col-span-5"
+              className="md:col-span-6 lg:col-span-5 xl:col-span-5"
             >
               {/* Badge */}
               <motion.div
@@ -165,7 +171,7 @@ export default function Home() {
               <motion.h1
                 variants={fadeUp}
                 custom={1}
-                className="text-[2.5rem] sm:text-[3rem] lg:text-[3.5rem] font-bold text-white leading-[1.06] tracking-[-0.02em] mb-6"
+                className="text-[2.5rem] sm:text-[3rem] md:text-[2.5rem] lg:text-[2.75rem] xl:text-[3.5rem] font-bold text-white leading-[1.06] tracking-[-0.02em] mb-6"
                 style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
               >
                 Conectamos
@@ -194,11 +200,11 @@ export default function Home() {
               <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-3 mb-10">
                 {currentUser ? (
                   <Link
-                    href="/dashboard"
+                    href="/panel-de-control"
                     className="h-12 px-7 rounded-sm font-bold text-[14px] bg-white text-[#00213f] hover:bg-primary-50 shadow-xl shadow-black/15 active:scale-[0.98] transition-all inline-flex items-center justify-center"
                   >
                     <Factory className="w-4 h-4 mr-2" />
-                    Ir al Dashboard
+                    Ir al Panel de Control
                   </Link>
                 ) : (
                   <>
@@ -221,7 +227,7 @@ export default function Home() {
               </motion.div>
 
               {/* Trust signals */}
-              <motion.div variants={fadeUp} custom={4} className="flex items-center gap-6 text-[12px] text-white/90">
+              <motion.div variants={fadeUp} custom={4} className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-white/90">
                 <span className="flex items-center gap-1.5 font-bold">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" /> +60 empresas
                 </span>
@@ -236,10 +242,10 @@ export default function Home() {
 
             {/* RIGHT — Platform visual / Dashboard mockup + Connection graphic */}
             <motion.div
-              initial="hidden"
+              initial={false}
               animate="visible"
               variants={slideInRight}
-              className="lg:col-span-5 xl:col-span-7 relative hidden lg:block"
+              className="md:col-span-6 lg:col-span-5 xl:col-span-7 relative hidden md:block"
             >
               <div className="relative max-w-2xl ml-auto">
                 {/* Main Industrial Illustration */}
@@ -251,21 +257,25 @@ export default function Home() {
                     src="/landing/hero-industrial-aereo.webp"
                     alt="Vista aérea de la zona industrial de Almirante Brown: plantas, depósitos y el barrio alrededor"
                     fill
-                    /* Sólo se renderiza en lg+ y como máximo a 672px de ancho:
+                    /* Sólo se renderiza en md+ y como máximo a 672px de ancho:
                        sin esto Next sirve el candidato de viewport completo. */
-                    sizes="(min-width: 1024px) 672px, 0px"
+                    sizes="(min-width: 1280px) 672px, (min-width: 1024px) 560px, (min-width: 768px) 360px, 0px"
                     className="object-cover"
                     priority
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#00213f]/60 via-transparent to-transparent" />
                 </div>
 
-                {/* Floating card — Empresas */}
+                {/* Floating card — Empresas.
+                    Las 4 flotantes van "hidden lg:block": están posicionadas por
+                    fuera de la foto (-left/-right) asumiendo ~672px de ancho, así
+                    que en md (columna angosta) se salen del viewport y generan
+                    scroll horizontal. Recién desde lg hay lugar. */}
                 <motion.div
                   variants={float}
                   initial="initial"
                   animate="animate"
-                  className="absolute -left-6 top-1/4 bg-[#0c2d4a]/85 rounded-sm px-4 py-3 border border-white/10 shadow-xl shadow-black/30 z-20"
+                  className="hidden lg:block absolute -left-6 top-1/4 bg-[#0c2d4a]/85 rounded-sm px-4 py-3 border border-white/10 shadow-xl shadow-black/30 z-20"
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-sm bg-primary-500/20 flex items-center justify-center">
@@ -283,7 +293,7 @@ export default function Home() {
                   variants={float}
                   initial="initial"
                   animate="animate"
-                  className="absolute -right-4 top-[0%] bg-[#0c2d4a]/85 rounded-sm px-4 py-3 border border-white/10 shadow-xl shadow-black/30 z-20"
+                  className="hidden lg:block absolute -right-4 top-[0%] bg-[#0c2d4a]/85 rounded-sm px-4 py-3 border border-white/10 shadow-xl shadow-black/30 z-20"
                   style={{ animationDelay: "1.5s" }}
                 >
                   <div className="flex items-center gap-2.5">
@@ -302,7 +312,7 @@ export default function Home() {
                   variants={float}
                   initial="initial"
                   animate="animate"
-                  className="absolute -left-10 bottom-[15%] bg-[#10375c]/90 rounded-sm px-5 py-4 border border-white/15 shadow-xl shadow-black/30 z-20"
+                  className="hidden lg:block absolute -left-10 bottom-[15%] bg-[#10375c]/90 rounded-sm px-5 py-4 border border-white/15 shadow-xl shadow-black/30 z-20"
                   style={{ animationDelay: "0.5s" }}
                 >
                   <div className="flex items-center gap-4">
@@ -327,7 +337,7 @@ export default function Home() {
                   variants={float}
                   initial="initial"
                   animate="animate"
-                  className="absolute -right-10 bottom-[10%] bg-[#10375c]/90 rounded-sm px-5 py-5 border border-white/15 shadow-xl shadow-black/30 z-20 max-w-[260px]"
+                  className="hidden lg:block absolute -right-10 bottom-[10%] bg-[#10375c]/90 rounded-sm px-5 py-5 border border-white/15 shadow-xl shadow-black/30 z-20 max-w-[260px]"
                   style={{ animationDelay: "2s" }}
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -371,14 +381,14 @@ export default function Home() {
       <section className="py-24 lg:py-32 bg-[#f2f4f6]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial="hidden"
+            initial={false}
             whileInView="visible"
             viewport={{ once: true, margin: "-80px" }}
             variants={stagger}
-            className="grid lg:grid-cols-2 gap-16 items-center"
+            className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center"
           >
             {/* Left — Connection illustration */}
-            <motion.div variants={fadeUp} custom={0} className="hidden lg:flex justify-center">
+            <motion.div variants={fadeUp} custom={0} className="hidden md:flex justify-center">
               <div className="relative w-full max-w-xl">
                 <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-[0_32px_80px_-20px_rgba(0,33,63,0.35),0_8px_24px_-8px_rgba(0,33,63,0.15)] ring-1 ring-white/60">
                   {/* Foto aérea real del parque industrial de Almirante Brown
@@ -389,8 +399,8 @@ export default function Home() {
                     alt="Vista aérea del parque industrial de Almirante Brown con el logo de UIAB Conecta"
                     width={1600}
                     height={1067}
-                    /* Sólo se muestra en lg+ y el contenedor es max-w-xl. */
-                    sizes="(min-width: 1024px) 576px, 0px"
+                    /* Sólo se muestra en md+ y el contenedor es max-w-xl. */
+                    sizes="(min-width: 1024px) 576px, (min-width: 768px) 45vw, 0px"
                     className="w-full h-auto block"
                   />
                 </div>
@@ -451,7 +461,7 @@ export default function Home() {
                       <p className="text-[14px] text-[#191c1e]/50 leading-relaxed mb-2">{step.desc}</p>
                       <Link
                         href={step.link}
-                        className="inline-flex items-center text-[12px] font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+                        className="inline-flex items-center py-3 -my-3 text-[12px] font-semibold text-primary-600 hover:text-primary-700 transition-colors"
                       >
                         {step.linkLabel}
                         <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
@@ -479,7 +489,7 @@ export default function Home() {
       <section className="py-24 bg-[#f7f9fb]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial="hidden"
+            initial={false}
             whileInView="visible"
             viewport={{ once: true, margin: "-80px" }}
             variants={stagger}
@@ -502,11 +512,11 @@ export default function Home() {
           </motion.div>
 
           <motion.div
-            initial="hidden"
+            initial={false}
             whileInView="visible"
             viewport={{ once: true, margin: "-40px" }}
             variants={stagger}
-            className="grid md:grid-cols-3 gap-6"
+            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             {[
               {
@@ -577,12 +587,12 @@ export default function Home() {
 
             {/* Dos columnas: a la izquierda qué se obtiene, a la derecha cuánto
                 sale. Entra completo en una pantalla, sin scroll intermedio. */}
-            <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            <div className="grid md:grid-cols-12 gap-8 lg:gap-12 items-center">
 
               {/* ─── Qué incluye: 3 promesas en vez de 6 features ───
                   En mobile va después del precio: el visitante ya viene de toda
                   la página, lo que le falta es el número. */}
-              <motion.div variants={fadeUp} custom={1} className="lg:col-span-5 order-2 lg:order-1">
+              <motion.div variants={fadeUp} custom={1} className="md:col-span-5 lg:col-span-5 order-2 md:order-1">
                 <ul className="space-y-5">
                   {PROMESAS.map((item) => (
                     <li key={item.titulo} className="flex items-start gap-4">
@@ -633,7 +643,7 @@ export default function Home() {
                   Antes había 3 tarjetas compitiendo. Ahora se compara siempre en
                   $/mes: al pasar a anual el número baja a la vista y ahí se
                   entiende el descuento sin tener que explicarlo. */}
-              <motion.div variants={fadeUp} custom={2} className="lg:col-span-7 order-1 lg:order-2">
+              <motion.div variants={fadeUp} custom={2} className="md:col-span-7 lg:col-span-7 order-1 md:order-2">
 
                 {/* Selector */}
                 <div
@@ -781,7 +791,7 @@ export default function Home() {
 
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <motion.div
-            initial="hidden"
+            initial={false}
             whileInView="visible"
             viewport={{ once: true }}
             variants={stagger}

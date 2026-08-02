@@ -111,7 +111,8 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
 
       <Card className="shadow-sm border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          {/* min-w: con w-full sola la tabla se comprime y el wrapper overflow-x-auto nunca llega a scrollear */}
+          <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50">
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Usuario</th>
@@ -165,9 +166,11 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
                     <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                       <Button
                         size="sm" variant="outline" disabled={isPending}
+                        // En touch no hay hover: con opacity-0 esta era la UNICA accion de la tabla
+                        // y quedaba invisible, o sea que no se podia activar/desactivar a nadie
                         className={u.activo
-                          ? "border-rose-200 text-rose-600 hover:bg-rose-50 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                          : "border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          ? "border-rose-200 text-rose-600 hover:bg-rose-50 text-xs opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+                          : "border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
                         }
                         onClick={(e) => handleToggleActivo(u.id, u.activo, e)}>
                         {u.activo ? <><UserX className="w-3.5 h-3.5 mr-1" /> Desactivar</> : <><UserCheck className="w-3.5 h-3.5 mr-1" /> Activar</>}

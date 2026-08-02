@@ -250,7 +250,7 @@ export default async function PendienteAprobacionPage({
     ctx.estadoEntidad === 'aprobada' ||
     ctx.estadoEntidad === 'aprobado' ||
     ctx.estadoEntidad === 'activo';
-  if (esAprobado) redirect('/dashboard');
+  if (esAprobado) redirect('/panel-de-control');
 
   const esRechazado =
     ctx.estadoEntidad === 'rechazado' || ctx.estadoEntidad === 'rechazada';
@@ -269,7 +269,7 @@ export default async function PendienteAprobacionPage({
   // Rejected state
   if (esRechazado) {
     return (
-      <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center p-6">
+      <div className="min-h-svh bg-[#f7f9fb] flex items-center justify-center p-6">
         <div className="w-full max-w-lg">
           {/* Header label */}
           <div className="flex justify-center mb-8">
@@ -321,7 +321,7 @@ export default async function PendienteAprobacionPage({
   // ── State: Needs payment ──────────────────────────────────────────────────
   if (!haPagado) {
     return (
-      <div className="min-h-screen bg-[#f7f9fb] flex flex-col items-center justify-center p-6">
+      <div className="min-h-svh bg-[#f7f9fb] flex flex-col items-center justify-center p-6">
         {/* Top brand strip */}
         <div className="w-full max-w-lg mb-10 text-center">
           <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-emerald-50 border border-emerald-200">
@@ -415,7 +415,7 @@ export default async function PendienteAprobacionPage({
 
   // ── State: Paid, pending admin review ────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#f7f9fb] flex flex-col items-center justify-center p-6">
+    <div className="min-h-svh bg-[#f7f9fb] flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-lg mb-10 text-center">
         <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-emerald-50 border border-emerald-200">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />

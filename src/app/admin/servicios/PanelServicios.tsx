@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Tags, Plus, Search, Edit2, CheckCircle2, XCircle, Trash2, X, AlertCircle } from "lucide-react";
+import { Tags, Plus, Search, Edit2, CheckCircle2, XCircle, Trash2, X, AlertCircle, ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +12,7 @@ import {
   editarCategoria,
   toggleActivarCategoria,
   eliminarCategoria,
+  promoverCategoria,
 } from "@/modulos/admin/acciones";
 
 type Servicio = {
@@ -21,6 +22,8 @@ type Servicio = {
   descripcion: string | null;
   activa: boolean;
   creado_en: string;
+  /** false = la propuso un socio desde /perfil/servicios y falta curarla. */
+  administrado_por_admin: boolean;
 };
 
 export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
@@ -115,6 +118,20 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
     }
   }
 
+  async function handlePromover(id: string, nombre: string, oficialActual: boolean) {
+    const res = await promoverCategoria(id, !oficialActual);
+    if (res.error) {
+      toast.error("Error al cambiar el catálogo", { description: res.error });
+    } else {
+      toast.success(
+        !oficialActual
+          ? `"${nombre}" ahora es parte del catálogo oficial`
+          : `"${nombre}" volvió a ser una propuesta de socio`
+      );
+      refresh();
+    }
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -172,9 +189,14 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
                       Inactivo
                     </span>
                   )}
+                  {!servicio.administrado_por_admin && (
+                    <span className="bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
+                      Propuesta de socio
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-slate-500 line-clamp-1">{servicio.descripcion || "Sin descripción proporcionada."}</p>
-                <div className="text-xs text-slate-400 mt-2 flex gap-3">
+                <div className="text-xs text-slate-400 mt-2 flex flex-wrap gap-x-3 gap-y-1">
                   <span>Slug: <span className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-500">{servicio.slug}</span></span>
                   <span>Creado: {new Date(servicio.creado_en).toLocaleDateString("es-AR")}</span>
                 </div>
@@ -183,6 +205,20 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
               <div className="flex gap-2 items-center sm:pl-4 sm:border-l sm:border-slate-100 mt-2 sm:mt-0">
                 <Button variant="ghost" size="sm" onClick={() => handleOpenEditar(servicio)} className="text-slate-500 hover:text-primary-600 hover:bg-primary-50" title="Editar">
                   <Edit2 className="w-4 h-4" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handlePromover(servicio.id, servicio.nombre, servicio.administrado_por_admin)}
+                  className={servicio.administrado_por_admin
+                    ? "text-slate-300 hover:text-amber-600 hover:bg-amber-50"
+                    : "text-amber-600 hover:text-amber-700 hover:bg-amber-50"}
+                  title={servicio.administrado_por_admin
+                    ? "Sacar del catálogo oficial (vuelve a ser propuesta)"
+                    : "Subir al catálogo oficial"}
+                >
+                  <ArrowUpCircle className="w-4 h-4" />
                 </Button>
 
                 <Button
@@ -212,7 +248,8 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
       {servicioAEliminar && (
         <>
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onClick={() => setServicioAEliminar(null)} />
-          <div className="fixed z-50 inset-0 flex items-center justify-center p-4">
+          {/* items-start + overflow-y-auto: centrado el modal no scrollea y en pantallas bajas se corta */}
+          <div className="fixed z-50 inset-0 flex items-start justify-center overflow-y-auto p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
               <div className="p-6">
                 <div className="flex items-start gap-4">
@@ -246,7 +283,8 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
       {modalOpen && (
         <>
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 transition-opacity" onClick={handleCloseModal} />
-          <div className="fixed z-50 inset-0 flex items-center justify-center p-4">
+          {/* items-start + overflow-y-auto: centrado el modal no scrollea y en pantallas bajas se corta */}
+          <div className="fixed z-50 inset-0 flex items-start justify-center overflow-y-auto p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
               <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <h3 className="text-lg font-bold text-slate-900">

@@ -2,7 +2,7 @@
 // obtenerDirectorio(). Espeja hero + sidebar de filtros + grilla de tarjetas.
 export default function LoadingDirectorio() {
   return (
-    <div className="min-h-screen bg-[#f7f9fb] font-inter pb-20 animate-pulse">
+    <div className="min-h-svh bg-[#f7f9fb] font-inter pb-20 animate-pulse">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-16">
         {/* Hero */}
         <div className="mb-14 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
@@ -17,9 +17,11 @@ export default function LoadingDirectorio() {
           <div className="h-4 w-56 bg-slate-200 rounded md:self-end" />
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
+        {/* Mismos breakpoints que directorio-cliente: si el skeleton usa otros,
+            hay layout shift en cada navegación al directorio. */}
+        <div className="flex flex-col tab:flex-row gap-8 tab:gap-6 lg:gap-14">
           {/* Sidebar filtros */}
-          <aside className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
+          <aside className="w-full tab:w-52 md:w-60 lg:w-3/12 xl:w-1/4 shrink-0 tab:sticky tab:top-24 tab:self-start">
             <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
               <div className="h-10 w-full bg-slate-100 rounded" />
               {Array.from({ length: 6 }).map((_, i) => (
@@ -29,9 +31,9 @@ export default function LoadingDirectorio() {
           </aside>
 
           {/* Grilla de tarjetas */}
-          <main className="w-full lg:w-9/12 xl:w-3/4">
+          <main className="w-full tab:flex-1 tab:min-w-0 lg:w-9/12 xl:w-3/4">
             <div className="mb-8 h-16 bg-white rounded-xl border border-slate-200/60" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 h-[320px]">
                   <div className="flex justify-between mb-6">

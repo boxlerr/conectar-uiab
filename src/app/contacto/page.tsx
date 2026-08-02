@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function ContactoPage() {
   return (
-    <div className="min-h-screen bg-[#f7f9fb] selection:bg-primary/10">
+    <div className="min-h-svh bg-[#f7f9fb] selection:bg-primary/10">
       {/* Header Section - Asymmetric and Editorial */}
       <section className="relative pt-20 md:pt-28 pb-20 md:pb-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -41,7 +41,7 @@ export default function ContactoPage() {
         </div>
 
         {/* Background Decorative Element */}
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-[#f2f4f6] -z-0 hidden lg:block" />
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-[#f2f4f6] -z-0 hidden md:block" />
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20 pb-20">

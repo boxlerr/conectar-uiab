@@ -70,15 +70,18 @@ export default function OportunidadesPage() {
     return (
       <AccesoRequerido
         estado={resolverEstadoGate(currentUser.subscriptionEstado ?? null, currentUser.isMember)}
-        className="min-h-screen"
+        className="min-h-svh"
       />
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-24 pb-16">
+    // El pt del wrapper lo cancela el margen negativo del hero, así que los dos
+    // escalan igual que el spacer del header (h-20 lg:h-24). Si no, queda una
+    // franja clara entre el header y el hero abajo de lg.
+    <div className="min-h-svh bg-slate-50 pt-20 lg:pt-24 pb-16">
       {/* Hero / Header Section */}
-      <div data-tour="op-hero" className="bg-slate-900 text-white py-16 mb-12 -mt-24 pt-32">
+      <div data-tour="op-hero" className="bg-slate-900 text-white py-16 mb-12 -mt-20 lg:-mt-24 pt-28 lg:pt-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="max-w-2xl">

@@ -287,7 +287,7 @@ export default function BandejaEntradaPage() {
           </div>
 
           {filtradas.length === 0 ? (
-            <Card className="p-16 border-dashed border-2 border-slate-200 bg-white/50 text-center">
+            <Card className="p-8 sm:p-16 border-dashed border-2 border-slate-200 bg-white/50 text-center">
               <Inbox className="w-12 h-12 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500 font-medium">
                 {filtro === "activas" ? "No tenés solicitudes activas." : "No hay solicitudes en este filtro."}
@@ -317,7 +317,7 @@ export default function BandejaEntradaPage() {
       {seccion === "resenas_recibidas" && (
         <>
           {resenasRecibidas.length === 0 ? (
-            <Card className="p-16 border-dashed border-2 border-slate-200 bg-white/50 text-center">
+            <Card className="p-8 sm:p-16 border-dashed border-2 border-slate-200 bg-white/50 text-center">
               <ThumbsUp className="w-12 h-12 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500 font-medium">Todavía no recibiste reseñas.</p>
               <p className="text-slate-400 text-sm mt-2">
@@ -338,7 +338,7 @@ export default function BandejaEntradaPage() {
       {seccion === "resenas_enviadas" && (
         <>
           {resenasEnviadas.length === 0 ? (
-            <Card className="p-16 border-dashed border-2 border-slate-200 bg-white/50 text-center">
+            <Card className="p-8 sm:p-16 border-dashed border-2 border-slate-200 bg-white/50 text-center">
               <Send className="w-12 h-12 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500 font-medium">No tenés reseñas aprobadas todavía.</p>
               <p className="text-slate-400 text-sm mt-2">

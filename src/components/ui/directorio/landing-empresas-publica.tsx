@@ -133,7 +133,9 @@ export function PublicEmpresasLanding() {
       {/* ═══════════════════════════════════════════
           SECTION 1: CINEMATIC HERO
       ═══════════════════════════════════════════ */}
-      <section className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-16 sm:-mt-20">
+      {/* El margen negativo tiene que ser igual al spacer del header
+          (h-20 lg:h-24), si no queda una franja del fondo de la página. */}
+      <section className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-20 lg:-mt-24">
         {/* Background Image (sin parallax para evitar reflows en notebooks) */}
         <div className="absolute inset-0 z-0 overflow-hidden">
           <Image
@@ -291,7 +293,7 @@ export function PublicEmpresasLanding() {
               viewport={{ once: true, margin: "-100px" }}
               variants={fadeUp}
               custom={3}
-              className="hidden lg:flex justify-end"
+              className="hidden md:flex justify-center lg:justify-end"
             >
               <div className="relative group">
                 <div className="absolute -inset-4 bg-primary-100/50 rounded-2xl blur-2xl group-hover:bg-primary-200/50 transition-all duration-500" />
@@ -455,7 +457,7 @@ export function PublicEmpresasLanding() {
               alt="Colaboración empresarial y comercial"
               fill
               className="object-cover"
-              sizes="50vw"
+              sizes="(min-width: 1024px) 50vw, 100vw"
             />
           </div>
 
@@ -795,7 +797,7 @@ export function PublicEmpresasLanding() {
             variants={stagger}
             className="relative"
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {empresasPreview.map((empresa, i) => (
                 <motion.div key={empresa.id} variants={fadeUp} custom={i}>
                   <div

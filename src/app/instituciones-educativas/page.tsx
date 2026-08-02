@@ -289,13 +289,14 @@ export default function InstitucionesEducativasPage() {
   const mostrarDirectorio  = !!currentUser && tieneAcceso;
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] font-inter pb-24">
+    <div className="min-h-svh overflow-x-hidden bg-[#f7f9fb] font-inter pb-24">
       {mostrarInformativo && (
       <>
       {/* ═══════════════════════════════════════════════════════════════════════════
           HERO SECTION - Industrial Academic Design
       ═══════════════════════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-[calc(100vh-5rem)] flex items-center overflow-hidden">
+      {/* svh (no vh ni dvh): en iOS el 100vh incluye la barra de Safari y el hero salia cortado */}
+      <section className="relative min-h-[calc(100svh-5rem)] flex items-center overflow-hidden">
         {/* Background (estático) */}
         <div className="absolute inset-0 z-0">
           <Image
@@ -312,13 +313,13 @@ export default function InstitucionesEducativasPage() {
 
         {/* Content Container */}
         <div className="relative z-10 w-full max-w-[1440px] mx-auto px-6 lg:px-12 pt-16 sm:pt-24 pb-28 sm:pb-32">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+          <div className="grid grid-cols-1 tab:grid-cols-12 gap-10 lg:gap-20 items-center">
             {/* Left Column - Main Copy */}
             <motion.div
               variants={stagger}
               initial="hidden"
               animate="visible"
-              className="lg:col-span-7"
+              className="tab:col-span-7 lg:col-span-7"
             >
               {/* Badge */}
               <motion.div variants={fadeUp} custom={0} className="mb-6 md:mb-8">
@@ -390,7 +391,7 @@ export default function InstitucionesEducativasPage() {
             </motion.div>
 
             {/* Right Column - Expediente Card */}
-            <motion.div variants={fadeUp} custom={3} className="lg:col-span-5 hidden lg:block">
+            <motion.div variants={fadeUp} custom={3} className="tab:col-span-5 lg:col-span-5 hidden tab:block">
               <div className="relative">
                 {/* Glow */}
                 {/* Card */}
@@ -545,7 +546,7 @@ export default function InstitucionesEducativasPage() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
-          className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           {pilares.map((p, idx) => (
             <motion.article
@@ -580,7 +581,7 @@ export default function InstitucionesEducativasPage() {
           VISUAL SHOWCASE - Two Images
       ═══════════════════════════════════════════════════════════════════════════ */}
       <section className="max-w-[1440px] mx-auto px-6 lg:px-12 mt-28">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -590,7 +591,7 @@ export default function InstitucionesEducativasPage() {
             <Image
               src="/landing/instituciones-taller.jpg"
               alt="Taller técnico industrial"
-              fill
+              fill sizes="(min-width: 768px) 50vw, 100vw"
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-violet-950/80 via-transparent to-transparent" />
@@ -613,7 +614,7 @@ export default function InstitucionesEducativasPage() {
             <Image
               src="/landing/instituciones-laboratorio.jpg"
               alt="Laboratorio de investigación"
-              fill
+              fill sizes="(min-width: 768px) 50vw, 100vw"
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-violet-950/80 via-transparent to-transparent" />
@@ -754,7 +755,7 @@ export default function InstitucionesEducativasPage() {
       {mostrarBloqueado && currentUser && (
         <AccesoRequerido
           estado={resolverEstadoGate(currentUser.subscriptionEstado ?? null, currentUser.isMember)}
-          className="min-h-[calc(100vh-5rem)]"
+          className="min-h-[calc(100svh-5rem)]"
         />
       )}
 
@@ -791,9 +792,9 @@ export default function InstitucionesEducativasPage() {
           </p>
         </motion.div>
 
-        <div className="flex flex-col lg:flex-row gap-10 lg:gap-14">
+        <div className="flex flex-col md:flex-row gap-8 lg:gap-14">
             {/* Sidebar */}
-            <aside className="w-full lg:w-3/12 xl:w-1/4 shrink-0">
+            <aside className="w-full md:w-4/12 lg:w-3/12 xl:w-1/4 shrink-0">
               <FilterSidebar
                 categorias={categorias}
                 categoriaSeleccionada={categoriaSeleccionada}
@@ -805,7 +806,7 @@ export default function InstitucionesEducativasPage() {
             </aside>
 
             {/* Main area */}
-            <main className="w-full lg:w-9/12 xl:w-3/4">
+            <main className="w-full md:w-8/12 lg:w-9/12 xl:w-3/4 min-w-0">
               <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 border border-slate-200">
                 <div>
                   <h3 className="font-manrope text-lg font-bold text-slate-900">
@@ -820,7 +821,7 @@ export default function InstitucionesEducativasPage() {
                   <div className="bg-slate-50 p-1 flex gap-1 border border-slate-200">
                     <button
                       onClick={() => setViewMode("grid")}
-                      className={`p-2 transition-all ${viewMode === "grid"
+                      className={`inline-flex items-center justify-center min-w-11 min-h-11 p-2 transition-all ${viewMode === "grid"
                         ? "bg-white text-violet-700 shadow-sm"
                         : "text-slate-400 hover:text-violet-700"
                         }`}
@@ -830,7 +831,7 @@ export default function InstitucionesEducativasPage() {
                     </button>
                     <button
                       onClick={() => setViewMode("list")}
-                      className={`p-2 transition-all ${viewMode === "list"
+                      className={`inline-flex items-center justify-center min-w-11 min-h-11 p-2 transition-all ${viewMode === "list"
                         ? "bg-white text-violet-700 shadow-sm"
                         : "text-slate-400 hover:text-violet-700"
                         }`}
@@ -849,7 +850,7 @@ export default function InstitucionesEducativasPage() {
                   key={viewMode}
                   className={
                     viewMode === "grid"
-                      ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
+                      ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
                       : "bg-white border border-slate-200 overflow-hidden divide-y divide-slate-100"
                   }
                 >
@@ -888,9 +889,9 @@ export default function InstitucionesEducativasPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.7 }}
-          className="relative overflow-hidden bg-gradient-to-br from-violet-950 via-violet-900 to-[#3b2a6b] p-10 md:p-16"
+          className="relative overflow-hidden bg-gradient-to-br from-violet-950 via-violet-900 to-[#3b2a6b] p-8 md:p-10 lg:p-16"
         >
-          <div className="relative grid grid-cols-1 md:grid-cols-[1fr_auto] gap-10 items-center">
+          <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-10 items-center">
             <div className="max-w-xl">
               <div className="inline-flex items-center gap-2 mb-6 text-violet-200">
                 <GraduationCap className="w-4 h-4" />

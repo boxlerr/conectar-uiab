@@ -1,9 +1,9 @@
-// Skeleton que se muestra al instante al navegar a /dashboard mientras el
+// Skeleton que se muestra al instante al navegar a /panel-de-control mientras el
 // server component resuelve sus consultas. Espeja la estructura real (hero +
 // KPIs + grilla 8/4) para que el salto al contenido no "brinque".
 export default function LoadingDashboard() {
   return (
-    <main className="min-h-screen bg-[#f2f5f8] animate-pulse">
+    <main className="min-h-svh bg-[#f2f5f8] animate-pulse">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-5">
         {/* Hero */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#00182f] via-[#042848] to-[#0c3260] px-6 sm:px-10 py-8">
@@ -24,7 +24,7 @@ export default function LoadingDashboard() {
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-white rounded-2xl p-5 lg:p-6 border border-slate-200/50">
               <div className="w-10 h-10 rounded-xl bg-slate-100 mb-4" />
@@ -35,8 +35,8 @@ export default function LoadingDashboard() {
         </div>
 
         {/* Main grid 8/4 */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <div className="lg:col-span-8 space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+          <div className="md:col-span-7 lg:col-span-8 space-y-5">
             {Array.from({ length: 2 }).map((_, i) => (
               <div key={i} className="bg-white rounded-2xl border border-slate-200/50 overflow-hidden">
                 <div className="px-7 py-5 border-b border-slate-100">
@@ -56,7 +56,7 @@ export default function LoadingDashboard() {
               </div>
             ))}
           </div>
-          <div className="lg:col-span-4 space-y-4">
+          <div className="md:col-span-5 lg:col-span-4 space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="bg-white rounded-2xl border border-slate-200/50 p-6 space-y-4">
                 <div className="h-3 w-32 bg-slate-100 rounded" />

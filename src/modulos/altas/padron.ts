@@ -49,6 +49,7 @@ type Regla = {
 const REGLAS: Regla[] = [
   { columna: "email", desdeAlta: "email", etiqueta: "Correo", pisa: true },
   { columna: "email_compras", desdeAlta: "email_compras", etiqueta: "Correo de compras", pisa: false },
+  { columna: "email_mantenimiento", desdeAlta: "email_mantenimiento", etiqueta: "Correo de mantenimiento", pisa: false },
   { columna: "telefono", desdeAlta: "telefono", etiqueta: "Teléfono", pisa: true },
   { columna: "nombre_comercial", desdeAlta: "nombre_comercial", etiqueta: "Nombre comercial", pisa: false },
   { columna: "sitio_web", desdeAlta: "sitio_web", etiqueta: "Sitio web", pisa: false },

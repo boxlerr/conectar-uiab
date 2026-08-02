@@ -66,10 +66,11 @@ export default function BloqueadoPage() {
 
   const estado = resolverEstado(subEstado, currentUser?.isMember ?? false);
 
+  // svh (no vh ni dvh): en iOS el 100vh incluye la barra de Safari y el bloque salia cortado
   return (
     <AccesoRequerido
       estado={estado}
-      className="min-h-[calc(100vh-5rem)]"
+      className="min-h-[calc(100svh-5rem)]"
     />
   );
 }

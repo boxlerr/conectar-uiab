@@ -103,7 +103,7 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
       style={{ backgroundColor: "rgba(25, 28, 30, 0.45)" }}
     >
       <div
-        className="relative bg-white w-full max-w-5xl max-h-[min(90vh,820px)] rounded-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+        className="relative bg-white w-full max-w-5xl max-h-[min(90svh,820px)] rounded-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
         style={{ boxShadow: "0 16px 48px rgba(25, 28, 30, 0.12), 0 2px 8px rgba(25, 28, 30, 0.04)" }}
       >

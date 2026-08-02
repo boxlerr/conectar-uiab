@@ -121,7 +121,7 @@ export function ResenasPerfil({ resenasAprobadas, targetType, targetId }: Resena
         <>
           <div className="fixed inset-0 bg-slate-900/60 z-[9998] transition-opacity" onClick={() => setResenaSeleccionada(null)} />
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 pointer-events-none">
-            <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] pointer-events-auto">
+            <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[85svh] pointer-events-auto">
               <div className="p-5 sm:p-7 border-b border-slate-100 flex justify-between items-start bg-slate-50 shrink-0">
                 <div>
                   <h3 className="font-bold text-slate-900 mb-1">{resenaSeleccionada.autorNombre}</h3>

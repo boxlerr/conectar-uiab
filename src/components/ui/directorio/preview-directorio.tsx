@@ -282,8 +282,10 @@ export function PreviewDirectorio() {
                   />
                 )}
                 <Icon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{b.title}</span>
-                <span className="sm:hidden">{b.short}</span>
+                {/* Título largo recién en lg: los 5 juntos suman ~1090px y a
+                    768px el tab bar se partía en tres filas. */}
+                <span className="hidden lg:inline">{b.title}</span>
+                <span className="lg:hidden">{b.short}</span>
               </button>
             );
           })}
@@ -592,7 +594,9 @@ export function PreviewDirectorio() {
               key={b.id}
               onClick={() => setActiveIdx(i)}
               aria-label={`Ver ${b.title}`}
-              className="h-1.5 rounded-full transition-all"
+              // El punto mide 6px: el before invisible le da el área táctil de
+              // 44px sin cambiar nada de lo que se ve.
+              className="relative h-1.5 rounded-full transition-all before:absolute before:content-[''] before:-inset-x-2 before:-inset-y-5"
               style={{
                 width: i === activeIdx ? 24 : 6,
                 background: i === activeIdx ? b.accent : "#191c1e22",

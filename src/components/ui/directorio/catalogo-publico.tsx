@@ -153,8 +153,10 @@ export function CatalogoPublico({ items, colorScheme = "blue" }: CatalogoPublico
         )}
       </div>
 
-      {/* ─── Grid ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+      {/* ─── Grid ───
+          Este catálogo vive SIEMPRE dentro de la columna del 72%/65% de la
+          ficha, nunca a ancho completo: por eso vuelve a una columna en md. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
         {itemsFiltrados.map((item) => (
           <TarjetaItem
             key={item.id}
@@ -230,7 +232,7 @@ function CatalogoModal({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-32 pb-8 bg-slate-900/60 backdrop-blur-[2px] overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20 sm:pt-24 lg:pt-32 pb-8 bg-slate-900/60 backdrop-blur-[2px] overflow-y-auto"
       onClick={onClose}
       style={{ backgroundColor: "rgba(25, 28, 30, 0.45)" }}
     >
@@ -239,7 +241,7 @@ function CatalogoModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as const }}
-        className="bg-white rounded-md w-full max-w-5xl max-h-[82vh] relative overflow-hidden flex flex-col"
+        className="bg-white rounded-md w-full max-w-5xl max-h-[calc(100svh-7rem)] lg:max-h-[82svh] relative overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ boxShadow: "0 16px 48px rgba(25, 28, 30, 0.12), 0 2px 8px rgba(25, 28, 30, 0.04)" }}
       >

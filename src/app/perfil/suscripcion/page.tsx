@@ -244,10 +244,10 @@ export default function MiPerfilSuscripcionPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Current Plan Overview */}
-        <Card className="p-0 border-slate-100 shadow-lg lg:col-span-2 overflow-hidden flex flex-col">
+        <Card className="p-0 border-slate-100 shadow-lg md:col-span-2 lg:col-span-2 overflow-hidden flex flex-col">
            <div className="bg-slate-900 p-6 sm:p-8 relative overflow-hidden flex-1 flex flex-col justify-center">
              <div className="absolute top-0 right-0 p-8 opacity-10">
                <ShieldCheck className="w-48 h-48 text-primary-400" />

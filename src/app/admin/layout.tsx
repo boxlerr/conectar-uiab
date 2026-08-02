@@ -37,10 +37,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  // svh y no vh: en iOS el 100vh incluye la barra de Safari y deja contenido tapado
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
-      {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-slate-200 hidden md:block flex-shrink-0 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+    <div className="flex min-h-[calc(100svh-5rem)] lg:min-h-[calc(100svh-6rem)]">
+      {/* Sidebar Navigation — a lg: en md el aside se comía 256px de los 768 y dejaba 464px de contenido */}
+      <aside className="w-64 bg-white border-r border-slate-200 hidden lg:block flex-shrink-0 sticky top-24 h-[calc(100svh-6rem)] overflow-y-auto">
         <div className="h-full py-6 px-4 space-y-2">
           <div className="mb-8 px-2">
             <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -72,8 +73,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 bg-slate-50/50">
-        <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+      {/* min-w-0: sin esto una tabla ancha estira el flex item y genera scroll horizontal en toda la página */}
+      <main className="flex-1 min-w-0 bg-slate-50/50">
+        {/* Tira de navegación para cuando la sidebar está oculta: sin esto no hay NINGUNA forma de
+            llegar a las secciones del admin desde un teléfono o un iPad vertical */}
+        <nav className="lg:hidden sticky top-20 z-30 bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex gap-2 overflow-x-auto">
+          {adminNav.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "shrink-0 whitespace-nowrap min-h-[44px] inline-flex items-center gap-2 px-3 rounded-lg text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary-50 text-primary-700"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                )}
+              >
+                <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-primary-600" : "text-slate-400")} />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="max-w-6xl mx-auto p-4 lg:p-6 xl:p-8">
           {children}
         </div>
       </main>

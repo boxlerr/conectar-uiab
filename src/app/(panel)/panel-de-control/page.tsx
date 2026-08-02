@@ -332,7 +332,8 @@ export default async function DashboardPage() {
     <>
     <BannerSuscripcion />
     <DashboardBlurGate>
-    <main className="min-h-screen bg-[#f2f5f8]">
+    {/* svh (no vh ni dvh): evita que la barra de Safari en iOS recorte el alto */}
+    <main className="min-h-svh bg-[#f2f5f8]">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-5">
 
         <AvisoConflictosPadron conflictos={conflictosPadron} />
@@ -389,7 +390,8 @@ export default async function DashboardPage() {
                       </span>
                     )}
                   </div>
-                  <h1 className="font-poppins text-2xl sm:text-[32px] lg:text-[36px] font-extrabold text-white tracking-tight leading-none truncate">
+                  {/* break-words en vez de truncate: el nombre de la empresa salia cortado con puntos suspensivos en iPhone */}
+                  <h1 className="font-poppins text-2xl sm:text-[32px] lg:text-[36px] font-extrabold text-white tracking-tight leading-tight break-words">
                     {displayName}
                   </h1>
                   <p className="text-white/40 text-xs font-medium mt-2">
@@ -484,7 +486,7 @@ export default async function DashboardPage() {
           const ringOffset = ringCircumference - (pct / 100) * ringCircumference;
           return (
             <section className="bg-white rounded-2xl shadow-[0_4px_24px_-8px_rgba(0,33,63,0.1)] overflow-hidden ring-1 ring-slate-200/50 animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:120ms] [animation-fill-mode:both]">
-              <div className="flex items-center gap-6 px-8 py-6 border-b border-slate-100">
+              <div className="flex items-center gap-4 sm:gap-6 px-5 sm:px-8 py-6 border-b border-slate-100">
                 <div className="relative w-[86px] h-[86px] flex-shrink-0">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
                     <circle cx="40" cy="40" r="34" stroke="#e2e8f0" strokeWidth="6" fill="none" />
@@ -508,7 +510,7 @@ export default async function DashboardPage() {
                   </p>
                 </div>
               </div>
-              <div className="px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="px-5 sm:px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {onboardingSteps.map((step) => (
                   <Link key={step.label} href={step.href}
                     className={`group flex items-center gap-3.5 px-4 py-3.5 rounded-xl transition-all duration-200 border ${
@@ -537,7 +539,7 @@ export default async function DashboardPage() {
         })()}
 
         {/* ── KPI CARDS ── */}
-        <section data-tour="dash-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:180ms] [animation-fill-mode:both]">
+        <section data-tour="dash-kpis" className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:180ms] [animation-fill-mode:both]">
           {([
             { icon: Building, value: empresasCount, label: 'Socios UIAB', sub: 'en el directorio', href: '/empresas', iconBg: 'bg-blue-50', iconColor: 'text-blue-500', accentColor: 'from-blue-500 to-blue-700' },
             { icon: Users, value: proveedoresCount, label: 'Proveedores de servicios', sub: 'verificados', href: '/empresas?categoria=proveedores', iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500', accentColor: 'from-emerald-500 to-teal-500' },
@@ -563,28 +565,29 @@ export default async function DashboardPage() {
         </section>
 
         {/* ── MAIN GRID ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
 
           {/* LEFT (8 cols) */}
-          <div className="lg:col-span-8 space-y-5">
+          <div className="md:col-span-7 lg:col-span-8 space-y-5">
 
             {/* SMART MATCHES */}
             {(isCompany || isProvider) && (
               <section data-tour="dash-matches" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:280ms] [animation-fill-mode:both]">
-                <div className="px-7 py-5 flex items-center justify-between border-b border-slate-100">
+                <div className="px-5 sm:px-7 py-5 flex items-center justify-between gap-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className="w-[3px] h-5 bg-gradient-to-b from-sky-500 to-blue-600 rounded-full" />
                     <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">
                       {isCompany ? 'Proveedores de servicios Recomendados' : 'Oportunidades para Vos'}
                     </h2>
                   </div>
-                  <Link href="/oportunidades" className="text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors">
+                  <Link href="/oportunidades" className="shrink-0 whitespace-nowrap text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors">
                     Ver todo <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
                 <div className="p-6">
+                  {/* 3 columnas recien en lg: dentro de la columna md:col-span-7 quedaban tarjetas de ~120px */}
                   {dashboardMatches.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {dashboardMatches.map((match: any) => {
                         const score = Math.round(match.puntaje);
                         return (
@@ -630,7 +633,7 @@ export default async function DashboardPage() {
             {/* MY OPPORTUNITIES */}
             {isCompany && myOps.length > 0 && (
               <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:330ms] [animation-fill-mode:both]">
-                <div className="px-7 py-5 flex items-center justify-between border-b border-slate-100">
+                <div className="px-5 sm:px-7 py-5 flex items-center justify-between gap-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className="w-[3px] h-5 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full" />
                     <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">Tus Oportunidades</h2>
@@ -643,7 +646,7 @@ export default async function DashboardPage() {
                   {myOps.map((op: any) => {
                     const est = ESTADO_OP[op.estado] || { label: op.estado, style: 'bg-slate-50 text-slate-500' };
                     return (
-                      <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-4 px-7 py-3.5 hover:bg-[#f8fafc] transition-colors group">
+                      <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-4 px-5 sm:px-7 py-3.5 hover:bg-[#f8fafc] transition-colors group">
                         <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
                           <CircleDot className="w-3.5 h-3.5 text-amber-500" />
                         </div>
@@ -666,7 +669,7 @@ export default async function DashboardPage() {
             {/* QUOTE REQUESTS */}
             {(isCompany || isProvider) && solicitudes.length > 0 && (
               <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:380ms] [animation-fill-mode:both]">
-                <div className="px-7 py-5 flex items-center justify-between border-b border-slate-100">
+                <div className="px-5 sm:px-7 py-5 flex items-center justify-between gap-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className="w-[3px] h-5 bg-gradient-to-b from-violet-400 to-purple-500 rounded-full" />
                     <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">Solicitudes Recibidas</h2>
@@ -679,7 +682,7 @@ export default async function DashboardPage() {
                       sol.empresa_origen?.nombre_comercial || sol.empresa_origen?.razon_social ||
                       sol.proveedor_origen?.nombre_comercial || sol.proveedor_origen?.nombre || 'Solicitante';
                     return (
-                      <Link href="/perfil/solicitudes" key={sol.id} className="flex items-center gap-4 px-7 py-3.5 hover:bg-[#f8fafc] transition-colors">
+                      <Link href="/perfil/solicitudes" key={sol.id} className="flex items-center gap-4 px-5 sm:px-7 py-3.5 hover:bg-[#f8fafc] transition-colors">
                         <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
                           <MessageSquare className="w-3.5 h-3.5 text-violet-500" />
                         </div>
@@ -702,7 +705,7 @@ export default async function DashboardPage() {
             {/* PRODUCTS / SERVICES */}
             {(isCompany || isProvider) && (
               <section data-tour="dash-items" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:430ms] [animation-fill-mode:both]">
-                <div className="px-7 py-5 flex items-center justify-between border-b border-slate-100">
+                <div className="px-5 sm:px-7 py-5 flex items-center justify-between gap-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className="w-[3px] h-5 bg-gradient-to-b from-emerald-400 to-teal-500 rounded-full" />
                     <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">Mis Productos y Servicios</h2>
@@ -717,7 +720,7 @@ export default async function DashboardPage() {
                       ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${item.imagenes[0].bucket}/${item.imagenes[0].ruta_archivo}`
                       : null;
                     return (
-                      <Link key={item.id} href="/perfil/productos-servicios" className="flex items-center gap-4 px-7 py-3.5 hover:bg-[#f8fafc] transition-all group">
+                      <Link key={item.id} href="/perfil/productos-servicios" className="flex items-center gap-4 px-5 sm:px-7 py-3.5 hover:bg-[#f8fafc] transition-all group">
                         <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center flex-shrink-0 border border-slate-200/50">
                           {itemImg ? (
                             <Image src={itemImg} alt={item.nombre} width={40} height={40} className="w-full h-full object-cover" unoptimized />
@@ -757,7 +760,7 @@ export default async function DashboardPage() {
 
             {/* OPPORTUNITIES FEED */}
             <section data-tour="dash-feed" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:480ms] [animation-fill-mode:both]">
-              <div className="px-7 py-5 flex items-center justify-between border-b border-slate-100">
+              <div className="px-5 sm:px-7 py-5 flex items-center justify-between gap-3 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="w-[3px] h-5 bg-gradient-to-b from-amber-400 to-amber-600 rounded-full" />
                   <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">
@@ -771,7 +774,7 @@ export default async function DashboardPage() {
               {recentOps.length > 0 ? (
                 <div className="divide-y divide-slate-50">
                   {recentOps.map((op: any) => (
-                    <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-4 px-7 py-3.5 hover:bg-[#f8fafc] transition-colors group">
+                    <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-4 px-5 sm:px-7 py-3.5 hover:bg-[#f8fafc] transition-colors group">
                       <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
                         <Target className="w-3.5 h-3.5 text-amber-500" />
                       </div>
@@ -803,7 +806,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* RIGHT SIDEBAR (4 cols) */}
-          <div className="lg:col-span-4 space-y-4">
+          <div className="md:col-span-5 lg:col-span-4 space-y-4">
 
             {/* VISITAS A TU FICHA */}
             {!isAdmin && <TarjetaVisitas />}

@@ -340,7 +340,8 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
           const path = `items/${itemId}/${Date.now()}-${orden}.${ext}`;
           const { error: upErr } = await supabase.storage
             .from(BUCKET)
-            .upload(path, img.file, { contentType: img.file.type, cacheControl: "3600" });
+            // 31 días: la ruta lleva timestamp, el archivo nunca se reemplaza.
+            .upload(path, img.file, { contentType: img.file.type, cacheControl: "2678400" });
           if (upErr) {
             toast.error(`No se pudo subir "${img.file.name}"`, { description: upErr.message });
             continue;
@@ -372,7 +373,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Formulario principal */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Encabezado */}
@@ -742,10 +743,13 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
               })}
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
+              {/* type="text": con type="url" un valor sin https:// acá bloqueaba
+                  el submit del ítem entero. agregarEnlace() ya normaliza y valida. */}
               <input
-                type="url"
+                type="text"
+                inputMode="url"
                 className={cls(inputCls, "flex-1 min-w-0")}
-                placeholder="https://ejemplo.com/ficha.pdf"
+                placeholder="ejemplo.com/ficha.pdf"
                 value={nuevoEnlaceUrl}
                 onChange={(e) => setNuevoEnlaceUrl(e.target.value)}
                 onKeyDown={(e) => {
@@ -901,7 +905,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
       </form>
 
       {/* Preview lateral */}
-      <aside className="lg:sticky lg:top-24 h-fit self-start z-10">
+      <aside className="xl:sticky xl:top-28 h-fit self-start z-10">
         <div className="mb-3 flex items-center gap-2">
           <span className="text-[11px] font-semibold tracking-wider uppercase text-slate-500">
             Vista previa

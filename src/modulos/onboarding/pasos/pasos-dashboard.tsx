@@ -4,7 +4,7 @@ import type { PasoData } from "../contexto-tour";
 /**
  * Tour del Dashboard. Un recorrido de 9 pasos por el panel principal del
  * usuario logueado: perfil, KPIs, matches, actividad, productos, acciones
- * rápidas y CTA de explorar. Todo vive en /dashboard.
+ * rápidas y CTA de explorar. Todo vive en /panel-de-control.
  */
 type PasoConRuta = Step & { data: PasoData };
 
@@ -31,7 +31,7 @@ export const pasosDashboard: PasoConRuta[] = [
     title: "Te damos la bienvenida al Dashboard",
     content:
       "Este es tu tablero de control: acá vas a encontrar el estado de tu perfil, las oportunidades que te matchean y accesos rápidos a todo lo importante. Te lo recorro en un minuto.",
-    data: { ruta: "/dashboard" },
+    data: { ruta: "/panel-de-control" },
   }),
 
   // ─── HERO / PERFIL ──────────────────────────────────────────────
@@ -41,7 +41,7 @@ export const pasosDashboard: PasoConRuta[] = [
     title: "Tu identidad en la red",
     content:
       "Tu logo, nombre y datos de contacto — lo mismo que ven los otros socios. Abajo tenés una barra con el porcentaje de completitud: cuanto más alto, más visible sos en el directorio y mejores matches recibís.",
-    data: { ruta: "/dashboard" },
+    data: { ruta: "/panel-de-control" },
   }),
 
   // ─── KPIs ───────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ export const pasosDashboard: PasoConRuta[] = [
     title: "El pulso de la red, de un vistazo",
     content:
       "Socios activos, proveedores de servicios verificados, oportunidades abiertas y tus propias métricas (publicadas o matches, según tu rol). Cada número es un link — tocalo y te lleva al detalle.",
-    data: { ruta: "/dashboard" },
+    data: { ruta: "/panel-de-control" },
   }),
 
   // ─── SMART MATCHES ──────────────────────────────────────────────
@@ -61,7 +61,7 @@ export const pasosDashboard: PasoConRuta[] = [
     title: "Matches inteligentes",
     content:
       "Nuestro algoritmo te sugiere oportunidades (o proveedores de servicios, si sos empresa) en base a tu categoría, etiquetas y ubicación. El porcentaje arriba a la izquierda es el puntaje de afinidad.",
-    data: { ruta: "/dashboard" },
+    data: { ruta: "/panel-de-control" },
   }),
 
   // ─── FEED DE OPORTUNIDADES ──────────────────────────────────────
@@ -71,7 +71,7 @@ export const pasosDashboard: PasoConRuta[] = [
     title: "Actividad reciente",
     content:
       "Las últimas oportunidades publicadas en la red, ordenadas por fecha. Scrolleá para mantenerte al día incluso si no entrás al tablero de Oportunidades.",
-    data: { ruta: "/dashboard" },
+    data: { ruta: "/panel-de-control" },
   }),
 
   // ─── PRODUCTOS / SERVICIOS ──────────────────────────────────────
@@ -81,7 +81,7 @@ export const pasosDashboard: PasoConRuta[] = [
     title: "Tu catálogo abreviado",
     content:
       "Un resumen de tus productos o servicios cargados. Si está vacío, tocá 'Gestionar' para empezar — es lo primero que mira alguien que entra a tu ficha.",
-    data: { ruta: "/dashboard" },
+    data: { ruta: "/panel-de-control" },
   }),
 
   // ─── QUICK ACTIONS ──────────────────────────────────────────────
@@ -91,7 +91,7 @@ export const pasosDashboard: PasoConRuta[] = [
     title: "Acciones rápidas",
     content:
       "Los atajos más usados según tu rol: publicar oportunidad, buscar proveedores de servicios, editar perfil, subir documentos. Un click y estás adentro.",
-    data: { ruta: "/dashboard" },
+    data: { ruta: "/panel-de-control" },
   }),
 
   // ─── EXPLORE CTA ────────────────────────────────────────────────
@@ -101,7 +101,7 @@ export const pasosDashboard: PasoConRuta[] = [
     title: "Explorá la red",
     content:
       "Si sos empresa, desde acá filtrás proveedores de servicios; si sos proveedor de servicios, mirás empresas. El directorio completo a un click — usalo cuando andes buscando a alguien específico.",
-    data: { ruta: "/dashboard" },
+    data: { ruta: "/panel-de-control" },
   }),
 
   // ─── CIERRE ─────────────────────────────────────────────────────
@@ -109,6 +109,6 @@ export const pasosDashboard: PasoConRuta[] = [
     title: "¡Listo! Ya conocés tu dashboard",
     content:
       'Cuando quieras repasar, tocá "Ver tutorial" arriba en el hero. Ahora dale — revisá tus matches y aprovechá la red.',
-    data: { ruta: "/dashboard" },
+    data: { ruta: "/panel-de-control" },
   }),
 ];

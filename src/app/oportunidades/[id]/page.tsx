@@ -117,7 +117,7 @@ export default function OportunidadDetail({
 
   if (loading)
     return (
-      <div className="min-h-screen bg-[#f7f9fb] pt-24 flex items-center justify-center">
+      <div className="min-h-svh bg-[#f7f9fb] pt-24 flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center">
           <Briefcase className="w-12 h-12 text-slate-200 mb-4" />
           <p className="text-slate-400 font-inter font-medium tracking-wide">
@@ -129,7 +129,7 @@ export default function OportunidadDetail({
 
   if (!op)
     return (
-      <div className="min-h-screen bg-[#f7f9fb] pt-24 flex items-center justify-center px-4">
+      <div className="min-h-svh bg-[#f7f9fb] pt-24 flex items-center justify-center px-4">
         <Card className="max-w-md w-full p-8 border-none bg-white rounded-sm text-center shadow-lg">
           <Info className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <h2 className="text-xl font-manrope font-bold text-slate-900 mb-2">
@@ -170,7 +170,7 @@ export default function OportunidadDetail({
     : null;
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
+    <div className="min-h-svh bg-[#f7f9fb]">
       {/* TOP NAV STRIP */}
       <div className="bg-[#00213f] text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">

@@ -1,8 +1,8 @@
 export default function LoadingEmpresaProfile() {
   return (
-    <div className="min-h-screen bg-slate-50 font-inter pb-20 animate-pulse">
-      {/* Hero */}
-      <div className="relative h-[320px] flex items-end overflow-hidden -mt-24 pt-24 bg-gradient-to-t from-[#00182e] via-[#00213f] to-[#10375c]">
+    <div className="min-h-svh bg-slate-50 font-inter pb-20 animate-pulse">
+      {/* Hero — mismas medidas que la ficha real, si no hay layout shift al terminar de cargar */}
+      <div className="relative min-h-[320px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24 bg-gradient-to-t from-[#00182e] via-[#00213f] to-[#10375c]">
         <div className="relative z-10 w-full max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 pb-10">
           <div className="h-3 w-24 bg-white/20 rounded mb-6" />
           <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -27,9 +27,9 @@ export default function LoadingEmpresaProfile() {
 
       {/* Body */}
       <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 mt-10">
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col tab:flex-row gap-6 tab:gap-8">
           {/* Main */}
-          <main className="w-full lg:w-[72%] space-y-6">
+          <main className="w-full tab:w-[62%] lg:w-[72%] min-w-0 space-y-6">
             {[...Array(3)].map((_, i) => (
               <section key={i} className="bg-white p-7 rounded-md border border-slate-200">
                 <div className="h-3 w-40 bg-slate-200 rounded mb-5" />
@@ -43,7 +43,7 @@ export default function LoadingEmpresaProfile() {
           </main>
 
           {/* Sidebar */}
-          <aside className="w-full lg:w-[28%]">
+          <aside className="w-full tab:w-[38%] lg:w-[28%]">
             <div className="bg-white rounded-md border border-slate-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
                 <div className="h-3 w-32 bg-slate-200 rounded" />

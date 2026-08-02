@@ -56,7 +56,7 @@ async function altaDelUsuario() {
 }
 
 function revalidarFichas() {
-  revalidatePath("/dashboard");
+  revalidatePath("/panel-de-control");
   revalidatePath("/perfil/datos");
   revalidatePath("/directorio");
 }

@@ -8,7 +8,9 @@ async function getServicios() {
   );
   const { data, error } = await supabase
     .from("categorias")
-    .select("id, nombre, slug, descripcion, activa, creado_en")
+    .select("id, nombre, slug, descripcion, activa, creado_en, administrado_por_admin")
+    // Las propuestas de los socios primero: son la bandeja de curaduría.
+    .order("administrado_por_admin", { ascending: true })
     .order("nombre", { ascending: true });
 
   if (error) throw new Error(error.message);

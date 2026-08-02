@@ -185,11 +185,11 @@ export function PanelEmpresas({ empresas, preciosDb }: { empresas: Empresa[], pr
                 </Button>
                 {empresa.estado === "pendiente_revision" && (
                   <>
-                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 w-8 p-0"
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-11 w-11 sm:h-9 sm:w-9 p-0"
                       onClick={(e) => handleAprobar(empresa.id, e)} disabled={isPending}>
                       <Check className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50 h-8 w-8 p-0"
+                    <Button size="sm" variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50 h-11 w-11 sm:h-9 sm:w-9 p-0"
                       onClick={(e) => { e.stopPropagation(); setModalRechazo({ id: empresa.id, nombre: empresa.razon_social }); }}>
                       <X className="w-4 h-4" />
                     </Button>
@@ -316,7 +316,8 @@ export function PanelEmpresas({ empresas, preciosDb }: { empresas: Empresa[], pr
       {modalRechazo && (
         <>
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setModalRechazo(null)} />
-          <div className="fixed z-50 inset-0 flex items-center justify-center p-4">
+          {/* items-start + overflow-y-auto: centrado el modal no scrollea y en pantallas bajas se corta */}
+          <div className="fixed z-50 inset-0 flex items-start justify-center overflow-y-auto p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200">
               <h3 className="text-lg font-bold text-slate-900 mb-1">Rechazar empresa</h3>
               <p className="text-sm text-slate-500 mb-4">

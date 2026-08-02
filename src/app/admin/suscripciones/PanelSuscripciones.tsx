@@ -372,7 +372,7 @@ export function PanelSuscripciones({
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {([1, 2, 3] as const).map((nivel) => {
             const precio = precioPorNivel[nivel] ?? 0;
             const info = tarifaInfo[nivel];
@@ -530,7 +530,8 @@ export function PanelSuscripciones({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          {/* min-w: con w-full sola la tabla se comprime y el wrapper overflow-x-auto nunca llega a scrollear */}
+          <table className="w-full min-w-[720px]">
             <thead>
               <tr className="bg-slate-50/80">
                 <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
@@ -610,7 +611,7 @@ export function PanelSuscripciones({
             className="w-full pl-10 pr-4 py-2 bg-slate-50 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-md">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-md w-full sm:w-auto overflow-x-auto">
           {(["company", "provider"] as const).map((tipo) => (
             <button
               key={tipo}
@@ -632,7 +633,8 @@ export function PanelSuscripciones({
       {filtroTipo === "company" ? (
         <Card className="shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-100 border-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            {/* min-w: con w-full sola la tabla se comprime y el wrapper overflow-x-auto nunca llega a scrollear */}
+            <table className="w-full min-w-[720px]">
               <thead>
                 <tr className="bg-slate-50/80">
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
@@ -710,7 +712,7 @@ export function PanelSuscripciones({
                               <button
                                 onClick={() => handleGuardarEmpleados(e.id)}
                                 disabled={isPending}
-                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                                className="p-2.5 -m-1 text-emerald-600 hover:bg-emerald-50 rounded"
                               >
                                 <Check className="w-4 h-4" />
                               </button>
@@ -719,7 +721,7 @@ export function PanelSuscripciones({
                                   setEditandoEmpleados(null);
                                   setEmpleadosDraft("");
                                 }}
-                                className="p-1 text-slate-400 hover:bg-slate-50 rounded"
+                                className="p-2.5 -m-1 text-slate-400 hover:bg-slate-50 rounded"
                               >
                                 <X className="w-4 h-4" />
                               </button>
@@ -738,7 +740,8 @@ export function PanelSuscripciones({
                                   <span className="italic text-slate-400">sin dato</span>
                                 )}
                               </span>
-                              <Pencil className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100" />
+                              {/* En touch no hay hover: sin esto no se ve que el dato sea editable */}
+                              <Pencil className="w-3 h-3 text-slate-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100" />
                             </button>
                           )}
                         </td>
@@ -808,7 +811,8 @@ export function PanelSuscripciones({
       ) : (
         <Card className="shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-100 border-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            {/* min-w: con w-full sola la tabla se comprime y el wrapper overflow-x-auto nunca llega a scrollear */}
+            <table className="w-full min-w-[720px]">
               <thead>
                 <tr className="bg-slate-50/80">
                   <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">

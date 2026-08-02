@@ -5,6 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  /* Breakpoint propio para tablets: el iPad mini (744px) queda por debajo de
+     md (768px) y se comía los layouts de dos columnas. 45rem = 720px. */
+  --breakpoint-tab: 45rem;
+
   --font-sans: var(--font-open-sans);
   --font-mono: var(--font-poppins);
   --font-poppins: var(--font-poppins);
@@ -96,6 +100,10 @@
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Red de seguridad contra el scroll horizontal de los elementos
+       decorativos (-right-8 y compañía). Va `clip` y NO `hidden`: `hidden`
+       crea un contenedor de scroll y rompe todos los position: sticky. */
+    overflow-x: clip;
     @apply bg-background text-foreground;
   }
   html {

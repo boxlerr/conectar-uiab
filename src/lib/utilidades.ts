@@ -36,6 +36,25 @@ export function normalizarTelefonoAr(telefono: string | null | undefined): strin
   return d.length >= 10 && d.length <= 15 ? d : null;
 }
 
+/**
+ * Normaliza un sitio web escrito a mano al formato que guardamos en la DB.
+ *
+ * Los socios escriben "www.miempresa.com" o "miempresa.com.ar", nunca el
+ * esquema. Antes el input era type="url" y el browser bloqueaba el submit
+ * con "Introduce una URL", dejando el formulario entero sin poder guardarse.
+ *  - "www.metlongchamps.com"    → "https://www.metlongchamps.com"
+ *  - "http://miempresa.com.ar"  → "http://miempresa.com.ar" (respeta el esquema)
+ *  - "   "                      → null
+ */
+export function normalizarSitioWeb(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const limpio = url.trim().replace(/^\/+/, "");
+  if (!limpio) return null;
+  // Sólo anteponemos https:// cuando no hay un esquema propio, así no rompemos
+  // los http:// viejos ni un eventual mailto:.
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(limpio) ? limpio : `https://${limpio}`;
+}
+
 /** Link de WhatsApp click-to-chat. `texto` opcional pre-rellena el mensaje. */
 export function whatsappLink(
   telefono: string | null | undefined,

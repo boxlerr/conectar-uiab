@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
  */
 export default function ConfirmarEmailPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f2f4f6] px-4 py-12">
+    <main className="flex min-h-svh items-center justify-center bg-[#f2f4f6] px-4 py-12">
       <div className="w-full max-w-xl overflow-hidden rounded-md bg-white shadow-[0_16px_32px_-16px_rgba(0,33,63,0.18)] ring-1 ring-slate-900/[0.04]">
         {/* Barra de marca industrial */}
         <div
@@ -63,7 +63,7 @@ export default function ConfirmarEmailPage() {
               size="lg"
               className="h-11 w-full max-w-xs rounded-md bg-[#00213f] text-white hover:bg-[#10375c]"
             >
-              <Link href="/dashboard">
+              <Link href="/panel-de-control">
                 Ir a mi panel
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
