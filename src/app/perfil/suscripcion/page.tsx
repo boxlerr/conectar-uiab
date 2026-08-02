@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa } from "@/modulos/autenticacion/entidad-del-perfil";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CreditCard, CheckCircle2, History, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
@@ -57,7 +58,7 @@ export default function MiPerfilSuscripcionPage() {
 
       // try/finally: el spinner siempre se apaga aunque una query lance.
       try {
-        const columnFk = currentUser.role === 'company' ? 'empresa_id' : 'proveedor_id';
+        const columnFk = esFichaDeEmpresa(currentUser) ? 'empresa_id' : 'proveedor_id';
 
         const [pagosRes, susRes] = await Promise.all([
           supabase
@@ -78,7 +79,7 @@ export default function MiPerfilSuscripcionPage() {
         if (susRes.data) setSuscripcion(susRes.data as any);
 
         // Categoría por tamaño (sólo empresas): informativa.
-        if (currentUser.role === 'company') {
+        if (esFichaDeEmpresa(currentUser)) {
           const { data: emp } = await supabase
             .from('empresas')
             .select('cantidad_empleados')

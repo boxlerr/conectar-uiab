@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utilidades";
 import { BotonReiniciarTour } from "@/modulos/onboarding/componentes/boton-reiniciar-tour";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 
 export default function PerfilLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, loading: authLoading } = useAuth();
@@ -65,8 +66,10 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
     );
   }
 
-  // Admin users are directed to /admin instead of /perfil by default navigation
-  if (currentUser.role === "admin") {
+  // Un admin SIN ficha propia no tiene nada que configurar acá: lo mandamos a
+  // /admin. Pero si además es dueño de una empresa o de un perfil de proveedor
+  // (caso Vaxler), /perfil es justamente donde la administra, así que pasa.
+  if (currentUser.role === "admin" && !tipoEntidadDe(currentUser)) {
      return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
         <ShieldAlert className="w-16 h-16 text-primary-500 mb-4" />
@@ -110,7 +113,7 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
               <span className="font-bold text-slate-900 text-sm truncate">{currentUser.name}</span>
             </div>
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider ml-10">
-              Panel {currentUser.role === 'company' ? 'Corporativo' : 'Particular'}
+              Panel {esFichaDeEmpresa(currentUser) ? 'Corporativo' : 'Particular'}
             </p>
           </div>
 

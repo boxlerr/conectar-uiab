@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa } from "@/modulos/autenticacion/entidad-del-perfil";
 import { createClient } from "@/lib/supabase/cliente";
 import { Loader2 } from "lucide-react";
 import { AccesoRequerido, type EstadoAcceso } from "@/components/ui/acceso-requerido";
@@ -32,7 +33,7 @@ export default function BloqueadoPage() {
       return;
     }
     let cancelado = false;
-    const fk = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
+    const fk = esFichaDeEmpresa(currentUser) ? "empresa_id" : "proveedor_id";
 
     (async () => {
       try {

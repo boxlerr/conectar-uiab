@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { Button } from "@/components/ui/button";
 import { SelectUIAB } from "@/components/ui/select-uiab";
 import { Card } from "@/components/ui/card";
@@ -61,7 +62,7 @@ export default function MiPerfilDatosPage() {
 
     // try/finally: el spinner siempre se apaga aunque la query lance.
     try {
-      const table = currentUser.role === "company" ? "empresas" : "proveedores";
+      const table = esFichaDeEmpresa(currentUser) ? "empresas" : "proveedores";
       const { data } = await supabase.from(table).select("*").eq("id", currentUser.entityId).single();
 
       if (data) {
@@ -139,7 +140,7 @@ export default function MiPerfilDatosPage() {
 
     try {
       const BUCKET = "imagenes-publicas";
-      const carpeta = currentUser.role === "company" ? "empresas" : "proveedores";
+      const carpeta = esFichaDeEmpresa(currentUser) ? "empresas" : "proveedores";
       const fileExt = (file.name.split(".").pop() || "bin").toLowerCase();
       const filePath = `${carpeta}/${currentUser.entityId}/logo-${Date.now()}.${fileExt}`;
 
@@ -187,7 +188,7 @@ export default function MiPerfilDatosPage() {
       // El socio puede haber mandado Enter sin pasar por el onBlur del campo.
       (dataToSave as any).sitio_web = normalizarSitioWeb(formData.sitio_web);
 
-      if (currentUser.role === "company") {
+      if (esFichaDeEmpresa(currentUser)) {
         // cantidad_empleados es entero en `empresas`; recalcula la tarifa vía trigger.
         (dataToSave as any).cantidad_empleados = formData.cantidad_empleados
           ? parseInt(formData.cantidad_empleados, 10)
@@ -202,7 +203,7 @@ export default function MiPerfilDatosPage() {
         (dataToSave as any).fecha_inicio_experiencia = formData.fecha_inicio_experiencia || null;
       }
 
-      const result = await updateCompanyOrProvider(currentUser.role as any, currentUser.entityId, currentUser.id, dataToSave);
+      const result = await updateCompanyOrProvider(tipoEntidadDe(currentUser)!, currentUser.entityId, currentUser.id, dataToSave);
 
       if (result.error) {
         toast.error("Error al guardar", { description: result.error });
@@ -253,7 +254,7 @@ export default function MiPerfilDatosPage() {
                     <span className="text-white text-xs font-semibold">CAMBIAR</span>
                   </div>
                 </>
-              ) : currentUser.role === 'company' ? (
+              ) : esFichaDeEmpresa(currentUser) ? (
                 <><Building className="w-8 h-8 mb-1" /><span className="text-[10px] font-semibold tracking-wider uppercase">Subir Logo</span></>
               ) : (
                 <><User className="w-8 h-8 mb-1" /><span className="text-[10px] font-semibold tracking-wider uppercase">Subir Logo</span></>
@@ -299,7 +300,7 @@ export default function MiPerfilDatosPage() {
               />
             </div>
 
-            {currentUser.role !== "company" && (
+            {!esFichaDeEmpresa(currentUser) && (
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700">Años de Experiencia</label>
                 <input
@@ -328,7 +329,7 @@ export default function MiPerfilDatosPage() {
               </div>
             )}
 
-            {currentUser.role === "company" && (
+            {esFichaDeEmpresa(currentUser) && (
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><Users className="w-4 h-4 text-slate-400" /> Cantidad de empleados</label>
                 <input

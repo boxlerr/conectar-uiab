@@ -7,6 +7,7 @@ import { BotonReiniciarTour } from '@/modulos/onboarding/componentes/boton-reini
 import { AvisoConflictosPadron } from '@/modulos/altas/componentes/aviso-conflictos-padron';
 import { conflictosPendientes, type ConflictoPadron } from '@/modulos/altas/padron';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { resolverEntidadDePerfil } from '@/modulos/autenticacion/entidad-del-perfil';
 import { TarjetaVisitas } from '@/components/ui/tarjeta-visitas';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -129,19 +130,18 @@ export default async function DashboardPage() {
     .single();
 
   const role = (profile?.rol_sistema as string) || 'guest';
-  const isCompany = role === 'company';
-  const isProvider = role === 'provider';
   const isAdmin = role === 'admin';
 
   // ── Entity membership ──
-  let entityId: string | null = null;
-  if (isCompany) {
-    const { data } = await supabase.from('miembros_empresa').select('empresa_id').eq('perfil_id', user.id).single();
-    entityId = data?.empresa_id ?? null;
-  } else if (isProvider) {
-    const { data } = await supabase.from('miembros_proveedor').select('proveedor_id').eq('perfil_id', user.id).single();
-    entityId = data?.proveedor_id ?? null;
-  }
+  // Se resuelve por membresía real y NO por rol: un admin puede ser además
+  // dueño de su propia empresa (caso Vaxler) y antes se le quedaba todo el
+  // panel vacío, porque `isCompany` salía de `rol_sistema` y nunca llegaba a
+  // buscar la ficha. Los bloques de admin siguen colgando de `isAdmin`, así
+  // que un admin con ficha ve las dos cosas.
+  const entidad = await resolverEntidadDePerfil(supabase, user.id);
+  const entityId: string | null = entidad?.id ?? null;
+  const isCompany = entidad?.tipo === 'company';
+  const isProvider = entidad?.tipo === 'provider';
 
   // ── Diferencias con el padrón que la socia todavía no revisó ──
   // `altas_socios` es deny-by-default para authenticated, así que va por el

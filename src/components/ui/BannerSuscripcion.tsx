@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa } from "@/modulos/autenticacion/entidad-del-perfil";
 import { createClient } from "@/lib/supabase/cliente";
 import { CreditCard, ArrowRight, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,7 @@ function useSubscriptionState() {
       return;
     }
     let cancelado = false;
-    const fk = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
+    const fk = esFichaDeEmpresa(currentUser) ? "empresa_id" : "proveedor_id";
 
     (async () => {
       try {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Briefcase, Loader2, Search, CheckCircle2, Plus, Sparkles } from "lucide-react";
@@ -57,8 +58,8 @@ export default function MiPerfilServiciosPage() {
 
         // 2. Lo que ya tiene elegido, incluidas sus propias especialidades
         //    (que por definición no están en el catálogo oficial).
-        const relationTable = currentUser.role === "company" ? "empresas_categorias" : "proveedores_categorias";
-        const relationKey = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
+        const relationTable = esFichaDeEmpresa(currentUser) ? "empresas_categorias" : "proveedores_categorias";
+        const relationKey = esFichaDeEmpresa(currentUser) ? "empresa_id" : "proveedor_id";
 
         const { data: userCurrent } = await supabase
           .from(relationTable)
@@ -108,7 +109,7 @@ export default function MiPerfilServiciosPage() {
        return;
     }
     setSaving(true);
-    const res = await saveCategories(currentUser.role as any, currentUser.entityId, selectedIds);
+    const res = await saveCategories(tipoEntidadDe(currentUser)!, currentUser.entityId, selectedIds);
     if (!res.error) {
       toast.success("Especialidades actualizadas", { description: "Tus servicios se han registrado en tu perfil público." });
     } else {

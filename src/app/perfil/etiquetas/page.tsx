@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tag as TagIcon, Loader2, Search, CheckCircle2, Sparkles, Plus } from "lucide-react";
@@ -55,8 +56,8 @@ export default function MiPerfilEtiquetasPage() {
 
         if (!currentUser?.entityId) return;
 
-        const relationTable = currentUser.role === "company" ? "empresas_tags" : "proveedores_tags";
-        const relationKey = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
+        const relationTable = esFichaDeEmpresa(currentUser) ? "empresas_tags" : "proveedores_tags";
+        const relationKey = esFichaDeEmpresa(currentUser) ? "empresa_id" : "proveedor_id";
 
         // Se traen las tags embebidas para recuperar también las propias, que
         // por definición no vienen en el catálogo de arriba.
@@ -194,7 +195,7 @@ export default function MiPerfilEtiquetasPage() {
     }
     setSaving(true);
     const res = await saveTags(
-      currentUser.role as "company" | "provider",
+      tipoEntidadDe(currentUser)!,
       currentUser.entityId,
       Array.from(selectedIds)
     );

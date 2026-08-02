@@ -1,4 +1,11 @@
 export type UserRole = 'admin' | 'company' | 'provider' | 'guest';
+/**
+ * Qué clase de ficha administra un perfil. Es distinto de `UserRole`: el rol
+ * dice qué permisos tenés, esto dice de qué entidad sos dueño. Un admin puede
+ * ser además dueño de su propia empresa (es el caso de Vaxler) y necesita
+ * poder configurarla desde /perfil como cualquier socia.
+ */
+export type TipoEntidadPerfil = 'company' | 'provider';
 export type EstadoEmpresa = 'borrador' | 'pendiente_revision' | 'aprobada' | 'rechazada' | 'pausada' | 'oculta';
 export type EstadoProveedor = 'borrador' | 'pendiente_revision' | 'aprobado' | 'rechazado' | 'pausado' | 'oculto';
 export type EstadoResena = 'pendiente_revision' | 'aprobada' | 'rechazada' | 'oculta';
@@ -11,6 +18,13 @@ export interface User {
   role: UserRole;
   isMember: boolean; // Relevant if they are part of UIAB
   entityId?: string | null; // ID in 'empresas' or 'proveedores' table
+  /**
+   * Tipo de la ficha que administra este perfil, resuelto por membresía real
+   * (miembros_empresa / miembros_proveedor) y NO por `role`. Para company y
+   * provider coincide con el rol; para un admin con ficha propia es lo único
+   * que dice si hay que leer `empresas` o `proveedores`. null = no tiene ficha.
+   */
+  entityRole?: TipoEntidadPerfil | null;
   subscriptionEstado: string | null; // 'activa' | 'pendiente_pago' | 'en_mora' | 'suspendida' | 'cancelada' | null
   /** Mapa seccion -> timestamp ISO (o null si no lo vio). Persistido en perfiles.tutoriales_vistos. */
   tutorialesVistos?: Record<string, string | null>;

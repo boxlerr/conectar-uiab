@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -66,17 +67,17 @@ export default function MiPerfilPage() {
       // try/finally: si una query lanza (p.ej. el timeout de 15s del cliente),
       // el spinner SIEMPRE se apaga en vez de quedar cargando para siempre.
       try {
-        const table = currentUser.role === "company" ? "empresas" : "proveedores";
+        const table = esFichaDeEmpresa(currentUser) ? "empresas" : "proveedores";
         const { data } = await supabase.from(table).select("*").eq("id", currentUser.entityId).single();
         if (data) setProfileDetails(data);
 
-        if (currentUser.role === "company") {
+        if (esFichaDeEmpresa(currentUser)) {
           const { data: rels } = await supabase
             .from("empresas_categorias")
             .select("categoria_id, categorias(nombre)")
             .eq("empresa_id", currentUser.entityId);
           if (rels) setServices(rels.map((r: any) => r.categorias?.nombre).filter(Boolean));
-        } else if (currentUser.role === "provider") {
+        } else if (tipoEntidadDe(currentUser) === "provider") {
           const { data: rels } = await supabase
             .from("proveedores_categorias")
             .select("categoria_id, categorias(nombre)")
@@ -85,7 +86,7 @@ export default function MiPerfilPage() {
         }
 
         // Reseñas recibidas aprobadas
-        const resenadaCol = currentUser.role === "company" ? "empresa_resenada_id" : "proveedor_resenado_id";
+        const resenadaCol = esFichaDeEmpresa(currentUser) ? "empresa_resenada_id" : "proveedor_resenado_id";
         const { data: resenasData } = await supabase
           .from("resenas")
           .select(
@@ -100,7 +101,7 @@ export default function MiPerfilPage() {
         if (resenasData) setResenas(resenasData as unknown as Resena[]);
 
         // Conteo de certificaciones cargadas
-        const certCol = currentUser.role === "company" ? "empresa_id" : "proveedor_id";
+        const certCol = esFichaDeEmpresa(currentUser) ? "empresa_id" : "proveedor_id";
         const { count: certCount } = await supabase
           .from("certificaciones")
           .select("id", { count: "exact", head: true })
@@ -194,7 +195,7 @@ export default function MiPerfilPage() {
         {/* Datos y Contacto */}
         <Card data-tour="perfil-datos" className="p-6 border-slate-100 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-[0.08] transition-opacity">
-            {currentUser.role === "company" ? <Building className="w-24 h-24" /> : <Wrench className="w-24 h-24" />}
+            {esFichaDeEmpresa(currentUser) ? <Building className="w-24 h-24" /> : <Wrench className="w-24 h-24" />}
           </div>
           <div className="flex items-center gap-3 mb-5 relative z-10">
             <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100">
@@ -280,7 +281,7 @@ export default function MiPerfilPage() {
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <h2 className="text-lg font-bold text-slate-900">
-                {currentUser.role === "company" ? "Rubros y Servicios" : "Especialidades"}
+                {esFichaDeEmpresa(currentUser) ? "Rubros y Servicios" : "Especialidades"}
               </h2>
             </div>
             <Badge variant="outline" className="bg-slate-50 text-xs">

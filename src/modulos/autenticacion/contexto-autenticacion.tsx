@@ -82,33 +82,48 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
           return pub?.publicUrl ?? null;
         };
 
-        // Fetch Business Layer ID mapping + logo de la entidad
-        if (data.rol_sistema === 'company') {
-          const { data: memberData } = await supabase
-            .from('miembros_empresa')
-            .select('empresa_id, empresas:empresa_id(estado, ruta_logo, bucket_logo)')
-            .eq('perfil_id', userId)
-            .single();
-          entityId = memberData?.empresa_id;
-          const ent = (memberData as any)?.empresas;
+        // Fetch Business Layer ID mapping + logo de la entidad.
+        //
+        // La ficha se resuelve por MEMBRESÍA, no por rol: un admin puede ser
+        // además dueño de su propia empresa y tiene que poder configurarla.
+        // Antes esto colgaba de `rol_sistema === 'company'` y a los admin les
+        // dejaba entityId en null (panel vacío, /perfil rebotado a /admin).
+        let entityRole: 'company' | 'provider' | null = null;
+
+        const { data: memberEmpresa } = await supabase
+          .from('miembros_empresa')
+          .select('empresa_id, empresas:empresa_id(estado, ruta_logo, bucket_logo)')
+          .eq('perfil_id', userId)
+          .limit(1)
+          .maybeSingle();
+
+        if (memberEmpresa?.empresa_id) {
+          entityRole = 'company';
+          entityId = memberEmpresa.empresa_id;
+          const ent = (memberEmpresa as any)?.empresas;
           entidadEstado = ent?.estado ?? null;
           logoUrl = resolverLogoUrl(ent?.bucket_logo, ent?.ruta_logo);
-        } else if (data.rol_sistema === 'provider') {
-          const { data: memberData } = await supabase
+        } else {
+          const { data: memberProveedor } = await supabase
             .from('miembros_proveedor')
             .select('proveedor_id, proveedores:proveedor_id(estado, ruta_logo, bucket_logo)')
             .eq('perfil_id', userId)
-            .single();
-          entityId = memberData?.proveedor_id;
-          const ent = (memberData as any)?.proveedores;
-          entidadEstado = ent?.estado ?? null;
-          logoUrl = resolverLogoUrl(ent?.bucket_logo, ent?.ruta_logo);
+            .limit(1)
+            .maybeSingle();
+
+          if (memberProveedor?.proveedor_id) {
+            entityRole = 'provider';
+            entityId = memberProveedor.proveedor_id;
+            const ent = (memberProveedor as any)?.proveedores;
+            entidadEstado = ent?.estado ?? null;
+            logoUrl = resolverLogoUrl(ent?.bucket_logo, ent?.ruta_logo);
+          }
         }
 
         // Fetch subscription estado for gating content sections
         let subscriptionEstado: string | null = null;
-        if (entityId && (data.rol_sistema === 'company' || data.rol_sistema === 'provider')) {
-          const fk = data.rol_sistema === 'company' ? 'empresa_id' : 'proveedor_id';
+        if (entityId && entityRole) {
+          const fk = entityRole === 'company' ? 'empresa_id' : 'proveedor_id';
           const { data: sub } = await supabase
             .from('suscripciones')
             .select('estado')
@@ -119,7 +134,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
           subscriptionEstado = sub?.estado ?? null;
         }
 
-        dbg('fetchProfile:done', { role: data.rol_sistema, entityId, subscriptionEstado, entidadEstado });
+        dbg('fetchProfile:done', { role: data.rol_sistema, entityRole, entityId, subscriptionEstado, entidadEstado });
         return {
           id: data.id,
           name: data.nombre_completo || email.split('@')[0],
@@ -127,6 +142,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
           role: data.rol_sistema as any,
           isMember: data.activo || false,
           entityId: entityId,
+          entityRole,
           subscriptionEstado,
           tutorialesVistos: (data.tutoriales_vistos ?? {}) as Record<string, string | null>,
           entidadEstado,

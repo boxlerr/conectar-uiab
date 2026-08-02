@@ -15,6 +15,7 @@ import {
   slugEspecialidad,
   validarEspecialidadLibre,
 } from "@/modulos/compartido/especialidades";
+import { resolverEntidadDePerfil } from "@/modulos/autenticacion/entidad-del-perfil";
 
 // Server Action strictly bypassing RLS (if needed) for Profile Syncing using the Service Role Key
 const supabaseAdmin = createClient(
@@ -138,40 +139,13 @@ async function resolverEntidadDelUsuario(): Promise<
     return { error: "Se venció tu sesión. Volvé a iniciar sesión." };
   }
 
-  // Se resuelve por rol_sistema igual que el contexto de autenticación, para que
-  // el tipo coincida con el que manda el cliente.
-  const { data: perfil } = await supabaseAdmin
-    .from("perfiles")
-    .select("rol_sistema")
-    .eq("id", user.id)
-    .maybeSingle();
+  // Se resuelve por MEMBRESÍA, igual que el contexto de autenticación. Antes
+  // colgaba de rol_sistema y un admin dueño de su propia ficha (caso Vaxler)
+  // caía siempre en el error de abajo, sin poder crear etiquetas ni rubros.
+  const entidad = await resolverEntidadDePerfil(supabaseAdmin, user.id);
 
-  const rol = perfil?.rol_sistema as string | undefined;
-
-  if (rol === "company") {
-    const { data: empresa } = await supabaseAdmin
-      .from("miembros_empresa")
-      .select("empresa_id")
-      .eq("perfil_id", user.id)
-      .limit(1)
-      .maybeSingle();
-
-    if (empresa?.empresa_id) {
-      return { perfilId: user.id, tipo: "company", entityId: empresa.empresa_id };
-    }
-  }
-
-  if (rol === "provider") {
-    const { data: proveedor } = await supabaseAdmin
-      .from("miembros_proveedor")
-      .select("proveedor_id")
-      .eq("perfil_id", user.id)
-      .limit(1)
-      .maybeSingle();
-
-    if (proveedor?.proveedor_id) {
-      return { perfilId: user.id, tipo: "provider", entityId: proveedor.proveedor_id };
-    }
+  if (entidad) {
+    return { perfilId: user.id, tipo: entidad.tipo, entityId: entidad.id };
   }
 
   return {
