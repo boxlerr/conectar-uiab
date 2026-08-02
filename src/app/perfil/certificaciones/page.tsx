@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { createClient } from "@/lib/supabase/cliente";
 import { Card } from "@/components/ui/card";
 import { ChipNorma } from "@/modulos/certificaciones/chip-norma";
@@ -83,7 +84,7 @@ export default function MiPerfilCertificacionesPage() {
   const [archivo, setArchivo] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const role = currentUser?.role === "company" ? "company" : "provider";
+  const role = tipoEntidadDe(currentUser) ?? "provider";
   const entityId = currentUser?.entityId ?? null;
   const carpeta = role === "company" ? "empresas" : "proveedores";
 

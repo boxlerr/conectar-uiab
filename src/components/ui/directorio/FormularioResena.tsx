@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { Button } from "@/components/ui/button";
 import { Star, MessageSquareQuote, Loader2, Info } from "lucide-react";
 import { crearResena } from "./acciones-resenas";
@@ -45,7 +46,7 @@ export function FormularioResena({ targetType, targetId }: FormularioResenaProps
 
   // 2. Solo las empresas socias pueden calificar. Los prestadores de servicios
   //    no califican ni son calificados.
-  if (currentUser.role !== "company") {
+  if (!esFichaDeEmpresa(currentUser)) {
     return (
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 flex gap-3 text-amber-800 text-sm">
         <Info className="w-5 h-5 shrink-0 mt-0.5" />

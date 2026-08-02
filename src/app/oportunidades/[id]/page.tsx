@@ -19,6 +19,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -80,11 +81,11 @@ export default function OportunidadDetail({
 
         if (
           currentUser?.entityId &&
-          (currentUser.role === "company" || currentUser.role === "provider")
+          (esFichaDeEmpresa(currentUser) || tipoEntidadDe(currentUser) === "provider")
         ) {
           tasks.push(
             oportunidadesService
-              .getMatchesForUser(currentUser.entityId, currentUser.role)
+              .getMatchesForUser(currentUser.entityId, tipoEntidadDe(currentUser)!)
               .then((all) => {
                 const found =
                   all.find((m) => m.oportunidad_id === id) ?? null;
@@ -158,7 +159,7 @@ export default function OportunidadDetail({
   const puedePostularse =
     !isOwner &&
     currentUser?.entityId &&
-    (currentUser.role === "company" || currentUser.role === "provider") &&
+    (esFichaDeEmpresa(currentUser) || tipoEntidadDe(currentUser) === "provider") &&
     op.estado === "abierta";
 
   const fechaFmt = op.fecha_necesidad

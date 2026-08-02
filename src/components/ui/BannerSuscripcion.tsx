@@ -43,7 +43,12 @@ function useSubscriptionState() {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    if (authLoading || !currentUser?.entityId) {
+    // El admin no pasa por el portón de suscripción, igual que en
+    // /empresas (page.tsx:246 y :326). Desde que la ficha se resuelve por
+    // membresía, su empresa propia sí tiene entityId — y como no tiene fila
+    // en `suscripciones`, sin esta salida el panel del admin se le pintaba
+    // bloqueado y con blur.
+    if (authLoading || !currentUser?.entityId || currentUser.role === "admin") {
       setCargando(false);
       return;
     }

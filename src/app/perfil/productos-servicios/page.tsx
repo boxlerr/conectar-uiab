@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { useEffect, useMemo, useState } from "react";
 import { getUserItems, deleteItem } from "./acciones";
 import { FormularioItem } from "./FormularioItem";
@@ -42,7 +43,7 @@ export default function PerfilCatalogoPage() {
     setFetching(true);
     try {
       const data = await getUserItems(
-        currentUser.role as "company" | "provider",
+        tipoEntidadDe(currentUser)!,
         currentUser.entityId
       );
       setItems(data);
@@ -275,7 +276,7 @@ export default function PerfilCatalogoPage() {
 
       {isImportOpen && currentUser?.entityId && (
         <ImportarExcelModal
-          role={currentUser.role as "company" | "provider"}
+          role={tipoEntidadDe(currentUser)!}
           entityId={currentUser.entityId}
           onClose={() => setIsImportOpen(false)}
           onSuccess={() => {

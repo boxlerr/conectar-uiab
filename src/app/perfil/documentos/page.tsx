@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa } from "@/modulos/autenticacion/entidad-del-perfil";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FileText, UploadCloud, AlertCircle, FileCheck2, Trash2, X, Loader2 } from "lucide-react";
@@ -19,7 +20,7 @@ export default function MiPerfilDocumentosPage() {
   const [isUploading, setIsUploading] = useState(false);
 
   const BUCKET_DOCS = "documentos-privados";
-  const carpetaEntidad = currentUser?.role === "company" ? "empresas" : "proveedores";
+  const carpetaEntidad = esFichaDeEmpresa(currentUser) ? "empresas" : "proveedores";
   const folderPath = currentUser?.entityId ? `${carpetaEntidad}/${currentUser.entityId}` : null;
 
   useEffect(() => {
@@ -160,7 +161,7 @@ export default function MiPerfilDocumentosPage() {
         <div>
           <h4 className="font-semibold text-blue-900 text-sm mb-1">Documentación Requerida</h4>
           <p className="text-sm text-blue-800/80 leading-relaxed">
-            {currentUser?.role === 'company' 
+            {esFichaDeEmpresa(currentUser) 
               ? 'Por favor subir: 1. Constancia inscripción AFIP (CUIT). 2. Constancia de Ingresos Brutos (ARBA). 3. Estatuto Social (Para S.A o S.R.L).'
               : 'Por favor subir: 1. Frente y dorso DNI o credencial. 2. Matrícula profesional vigente.'}
           </p>

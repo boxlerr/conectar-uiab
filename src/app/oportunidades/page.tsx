@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Briefcase, MapPin, Calendar, Clock, Filter, Search, PlusCircle, ArrowRight, Building2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -24,8 +25,8 @@ export default function OportunidadesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   
-  const isEmpresa = currentUser?.role === "company";
-  const isProveedor = currentUser?.role === "provider";
+  const isEmpresa = esFichaDeEmpresa(currentUser);
+  const isProveedor = tipoEntidadDe(currentUser) === "provider";
 
   useEffect(() => {
     // Esperar a que auth termine de resolver antes de consultar.

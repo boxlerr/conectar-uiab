@@ -39,6 +39,7 @@ import {
 } from "./acciones";
 import { toast } from "sonner";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { createClient } from "@/lib/supabase/cliente";
 import { TarjetaItem } from "@/components/ui/catalogo/TarjetaItem";
 
@@ -322,7 +323,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
         }
       } else {
         const res = await createItem(
-          currentUser.role as "company" | "provider",
+          tipoEntidadDe(currentUser)!,
           currentUser.entityId,
           payload
         );

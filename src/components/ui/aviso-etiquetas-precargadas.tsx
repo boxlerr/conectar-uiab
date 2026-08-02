@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Tag, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/cliente";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 
 /**
  * Aviso "te pre-cargamos etiquetas de match".
@@ -29,7 +30,7 @@ export function AvisoEtiquetasPrecargadas() {
   }, []);
 
   useEffect(() => {
-    if (!currentUser?.entityId || currentUser.role !== "company") return;
+    if (!currentUser?.entityId || !esFichaDeEmpresa(currentUser)) return;
     let vivo = true;
     (async () => {
       try {

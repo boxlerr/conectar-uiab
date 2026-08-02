@@ -108,7 +108,7 @@ export default function MiPerfilSuscripcionPage() {
   );
 
   // Categoría por tamaño de la empresa (informativa; la tarifa es plana).
-  const categoria = currentUser?.role === 'company' && empleados != null
+  const categoria = esFichaDeEmpresa(currentUser) && empleados != null
     ? calcularTarifaPorEmpleados(empleados)
     : null;
 
