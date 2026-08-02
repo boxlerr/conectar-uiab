@@ -31,6 +31,26 @@ const nextConfig: NextConfig = {
         ]
       : [],
   },
+
+  /**
+   * Fichas cuya URL cambió porque la empresa cambió de nombre.
+   *
+   * El slug NO se guarda en la base: sale de `crearSlug(razon_social)` en cada
+   * render (ver src/lib/utilidades.ts). O sea que renombrar una empresa cambia
+   * su URL y la vieja empieza a dar 404 — y `sitemap.ts` ya la había publicado
+   * para que Google la indexe. Cada rename de una socia publicada suma una
+   * línea acá.
+   */
+  async redirects() {
+    return [
+      {
+        // Cambio de identidad corporativa Velargen → Tecza (agosto 2026).
+        source: "/empresas/velargen-srl",
+        destination: "/empresas/tecza",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

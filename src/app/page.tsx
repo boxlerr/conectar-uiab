@@ -645,6 +645,40 @@ export default function Home() {
                   entiende el descuento sin tener que explicarlo. */}
               <motion.div variants={fadeUp} custom={2} className="md:col-span-7 lg:col-span-7 order-1 md:order-2">
 
+                {/* Socias UIAB: va ARRIBA del precio y en verde sólido.
+                    Antes era una línea de 13.5px debajo de la tarjeta y se
+                    perdía: la mitad de las socias no se enteraba de que su
+                    membresía ya está paga. Es lo primero que tiene que leer
+                    alguien del padrón, antes que cualquier número.
+                    Verde y no ámbar a propósito: el ámbar es el color de
+                    "pagar" en esta sección (CTA y badge de meses gratis) y
+                    este mensaje dice exactamente lo contrario. */}
+                <Link
+                  href="/sumate"
+                  className="group mb-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-2xl bg-emerald-600 px-5 py-4 sm:px-6 sm:py-5 shadow-lg shadow-emerald-600/20 hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 transition-colors"
+                >
+                  <span className="flex items-start sm:items-center gap-3">
+                    <span className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5 text-white" />
+                    </span>
+                    <span className="leading-snug">
+                      <span
+                        className="block text-white font-black text-[17px] sm:text-xl tracking-tight"
+                        style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                      >
+                        ¿Tu empresa ya es socia de la UIAB? No pagás nada.
+                      </span>
+                      <span className="block text-[13.5px] text-white/80 mt-1">
+                        Tu membresía ya está incluida en la cuota que abonás.
+                      </span>
+                    </span>
+                  </span>
+                  <span className="pl-12 sm:pl-0 sm:ml-auto shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2.5 text-[13.5px] font-black text-emerald-700 group-hover:gap-2.5 transition-all">
+                    Activar
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                </Link>
+
                 {/* Selector */}
                 <div
                   role="radiogroup"
@@ -755,23 +789,6 @@ export default function Home() {
                   </p>
                 </div>
 
-                {/* Socias UIAB: una línea, para que no compita con la decisión. */}
-                <Link
-                  href="/sumate"
-                  className="group mt-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-5 py-3.5 hover:border-emerald-400 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 transition-colors"
-                >
-                  <span className="flex items-start sm:items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
-                    <span className="text-[13.5px] text-slate-600 leading-snug">
-                      <span className="font-bold text-emerald-800">¿Ya sos socia UIAB?</span> Tu
-                      membresía está incluida en la cuota.
-                    </span>
-                  </span>
-                  <span className="pl-6 sm:pl-0 sm:ml-auto shrink-0 inline-flex items-center gap-1 text-[13px] font-bold text-emerald-700 group-hover:gap-2 transition-all">
-                    Activar
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </Link>
               </motion.div>
             </div>
           </motion.div>

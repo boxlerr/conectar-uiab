@@ -14,6 +14,7 @@ import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
 import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
 import { SliderLogosDirectorio, type LogoDirectorio } from "@/components/ui/directorio/slider-logos-directorio";
 import { SelectUIAB } from "@/components/ui/select-uiab";
+import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import {
   Building2,
@@ -83,8 +84,10 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
   // Logos para el slider: vienen del SSR (ya tienen logoUrl), así que se
   // muestran al instante, sin fetch client-side ni skeleton colgado. Sólo
   // socias: los prestadores particulares no tienen logo institucional.
+  // La UIAB sale del slider por el mismo motivo que en la home: creó la
+  // plataforma, no es una socia participante. Su ficha sigue viva igual.
   const logosSocias: LogoDirectorio[] = entidades
-    .filter((e) => !!e.logoUrl && e.esSocio !== false)
+    .filter((e) => !!e.logoUrl && e.esSocio !== false && !esEmpresaInstitucional(e.id))
     .map((e) => ({ slug: e.slug, nombre: e.nombre, logoUrl: e.logoUrl as string }));
 
   // La URL manda sobre el tipo activo: así `/directorio?tipo=financiera` es un

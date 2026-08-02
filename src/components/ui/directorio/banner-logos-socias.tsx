@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/cliente";
 import { crearSlug } from "@/lib/utilidades";
+import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
 
 interface EmpresaSocia {
   id: string;
@@ -54,7 +55,8 @@ export function BannerLogosSocias() {
         }))
         // Solo logos reales: si una empresa no tiene imagen no la mostramos como
         // texto (queda feo junto a los logos). Aparecerá cuando cargue su logo.
-        .filter((e: EmpresaSocia) => !!e.logoUrl);
+        // La UIAB queda afuera: creó la plataforma, no es una socia participante.
+        .filter((e: EmpresaSocia) => !!e.logoUrl && !esEmpresaInstitucional(e.id));
 
       setEmpresas(mapped);
       setCargando(false);
