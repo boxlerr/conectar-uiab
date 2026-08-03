@@ -12,7 +12,7 @@ import { updateCompanyOrProvider } from "../acciones";
 import { toast } from "sonner";
 import Image from "next/image";
 import { PROVINCIAS_AR, LOCALIDADES_ALMIRANTE_BROWN } from "@/lib/datos/geografia-ar";
-import { normalizarSitioWeb } from "@/lib/utilidades";
+import { cn, normalizarSitioWeb, pareceEmail } from "@/lib/utilidades";
 import { AvisoConflictosPadronAuto } from "@/modulos/altas/componentes/aviso-conflictos-padron-auto";
 
 // text-base en mobile: abajo de 16px Safari iOS hace zoom solo al enfocar el campo.
@@ -23,6 +23,9 @@ export default function MiPerfilDatosPage() {
   const { currentUser, refreshUser, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  // Mensajes en línea de los campos de correo. Reemplazan al cartel nativo del
+  // navegador que salía con type="email" (item 2.3 del reporte de Lucas).
+  const [erroresEmail, setErroresEmail] = useState<Record<string, string>>({});
   const supabase = useMemo(() => createClient(), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -179,6 +182,36 @@ export default function MiPerfilDatosPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser.id) return;
+
+    // Validamos los correos nosotros porque los inputs ya no son type="email":
+    // el navegador los validaba con su cartel emergente nativo, que tapaba el
+    // bloque "Sede Principal" y bloqueaba el guardado de TODO el formulario
+    // (item 2.3 del reporte de Lucas). El mensaje va en línea, debajo del campo.
+    const errores: Record<string, string> = {};
+    const camposEmail = [
+      { clave: "email", etiqueta: "Correo Público", obligatorio: true },
+      { clave: "email_compras", etiqueta: "Correo de Compras", obligatorio: false },
+      { clave: "email_mantenimiento", etiqueta: "Correo de Mantenimiento", obligatorio: false },
+    ] as const;
+
+    for (const campo of camposEmail) {
+      const valor = (formData[campo.clave] ?? "").trim();
+      if (!valor) {
+        if (campo.obligatorio) errores[campo.clave] = "Necesitamos un correo de contacto.";
+        continue; // los opcionales vacíos están bien
+      }
+      if (!pareceEmail(valor)) {
+        errores[campo.clave] = "Revisá el correo: le falta el @ o el dominio.";
+      }
+    }
+
+    setErroresEmail(errores);
+    if (Object.keys(errores).length > 0) {
+      toast.error("Revisá los correos", {
+        description: "Hay un correo mal escrito. Te lo marcamos debajo del campo.",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -347,13 +380,27 @@ export default function MiPerfilDatosPage() {
 
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><Mail className="w-4 h-4 text-slate-400" /> Correo Público</label>
+              {/* type="text", no "email": con type="email" el navegador mostraba su
+                  cartel emergente nativo, que tapaba "Sede Principal" y bloqueaba el
+                  submit del formulario entero. Lo validamos en handleSave. */}
               <input
-                type="email"
+                type="text"
+                inputMode="email"
+                autoComplete="email"
+                aria-invalid={Boolean(erroresEmail.email)}
                 value={formData.email}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                className={cn(
+                  "w-full px-4 py-2 bg-slate-50 border rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:bg-white transition-all",
+                  erroresEmail.email
+                    ? "border-rose-300 focus:ring-rose-500"
+                    : "border-slate-200 focus:ring-primary-500"
+                )}
                 placeholder="contacto@empresa.com"
               />
+              {erroresEmail.email && (
+                <p className="text-xs font-medium text-rose-600">{erroresEmail.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -362,13 +409,24 @@ export default function MiPerfilDatosPage() {
                 <span className="text-sm font-normal text-slate-400 ml-1">(Opcional)</span>
               </label>
               <input
-                type="email"
+                type="text"
+                inputMode="email"
+                aria-invalid={Boolean(erroresEmail.email_compras)}
                 value={formData.email_compras}
                 onChange={e => setFormData({ ...formData, email_compras: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                className={cn(
+                  "w-full px-4 py-2 bg-slate-50 border rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:bg-white transition-all",
+                  erroresEmail.email_compras
+                    ? "border-rose-300 focus:ring-rose-500"
+                    : "border-slate-200 focus:ring-primary-500"
+                )}
                 placeholder="compras@empresa.com"
               />
-              <p className="text-xs text-slate-400">Si lo cargás, se muestra en tu ficha del directorio para consultas de compras.</p>
+              {erroresEmail.email_compras ? (
+                <p className="text-xs font-medium text-rose-600">{erroresEmail.email_compras}</p>
+              ) : (
+                <p className="text-xs text-slate-400">Si lo cargás, se muestra en tu ficha del directorio para consultas de compras.</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -377,13 +435,24 @@ export default function MiPerfilDatosPage() {
                 <span className="text-sm font-normal text-slate-400 ml-1">(Opcional)</span>
               </label>
               <input
-                type="email"
+                type="text"
+                inputMode="email"
+                aria-invalid={Boolean(erroresEmail.email_mantenimiento)}
                 value={formData.email_mantenimiento}
                 onChange={e => setFormData({ ...formData, email_mantenimiento: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                className={cn(
+                  "w-full px-4 py-2 bg-slate-50 border rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:bg-white transition-all",
+                  erroresEmail.email_mantenimiento
+                    ? "border-rose-300 focus:ring-rose-500"
+                    : "border-slate-200 focus:ring-primary-500"
+                )}
                 placeholder="mantenimiento@empresa.com"
               />
-              <p className="text-xs text-slate-400">Si lo cargás, se muestra en tu ficha del directorio para consultas técnicas y de mantenimiento.</p>
+              {erroresEmail.email_mantenimiento ? (
+                <p className="text-xs font-medium text-rose-600">{erroresEmail.email_mantenimiento}</p>
+              ) : (
+                <p className="text-xs text-slate-400">Si lo cargás, se muestra en tu ficha del directorio para consultas técnicas y de mantenimiento.</p>
+              )}
             </div>
 
             {/* Teléfono unificado: un solo número, con toggle WhatsApp */}

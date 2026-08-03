@@ -75,15 +75,29 @@ export function proximoCobro(ciclo: CicloSuscripcion, desde: Date = new Date()):
   return ciclo === "anual" ? sumarUnAnio(desde) : sumarUnMes(desde);
 }
 
-/** Estados que permiten acceso al dashboard. */
-export const ESTADOS_CON_ACCESO = ["activa", "pendiente_pago", "en_mora"] as const;
+/**
+ * Estados que habilitan las rutas pagas.
+ *
+ * `pendiente_pago` NO habilita, y es el cambio que cierra el item 1.2 del
+ * reporte de Lucas: toda suscripción nace en ese estado desde register-sync, así
+ * que mientras contara como acceso, quien se registraba y nunca pasaba por el
+ * checkout usaba la plataforma completa sin abonar el canon. Ahora el alta nueva
+ * queda afuera hasta que efectivamente pague.
+ *
+ * `en_mora` sí habilita mientras corra el período de gracia: ahí ya pagaron
+ * alguna vez y lo que hay es un cobro fallido, no un alta sin abonar.
+ *
+ * Las socias UIAB no se ven afectadas: entran por /sumate → /admin/altas y
+ * reciben una suscripción `activa` de cortesía ("Socia UIAB (sin cargo)").
+ */
+export const ESTADOS_CON_ACCESO = ["activa", "en_mora"] as const;
 
 export function tieneAcceso(
   estado: string | null | undefined,
   graciaHasta: string | Date | null | undefined
 ): boolean {
   if (!estado) return false;
-  if (estado === "activa" || estado === "pendiente_pago") return true;
+  if (estado === "activa") return true;
   if (estado === "en_mora") {
     if (!graciaHasta) return true;
     return new Date(graciaHasta) > new Date();

@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn, normalizarSitioWeb } from '@/lib/utilidades'
+import { LOCALIDADES_ALMIRANTE_BROWN, PROVINCIAS_AR } from '@/lib/datos/geografia-ar'
 import { useAuth } from '@/modulos/autenticacion/contexto-autenticacion'
 import { PRECIO_MENSUAL, PRECIO_ANUAL } from '@/lib/mercadopago/suscripciones'
 
@@ -325,6 +326,40 @@ function RegisterContent() {
         return
       }
 
+      // ── Aviso temprano si el CUIT ya está en el padrón (paso 3) ──
+      // Mejor acá que al final: si la empresa ya existe, register-sync rechaza
+      // el alta, y no tiene sentido hacerles completar cuatro pantallas más y
+      // elegir una contraseña para después borrarles la cuenta.
+      if (currentStep === 3 && selectedRole === 'company') {
+        try {
+          const res = await fetch('/api/auth/check-cuit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cuit: form.getValues('cuit') }),
+          })
+          const { enPadron, esSocia, razonSocial } = await res.json()
+
+          if (enPadron) {
+            const nombre = razonSocial || 'Esa empresa'
+            toast.error(
+              esSocia
+                ? `${nombre} ya es socia de la UIAB`
+                : `${nombre} ya está registrada en UIAB Conecta`,
+              {
+                description: esSocia
+                  ? 'Tu acceso no tiene cargo. Pedilo desde "Sumate" y te lo habilitamos.'
+                  : 'Si trabajás ahí, pedí el acceso desde "Sumate" y lo habilitamos.',
+                duration: 12000,
+                action: { label: 'Ir a Sumate', onClick: () => router.push('/sumate') },
+              }
+            )
+            return
+          }
+        } catch {
+          // Si el chequeo falla seguimos: register-sync valida igual.
+        }
+      }
+
       // ── Early email duplicate check on Step 6 ──
       if (currentStep === 6) {
         try {
@@ -410,14 +445,40 @@ function RegisterContent() {
       })
 
       if (!res.ok) {
-        toast.error('Ocurrió un error al generar tu perfil.')
+        // El 409 del control contra el padrón trae un mensaje que le sirve al
+        // socio ("tu empresa ya es socia, pedí el acceso desde Sumate"): sería
+        // una lástima taparlo con el genérico. Volvemos al paso del CUIT.
+        const detalle = await res.json().catch(() => null)
+
+        if (res.status === 409 && detalle?.motivo === 'cuit_en_padron') {
+          toast.error(detalle.error, {
+            duration: 14000,
+            action: { label: 'Ir a Sumate', onClick: () => router.push('/sumate') },
+          })
+          setStep(3)
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        } else {
+          toast.error(detalle?.error || 'Ocurrió un error al generar tu perfil.')
+        }
+
         setIsLoading(false)
         return
       }
 
       setIsLoading(false)
 
-      if (esPrueba) {
+      // Sin sesión = Supabase pidió confirmar el correo antes de dejar entrar
+      // (item 1.1 del reporte de Lucas: "el sistema crea la cuenta y habilita la
+      // navegación del panel sin enviar ni validar un mail de confirmación").
+      // No podemos mandarlos al checkout: no hay sesión con la que operar. Va la
+      // pantalla que ya les explica que revisen el correo, y el link del mail los
+      // deja en el checkout vía emailRedirectTo.
+      //
+      // Escrito así el alta funciona con la confirmación prendida O apagada, así
+      // que prender el toggle en Supabase no rompe nada.
+      const requiereConfirmarEmail = !authData.session
+
+      if (esPrueba || requiereConfirmarEmail) {
         setIsSuccess(true)
         window.scrollTo({ top: 0, behavior: 'smooth' })
       } else {
@@ -908,17 +969,39 @@ function RegisterContent() {
 
                           <div className="grid gap-4 sm:gap-6">
                             <div className="grid sm:grid-cols-2 gap-4">
+                              {/* Provincia y Localidad salen de listas, no de texto libre:
+                                  eran los dos únicos campos de ubicación escritos a mano y
+                                  por eso el padrón terminó con "Longchgamps", "BURZACO",
+                                  "ADROGUE" y "CABA" conviviendo con los nombres canónicos
+                                  (item 3.1). El resto del sistema ya usaba listas cerradas. */}
                               <FormField control={form.control} name="provincia" render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Provincia *</FormLabel>
-                                  <FormControl><Input placeholder="Ej: Buenos Aires" className="h-12 font-semibold text-base" {...field} /></FormControl>
+                                  <FormControl>
+                                    <BuscadorLista
+                                      value={field.value}
+                                      onChange={(v) => form.setValue('provincia', v, { shouldValidate: true })}
+                                      items={PROVINCIAS_AR.map((p) => ({ value: p, label: p }))}
+                                      placeholder="Elegí tu provincia"
+                                      searchPlaceholder="Buscar provincia…"
+                                    />
+                                  </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )} />
                               <FormField control={form.control} name="localidad" render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Localidad/Partido *</FormLabel>
-                                  <FormControl><Input placeholder="Ej: Burzaco / Alte. Brown" className="h-12 font-semibold text-base" {...field} /></FormControl>
+                                  <FormControl>
+                                    <BuscadorLista
+                                      value={field.value}
+                                      onChange={(v) => form.setValue('localidad', v, { shouldValidate: true })}
+                                      items={LOCALIDADES_ALMIRANTE_BROWN.map((l) => ({ value: l, label: l }))}
+                                      placeholder="Elegí tu localidad"
+                                      searchPlaceholder="Buscar o escribir otra…"
+                                      permitirOtro
+                                    />
+                                  </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )} />
@@ -1259,19 +1342,25 @@ function RegisterContent() {
                               <Button type="submit" disabled={isLoading} className="w-full h-12 bg-primary-600 hover:bg-primary-700 text-white font-black text-base rounded-xl shadow-xl shadow-primary-600/20 transition-all active:scale-[0.98]">
                                 {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Finalizar y continuar al pago <ArrowRight className="ml-2 h-4 w-4" /></>}
                               </Button>
-                              {/* Botón temporal para testing — bypasea MercadoPago */}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                disabled={isLoading}
-                                onClick={async () => {
-                                  form.setValue('plan', 'gratis_test');
-                                  await form.handleSubmit(onSubmit)();
-                                }}
-                                className="w-full h-10 border-dashed border-slate-300 text-slate-500 hover:text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl"
-                              >
-                                Acceso gratis (solo para pruebas)
-                              </Button>
+                              {/* Bypass de MercadoPago para probar el alta de punta a punta.
+                                  NUNCA en producción: deja la entidad aprobada y la suscripción
+                                  activa de cortesía, así que era la puerta por la que un no socio
+                                  se daba de alta con funcionalidad plena sin abonar el canon
+                                  (item 1.2 del reporte de Lucas). */}
+                              {process.env.NODE_ENV !== 'production' && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  disabled={isLoading}
+                                  onClick={async () => {
+                                    form.setValue('plan', 'gratis_test');
+                                    await form.handleSubmit(onSubmit)();
+                                  }}
+                                  className="w-full h-10 border-dashed border-slate-300 text-slate-500 hover:text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl"
+                                >
+                                  Acceso gratis (solo para pruebas · dev)
+                                </Button>
+                              )}
                               <p className="text-center text-[10px] text-slate-400 font-medium max-w-md mx-auto leading-relaxed">
                                 Al continuar, se crea tu cuenta. Recibirás un email para confirmar tu correo.
                               </p>
@@ -1298,12 +1387,23 @@ function BuscadorLista({
   items,
   placeholder,
   searchPlaceholder,
+  permitirOtro = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   items: Array<{ value: string; label: string }>;
   placeholder: string;
   searchPlaceholder: string;
+  /**
+   * Deja usar un valor que no está en la lista, con lo que el socio escribió en
+   * el buscador. Lo necesita Localidad: la lista son las 12 del partido de
+   * Almirante Brown (el alcance del directorio) pero al registro se anota
+   * cualquiera, así que una empresa de otro partido tiene que poder cargar la
+   * suya. Antes el campo era texto libre y por eso terminó guardado
+   * "Longchgamps" — el typo que después el select del perfil devolvía como
+   * opción propia (item 3.1 del reporte de Lucas).
+   */
+  permitirOtro?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -1317,9 +1417,18 @@ function BuscadorLista({
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  const seleccionado = items.find((i) => i.value === value);
+  // Un valor fuera de lista se muestra igual (si no, el campo se veía vacío
+  // aunque tuviera dato cargado).
+  const enLista = items.find((i) => i.value === value);
+  const seleccionado = enLista ?? (value ? { value, label: value } : undefined);
+
   const q = query.trim().toLowerCase();
   const filtrados = q ? items.filter((i) => i.label.toLowerCase().includes(q)) : items;
+  const textoOtro = query.trim();
+  const ofrecerOtro =
+    permitirOtro &&
+    textoOtro.length >= 2 &&
+    !items.some((i) => i.label.toLowerCase() === q);
 
   return (
     <div className="relative" ref={ref}>
@@ -1362,26 +1471,44 @@ function BuscadorLista({
             </div>
           </div>
           <div className="max-h-72 overflow-y-auto">
-            {filtrados.length === 0 ? (
+            {filtrados.length === 0 && !ofrecerOtro ? (
               <div className="p-4 text-center text-xs text-slate-500">Sin coincidencias.</div>
             ) : (
-              filtrados.map((i) => (
-                <button
-                  key={i.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(i.value);
-                    setOpen(false);
-                    setQuery('');
-                  }}
-                  className={cn(
-                    'w-full text-left px-4 py-2.5 text-sm hover:bg-primary-50 transition-colors',
-                    value === i.value && 'bg-primary-50 text-primary-700 font-bold'
-                  )}
-                >
-                  {i.label}
-                </button>
-              ))
+              <>
+                {filtrados.map((i) => (
+                  <button
+                    key={i.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(i.value);
+                      setOpen(false);
+                      setQuery('');
+                    }}
+                    className={cn(
+                      'w-full text-left px-4 py-2.5 text-sm hover:bg-primary-50 transition-colors',
+                      value === i.value && 'bg-primary-50 text-primary-700 font-bold'
+                    )}
+                  >
+                    {i.label}
+                  </button>
+                ))}
+                {ofrecerOtro && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange(textoOtro);
+                      setOpen(false);
+                      setQuery('');
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm border-t border-slate-100 hover:bg-primary-50 transition-colors text-slate-600"
+                  >
+                    Usar <span className="font-bold text-[#00213f]">“{textoOtro}”</span>
+                    <span className="block text-[11px] text-slate-400 font-medium">
+                      No está en la lista del partido de Almirante Brown
+                    </span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

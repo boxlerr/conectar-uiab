@@ -5,6 +5,7 @@ import { plantillaNotificacionAdmin } from '@/lib/email/plantillas'
 import { plantillaSuscripcionPendiente } from '@/lib/email/plantillas-suscripciones'
 import { calcularMontoMensual, calcularTarifaPorEmpleados, nombrePlan } from '@/lib/mercadopago/suscripciones'
 import { normalizarSitioWeb } from '@/lib/utilidades'
+import { buscarEmpresaEnPadron, esSocia } from '@/modulos/altas/buscar-en-padron'
 
 export async function POST(request: Request) {
   try {
@@ -25,7 +26,17 @@ export async function POST(request: Request) {
 
     // Bandera para accesos de prueba: salteamos Mercado Pago y dejamos la cuenta
     // activa de inmediato (entidad aprobada + suscripción cortesía).
-    const esPrueba = plan === 'gratis_test'
+    //
+    // El corte por entorno es lo que cierra de verdad el item 1.2 del reporte de
+    // Lucas. Esconder el botón del formulario no alcanzaba: `plan` viaja en el
+    // payload que manda el browser, así que un POST armado a mano a este
+    // endpoint con plan="gratis_test" seguía dando de alta una empresa aprobada
+    // con suscripción de cortesía, sin pagar el canon. En producción la bandera
+    // se ignora y el alta cae siempre en pendiente_revision + pendiente_pago.
+    const esPrueba = plan === 'gratis_test' && process.env.NODE_ENV !== 'production'
+    if (plan === 'gratis_test' && !esPrueba) {
+      console.warn('[register-sync] Se ignoró plan="gratis_test" en producción:', email)
+    }
     const estadoEntidadCompany = esPrueba ? 'aprobada' : 'pendiente_revision'
     const estadoEntidadProvider = esPrueba ? 'aprobado' : 'pendiente_revision'
 
@@ -48,6 +59,44 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
+
+    // 0. Control contra el padrón UIAB (item 1.3 del reporte de Lucas).
+    //
+    // Si el CUIT ya está en `empresas` no damos de alta nada: sería una ficha
+    // duplicada de una empresa que ya existe. Fue exactamente lo que pasó con
+    // Metalúrgica Longchamps, socia con ficha aprobada y suscripción activa, que
+    // quedó dos veces en el directorio.
+    //
+    // NO vinculamos la cuenta a la ficha existente por nuestra cuenta: conocer
+    // un CUIT (que es público) no prueba que trabajes ahí. El acceso a una ficha
+    // del padrón lo habilita un admin desde /admin/altas, que es el flujo que ya
+    // existe y el que además le da a la socia su acceso bonificado.
+    if (role === 'company') {
+      const enPadron = await buscarEmpresaEnPadron(supabaseAdmin, cuit)
+
+      if (enPadron) {
+        // El usuario de Auth ya fue creado por el signUp del cliente. Lo
+        // borramos: si lo dejamos, el email queda quemado (check-email lo ve
+        // como registrado) y no puede volver a intentar ni pedir su acceso.
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(instanceId)
+        } catch (err) {
+          console.error('[register-sync] No se pudo limpiar el usuario de Auth:', err)
+        }
+
+        const nombre = enPadron.razon_social ?? 'Tu empresa'
+        return NextResponse.json(
+          {
+            error: esSocia(enPadron)
+              ? `${nombre} ya es socia de la UIAB, así que tu acceso no tiene cargo. Pedilo desde "Sumate" y te lo habilitamos.`
+              : `${nombre} ya está registrada en UIAB Conecta con ese CUIT. Si trabajás ahí, pedí el acceso desde "Sumate" y lo habilitamos.`,
+            motivo: 'cuit_en_padron',
+            esSocia: esSocia(enPadron),
+          },
+          { status: 409 }
+        )
+      }
+    }
 
     // 1. Insert into perfiles (bypassing RLS)
     const { error: profileError } = await supabaseAdmin

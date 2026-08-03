@@ -7,7 +7,7 @@ import { appUrl, emailAdmin, enviarEmail } from "@/lib/email/cliente";
 import { escapeText, renderEmailBase } from "@/lib/email/plantillas";
 import { CATEGORIAS_ALTA, type AltaSocioInput } from "./constantes";
 import { generarYEnviarInvitacion } from "./invitaciones-core";
-import { fusionarConPadron, type ConflictoPadron } from "./padron";
+import { fusionarConPadron, normalizarCuit, type ConflictoPadron } from "./padron";
 import { normalizarSitioWeb } from "@/lib/utilidades";
 
 function adminClient() {
@@ -50,12 +50,8 @@ function limpiar(v: string | undefined | null): string | null {
   return t === "" ? null : t;
 }
 
-// Deja solo los dígitos del CUIT ("30-12345678-9" → "30123456789").
-// Con menos de 8 dígitos devuelve null para evitar matches basura con strings cortos.
-function normalizarCuit(v: string | null | undefined): string | null {
-  const digitos = (v ?? "").replace(/\D/g, "");
-  return digitos.length < 8 ? null : digitos;
-}
+// normalizarCuit vive en ./padron: lo comparten esta acción, el endpoint
+// check-cuit y register-sync.
 
 // ─── Acción pública: enviar el formulario ──────────────────────────────────────
 

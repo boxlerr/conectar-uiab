@@ -7,6 +7,7 @@ import {
   tieneAcceso,
   TARIFA_PRECIO_MENSUAL_FALLBACK,
   PRECIO_PARTICULAR_MENSUAL,
+  PRECIO_MENSUAL,
 } from "@/lib/mercadopago/suscripciones";
 
 describe("calcularTarifaPorEmpleados", () => {
@@ -40,29 +41,38 @@ describe("calcularMontoMensual", () => {
       TARIFA_PRECIO_MENSUAL_FALLBACK[3]
     );
   });
-  it("usa precio de DB cuando está disponible", () => {
+  // Con el plan único la función ignora los args a propósito (la firma se
+  // conserva sólo para no romper las llamadas existentes). Los precios de
+  // `tarifas_precios` ya no mandan: el monto es siempre PRECIO_MENSUAL. Este
+  // test esperaba el precio de la DB y venía fallando desde el pase a plan único.
+  it("ignora los precios de la DB: el plan es uno solo", () => {
     expect(
       calcularMontoMensual({
         role: "company",
         tarifa: 1,
         preciosDb: { 1: 200_000, 2: 400_000, 3: 600_000 },
       })
-    ).toBe(200_000);
+    ).toBe(PRECIO_MENSUAL);
   });
   it("devuelve precio fijo para particulares", () => {
     expect(calcularMontoMensual({ role: "provider" })).toBe(PRECIO_PARTICULAR_MENSUAL);
   });
 });
 
+// Plan único desde la reunión de julio 2026: el nombre ya no depende del rol ni
+// del nivel de tarifa (antes había "— Tarifa 2", "— Empresa", "— Particular").
+// Sólo distingue el ciclo. Estos tests esperaban los nombres viejos y venían
+// fallando desde entonces.
 describe("nombrePlan", () => {
-  it("incluye el nivel en empresas", () => {
-    expect(nombrePlan("company", 2)).toBe("UIAB Conecta — Tarifa 2");
+  it("es el mismo plan para empresa y particular", () => {
+    expect(nombrePlan("company")).toBe("UIAB Conecta");
+    expect(nombrePlan("provider")).toBe("UIAB Conecta");
   });
-  it("fallback sin tarifa para empresa", () => {
-    expect(nombrePlan("company")).toBe("UIAB Conecta — Empresa");
+  it("ignora el nivel de tarifa, que ya no existe", () => {
+    expect(nombrePlan("company", 2)).toBe("UIAB Conecta");
   });
-  it("particular fijo", () => {
-    expect(nombrePlan("provider")).toBe("UIAB Conecta — Particular");
+  it("distingue el ciclo anual", () => {
+    expect(nombrePlan("company", null, "anual")).toBe("UIAB Conecta — Anual");
   });
 });
 
@@ -82,9 +92,14 @@ describe("sumarUnMes", () => {
 });
 
 describe("tieneAcceso", () => {
-  it("activa y pendiente_pago permiten acceso", () => {
+  it("activa permite acceso", () => {
     expect(tieneAcceso("activa", null)).toBe(true);
-    expect(tieneAcceso("pendiente_pago", null)).toBe(true);
+  });
+  // Item 1.2 del reporte de Lucas: toda suscripción nace en pendiente_pago
+  // desde register-sync. Mientras contó como acceso, quien se registraba y no
+  // pasaba por el checkout usaba la plataforma completa sin abonar el canon.
+  it("pendiente_pago NO permite: es un alta que todavía no abonó", () => {
+    expect(tieneAcceso("pendiente_pago", null)).toBe(false);
   });
   it("en_mora permite si gracia futura", () => {
     const futuro = new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString();

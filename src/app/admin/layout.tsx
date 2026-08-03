@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utilidades";
 
 const adminNav = [
-  { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { name: "Panel de control", href: "/admin", icon: LayoutDashboard },
   { name: "Altas de socios", href: "/admin/altas", icon: UserPlus },
   { name: "Socios UIAB", href: "/admin/empresas", icon: Building },
   { name: "Proveedores de servicios", href: "/admin/proveedores", icon: Wrench },

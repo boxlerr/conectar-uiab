@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cn, normalizarSitioWeb } from '@/lib/utilidades';
+import { cn, normalizarSitioWeb, pareceEmail } from '@/lib/utilidades';
 
 describe('cn() — combinador de clases Tailwind', () => {
   it('combina múltiples clases simples', () => {
@@ -72,5 +72,42 @@ describe('normalizarSitioWeb() — la web como la tipean los socios', () => {
   it('limpia espacios y barras sueltas al principio', () => {
     expect(normalizarSitioWeb('  www.empresa.com  ')).toBe('https://www.empresa.com');
     expect(normalizarSitioWeb('//www.empresa.com')).toBe('https://www.empresa.com');
+  });
+});
+
+// Item 2.3 del reporte de Lucas: "el mensaje de error se muestra como aviso
+// nativo del navegador. El cartel emergente tapa el bloque Sede Principal y
+// desaparece solo". Salía de los type="email" del formulario de datos, que
+// además bloqueaban el submit completo. Ahora validamos nosotros y el mensaje va
+// en línea, así que el validador tiene que ser permisivo pero no inútil.
+describe('pareceEmail() — para no depender del cartel nativo del browser', () => {
+  it('acepta correos normales', () => {
+    expect(pareceEmail('info@metlongchamps.com')).toBe(true);
+    expect(pareceEmail('cotizaciones@metlongchamps.com.ar')).toBe(true);
+    expect(pareceEmail('nombre.apellido+ventas@sub.dominio.com')).toBe(true);
+  });
+
+  it('rechaza lo que seguro no es un correo', () => {
+    expect(pareceEmail('metlongchamps.com')).toBe(false); // sin arroba
+    expect(pareceEmail('info@')).toBe(false);             // sin dominio
+    expect(pareceEmail('info@localhost')).toBe(false);    // dominio sin punto
+    expect(pareceEmail('@metlongchamps.com')).toBe(false);
+    expect(pareceEmail('info@@metlongchamps.com')).toBe(false);
+  });
+
+  it('rechaza espacios, que es el typo más común al pegar', () => {
+    expect(pareceEmail('info @metlongchamps.com')).toBe(false);
+    expect(pareceEmail('info@met longchamps.com')).toBe(false);
+  });
+
+  it('ignora espacios de sobra alrededor', () => {
+    expect(pareceEmail('  info@metlongchamps.com  ')).toBe(true);
+  });
+
+  it('vacío es false: lo obligatorio/opcional lo decide el formulario', () => {
+    expect(pareceEmail('')).toBe(false);
+    expect(pareceEmail('   ')).toBe(false);
+    expect(pareceEmail(null)).toBe(false);
+    expect(pareceEmail(undefined)).toBe(false);
   });
 });

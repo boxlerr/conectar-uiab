@@ -18,6 +18,20 @@
 
 export type OrigenDato = "formulario" | "padron";
 
+/**
+ * Deja sólo los dígitos del CUIT ("30-12345678-9" → "30123456789").
+ * Con menos de 8 dígitos devuelve null, para no matchear basura contra strings
+ * cortos. Vive acá y no en la server action del alta porque el padrón se
+ * consulta desde tres lados — el alta de /sumate, /api/auth/check-cuit y
+ * register-sync — y comparar con criterios distintos es justamente lo que dejó
+ * a Metalúrgica Longchamps duplicada: "30-71232689-8" en el padrón contra
+ * "30712326898" en el registro.
+ */
+export function normalizarCuit(v: string | null | undefined): string | null {
+  const digitos = (v ?? "").replace(/\D/g, "");
+  return digitos.length < 8 ? null : digitos;
+}
+
 export type ConflictoPadron = {
   /** Columna de `empresas` en disputa. */
   campo: string;

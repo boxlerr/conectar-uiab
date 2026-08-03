@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { tieneAcceso } from '@/lib/mercadopago/suscripciones'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -162,17 +163,10 @@ export async function updateSession(request: NextRequest) {
           .limit(1)
           .maybeSingle();
 
-        const estado = sus?.estado;
-        const gracia = sus?.gracia_hasta ? new Date(sus.gracia_hasta) : null;
-        const ahora = new Date();
-
-        const bloqueado =
-          !estado ||
-          estado === 'suspendida' ||
-          estado === 'cancelada' ||
-          (estado === 'en_mora' && gracia && gracia < ahora);
-
-        if (bloqueado) {
+        // Una sola fuente de verdad para "¿puede entrar?": antes esto era una
+        // expresión propia acá y `tieneAcceso` vivía sin usarse en
+        // lib/mercadopago/suscripciones, con criterios distintos.
+        if (!tieneAcceso(sus?.estado, sus?.gracia_hasta)) {
           const url = request.nextUrl.clone();
           url.pathname = '/suscripcion/bloqueado';
           url.searchParams.set('from', pathname);

@@ -55,6 +55,24 @@ export function normalizarSitioWeb(url: string | null | undefined): string | nul
   return /^[a-z][a-z0-9+.-]*:\/\//i.test(limpio) ? limpio : `https://${limpio}`;
 }
 
+/**
+ * ¿Tiene forma de correo? Deliberadamente permisiva: sólo descarta lo que
+ * seguro no es un mail (sin arroba, sin dominio, con espacios). No intentamos
+ * validar direcciones de verdad, para eso hay que mandarles un correo.
+ *
+ * Existe para poder sacar los `type="email"` de los formularios: el navegador
+ * los valida solo, pero lo hace con su cartel emergente nativo, que tapa el
+ * bloque de al lado, desaparece por su cuenta y — lo peor — bloquea el submit
+ * del formulario entero (item 2.3 del reporte de Lucas, el mismo problema que
+ * tenía el campo de sitio web). Validando nosotros, el mensaje va en línea
+ * debajo del campo y con el estilo del resto del formulario.
+ */
+export function pareceEmail(valor: string | null | undefined): boolean {
+  const v = (valor ?? "").trim();
+  if (!v || /\s/.test(v)) return false;
+  return /^[^@]+@[^@.]+(\.[^@.]+)+$/.test(v);
+}
+
 /** Link de WhatsApp click-to-chat. `texto` opcional pre-rellena el mensaje. */
 export function whatsappLink(
   telefono: string | null | undefined,

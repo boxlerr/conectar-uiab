@@ -319,7 +319,7 @@ export default async function AdminDashboardPage() {
             Administración · Resumen
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
-            Dashboard
+            Panel de control
           </h1>
           <p className="text-slate-500 mt-2 max-w-xl text-sm">
             Todo lo que está pasando en UIAB Conecta en un solo lugar. Las novedades de las últimas
