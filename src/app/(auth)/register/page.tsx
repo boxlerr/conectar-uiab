@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utilidades'
+import { cn, normalizarSitioWeb } from '@/lib/utilidades'
 import { useAuth } from '@/modulos/autenticacion/contexto-autenticacion'
 import { PRECIO_MENSUAL, PRECIO_ANUAL } from '@/lib/mercadopago/suscripciones'
 
@@ -866,9 +866,25 @@ function RegisterContent() {
                                   <FormControl>
                                     <div className="relative group">
                                       <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary-600" />
-                                      <Input placeholder="www.ejemplo.com" className="h-14 pl-11 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} />
+                                      {/* Sin type="url": el browser bloqueaba el paso con su cartel
+                                          nativo "Introduce una URL" cuando faltaba el https://.
+                                          El esquema lo agrega normalizarSitioWeb() al salir del campo. */}
+                                      <Input
+                                        placeholder="www.ejemplo.com"
+                                        inputMode="url"
+                                        className="h-14 pl-11 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white"
+                                        {...field}
+                                        onBlur={(e) => {
+                                          field.onBlur()
+                                          const normalizado = normalizarSitioWeb(e.target.value) ?? ''
+                                          if (normalizado !== e.target.value) {
+                                            form.setValue('sitioWeb', normalizado, { shouldValidate: true })
+                                          }
+                                        }}
+                                      />
                                     </div>
                                   </FormControl>
+                                  <p className="text-[11px] text-slate-400 font-medium ml-1">Podés escribirlo sin https://, lo completamos nosotros.</p>
                                   <FormMessage />
                                 </FormItem>
                               )} />

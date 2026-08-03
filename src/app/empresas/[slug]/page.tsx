@@ -1,6 +1,6 @@
 import { createClient as createServerClient } from "@/lib/supabase/servidor";
 import { createClient } from "@supabase/supabase-js";
-import { crearSlug } from "@/lib/utilidades";
+import { crearSlug, normalizarSitioWeb } from "@/lib/utilidades";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
@@ -303,8 +303,8 @@ function jsonLdOrganizacion(opts: {
     url: opts.url,
     ...(opts.descripcion ? { description: opts.descripcion } : {}),
     ...(opts.logoUrl ? { logo: opts.logoUrl, image: opts.logoUrl } : {}),
-    ...(opts.sitioWeb
-      ? { sameAs: [opts.sitioWeb.startsWith("http") ? opts.sitioWeb : `https://${opts.sitioWeb}`] }
+    ...(normalizarSitioWeb(opts.sitioWeb)
+      ? { sameAs: [normalizarSitioWeb(opts.sitioWeb)!] }
       : {}),
     ...(opts.localidad
       ? {
@@ -621,7 +621,7 @@ async function EmpresaProfile({
             )}
             {empresa.contacto.sitioWeb && (
               <a
-                href={empresa.contacto.sitioWeb.match(/^https?:\/\//) ? empresa.contacto.sitioWeb : `https://${empresa.contacto.sitioWeb}`}
+                href={normalizarSitioWeb(empresa.contacto.sitioWeb) ?? "#"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 font-semibold transition-colors"
@@ -842,7 +842,7 @@ async function EmpresaProfile({
                       <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
-                        <a href={empresa.contacto.sitioWeb.match(/^https?:\/\//) ? empresa.contacto.sitioWeb : `https://${empresa.contacto.sitioWeb}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
+                        <a href={normalizarSitioWeb(empresa.contacto.sitioWeb) ?? "#"} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
                           {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                         </a>
                       </div>

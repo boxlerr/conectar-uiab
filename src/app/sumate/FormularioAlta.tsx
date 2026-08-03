@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { enviarAltaSocio } from "@/modulos/altas/acciones";
 import { CATEGORIAS_ALTA, type AltaSocioInput } from "@/modulos/altas/constantes";
 import { LOCALIDADES_ALMIRANTE_BROWN } from "@/lib/datos/geografia-ar";
+import { normalizarSitioWeb } from "@/lib/utilidades";
 
 const ESTADO_INICIAL = {
   razon_social: "",
@@ -362,13 +363,20 @@ export function FormularioAlta() {
             <label htmlFor="sitio_web" className={labelCls}>
               Sitio web
             </label>
+            {/* Sin type="url": el cartel nativo del browser bloqueaba el envío
+                cuando faltaba el https://. El esquema lo agregamos nosotros. */}
             <input
               id="sitio_web"
               className={inputCls}
+              inputMode="url"
               placeholder="www.empresa.com"
               value={form.sitio_web}
               onChange={(e) => set("sitio_web", e.target.value)}
+              onBlur={(e) => set("sitio_web", normalizarSitioWeb(e.target.value) ?? "")}
             />
+            <p className="text-[11px] text-slate-400 font-medium ml-1 mt-1">
+              Podés escribirlo sin https://, lo completamos nosotros.
+            </p>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { enviarEmail, emailAdmin, appUrl } from '@/lib/email/cliente'
 import { plantillaNotificacionAdmin } from '@/lib/email/plantillas'
 import { plantillaSuscripcionPendiente } from '@/lib/email/plantillas-suscripciones'
 import { calcularMontoMensual, calcularTarifaPorEmpleados, nombrePlan } from '@/lib/mercadopago/suscripciones'
+import { normalizarSitioWeb } from '@/lib/utilidades'
 
 export async function POST(request: Request) {
   try {
@@ -27,6 +28,11 @@ export async function POST(request: Request) {
     const esPrueba = plan === 'gratis_test'
     const estadoEntidadCompany = esPrueba ? 'aprobada' : 'pendiente_revision'
     const estadoEntidadProvider = esPrueba ? 'aprobado' : 'pendiente_revision'
+
+    // El sitio web viaja como lo tipearon ("www.empresa.com"). Le agregamos el
+    // esquema acá y no sólo en el cliente: es lo que se guarda y lo que después
+    // se usa como href en la ficha pública, y sin https:// el link sale relativo.
+    const sitioWebNormalizado = normalizarSitioWeb(sitioWeb)
 
     // Parsear cantidad de empleados desde el string "size" del formulario.
     // Ejemplos aceptados: "50", "50 empleados", "~ 120".
@@ -73,7 +79,7 @@ export async function POST(request: Request) {
           estado: estadoEntidadCompany,
           email: email,
           telefono: telefono,
-          sitio_web: sitioWeb || null,
+          sitio_web: sitioWebNormalizado,
           pais: pais || 'Argentina',
           provincia: provincia,
           localidad: localidad,
@@ -131,7 +137,7 @@ export async function POST(request: Request) {
             estado: estadoEntidadProvider,
             email: email,
             telefono: telefono,
-            sitio_web: sitioWeb || null,
+            sitio_web: sitioWebNormalizado,
             pais: pais || 'Argentina',
             provincia: provincia,
             localidad: localidad,

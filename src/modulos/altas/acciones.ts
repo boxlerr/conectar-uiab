@@ -8,6 +8,7 @@ import { escapeText, renderEmailBase } from "@/lib/email/plantillas";
 import { CATEGORIAS_ALTA, type AltaSocioInput } from "./constantes";
 import { generarYEnviarInvitacion } from "./invitaciones-core";
 import { fusionarConPadron, type ConflictoPadron } from "./padron";
+import { normalizarSitioWeb } from "@/lib/utilidades";
 
 function adminClient() {
   return createClient(
@@ -99,7 +100,9 @@ export async function enviarAltaSocio(input: AltaSocioInput) {
     email_compras: limpiar(d.email_compras),
     email_mantenimiento: limpiar(d.email_mantenimiento),
     telefono: limpiar(d.telefono),
-    sitio_web: limpiar(d.sitio_web),
+    // Con esquema: este valor se copia tal cual a `empresas`/`proveedores` al
+    // dar el acceso, y de ahí sale como href de la ficha pública.
+    sitio_web: normalizarSitioWeb(d.sitio_web),
     localidad: limpiar(d.localidad),
     direccion: limpiar(d.direccion),
     mensaje: limpiar(d.mensaje),

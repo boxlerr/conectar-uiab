@@ -46,6 +46,7 @@ import {
   ESTADOS_ALTA,
 } from "@/modulos/altas/constantes";
 import { conflictosPendientes, type ConflictoPadron } from "@/modulos/altas/padron";
+import { normalizarSitioWeb } from "@/lib/utilidades";
 
 type Alta = {
   id: string;
@@ -674,7 +675,7 @@ export function PanelAltas({
                   {seleccionada.sitio_web && (
                     <div className="flex items-center gap-3">
                       <Globe className="w-4 h-4 text-slate-400 shrink-0" />
-                      <a href={seleccionada.sitio_web.startsWith("http") ? seleccionada.sitio_web : `https://${seleccionada.sitio_web}`} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline truncate inline-flex items-center gap-1">
+                      <a href={normalizarSitioWeb(seleccionada.sitio_web) ?? "#"} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline truncate inline-flex items-center gap-1">
                         {seleccionada.sitio_web} <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>

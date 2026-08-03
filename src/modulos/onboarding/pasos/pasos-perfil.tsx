@@ -29,6 +29,25 @@ const apunta = (s: PasoConRuta): PasoConRuta => ({
   skipScroll: false,
 });
 
+/**
+ * Paso "hacelo ahora": igual que `apunta`, pero el socio puede usar lo que le
+ * estamos explicando sin cerrar el tutorial — escribir en el campo, subir el
+ * logo, tocar el botón — y después seguir con Siguiente. Es opcional: si no
+ * quiere cargar nada, avanza y listo.
+ *
+ * Los clicks ya atraviesan el recorte del spotlight (blockTargetInteraction es
+ * false por default), pero eso solo no alcanza: joyride atrapa el foco dentro
+ * del tooltip, así que al tocar un input el foco volvía y no se podía tipear.
+ * Por eso va `disableFocusTrap`. Se pone paso por paso y no global a propósito:
+ * en los pasos que sólo explican, la trampa de foco es lo correcto para quien
+ * navega con teclado.
+ */
+const hacelo = (s: PasoConRuta): PasoConRuta => ({
+  ...apunta(s),
+  disableFocusTrap: true,
+  blockTargetInteraction: false,
+});
+
 export const pasosPerfil: PasoConRuta[] = [
   // ─── OVERVIEW en /perfil ──────────────────────────────────────────
   centro({
@@ -87,28 +106,28 @@ export const pasosPerfil: PasoConRuta[] = [
       "Al tocar Siguiente te llevo a la sección donde configurás toda tu información principal.",
     data: { ruta: "/perfil" },
   }),
-  apunta({
+  hacelo({
     target: '[data-tour="datos-logo"]',
     placement: "right",
     title: "Subí tu logotipo",
     content:
-      "Hacé click acá para subir tu logo o foto de perfil (PNG/JPG, hasta 2 MB). Es la cara visible de tu marca en el directorio.",
+      "Hacé click acá para subir tu logo o foto de perfil (PNG/JPG, hasta 2 MB). Es la cara visible de tu marca en el directorio. Podés subirlo ahora mismo sin cerrar el tutorial, y después seguir.",
     data: { ruta: "/perfil/datos" },
   }),
-  apunta({
+  hacelo({
     target: '[data-tour="datos-form"]',
     placement: "top",
     title: "Tu información principal",
     content:
-      "Razón social, CUIT, email, teléfono, dirección y descripción. Completar bien este formulario es clave para aparecer en búsquedas.",
+      "Razón social, CUIT, email, teléfono, dirección y descripción. Completar bien este formulario es clave para aparecer en búsquedas. Si querés, completá los campos acá mismo mientras seguimos el recorrido — es opcional, podés dejarlo para después.",
     data: { ruta: "/perfil/datos" },
   }),
-  apunta({
+  hacelo({
     target: '[data-tour="datos-guardar"]',
     placement: "top",
     title: "No te olvides de guardar",
     content:
-      "Siempre que cambies algo, tocá acá para guardar. Si recién creás tu perfil, este botón lo registra en el directorio por primera vez.",
+      "Siempre que cambies algo, tocá acá para guardar. Si cargaste algo en el paso anterior, guardalo ahora sin salir del tutorial. Si recién creás tu perfil, este botón lo registra en el directorio por primera vez.",
     data: { ruta: "/perfil/datos" },
   }),
 
@@ -119,15 +138,15 @@ export const pasosPerfil: PasoConRuta[] = [
       "Te llevo a Productos y Servicios, donde cargás lo que ofrecés. Los socios lo ven al entrar a tu ficha.",
     data: { ruta: "/perfil/datos" },
   }),
-  apunta({
+  hacelo({
     target: '[data-tour="productos-agregar"]',
     placement: "bottom",
     title: "Añadir un ítem",
     content:
-      "Con este botón agregás un producto o servicio: nombre, descripción, precio y foto. Cuanto más completo, mejor te encuentran.",
+      "Con este botón agregás un producto o servicio: nombre, descripción, precio y foto. Cuanto más completo, mejor te encuentran. Probalo ahora si querés cargar el primero.",
     data: { ruta: "/perfil/productos-servicios" },
   }),
-  apunta({
+  hacelo({
     target: '[data-tour="productos-importar"]',
     placement: "bottom",
     title: "Importar desde Excel",

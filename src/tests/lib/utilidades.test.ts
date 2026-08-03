@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cn } from '@/lib/utilidades';
+import { cn, normalizarSitioWeb } from '@/lib/utilidades';
 
 describe('cn() — combinador de clases Tailwind', () => {
   it('combina múltiples clases simples', () => {
@@ -37,5 +37,40 @@ describe('cn() — combinador de clases Tailwind', () => {
 
   it('mantiene clases que no son de Tailwind', () => {
     expect(cn('mi-clase-custom', 'otra-clase')).toBe('mi-clase-custom otra-clase');
+  });
+});
+
+// Item 2.2 del reporte de errores de Lucas (2026-08-03): el campo Sitio Web
+// rechazaba "www.metlongchamps.com" con el cartel nativo del browser
+// ("Introduce una URL") y bloqueaba el guardado del formulario entero. La
+// validación estricta se cambió por esta normalización, que ahora corre en los
+// 4 formularios que piden la web y en cada href que la renderiza.
+describe('normalizarSitioWeb() — la web como la tipean los socios', () => {
+  it('agrega https:// cuando falta el esquema', () => {
+    expect(normalizarSitioWeb('www.metlongchamps.com')).toBe('https://www.metlongchamps.com');
+    expect(normalizarSitioWeb('miempresa.com.ar')).toBe('https://miempresa.com.ar');
+  });
+
+  it('respeta el esquema que ya venía, sin forzar https', () => {
+    expect(normalizarSitioWeb('http://miempresa.com.ar')).toBe('http://miempresa.com.ar');
+    expect(normalizarSitioWeb('https://vaxler.com.ar')).toBe('https://vaxler.com.ar');
+  });
+
+  it('no duplica el esquema ni se confunde con mayúsculas', () => {
+    // "Www.adbarbieri.com" es un valor real cargado desde /sumate.
+    expect(normalizarSitioWeb('Www.adbarbieri.com')).toBe('https://Www.adbarbieri.com');
+    expect(normalizarSitioWeb('HTTPS://miempresa.com')).toBe('HTTPS://miempresa.com');
+  });
+
+  it('devuelve null para lo que no es una web, así no se guarda basura', () => {
+    expect(normalizarSitioWeb('')).toBeNull();
+    expect(normalizarSitioWeb('   ')).toBeNull();
+    expect(normalizarSitioWeb(null)).toBeNull();
+    expect(normalizarSitioWeb(undefined)).toBeNull();
+  });
+
+  it('limpia espacios y barras sueltas al principio', () => {
+    expect(normalizarSitioWeb('  www.empresa.com  ')).toBe('https://www.empresa.com');
+    expect(normalizarSitioWeb('//www.empresa.com')).toBe('https://www.empresa.com');
   });
 });

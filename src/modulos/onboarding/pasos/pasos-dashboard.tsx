@@ -2,7 +2,7 @@ import type { Step } from "react-joyride";
 import type { PasoData } from "../contexto-tour";
 
 /**
- * Tour del Dashboard. Un recorrido de 9 pasos por el panel principal del
+ * Tour del Panel de control. Un recorrido de 9 pasos por el panel principal del
  * usuario logueado: perfil, KPIs, matches, actividad, productos, acciones
  * rápidas y CTA de explorar. Todo vive en /panel-de-control.
  */
@@ -28,7 +28,7 @@ const apunta = (s: PasoConRuta): PasoConRuta => ({
 export const pasosDashboard: PasoConRuta[] = [
   // ─── BIENVENIDA ──────────────────────────────────────────────────
   centro({
-    title: "Te damos la bienvenida al Dashboard",
+    title: "Te damos la bienvenida al Panel de control",
     content:
       "Este es tu tablero de control: acá vas a encontrar el estado de tu perfil, las oportunidades que te matchean y accesos rápidos a todo lo importante. Te lo recorro en un minuto.",
     data: { ruta: "/panel-de-control" },
@@ -106,7 +106,7 @@ export const pasosDashboard: PasoConRuta[] = [
 
   // ─── CIERRE ─────────────────────────────────────────────────────
   centro({
-    title: "¡Listo! Ya conocés tu dashboard",
+    title: "¡Listo! Ya conocés tu panel de control",
     content:
       'Cuando quieras repasar, tocá "Ver tutorial" arriba en el hero. Ahora dale — revisá tus matches y aprovechá la red.',
     data: { ruta: "/panel-de-control" },

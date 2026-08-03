@@ -15,6 +15,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { Controls, EventData, Step } from "react-joyride";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { marcarTourVisto, resetearTour } from "./acciones";
+import { proximoPasoMostrable } from "./salteo-pasos";
 import type { TourId } from "./tipos";
 import { createClient } from "@/lib/supabase/cliente";
 import { crearSlug } from "@/lib/utilidades";
@@ -101,6 +102,18 @@ interface TourProviderProps {
  */
 const SENTINEL_EMPRESA_MUESTRA = "__SLUG__";
 const SENTINEL_OP_MUESTRA = "__OP_ID__";
+
+/**
+ * ¿Está el nodo en el DOM? Un selector inválido devuelve false en vez de tirar:
+ * preferimos saltear ese paso antes que romper el tour entero.
+ */
+function estaEnElDom(selector: string): boolean {
+  try {
+    return Boolean(document.querySelector(selector));
+  } catch {
+    return false;
+  }
+}
 
 export function TourProvider({ children }: TourProviderProps) {
   const { currentUser } = useAuth();
@@ -223,19 +236,27 @@ export function TourProvider({ children }: TourProviderProps) {
     [slugMuestra, opMuestra]
   );
 
-  const pasos = useMemo(() => {
-    if (!tourActivo) return [];
-    const base = CATALOGO_PASOS[tourActivo];
-    // En un tablero sin oportunidad de muestra, los pasos que dependen de una
-    // tarjeta o de la ficha de detalle no tienen target / no se puede navegar.
-    // Los descartamos para que el tour no se congele en el paso de la tarjeta.
-    if (!opMuestra) {
+  // Los pasos que un tour realmente muestra. En un tablero sin oportunidad de
+  // muestra, los pasos que dependen de una tarjeta o de la ficha de detalle no
+  // tienen target / no se puede navegar: los descartamos para que el tour no se
+  // congele ahí. Va en un callback y no inline porque `iniciarTour` necesita la
+  // MISMA lista para calcular el paso inicial — si una usa la lista filtrada y
+  // la otra la completa, el índice guardado apunta a otro paso.
+  const pasosVisibles = useCallback(
+    (id: TourId) => {
+      const base = CATALOGO_PASOS[id];
+      if (opMuestra) return base;
       return base.filter(
         (p) => !(p.data as PasoData | undefined)?.requiereMuestra
       );
-    }
-    return base;
-  }, [tourActivo, opMuestra]);
+    },
+    [opMuestra]
+  );
+
+  const pasos = useMemo(
+    () => (tourActivo ? pasosVisibles(tourActivo) : []),
+    [tourActivo, pasosVisibles]
+  );
 
   const iniciarTour = useCallback(
     async (id: TourId) => {
@@ -245,7 +266,7 @@ export function TourProvider({ children }: TourProviderProps) {
       }
       // Si el usuario había cerrado el tour a la mitad, reanudamos desde
       // ese paso. Si no, arrancamos de cero.
-      const pasosNuevos = CATALOGO_PASOS[id];
+      const pasosNuevos = pasosVisibles(id);
       const guardado = progreso[id];
       const inicio =
         typeof guardado === "number" &&
@@ -268,7 +289,7 @@ export function TourProvider({ children }: TourProviderProps) {
         setCorriendo(true);
       }
     },
-    [vistosLocal, pathname, router, resolverRuta, progreso]
+    [vistosLocal, pathname, router, resolverRuta, progreso, pasosVisibles]
   );
 
   const terminarTour = useCallback(() => {
@@ -326,7 +347,7 @@ export function TourProvider({ children }: TourProviderProps) {
    * tour:status, etc.). Nosotros reaccionamos a:
    *   - step:after + action=next/prev → avanzar/retroceder, navegando si hace falta
    *   - tour:end (finished|skipped) → persistir como visto y cerrar
-   *   - error:target_not_found → pausar y esperar que aparezca el target
+   *   - error:target_not_found → saltear el paso y seguir en el próximo que exista
    */
   const handleEvent = useCallback(
     (data: EventData, _controls: Controls) => {
@@ -351,6 +372,40 @@ export function TourProvider({ children }: TourProviderProps) {
           setTourActivo(null);
           setStepIndex(0);
         }, 120);
+        return;
+      }
+
+      // ── Target que nunca apareció ───────────────────────────────────
+      // Esto es lo que hacía que el tutorial "se corte a la mitad": en modo
+      // controlado joyride avisa del target faltante y se queda esperando —
+      // overlay gris puesto, sin tooltip, sin botón para seguir. El paso no
+      // existe porque la sección no se renderizó (varias del panel dependen del
+      // rol, como dash-matches o dash-items). Nos salteamos ese paso y seguimos
+      // en el primero que sí exista; si no queda ninguno, cerramos prolijo.
+      if (type === "error:target_not_found") {
+        const siguiente = proximoPasoMostrable(
+          pasos.map((p) => ({
+            target: typeof p.target === "string" ? p.target : "body",
+            ruta: resolverRuta((p.data as PasoData | undefined)?.ruta),
+          })),
+          index,
+          pathname,
+          estaEnElDom
+        );
+
+        if (siguiente === -1) {
+          finalizarTour(tourActivo);
+          return;
+        }
+
+        const rutaSig = resolverRuta(
+          (pasos[siguiente].data as PasoData | undefined)?.ruta
+        );
+        setStepIndex(siguiente);
+        if (rutaSig && rutaSig !== pathname) {
+          setCorriendo(false);
+          router.push(rutaSig);
+        }
         return;
       }
 
