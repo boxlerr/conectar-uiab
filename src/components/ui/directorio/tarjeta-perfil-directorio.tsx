@@ -80,16 +80,29 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
             del main del directorio, que a 768px no llega a los ~900px que pide
             metadata + botón sin apretar el nombre. */}
         <div className="grid grid-cols-[auto_1fr] xl:grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-5 xl:gap-8 px-6 md:px-8 py-5">
-          {/* Logo */}
-          <div className={`relative w-14 h-14 md:w-[60px] md:h-[60px] overflow-hidden flex items-center justify-center font-manrope font-black text-2xl ${bgLogo} ${
-            isParticular ? "rounded-full ring-1 ring-amber-200/60" : "rounded-md"
-          }`}>
-            {entidad.logoUrl ? (
-              <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-contain p-1" sizes="60px" />
-            ) : (
-              entidad.logo
-            )}
-          </div>
+          {/* Logo — mismo criterio que en la grilla: la marca va suelta, sin
+              caja, para que se lea la empresa y no un ícono. */}
+          {entidad.logoUrl && !isParticular ? (
+            <div className="relative h-14 w-[120px] md:w-[140px] shrink-0">
+              <Image
+                src={entidad.logoUrl}
+                alt={entidad.nombre}
+                fill
+                className="object-contain object-left mix-blend-multiply"
+                sizes="140px"
+              />
+            </div>
+          ) : (
+            <div className={`relative w-14 h-14 md:w-[60px] md:h-[60px] overflow-hidden flex items-center justify-center font-manrope font-black text-2xl ${bgLogo} ${
+              isParticular ? "rounded-full ring-1 ring-amber-200/60" : "rounded-md"
+            }`}>
+              {entidad.logoUrl ? (
+                <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="60px" />
+              ) : (
+                entidad.logo
+              )}
+            </div>
+          )}
 
           {/* Identidad */}
           <div className="min-w-0 md:pr-6">
@@ -195,50 +208,68 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
       <div className={`absolute top-0 left-0 w-full h-[3px] ${indicatorLine} origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500`} />
 
       {/* Header — fondo tonal levemente diferenciado */}
-      <div className="bg-[#f7f9fb] px-5 pt-6 pb-5">
-        <div className="flex items-start justify-between">
-          {/* Logo */}
-          <div className={`w-12 h-12 flex items-center justify-center font-manrope font-black text-xl overflow-hidden relative shrink-0 ${bgLogo} ${
+      <div className="relative bg-[#f7f9fb] px-5 pt-4 pb-5">
+        {/* Sello de socia (o "particular") + rating. Van anclados arriba a la
+            derecha para que la marca se quede con todo el ancho del header. */}
+        <div className="absolute top-4 right-4 flex flex-col items-end gap-1.5">
+          {isParticular ? (
+            <div
+              className={`w-7 h-7 rounded-sm flex items-center justify-center transition-colors duration-300 ${verifiedBg}`}
+              title="Particular"
+            >
+              <User className="w-4 h-4" />
+            </div>
+          ) : (
+            <SelloVerificado />
+          )}
+
+          {/* Rating */}
+          {tieneRating && (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-amber-50 text-amber-700 group-hover:bg-amber-100 transition-colors">
+              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+              <span className="text-[10px] font-black leading-none">{entidad.rating!.toFixed(1)}</span>
+              {tieneReviews && (
+                <span className="text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1 ml-0.5">
+                  {entidad.reviews}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Logo — la marca de la socia va suelta sobre el header, sin caja ni
+            fondo y con todo el ancho de la tarjeta: un isotipo de 48px encerrado
+            en un cuadradito se leía como un ícono más, no como la identidad de
+            la empresa. Los particulares conservan el círculo porque ahí la
+            imagen es un avatar, no una marca. */}
+        {entidad.logoUrl && !isParticular ? (
+          <div className="relative mt-7 h-[72px] w-full">
+            <Image
+              src={entidad.logoUrl}
+              alt={entidad.nombre}
+              fill
+              // `mix-blend-multiply`: sin la cajita, los logos guardados como JPG
+              // (fondo blanco) dejaban un rectángulo blanco sobre el header gris.
+              // Multiplicar los funde con el fondo sin tocar los logos oscuros.
+              className="object-contain object-left mix-blend-multiply"
+              sizes="(max-width: 768px) 70vw, 320px"
+            />
+          </div>
+        ) : (
+          <div className={`mt-7 w-16 h-16 flex items-center justify-center font-manrope font-black text-2xl overflow-hidden relative ${bgLogo} ${
             isParticular ? "rounded-full ring-1 ring-amber-200/60" : "rounded-md"
           }`}>
             {entidad.logoUrl ? (
-              <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-contain p-1" sizes="48px" />
+              <Image src={entidad.logoUrl} alt={entidad.nombre} fill className="object-cover" sizes="64px" />
             ) : (
               entidad.logo
             )}
           </div>
-
-          {/* Badges: sello de socia (o "particular") + rating */}
-          <div className="flex flex-col items-end gap-1.5 ml-3">
-            {isParticular ? (
-              <div
-                className={`w-7 h-7 rounded-sm flex items-center justify-center transition-colors duration-300 ${verifiedBg}`}
-                title="Particular"
-              >
-                <User className="w-4 h-4" />
-              </div>
-            ) : (
-              <SelloVerificado />
-            )}
-
-            {/* Rating */}
-            {tieneRating && (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-amber-50 text-amber-700 group-hover:bg-amber-100 transition-colors">
-                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                <span className="text-[10px] font-black leading-none">{entidad.rating!.toFixed(1)}</span>
-                {tieneReviews && (
-                  <span className="text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1 ml-0.5">
-                    {entidad.reviews}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Chips: tipo de organización + sector. El primero sólo aparece en el
             directorio unificado, donde la lista viene mezclada. */}
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <div className="mt-4 flex flex-wrap items-center gap-1.5">
           {metaTipo && (
             <span className={`inline-flex items-center text-[10px] font-black uppercase tracking-[0.14em] px-2 py-1 rounded-[2px] ${metaTipo.chipClases}`}>
               {metaTipo.chip}
