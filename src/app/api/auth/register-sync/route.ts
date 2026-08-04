@@ -3,9 +3,10 @@ import { createClient } from '@supabase/supabase-js'
 import { enviarEmail, emailAdmin, appUrl } from '@/lib/email/cliente'
 import { plantillaNotificacionAdmin } from '@/lib/email/plantillas'
 import { plantillaSuscripcionPendiente } from '@/lib/email/plantillas-suscripciones'
-import { calcularMontoMensual, calcularTarifaPorEmpleados, nombrePlan } from '@/lib/mercadopago/suscripciones'
+import { calcularMontoMensual, nombrePlan } from '@/lib/mercadopago/suscripciones'
 import { normalizarSitioWeb } from '@/lib/utilidades'
 import { buscarEmpresaEnPadron, esSocia } from '@/modulos/altas/buscar-en-padron'
+import { fusionarConPadron } from '@/modulos/altas/padron'
 
 export async function POST(request: Request) {
   try {
@@ -62,39 +63,68 @@ export async function POST(request: Request) {
 
     // 0. Control contra el padrón UIAB (item 1.3 del reporte de Lucas).
     //
-    // Si el CUIT ya está en `empresas` no damos de alta nada: sería una ficha
-    // duplicada de una empresa que ya existe. Fue exactamente lo que pasó con
-    // Metalúrgica Longchamps, socia con ficha aprobada y suscripción activa, que
-    // quedó dos veces en el directorio.
+    // Si el CUIT ya está en `empresas`, la empresa YA EXISTE: no se crea una
+    // segunda ficha. Antes esto cortaba con un 409 y mandaba a /sumate, pero en
+    // la práctica la gente volvía a registrarse igual y el directorio terminaba
+    // duplicado — le pasó a Metalúrgica Longchamps y de nuevo a Pinturería
+    // Giannoni el 2026-08-04.
     //
-    // NO vinculamos la cuenta a la ficha existente por nuestra cuenta: conocer
-    // un CUIT (que es público) no prueba que trabajes ahí. El acceso a una ficha
-    // del padrón lo habilita un admin desde /admin/altas, que es el flujo que ya
-    // existe y el que además le da a la socia su acceso bonificado.
+    // Ahora se REUSA la ficha: se vincula la cuenta nueva y se le aplican los
+    // datos que cargó la empresa, con las mismas reglas de fusión que el alta de
+    // /sumate (`fusionarConPadron`): el correo y el teléfono del formulario
+    // pisan, el resto sólo completa lo que está vacío, y nunca se borra un dato.
+    // Así el trabajo de corregir la ficha no se pierde.
+    //
+    // `estado` NO se toca a propósito: una socia ya publicada sigue publicada
+    // (bajarla a pendiente_revision la sacaría del directorio), y una ficha
+    // pendiente sigue pendiente.
+    //
+    // Contrapartida a tener presente: un CUIT es público, así que esto vincula a
+    // quien lo conozca. Por eso se notifica al admin en el paso 3 y la membresía
+    // entra como `gestor` sin `es_principal` si la ficha ya tiene dueño.
+    let empresaExistenteId: string | null = null
+    let empresaExistenteEsSocia = false
+
     if (role === 'company') {
       const enPadron = await buscarEmpresaEnPadron(supabaseAdmin, cuit)
 
       if (enPadron) {
-        // El usuario de Auth ya fue creado por el signUp del cliente. Lo
-        // borramos: si lo dejamos, el email queda quemado (check-email lo ve
-        // como registrado) y no puede volver a intentar ni pedir su acceso.
-        try {
-          await supabaseAdmin.auth.admin.deleteUser(instanceId)
-        } catch (err) {
-          console.error('[register-sync] No se pudo limpiar el usuario de Auth:', err)
-        }
+        empresaExistenteId = enPadron.id
+        empresaExistenteEsSocia = esSocia(enPadron)
 
-        const nombre = enPadron.razon_social ?? 'Tu empresa'
-        return NextResponse.json(
-          {
-            error: esSocia(enPadron)
-              ? `${nombre} ya es socia de la UIAB, así que tu acceso no tiene cargo. Pedilo desde "Sumate" y te lo habilitamos.`
-              : `${nombre} ya está registrada en UIAB Conecta con ese CUIT. Si trabajás ahí, pedí el acceso desde "Sumate" y lo habilitamos.`,
-            motivo: 'cuit_en_padron',
-            esSocia: esSocia(enPadron),
-          },
-          { status: 409 }
-        )
+        const { data: fichaPadron } = await supabaseAdmin
+          .from('empresas')
+          .select('*')
+          .eq('id', enPadron.id)
+          .single()
+
+        if (fichaPadron) {
+          // Mapeo al vocabulario que espera `fusionarConPadron` (claves de
+          // `altas_socios`), para no duplicar las reglas de fusión.
+          const { cambios } = fusionarConPadron(
+            {
+              email,
+              telefono,
+              nombre_comercial: nombreComercial,
+              sitio_web: sitioWebNormalizado,
+              direccion,
+              localidad,
+              actividad: descripcion,
+              referente_nombre: fullName,
+              cuit,
+            },
+            fichaPadron
+          )
+          if (Object.keys(cambios).length > 0) {
+            const { error: fusionErr } = await supabaseAdmin
+              .from('empresas')
+              .update(cambios)
+              .eq('id', enPadron.id)
+            if (fusionErr) {
+              console.error('[register-sync] No se pudo actualizar la ficha del padrón:', fusionErr.message)
+            }
+          }
+        }
       }
     }
 
@@ -118,7 +148,35 @@ export async function POST(request: Request) {
     // 2. Automatically instantiate "Empresa" or "Proveedor" with 'pending' status for admin review.
     let entityId = null;
 
-    if (role === 'company') {
+    if (role === 'company' && empresaExistenteId) {
+      // La ficha ya existía en el padrón (paso 0): no se crea otra, sólo se
+      // vincula esta cuenta. `es_principal` va en true únicamente si la ficha
+      // todavía no tiene dueño; si ya lo tiene, esta entra como gestor más.
+      entityId = empresaExistenteId
+
+      const { data: yaHayPrincipal } = await supabaseAdmin
+        .from('miembros_empresa')
+        .select('id')
+        .eq('empresa_id', empresaExistenteId)
+        .eq('es_principal', true)
+        .maybeSingle()
+
+      const { data: yaMiembro } = await supabaseAdmin
+        .from('miembros_empresa')
+        .select('id')
+        .eq('empresa_id', empresaExistenteId)
+        .eq('perfil_id', instanceId)
+        .maybeSingle()
+
+      if (!yaMiembro) {
+        await supabaseAdmin.from('miembros_empresa').insert({
+          empresa_id: empresaExistenteId,
+          perfil_id: instanceId,
+          rol: 'gestor',
+          es_principal: !yaHayPrincipal,
+        })
+      }
+    } else if (role === 'company') {
       const { data: emp, error: empError } = await supabaseAdmin
         .from('empresas')
         .insert({
@@ -271,30 +329,48 @@ export async function POST(request: Request) {
     //    aun antes de que el usuario inicie el flujo de checkout.
     try {
       if (entityId && (role === 'company' || role === 'provider')) {
-        const tarifaNivel = role === 'company' ? calcularTarifaPorEmpleados(parsedEmpleados) : null
-        const { data: precios } = await supabaseAdmin.from('tarifas_precios').select('nivel, precio_mensual')
-        const mapaPrecios: Record<number, number> = {}
-        ;(precios ?? []).forEach((p: any) => { mapaPrecios[p.nivel] = Number(p.precio_mensual) })
-        const monto = calcularMontoMensual({ role, tarifa: tarifaNivel, empleados: parsedEmpleados, preciosDb: mapaPrecios })
+        // Si nos vinculamos a una ficha que ya existía, puede que ya tenga su
+        // suscripción: no creamos una segunda.
+        const { data: suscExistente } = empresaExistenteId
+          ? await supabaseAdmin
+              .from('suscripciones')
+              .select('id')
+              .eq('empresa_id', empresaExistenteId)
+              .maybeSingle()
+          : { data: null }
 
-        await supabaseAdmin.from('suscripciones').insert({
-          empresa_id: role === 'company' ? entityId : null,
-          proveedor_id: role === 'provider' ? entityId : null,
-          monto: esPrueba ? 0 : monto,
-          moneda: 'ARS',
-          nombre_plan: esPrueba ? 'Cortesía (prueba)' : nombrePlan(role, tarifaNivel),
-          estado: esPrueba ? 'activa' : 'pendiente_pago',
-          metodo_pago: esPrueba ? 'cortesia' : 'mercadopago',
-          notas_admin: esPrueba ? 'Registro de prueba (Acceso gratis).' : null,
-        })
+        // Las socias UIAB no abonan: su acceso es de cortesía. Antes esto sólo
+        // se contemplaba en el alta de /sumate, así que una socia que entraba
+        // por /register quedaba en `pendiente_pago` y el panel no la dejaba
+        // aprobar (ver migración 20260804_es_socia_uiab).
+        const sinCargo = esPrueba || empresaExistenteEsSocia
+        // El monto es plano: no depende del rol, los empleados ni la tarifa.
+        const monto = calcularMontoMensual()
 
-        if (!esPrueba) {
+        if (!suscExistente) {
+          await supabaseAdmin.from('suscripciones').insert({
+            empresa_id: role === 'company' ? entityId : null,
+            proveedor_id: role === 'provider' ? entityId : null,
+            monto: sinCargo ? 0 : monto,
+            moneda: 'ARS',
+            nombre_plan: empresaExistenteEsSocia
+              ? 'Socia UIAB (sin cargo)'
+              : esPrueba
+                ? 'Cortesía (prueba)'
+                : nombrePlan(),
+            estado: sinCargo ? 'activa' : 'pendiente_pago',
+            metodo_pago: sinCargo ? 'cortesia' : 'mercadopago',
+            notas_admin: esPrueba ? 'Registro de prueba (Acceso gratis).' : null,
+          })
+        }
+
+        if (!sinCargo && !suscExistente) {
           // Email al usuario con CTA al checkout.
           try {
             const plantillaSus = plantillaSuscripcionPendiente({
               nombre: fullName,
               email,
-              plan: nombrePlan(role, tarifaNivel),
+              plan: nombrePlan(),
               monto,
               entidad: role === 'company' ? 'empresa' : 'particular',
               urlCheckout: `${appUrl()}/suscripcion/checkout`,

@@ -197,14 +197,39 @@ export default function MiPerfilCertificacionesPage() {
       if (archivo) {
         const safeName = archivo.name.replace(/[^\w.\-]+/g, "_");
         const ruta = `${carpeta}/${entityId}/certificaciones/${Date.now()}-${safeName}`;
-        const { error: upErr } = await supabase.storage
+
+        // `upload()` no tiene timeout propio: si la conexión se corta a mitad,
+        // la promesa nunca resuelve y el botón queda en "Guardando…" para
+        // siempre, sin explicar nada. Es lo que reportaron el 2026-08-04 con un
+        // PDF de ISO 9001. Con la carrera, a los 90s cortamos y lo decimos.
+        toast.loading("Subiendo el certificado…", { id: "cert-upload" });
+        const subida = supabase.storage
           .from(BUCKET_DOCS)
           .upload(ruta, archivo, { upsert: true, contentType: archivo.type });
+        const vencimiento = new Promise<never>((_, rechazar) =>
+          setTimeout(() => rechazar(new Error("timeout")), 90_000)
+        );
+
+        let upErr: { message: string } | null = null;
+        try {
+          ({ error: upErr } = await Promise.race([subida, vencimiento]));
+        } catch {
+          toast.error("La subida tardó demasiado", {
+            id: "cert-upload",
+            description:
+              "Puede ser la conexión o un archivo muy pesado. Probá de nuevo, o guardá la certificación sin el PDF y adjuntalo después.",
+          });
+          return; // el finally apaga el spinner
+        }
+
         if (upErr) {
-          toast.error("No pudimos subir el certificado", { description: upErr.message });
-          setSaving(false);
+          toast.error("No pudimos subir el certificado", {
+            id: "cert-upload",
+            description: upErr.message,
+          });
           return;
         }
+        toast.dismiss("cert-upload");
         datosArchivo = {
           bucket: BUCKET_DOCS,
           ruta_archivo: ruta,

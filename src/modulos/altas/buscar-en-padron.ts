@@ -21,8 +21,10 @@ import { normalizarCuit } from "./padron";
 export interface EmpresaDelPadron {
   id: string;
   razon_social: string | null;
-  /** Número de socia. Not null = socia UIAB, le corresponde acceso bonificado. */
+  /** Número de socia. Sólo referencia: NO decide el acceso bonificado. */
   n_socio: string | null;
+  /** True = socia UIAB, le corresponde acceso bonificado. */
+  es_socia_uiab: boolean | null;
   estado: string | null;
 }
 
@@ -60,7 +62,7 @@ export async function buscarEmpresaEnPadron(
   // filas. Si algún día crece, esto va a un índice funcional.
   const { data } = await db
     .from("empresas")
-    .select("id, razon_social, cuit, n_socio, estado")
+    .select("id, razon_social, cuit, n_socio, es_socia_uiab, estado")
     .not("cuit", "is", null);
 
   const filas = (data ?? []) as Array<EmpresaDelPadron & { cuit: string | null }>;
@@ -76,11 +78,17 @@ export async function buscarEmpresaEnPadron(
     id: encontrada.id,
     razon_social: encontrada.razon_social,
     n_socio: encontrada.n_socio,
+    es_socia_uiab: encontrada.es_socia_uiab,
     estado: encontrada.estado,
   };
 }
 
-/** True si esa ficha del padrón corresponde a una socia (acceso bonificado). */
+/**
+ * True si esa ficha del padrón corresponde a una socia (acceso bonificado).
+ *
+ * Mira `es_socia_uiab`, no `n_socio`: el número es opcional en el alta y había
+ * 9 socias reales sin él, a las que el sistema les cobraba (20260804_es_socia_uiab).
+ */
 export function esSocia(empresa: EmpresaDelPadron | null): boolean {
-  return Boolean(empresa?.n_socio);
+  return Boolean(empresa?.es_socia_uiab);
 }

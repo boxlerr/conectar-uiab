@@ -344,6 +344,10 @@ export async function crearCuentaDesdeAlta(altaId: string) {
           direccion: alta.direccion ?? null,
           descripcion: alta.actividad ?? null,
           n_socio: alta.n_socio ?? null,
+          // El permiso de socia va en su propia columna. `n_socio` es opcional
+          // en el formulario, así que usarlo como criterio dejaba afuera a las
+          // socias que no escribían el número (ver 20260804_es_socia_uiab).
+          es_socia_uiab: alta.ya_es_socio === true,
           categoria_socio: CATEGORIA_SOCIO_MAP[alta.categoria],
         })
         .select("id")
@@ -364,6 +368,11 @@ export async function crearCuentaDesdeAlta(altaId: string) {
       if (fichaPadron) {
         const { cambios, conflictos } = fusionarConPadron(alta, fichaPadron);
         conflictosPadron = conflictos;
+        // Si el alta declara que ya es socia, la ficha del padrón queda marcada
+        // aunque no haya traído número: es el dato que decide la cortesía.
+        if (alta.ya_es_socio === true && !fichaPadron.es_socia_uiab) {
+          (cambios as Record<string, unknown>).es_socia_uiab = true;
+        }
         if (Object.keys(cambios).length > 0) {
           const { error: fusionErr } = await db
             .from("empresas")
@@ -396,10 +405,10 @@ export async function crearCuentaDesdeAlta(altaId: string) {
     // socio, el acceso es sin cargo (no pasa por el checkout).
     const { data: empSocia } = await db
       .from("empresas")
-      .select("n_socio")
+      .select("es_socia_uiab")
       .eq("id", empresaIdFinal)
       .maybeSingle();
-    if (empSocia?.n_socio) {
+    if (empSocia?.es_socia_uiab) {
       const { data: yaSusc } = await db
         .from("suscripciones")
         .select("id")

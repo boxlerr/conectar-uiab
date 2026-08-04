@@ -340,20 +340,24 @@ function RegisterContent() {
           const { enPadron, esSocia, razonSocial } = await res.json()
 
           if (enPadron) {
+            // Aviso, NO bloqueo. Antes esto cortaba el registro y los mandaba a
+            // /sumate, pero la gente se registraba igual con el CUIT escrito de
+            // otra forma y el directorio terminaba duplicado (Metalúrgica
+            // Longchamps, Pinturería Giannoni). Ahora register-sync reusa la
+            // ficha existente y le aplica los datos nuevos, así que dejamos
+            // seguir y sólo explicamos qué va a pasar.
             const nombre = razonSocial || 'Esa empresa'
-            toast.error(
+            toast.info(
               esSocia
                 ? `${nombre} ya es socia de la UIAB`
-                : `${nombre} ya está registrada en UIAB Conecta`,
+                : `${nombre} ya está en UIAB Conecta`,
               {
                 description: esSocia
-                  ? 'Tu acceso no tiene cargo. Pedilo desde "Sumate" y te lo habilitamos.'
-                  : 'Si trabajás ahí, pedí el acceso desde "Sumate" y lo habilitamos.',
-                duration: 12000,
-                action: { label: 'Ir a Sumate', onClick: () => router.push('/sumate') },
+                  ? 'No se crea una ficha nueva: vamos a vincular tu cuenta a la que ya existe y actualizarla con lo que cargues. Tu acceso no tiene cargo.'
+                  : 'No se crea una ficha nueva: vamos a vincular tu cuenta a la que ya existe y actualizarla con lo que cargues.',
+                duration: 10000,
               }
             )
-            return
           }
         } catch {
           // Si el chequeo falla seguimos: register-sync valida igual.

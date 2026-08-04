@@ -2,29 +2,18 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building, Check, X, Search, Eye, DollarSign, ChevronDown } from "lucide-react";
+import { Building, Check, X, Search, Eye, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BadgeTarifa } from "@/components/ui/badge-tarifa";
-import { NivelTarifa } from "@/tipos";
 import {
   aprobarEmpresa,
   rechazarEmpresa,
-  asignarTarifa,
 } from "@/modulos/admin/acciones";
 
-const NIVELES_TARIFA: NivelTarifa[] = [1, 2, 3];
-
-const TARIFAS: Record<NivelTarifa, { nombre: string }> = {
-  1: { nombre: "Tarifa 1" },
-  2: { nombre: "Tarifa 2" },
-  3: { nombre: "Tarifa 3" },
-};
-
-function formatearPrecioTarifa(precioAnual: number): string {
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(precioAnual);
-}
+// El selector de Tarifa 1/2/3 salió de este panel: desde el modelo de precio
+// único (jul-2026) los tres niveles valen $50.000, así que elegir uno no hacía
+// nada y las tres tarjetas mostraban el mismo número.
 
 type Empresa = {
   id: string;
@@ -38,11 +27,20 @@ type Empresa = {
   descripcion: string | null;
   estado: string;
   motivo_rechazo: string | null;
-  tarifa: NivelTarifa | null;
+  es_socia_uiab: boolean | null;
   creado_en: string;
   aprobada_en: string | null;
   estado_suscripcion?: string | null;
 };
+
+/**
+ * Una socia UIAB no paga: su acceso es de cortesía, así que exigirle una
+ * suscripción activa para aprobarla la dejaba trabada en el panel (le pasó a
+ * Pinturería Giannoni). Sólo las altas arancealdas pasan por el gate de cobro.
+ */
+function requierePagoParaAprobar(e: Empresa): boolean {
+  return !e.es_socia_uiab && e.estado_suscripcion !== "activa";
+}
 
 type Filtro = "all" | "pendiente_revision" | "aprobada" | "rechazada";
 
@@ -55,7 +53,7 @@ const ESTADO_BADGE: Record<string, { label: string; className: string }> = {
   oculta:              { label: "Oculta", className: "bg-slate-100 text-slate-500" },
 };
 
-export function PanelEmpresas({ empresas, preciosDb }: { empresas: Empresa[], preciosDb: Record<number, number> }) {
+export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [filtro, setFiltro] = useState<Filtro>("pendiente_revision");
@@ -99,12 +97,6 @@ export function PanelEmpresas({ empresas, preciosDb }: { empresas: Empresa[], pr
     if (seleccionada?.id === modalRechazo.id) setSeleccionada(null);
   }
 
-  async function handleTarifa(id: string, tarifa: NivelTarifa) {
-    await asignarTarifa(id, tarifa);
-    refresh();
-    if (seleccionada?.id === id) setSeleccionada(prev => prev ? { ...prev, tarifa } : null);
-  }
-
   const TABS: { key: Filtro; label: string }[] = [
     { key: "pendiente_revision", label: `Pendientes (${counts.pendiente_revision})` },
     { key: "aprobada", label: `Aprobadas (${counts.aprobada})` },
@@ -119,7 +111,7 @@ export function PanelEmpresas({ empresas, preciosDb }: { empresas: Empresa[], pr
           <Building className="w-8 h-8 text-primary-600" />
           Gestión de Empresas
         </h1>
-        <p className="text-slate-500 mt-1">Aprobá, rechazá y asigná tarifas a las empresas registradas.</p>
+        <p className="text-slate-500 mt-1">Aprobá y rechazá las empresas registradas.</p>
       </div>
 
       {/* Toolbar */}
@@ -167,7 +159,11 @@ export function PanelEmpresas({ empresas, preciosDb }: { empresas: Empresa[], pr
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badge.className}`}>
                     {badge.label}
                   </span>
-                  {empresa.tarifa && <BadgeTarifa tarifa={empresa.tarifa} mostrarPrecio precioMensual={preciosDb[empresa.tarifa] ? preciosDb[empresa.tarifa] : null} />}
+                  {empresa.es_socia_uiab && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">
+                      Socia UIAB · sin cargo
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-slate-500 truncate">
                   {empresa.cuit && <span className="mr-3">CUIT: {empresa.cuit}</span>}
@@ -251,30 +247,19 @@ export function PanelEmpresas({ empresas, preciosDb }: { empresas: Empresa[], pr
                 </section>
               )}
 
-              {/* Tarifa */}
+              {/* Membresía */}
               <section>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2 flex items-center gap-2">
-                  <DollarSign className="w-3.5 h-3.5" /> Tarifa de Membresía UIAB
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">
+                  Membresía
                 </p>
-                <div className="grid grid-cols-3 gap-3">
-                  {NIVELES_TARIFA.map((nivel) => {
-                    const config = TARIFAS[nivel];
-                    const activa = seleccionada.tarifa === nivel;
-                    const precioMensual = preciosDb[nivel] ? preciosDb[nivel] : 0;
-                    return (
-                      <button key={nivel} disabled={isPending}
-                        onClick={() => handleTarifa(seleccionada.id, nivel)}
-                        className={`p-3 rounded-xl border-2 text-left transition-all ${
-                          activa ? "border-primary-500 bg-primary-50 shadow-sm" : "border-slate-200 bg-white hover:border-slate-300"
-                        }`}>
-                        <p className={`text-sm font-bold mb-0.5 ${activa ? "text-primary-700" : "text-slate-700"}`}>{config.nombre}</p>
-                        <p className={`text-xs ${activa ? "text-primary-600" : "text-slate-400"}`}>{formatearPrecioTarifa(precioMensual)}/mes</p>
-                      </button>
-                    );
-                  })}
-                </div>
-                {!seleccionada.tarifa && (
-                  <p className="text-xs text-amber-600 mt-2 bg-amber-50 px-3 py-2 rounded-lg border border-amber-100">Sin tarifa asignada.</p>
+                {seleccionada.es_socia_uiab ? (
+                  <p className="text-sm text-emerald-700 bg-emerald-50 px-3 py-2.5 rounded-lg border border-emerald-100">
+                    Socia UIAB — acceso sin cargo. No pasa por el checkout.
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-700 bg-slate-50 px-3 py-2.5 rounded-lg border border-slate-100">
+                    Alta arancelada — $ 50.000/mes o $ 500.000/año.
+                  </p>
                 )}
               </section>
 
@@ -289,15 +274,15 @@ export function PanelEmpresas({ empresas, preciosDb }: { empresas: Empresa[], pr
             {/* Footer actions */}
             {seleccionada.estado === "pendiente_revision" && (
               <div className="sticky bottom-0 bg-white/95 border-t border-slate-100 p-5 flex flex-col gap-3">
-                {(!seleccionada.estado_suscripcion || seleccionada.estado_suscripcion !== 'activa') && (
+                {requierePagoParaAprobar(seleccionada) && (
                   <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3 py-2 rounded-lg text-center">
                     ⚠️ No se puede aprobar: la empresa aún no ha pagado su suscripción.
                   </div>
                 )}
                 <div className="flex gap-3">
-                  <Button 
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50" 
-                    disabled={isPending || seleccionada.estado_suscripcion !== 'activa'}
+                  <Button
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+                    disabled={isPending || requierePagoParaAprobar(seleccionada)}
                     onClick={() => handleAprobar(seleccionada.id)}>
                     <Check className="w-4 h-4 mr-2" /> Aprobar Empresa
                   </Button>

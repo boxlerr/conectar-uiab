@@ -39,8 +39,8 @@ Credenciales:
 1. Crear cuenta en https://www.brevo.com (300 correos/día gratis, sin
    tarjeta).
 2. Dashboard → **SMTP & API** → **SMTP** → copiar credenciales.
-3. Verificar el dominio `uiab.com.ar` en **Senders & IP > Domains** (agregar
-   los registros DNS que te indica Brevo: SPF, DKIM, DMARC).
+3. Verificar el dominio de envío en **Senders & IP > Domains** (agregar los
+   registros DNS que te indica Brevo: SPF, DKIM, DMARC).
 
 Credenciales:
 - Host: `smtp-relay.brevo.com`
@@ -57,26 +57,35 @@ Agregar al `.env` local y al proyecto en Vercel:
 
 ```bash
 # URL pública de la app — para construir links en correos
-NEXT_PUBLIC_APP_URL=https://conectar-uiab.vercel.app   # prod
+NEXT_PUBLIC_APP_URL=https://www.uiabconecta.com        # prod
 # NEXT_PUBLIC_APP_URL=http://localhost:3000            # dev
 
 # ─── SMTP (lo usa nodemailer para correos transaccionales) ───
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
-SMTP_USER=no-reply@uiab.com.ar
+SMTP_USER=tu-casilla@gmail.com
 SMTP_PASS=xxxxxxxxxxxxxxxx
 # SMTP_SECURE=true   # opcional, por defecto true si port=465
 
 # Remitente (tiene que ser un email válido del dominio autenticado por SMTP)
-EMAIL_FROM="UIAB Conecta <no-reply@uiab.com.ar>"
+EMAIL_FROM="UIAB Conecta <tu-casilla@gmail.com>"
 
 # Destinatario de las notificaciones de nuevas solicitudes
-ADMIN_NOTIFICATION_EMAIL=admin@uiab.com.ar
+ADMIN_NOTIFICATION_EMAIL=julianboxler@vaxler.com.ar
 ```
 
 > Si cualquier variable SMTP falta, los correos transaccionales se **saltan
 > silenciosamente** (quedan log-warn). Ningún server action falla por ausencia
 > de SMTP — ideal para CI y entornos sin credenciales.
+
+> ⚠️ **`ADMIN_NOTIFICATION_EMAIL` tiene que apuntar a un dominio con MX real.**
+> Si el dominio no existe, el SMTP igual acepta y encola el mensaje: `enviarEmail`
+> devuelve `ok: true`, la app no muestra ningún error, y el rebote vuelve minutos
+> después como DSN a la casilla del `SMTP_USER`. Es decir, se pierden en silencio
+> todas las notificaciones al admin (altas, registros, contacto, pagos).
+> Ya pasó con `admin@uiab.com.ar`: ese dominio nunca se registró (NXDOMAIN).
+> El dominio institucional de la UIAB es **`uiab.org`**, no `uiab.com.ar`.
+> Verificalo antes de cambiar el valor: `dig +short <dominio> MX`.
 
 ---
 
@@ -96,7 +105,7 @@ mismo dominio que nuestros correos transaccionales:
 | Port             | `465` / `587`                                       |
 | Username         | `SMTP_USER`                                         |
 | Password         | `SMTP_PASS`                                         |
-| Sender email     | `no-reply@uiab.com.ar` (mismo que `EMAIL_FROM`)     |
+| Sender email     | el mismo valor que `EMAIL_FROM`                     |
 | Sender name      | `UIAB Conecta`                                     |
 | Minimum interval | `60` seconds (protección anti-spam default)         |
 

@@ -47,10 +47,14 @@ export async function POST(req: NextRequest) {
     const { data: m } = await admin.from("miembros_empresa").select("empresa_id").eq("perfil_id", user.id).maybeSingle();
     empresa_id = m?.empresa_id ?? null;
     if (empresa_id) {
-      const { data: emp } = await admin.from("empresas").select("tarifa, n_socio").eq("id", empresa_id).maybeSingle();
+      const { data: emp } = await admin.from("empresas").select("tarifa, es_socia_uiab").eq("id", empresa_id).maybeSingle();
       tarifa = emp?.tarifa ?? null;
-      // Las socias UIAB (n_socio presente) tienen acceso sin cargo: no pasan por el checkout.
-      if (emp?.n_socio) {
+      // Las socias UIAB tienen acceso sin cargo: no pasan por el checkout.
+      //
+      // El criterio es `es_socia_uiab`, NO `n_socio`: ese número es opcional en
+      // el alta y 9 socias reales lo tenían vacío, así que el checkout les
+      // cobraba igual (ver migración 20260804_es_socia_uiab).
+      if (emp?.es_socia_uiab) {
         return NextResponse.json(
           { error: "Sos socia de la UIAB: tu acceso es sin cargo, no necesitás suscripción." },
           { status: 400 }

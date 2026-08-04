@@ -215,25 +215,39 @@ export default function MiPerfilDatosPage() {
 
     setLoading(true);
     try {
-      // Filter data based on user role to avoid sending non-existent columns
-      const dataToSave = { ...formData };
+      // Las dos columnas que NO son comunes a `empresas` y `proveedores` salen
+      // del spread y cada rama vuelve a agregar sólo la que su tabla tiene.
+      //
+      // Antes esto se hacía con `delete` sobre el spread completo y sólo cubría
+      // un lado: `cantidad_empleados` se quitaba para proveedores, pero
+      // `fecha_inicio_experiencia` (que existe únicamente en `proveedores`)
+      // viajaba igual en el payload de una empresa. PostgREST cortaba con
+      // "Could not find the 'fecha_inicio_experiencia' column of 'empresas'",
+      // y parseSupabaseError lo mostraba como "problema de sincronización
+      // temporal": ninguna empresa podía guardar su ficha.
+      const {
+        cantidad_empleados: _cantidadEmpleados,
+        fecha_inicio_experiencia: _fechaInicioExperiencia,
+        ...comunes
+      } = formData;
 
-      // El socio puede haber mandado Enter sin pasar por el onBlur del campo.
-      (dataToSave as any).sitio_web = normalizarSitioWeb(formData.sitio_web);
+      const dataToSave: Record<string, unknown> = {
+        ...comunes,
+        // El socio puede haber mandado Enter sin pasar por el onBlur del campo.
+        sitio_web: normalizarSitioWeb(formData.sitio_web),
+      };
 
       if (esFichaDeEmpresa(currentUser)) {
         // cantidad_empleados es entero en `empresas`; recalcula la tarifa vía trigger.
-        (dataToSave as any).cantidad_empleados = formData.cantidad_empleados
+        dataToSave.cantidad_empleados = formData.cantidad_empleados
           ? parseInt(formData.cantidad_empleados, 10)
           : null;
       } else {
-        // `proveedores` no tiene esta columna — la quitamos del payload.
-        delete (dataToSave as any).cantidad_empleados;
-        (dataToSave as any).tipo_proveedor = "particular";
+        dataToSave.fecha_inicio_experiencia = formData.fecha_inicio_experiencia || null;
+        dataToSave.tipo_proveedor = "particular";
         const [primerNombre, ...restoNombre] = (currentUser.name || "").split(" ");
-        (dataToSave as any).nombre = primerNombre || "";
-        (dataToSave as any).apellido = restoNombre.join(" ") || null;
-        (dataToSave as any).fecha_inicio_experiencia = formData.fecha_inicio_experiencia || null;
+        dataToSave.nombre = primerNombre || "";
+        dataToSave.apellido = restoNombre.join(" ") || null;
       }
 
       const result = await updateCompanyOrProvider(tipoEntidadDe(currentUser)!, currentUser.entityId, currentUser.id, dataToSave);

@@ -95,8 +95,12 @@ async function getDashboardData() {
       .limit(6),
     supabase
       .from("resenas")
-      .select("id, estado, creado_en, puntuacion, comentario")
-      .order("creado_en", { ascending: false })
+      // `resenas` nombra sus columnas en femenino (creada_en/creada_por) y la
+      // nota es `calificacion`, no `puntuacion`. Con los nombres viejos Postgres
+      // cortaba con "column resenas.creado_en does not exist" en cada carga del
+      // panel y la lista de actividad quedaba sin reseñas.
+      .select("id, estado, creada_en, calificacion, comentario")
+      .order("creada_en", { ascending: false })
       .limit(6),
     supabase
       .from("pagos_suscripciones")
@@ -164,15 +168,15 @@ async function getDashboardData() {
     actividad.push({
       id: `res-${r.id}`,
       tipo: "resena",
-      titulo: `Reseña · ${r.puntuacion ?? "?"}★`,
+      titulo: `Reseña · ${r.calificacion ?? "?"}★`,
       detalle:
         (r.comentario ?? "").length > 60
           ? (r.comentario ?? "").slice(0, 60) + "…"
           : r.comentario ?? "Sin comentario",
       estado: r.estado,
-      fecha: r.creado_en,
+      fecha: r.creada_en,
       href: "/admin/resenas",
-      esNuevo: esRecienteMs(r.creado_en, MS_DIA),
+      esNuevo: esRecienteMs(r.creada_en, MS_DIA),
     });
   });
 

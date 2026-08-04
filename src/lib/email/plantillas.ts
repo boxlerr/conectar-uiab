@@ -406,7 +406,7 @@ export function plantillaAprobacion(d: DatosAprobacion): {
       intro: "Tu solicitud fue revisada y aprobada. Ya podés ingresar a la plataforma.",
       cuerpo,
       cta: { etiqueta: "Acceder a la plataforma", href: d.urlBienvenida },
-      pie: "Si no solicitaste este registro, por favor escribinos a soporte@uiab.com.ar para que lo revisemos.",
+      pie: "Si no solicitaste este registro, por favor escribinos a contacto@vaxler.com.ar para que lo revisemos.",
     }),
     texto: [
       `${saludo} a UIAB Conecta`,

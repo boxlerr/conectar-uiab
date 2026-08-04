@@ -20,6 +20,7 @@ const PADRON = [
     razon_social: 'METALURGICA LONGCHAMPS',
     cuit: '30-71232689-8', // con guiones, como vino del padrón importado
     n_socio: '142',
+    es_socia_uiab: true,
     estado: 'aprobada',
   },
   {
@@ -27,6 +28,7 @@ const PADRON = [
     razon_social: 'Vaxler',
     cuit: '30712326899',
     n_socio: null, // no socia: está en la plataforma pero no en el padrón UIAB
+    es_socia_uiab: false,
     estado: 'aprobada',
   },
   {
@@ -34,6 +36,17 @@ const PADRON = [
     razon_social: 'Sin CUIT cargado',
     cuit: null,
     n_socio: '99',
+    es_socia_uiab: true,
+    estado: 'aprobada',
+  },
+  {
+    // Socia real sin número cargado: el caso que rompía en producción. Con el
+    // criterio viejo (n_socio) el sistema le cobraba (20260804_es_socia_uiab).
+    id: 'emp-giannoni',
+    razon_social: 'Pinturería Giannoni S.A.',
+    cuit: '30556917694',
+    n_socio: null,
+    es_socia_uiab: true,
     estado: 'aprobada',
   },
 ];
@@ -94,17 +107,27 @@ describe('buscarEmpresaEnPadron', () => {
   it('no devuelve el cuit crudo, sólo lo que necesita quien decide', async () => {
     const r = await buscarEmpresaEnPadron(db, '30712326898');
     expect(r).not.toHaveProperty('cuit');
-    expect(Object.keys(r!).sort()).toEqual(['estado', 'id', 'n_socio', 'razon_social']);
+    expect(Object.keys(r!).sort()).toEqual([
+      'es_socia_uiab', 'estado', 'id', 'n_socio', 'razon_social',
+    ]);
   });
 });
 
 describe('esSocia', () => {
-  it('n_socio cargado = socia, le corresponde acceso bonificado', async () => {
+  it('es_socia_uiab en true = socia, le corresponde acceso bonificado', async () => {
     expect(esSocia(await buscarEmpresaEnPadron(db, '30712326898'))).toBe(true);
   });
 
-  it('sin n_socio no es socia: el acceso es arancelado', async () => {
+  it('es_socia_uiab en false no es socia: el acceso es arancelado', async () => {
     expect(esSocia(await buscarEmpresaEnPadron(db, '30712326899'))).toBe(false);
+  });
+
+  it('socia sin n_socio SIGUE siendo socia: el número es opcional', async () => {
+    // Regresión de producción: Pinturería Giannoni es socia pero nadie le cargó
+    // el número, y con el criterio viejo el checkout le cobraba igual.
+    const giannoni = await buscarEmpresaEnPadron(db, '30556917694');
+    expect(giannoni?.n_socio).toBeNull();
+    expect(esSocia(giannoni)).toBe(true);
   });
 
   it('sin ficha en el padrón tampoco es socia', () => {

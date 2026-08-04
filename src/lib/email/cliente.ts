@@ -84,25 +84,33 @@ function obtenerTransporter(): Transporter | null {
 /**
  * Remitente por defecto. Debe ser un correo válido del dominio SMTP
  * (muchos proveedores rechazan un From distinto al usuario autenticado).
- * Ejemplo: `"UIAB Conecta <no-reply@uiab.com.ar>"`.
+ * Ejemplo: `"UIAB Conecta <no-reply@uiabconecta.com>"`.
+ *
+ * El tercer fallback es inalcanzable en la práctica: sin `SMTP_USER` no hay
+ * transporter y `enviarEmail` corta antes. Está sólo para el tipo `string`.
  */
 function remitentePorDefecto(): string {
   return (
     process.env.EMAIL_FROM ||
     process.env.SMTP_USER ||
-    "no-reply@uiab.com.ar"
+    "no-reply@uiabconecta.com"
   );
 }
 
 /**
  * Email del administrador que recibe las notificaciones de nuevas entidades
  * pendientes de revisión.
+ *
+ * OJO con el fallback: si apunta a un dominio inexistente, el SMTP igual acepta
+ * y encola el mensaje (devolvemos `ok: true`) y el rebote vuelve minutos después
+ * como DSN a la casilla del `SMTP_USER`. O sea: falla en silencio. Cualquier
+ * valor que se ponga acá tiene que ser un dominio con MX real.
  */
 export function emailAdmin(): string {
   return (
     process.env.ADMIN_NOTIFICATION_EMAIL ||
     process.env.EMAIL_FROM ||
-    "admin@uiab.com.ar"
+    "julianboxler@vaxler.com.ar"
   );
 }
 

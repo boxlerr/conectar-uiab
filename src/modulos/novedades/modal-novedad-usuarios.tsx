@@ -147,6 +147,31 @@ export function ModalNovedadUsuarios() {
               </li>
             ))}
           </ul>
+
+          {/* ── Errores reportados por las socias y ya corregidos ──
+              Se listan acá y no en un cartel aparte para no encadenar dos
+              modales. Sólo van los que la socia sufrió en primera persona: los
+              arreglos internos del panel de admin no le dicen nada. */}
+          <div className="mt-5 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-700 mb-2.5">
+              También arreglamos lo que nos reportaron
+            </p>
+            <ul className="space-y-1.5">
+              {[
+                "Guardar los datos de tu ficha ya funciona: se terminó el cartel de “problema de sincronización temporal”.",
+                "El logo se sube y queda guardado. Antes se cargaba pero se perdía al guardar.",
+                "Si sos socia de la UIAB ya no se te pide pagar la suscripción: tu acceso es sin cargo.",
+              ].map((texto, i) => (
+                <li key={i} className="flex items-start gap-2 text-[13px] text-emerald-900/80">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-[3px]" />
+                  <span className="leading-snug">{texto}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-[11px] text-emerald-800/60 mt-3 leading-snug">
+              Gracias por avisarnos. Si ves algo raro, escribinos desde Contacto.
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 px-6 sm:px-8 py-6">
