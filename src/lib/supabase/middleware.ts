@@ -72,18 +72,43 @@ export async function updateSession(request: NextRequest) {
   if (user && !userError) {
     const { data: perfil } = await supabase
       .from('perfiles')
-      .select('rol_sistema')
+      .select('rol_sistema, activo')
       .eq('id', user.id)
       .maybeSingle();
 
+    // Usuario desactivado (por su empresa o por la UIAB): el ban de Auth le
+    // frena el login nuevo, pero si tenía la sesión abierta el access token
+    // sigue vivo hasta una hora. Este corte lo saca en el próximo request.
+    // Va acá y no en una consulta aparte porque es la MISMA query que ya se
+    // hacía para el gating por aprobación: no agrega latencia.
+    if (perfil && perfil.activo === false) {
+      // /api/auth/* queda afuera: si le cortamos también el logout, el usuario
+      // desactivado se queda con la sesión muerta pegada en el browser y sin
+      // forma de limpiarla.
+      if (isApiRoute && !pathname.startsWith('/api/auth/')) {
+        return NextResponse.json({ error: 'Cuenta desactivada' }, { status: 403 });
+      }
+      if (pathname !== '/login') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        url.search = ''
+        url.searchParams.set('cuenta', 'desactivada')
+        return NextResponse.redirect(url)
+      }
+    }
+
     const rol = perfil?.rol_sistema;
 
+    // Sin filtrar por `es_principal`: el estado es de la EMPRESA, no del
+    // miembro. Ahora que una socia puede darle acceso a su gente, filtrar por
+    // titular dejaba a esos usuarios sin membresía visible y el gate los
+    // mandaba a /pendiente-aprobacion aunque la empresa estuviera aprobada.
     if (rol === 'company') {
       const { data: m } = await supabase
         .from('miembros_empresa')
         .select('empresas(estado)')
         .eq('perfil_id', user.id)
-        .eq('es_principal', true)
+        .limit(1)
         .maybeSingle();
       const estado = (m as { empresas?: { estado?: string } } | null)?.empresas?.estado;
       isApproved = estado === 'aprobada' || estado === 'activo';
@@ -92,7 +117,7 @@ export async function updateSession(request: NextRequest) {
         .from('miembros_proveedor')
         .select('proveedores(estado)')
         .eq('perfil_id', user.id)
-        .eq('es_principal', true)
+        .limit(1)
         .maybeSingle();
       const estado = (m as { proveedores?: { estado?: string } } | null)?.proveedores?.estado;
       isApproved = estado === 'aprobado' || estado === 'activo';

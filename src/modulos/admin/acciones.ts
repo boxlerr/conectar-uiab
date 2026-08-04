@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createClienteSSR } from "@/lib/supabase/servidor";
 import { revalidatePath } from "next/cache";
 import { NivelTarifa } from "@/tipos";
 import { crearSlug } from "@/lib/utilidades";
@@ -459,12 +460,41 @@ export async function eliminarOportunidad(oportunidadId: string) {
 // ─── Usuarios / Perfiles ──────────────────────────────────────────────────────
 
 export async function toggleActivarUsuario(perfilId: string, activar: boolean) {
-  const { error } = await adminClient()
-    .from("perfiles")
-    .update({ activo: activar })
-    .eq("id", perfilId);
+  // Antes desactivar era cosmético y auto-desactivarse no tenía consecuencias.
+  // Ahora banea de verdad: sin este freno, un admin se deja afuera del panel y
+  // sólo se arregla por SQL.
+  if (!activar) {
+    const ssr = await createClienteSSR();
+    const {
+      data: { user },
+    } = await ssr.auth.getUser();
+    if (user?.id === perfilId) {
+      return { error: "No podés desactivar tu propio usuario." };
+    }
+  }
+
+  const db = adminClient();
+  const { error } = await db.from("perfiles").update({ activo: activar }).eq("id", perfilId);
   if (error) return { error: error.message };
+
+  // `perfiles.activo` sólo pintaba un chip: el usuario desactivado seguía
+  // entrando lo más bien. El corte real es el ban de Auth (más el rebote del
+  // middleware para la sesión que ya estaba abierta).
+  try {
+    await db.auth.admin.updateUserById(perfilId, {
+      ban_duration: activar ? "none" : "876000h",
+    });
+  } catch (e) {
+    await db.from("perfiles").update({ activo: !activar }).eq("id", perfilId);
+    return {
+      error: `No se pudo ${activar ? "activar" : "desactivar"} el acceso: ${
+        e instanceof Error ? e.message : "error desconocido"
+      }`,
+    };
+  }
+
   revalidatePath("/admin/usuarios");
+  revalidatePath("/perfil/usuarios");
   return { success: true };
 }
 

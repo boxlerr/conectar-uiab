@@ -6,6 +6,7 @@ import { Header } from "@/components/plantillas/encabezado";
 import { Footer } from "@/components/plantillas/pie-pagina";
 import { AuthModal } from "@/modulos/autenticacion/componentes/modal-autenticacion";
 import { RecordarSesionGuard } from "@/modulos/autenticacion/componentes/recordar-sesion-guard";
+import { ModalNovedadUsuarios } from "@/modulos/novedades/modal-novedad-usuarios";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { currentUser, logout } = useAuth();
@@ -49,6 +50,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {!isAuthRoute && <Footer />}
       <AuthModal />
       <RecordarSesionGuard />
+      {/* Cartel de novedades: se muestra una vez por socia, en cualquier
+          pantalla, porque se entra al sistema por muchas puertas distintas. */}
+      <ModalNovedadUsuarios />
     </div>
   );
 }

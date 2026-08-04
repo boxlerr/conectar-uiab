@@ -58,6 +58,16 @@ function LoginContent() {
     }
   }, [searchParams])
 
+  // Usuario desactivado: el middleware lo rebota acá. Además de avisarle, se
+  // limpia la sesión muerta que quedó en el browser.
+  useEffect(() => {
+    if (searchParams.get('cuenta') !== 'desactivada') return
+    supabase.auth.signOut().catch(() => { /* sesión ya inválida */ })
+    toast.error('Tu acceso está desactivado', {
+      description: 'Pedile a quien administra la cuenta de tu empresa que lo vuelva a activar.',
+    })
+  }, [searchParams, supabase])
+
   // Pre-completar el email recordado del último login. La contraseña la
   // guarda el navegador (autocomplete="current-password"), nunca nosotros.
   useEffect(() => {
@@ -76,10 +86,15 @@ function LoginContent() {
       })
 
       if (error) {
-        const translatedMessage = error.message === "Invalid login credentials" 
-          ? "El correo electrónico o la contraseña son incorrectos." 
-          : error.message;
-          
+        // "User is banned" = usuario desactivado por su empresa o por la UIAB.
+        // El mensaje crudo de Supabase no le dice nada a un socio.
+        const translatedMessage = error.message === "Invalid login credentials"
+          ? "El correo electrónico o la contraseña son incorrectos."
+          : /banned/i.test(error.message)
+            ? "Tu acceso está desactivado. Pedile a quien administra la cuenta de tu empresa que lo vuelva a activar."
+            : error.message;
+
+
         toast.error("Error de acceso", { description: translatedMessage });
         setIsLoading(false)
         return

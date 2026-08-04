@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { ShieldAlert, User, Briefcase, CreditCard, LayoutDashboard, PackageSearch, Loader2, Tag, Inbox, RefreshCw, Award } from "lucide-react";
+import { ShieldAlert, User, Briefcase, CreditCard, LayoutDashboard, PackageSearch, Loader2, Tag, Inbox, RefreshCw, Award, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utilidades";
@@ -92,6 +92,7 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
     { name: "Etiquetas de Match", href: "/perfil/etiquetas", icon: Tag, tourId: "nav-etiquetas" },
     { name: "Certificaciones", href: "/perfil/certificaciones", icon: Award, tourId: "nav-certificaciones" },
     { name: "Bandeja de Entrada", href: "/perfil/solicitudes", icon: Inbox, tourId: "nav-solicitudes" },
+    { name: "Usuarios", href: "/perfil/usuarios", icon: Users, tourId: "nav-usuarios" },
     { name: "Mi Suscripción", href: "/perfil/suscripcion", icon: CreditCard, tourId: "nav-suscripcion" },
   ];
 

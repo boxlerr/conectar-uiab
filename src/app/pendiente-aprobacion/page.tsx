@@ -43,12 +43,15 @@ async function obtenerContexto() {
   let estadoEntidad = 'borrador';
   let motivoRechazo: string | null = null;
 
+  // Igual que en el middleware: la membresía se busca sin exigir `es_principal`,
+  // porque los usuarios que agrega la propia empresa no son titulares y si no
+  // esta pantalla les mostraría "borrador" con la ficha aprobada.
   if (rol === 'company') {
     const { data: m } = await supabase
       .from('miembros_empresa')
       .select('empresa_id, empresas(estado, motivo_rechazo)')
       .eq('perfil_id', user.id)
-      .eq('es_principal', true)
+      .limit(1)
       .maybeSingle();
     const emp = (m as any)?.empresas;
     entityId = (m as any)?.empresa_id ?? null;
@@ -59,7 +62,7 @@ async function obtenerContexto() {
       .from('miembros_proveedor')
       .select('proveedor_id, proveedores(estado, motivo_rechazo)')
       .eq('perfil_id', user.id)
-      .eq('es_principal', true)
+      .limit(1)
       .maybeSingle();
     const prov = (m as any)?.proveedores;
     entityId = (m as any)?.proveedor_id ?? null;
