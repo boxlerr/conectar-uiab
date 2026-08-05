@@ -22,6 +22,24 @@ async function getEmpresasData() {
 
   if (empresasRes.error) throw new Error(empresasRes.error.message);
 
+  // ¿Quién tiene gente adentro y quién es sólo una ficha del padrón?
+  //
+  // Las 58 empresas "aprobadas" no son 58 altas: 50 se importaron del padrón el
+  // 12-abr y están publicadas para que el directorio no naciera vacío, pero
+  // NADIE de esas empresas tiene todavía una cuenta. Mirando el panel no había
+  // forma de distinguirlas, y "Aprobadas (58)" se leía como si fueran 58
+  // empresas dadas de alta. Con esto cada fila dice si tiene acceso o no.
+  const [miembrosRes, altasRes] = await Promise.all([
+    supabase.from("miembros_empresa").select("empresa_id, perfil_id"),
+    supabase.from("altas_socios").select("empresa_id").not("empresa_id", "is", null),
+  ]);
+
+  const usuariosPorEmpresa = new Map<string, number>();
+  (miembrosRes.data ?? []).forEach((m: any) => {
+    usuariosPorEmpresa.set(m.empresa_id, (usuariosPorEmpresa.get(m.empresa_id) ?? 0) + 1);
+  });
+  const conAlta = new Set((altasRes.data ?? []).map((a: any) => a.empresa_id as string));
+
   // Map to flat object for PanelEmpresas
   const empresas = (empresasRes.data ?? []).map(emp => {
     // Determine subscription status. Because it's a 1-to-many potentially, we check the array.
@@ -35,7 +53,9 @@ async function getEmpresasData() {
 
     return {
       ...emp,
-      estado_suscripcion: estadoSuscripcion
+      estado_suscripcion: estadoSuscripcion,
+      usuarios: usuariosPorEmpresa.get(emp.id) ?? 0,
+      vino_por_alta: conAlta.has(emp.id),
     };
   });
 

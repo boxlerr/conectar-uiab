@@ -31,6 +31,10 @@ type Empresa = {
   creado_en: string;
   aprobada_en: string | null;
   estado_suscripcion?: string | null;
+  /** Cuántas personas tienen cuenta en esta ficha. 0 = nadie entró todavía. */
+  usuarios: number;
+  /** Pasó por el alta de socias (/sumate o carga manual en Altas de socios). */
+  vino_por_alta: boolean;
 };
 
 /**
@@ -42,7 +46,7 @@ function requierePagoParaAprobar(e: Empresa): boolean {
   return !e.es_socia_uiab && e.estado_suscripcion !== "activa";
 }
 
-type Filtro = "all" | "pendiente_revision" | "aprobada" | "rechazada";
+type Filtro = "all" | "pendiente_revision" | "aprobada" | "rechazada" | "sin_cuenta";
 
 const ESTADO_BADGE: Record<string, { label: string; className: string }> = {
   aprobada:            { label: "Aprobada", className: "bg-emerald-100 text-emerald-700" },
@@ -62,8 +66,13 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
   const [modalRechazo, setModalRechazo] = useState<{ id: string; nombre: string } | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
 
+  // "Sin cuenta" es transversal al estado: son fichas publicadas del padrón que
+  // todavía no tiene nadie adentro. Es la lista de a quién falta contactar.
+  const sinCuenta = (e: Empresa) => e.estado !== "rechazada" && e.usuarios === 0;
+
   const filtradas = empresas.filter((e) => {
-    const matchFiltro = filtro === "all" || e.estado === filtro;
+    const matchFiltro =
+      filtro === "all" ? true : filtro === "sin_cuenta" ? sinCuenta(e) : e.estado === filtro;
     const matchBusqueda = !busqueda || e.razon_social.toLowerCase().includes(busqueda.toLowerCase()) ||
       (e.email ?? "").toLowerCase().includes(busqueda.toLowerCase()) ||
       (e.cuit ?? "").includes(busqueda);
@@ -75,6 +84,8 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
     pendiente_revision: empresas.filter((e) => e.estado === "pendiente_revision").length,
     aprobada: empresas.filter((e) => e.estado === "aprobada").length,
     rechazada: empresas.filter((e) => e.estado === "rechazada").length,
+    sin_cuenta: empresas.filter(sinCuenta).length,
+    con_cuenta: empresas.filter((e) => e.usuarios > 0).length,
   };
 
   function refresh() {
@@ -99,7 +110,8 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
 
   const TABS: { key: Filtro; label: string }[] = [
     { key: "pendiente_revision", label: `Pendientes (${counts.pendiente_revision})` },
-    { key: "aprobada", label: `Aprobadas (${counts.aprobada})` },
+    { key: "sin_cuenta", label: `Sin cuenta (${counts.sin_cuenta})` },
+    { key: "aprobada", label: `Publicadas (${counts.aprobada})` },
     { key: "rechazada", label: `Rechazadas (${counts.rechazada})` },
     { key: "all", label: `Todas (${counts.all})` },
   ];
@@ -111,7 +123,10 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
           <Building className="w-8 h-8 text-primary-600" />
           Gestión de Empresas
         </h1>
-        <p className="text-slate-500 mt-1">Aprobá y rechazá las empresas registradas.</p>
+        <p className="text-slate-500 mt-1">
+          {counts.con_cuenta} de {counts.aprobada} empresas publicadas ya tienen a alguien adentro.
+          El resto son fichas del padrón esperando que la empresa se sume.
+        </p>
       </div>
 
       {/* Toolbar */}
@@ -162,6 +177,25 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
                   {empresa.es_socia_uiab && (
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">
                       Socia UIAB · sin cargo
+                    </span>
+                  )}
+                  {/* Lo que faltaba: distinguir la ficha publicada del padrón de
+                      la empresa que efectivamente se dio de alta y entró. */}
+                  {empresa.estado !== "rechazada" && (
+                    empresa.usuarios > 0 ? (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                        ✓ Dada de alta · {empresa.usuarios}{" "}
+                        {empresa.usuarios === 1 ? "usuario" : "usuarios"}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                        Sin cuenta — sólo ficha
+                      </span>
+                    )
+                  )}
+                  {empresa.vino_por_alta && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                      Vino por el formulario
                     </span>
                   )}
                 </div>
