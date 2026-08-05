@@ -48,11 +48,14 @@ function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType,
         className="flex items-center gap-2 bg-white/50 backdrop-blur-sm border border-slate-200/50 pl-2 pr-3 py-1.5 rounded-full shadow-sm hover:shadow-md hover:bg-white transition-all group"
       >
         <div className="relative">
+          {/* `object-contain` y no `object-cover`: los logos de las socias son
+              lockups horizontales (la palabra entera), y `cover` recortaba el
+              centro dejando dos letras sueltas adentro del círculo. */}
           {currentUser.logoUrl ? (
             <img
               src={currentUser.logoUrl}
               alt={currentUser.name}
-              className="w-8 h-8 rounded-full object-cover bg-white border border-slate-200 shadow-inner"
+              className="w-8 h-8 rounded-full object-contain p-0.5 bg-white border border-slate-200"
             />
           ) : (
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-100 to-indigo-100 flex items-center justify-center text-primary-700 font-bold shadow-inner uppercase">

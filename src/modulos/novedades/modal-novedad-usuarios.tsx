@@ -60,10 +60,16 @@ export function ModalNovedadUsuarios() {
       aria-modal="true"
       aria-labelledby="novedad-titulo"
     >
-      <div className="relative w-full max-w-[520px] bg-white rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-        {/* ── Header con la marca: mismo gradiente y trama que el login ── */}
+      {/*
+        Layout en DOS COLUMNAS: la marca a la izquierda y el contenido a la
+        derecha. En vertical el cartel medía casi el alto completo de la pantalla
+        y en un notebook quedaba cortado; a lo ancho entra cómodo y sobra aire.
+        Abajo de `md` se apila, que en mobile es lo único que funciona.
+      */}
+      <div className="relative w-full max-w-[560px] md:max-w-[900px] max-h-[90svh] overflow-y-auto md:overflow-visible bg-white rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 md:grid md:grid-cols-[minmax(0,340px)_minmax(0,1fr)] md:items-stretch">
+        {/* ── Panel de marca: mismo gradiente y trama que el login ── */}
         <div
-          className="relative px-6 sm:px-8 pt-7 pb-6 overflow-hidden"
+          className="relative px-6 sm:px-8 pt-7 pb-6 md:py-9 overflow-hidden rounded-t-2xl md:rounded-t-none md:rounded-l-2xl md:flex md:flex-col md:justify-center"
           style={{ background: "linear-gradient(135deg, #00213f 0%, #10375c 100%)" }}
         >
           <div
@@ -78,7 +84,7 @@ export function ModalNovedadUsuarios() {
           <button
             onClick={cerrar}
             aria-label="Cerrar"
-            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition"
+            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition md:hidden"
           >
             <X className="w-4 h-4" />
           </button>
@@ -90,20 +96,45 @@ export function ModalNovedadUsuarios() {
             </span>
             <h2
               id="novedad-titulo"
-              className="text-2xl font-bold text-white tracking-tight leading-tight mt-2"
+              className="text-2xl md:text-[28px] font-bold text-white tracking-tight leading-tight mt-2"
               style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
             >
               Ya podés sumar a tu equipo
             </h2>
-            <p className="text-sm text-white/70 mt-2 max-w-md leading-relaxed">
+            <p className="text-sm text-white/70 mt-3 max-w-md leading-relaxed">
               Compras, Mantenimiento, RRHH, Logística… cada persona de tu empresa puede tener
               su propio usuario, con su email y su contraseña.
             </p>
+
+            {/* En dos columnas los bullets viven acá: equilibran el alto de las
+                dos mitades y dejan la derecha para lo accionable. */}
+            <ul className="hidden md:block mt-7 space-y-3">
+              {[
+                { icon: KeyRound, texto: "Les creás el acceso, listo para mandar por WhatsApp." },
+                { icon: Users, texto: "Ven y editan lo mismo que vos: sin permisos que configurar." },
+                { icon: UserX, texto: "Si alguien se va, lo desactivás y deja de entrar." },
+              ].map(({ icon: Icon, texto }, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-[13px] text-white/75">
+                  <span className="w-5 h-5 rounded-md bg-white/10 text-sky-300 flex items-center justify-center shrink-0 mt-0.5">
+                    <Icon className="w-3 h-3" />
+                  </span>
+                  <span className="leading-snug">{texto}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        {/* ── Mini vista de la pantalla nueva ── */}
-        <div className="px-6 sm:px-8 pt-6">
+        {/* ── Columna derecha ── */}
+        <div className="relative px-6 sm:px-8 pt-6 md:py-9 md:pr-8">
+          <button
+            onClick={cerrar}
+            aria-label="Cerrar"
+            className="hidden md:flex absolute top-4 right-4 z-10 w-8 h-8 rounded-full items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
           <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-2">
             {[
               { inicial: "E", nombre: "Evelyn G.", area: "Compras", mail: "compras@tuempresa.com.ar" },
@@ -133,7 +164,9 @@ export function ModalNovedadUsuarios() {
             ))}
           </div>
 
-          <ul className="mt-4 space-y-2">
+          {/* En una sola columna (mobile) los bullets van acá; en dos columnas
+              se muestran sobre el panel navy y este bloque desaparece. */}
+          <ul className="mt-4 space-y-2 md:hidden">
             {[
               { icon: KeyRound, texto: "Les creás el acceso y te queda listo para copiar y mandar por WhatsApp." },
               { icon: Users, texto: "Ven y editan lo mismo que vos: no hay permisos que configurar." },
@@ -152,7 +185,7 @@ export function ModalNovedadUsuarios() {
               Se listan acá y no en un cartel aparte para no encadenar dos
               modales. Sólo van los que la socia sufrió en primera persona: los
               arreglos internos del panel de admin no le dicen nada. */}
-          <div className="mt-5 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+          <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-700 mb-2.5">
               También arreglamos lo que nos reportaron
             </p>
@@ -172,23 +205,25 @@ export function ModalNovedadUsuarios() {
               Gracias por avisarnos. Si ves algo raro, escribinos desde Contacto.
             </p>
           </div>
-        </div>
 
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 px-6 sm:px-8 py-6">
-          <button
-            onClick={cerrar}
-            className="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition"
-          >
-            Después
-          </button>
-          <Link
-            href="/perfil/usuarios"
-            onClick={cerrar}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition"
-          >
-            Configurar mis usuarios
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          {/* Los botones viven dentro de la columna derecha: si quedaran fuera
+              de la grilla se irían al ancho completo, debajo del panel navy. */}
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:items-center gap-2 pt-5 pb-6 md:pb-0">
+            <button
+              onClick={cerrar}
+              className="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition"
+            >
+              Después
+            </button>
+            <Link
+              href="/perfil/usuarios"
+              onClick={cerrar}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition"
+            >
+              Configurar mis usuarios
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </div>
     </div>

@@ -173,7 +173,14 @@ export default function MiPerfilDatosPage() {
         tamano_logo_bytes: file.size,
       }));
       setLogoPreviewUrl(publicUrlData.publicUrl);
-      toast.success("Logotipo cargado correctamente", { id: "upload-toast" });
+      // El archivo ya está en Storage, pero la ficha sigue apuntando al logo
+      // viejo hasta que se guarde el formulario. Decir sólo "cargado
+      // correctamente" hacía creer que ya estaba listo y la gente se iba de la
+      // pantalla sin guardar: el logo quedaba subido y sin usar.
+      toast.success("Logotipo cargado — falta guardar", {
+        id: "upload-toast",
+        description: "Tocá «Guardar Cambios» para que quede en tu ficha.",
+      });
     } catch (error: any) {
       toast.error("Error al subir", { description: error.message, id: "upload-toast" });
     }
