@@ -593,7 +593,7 @@ async function EmpresaProfile({
       <RegistrarVisita tipo="empresa" entidadId={empresaDb.id} />
       {/* Hero — always visible for SEO. min-h en vez de h: con alto fijo + overflow-hidden un nombre
           de 3 renglones recortaba los chips y el link "Directorio" por arriba */}
-      <div className="relative min-h-[240px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
+      <div className="relative min-h-[320px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
         <div className="absolute inset-0 z-0">
           <Image src="/landing/hero-industrial.webp" alt="" fill className="object-cover object-center" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
@@ -616,39 +616,58 @@ async function EmpresaProfile({
             </span>
           </div>
 
+          <h1 className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-white leading-[1.05] tracking-tight max-w-3xl">
+            {empresa.nombre}
+          </h1>
         </div>
       </div>
 
-      {/* Identidad: logo → nombre → datos.
-          Antes el nombre iba adentro del hero y el logo aparecía DESPUÉS, metido
-          en un cuadradito de 80px con borde: se leía como un ícono de sistema y
-          en el orden inverso al que uno espera. Ahora el logo va primero, suelto
-          y grande (mismo criterio que las tarjetas del directorio), y el nombre
-          debajo. `mix-blend-multiply` funde el fondo blanco de los logos
-          guardados como JPG, que si no dejan un rectángulo sobre la tarjeta. */}
+      {/* Barra de identidad: logo · datos · normas · contacto.
+          El nombre vuelve al hero (probamos ponerlo acá debajo del logo y la
+          cabecera quedaba desbalanceada: el azul vacío y el logo flotando).
+          Lo que sí se conserva es el logo SUELTO: antes vivía en un cuadradito
+          de 80px con borde y se leía como ícono de sistema.
+          `mix-blend-multiply` funde el fondo blanco de los logos guardados como
+          JPG, que si no dejan un rectángulo sobre la barra.
+          Las normas se suman acá para que la primera vista conteste "¿esta
+          empresa está certificada?" sin tener que scrollear. */}
       <div data-tour="ficha-identidad" className="border-b border-slate-200 bg-white">
-        <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 py-8">
-          <div className="flex flex-wrap items-end gap-x-10 gap-y-6">
-            <div className="min-w-0">
-              {empresa.logoUrl ? (
-                <Image
-                  src={empresa.logoUrl}
-                  alt={empresa.nombre}
-                  width={320}
-                  height={120}
-                  className="h-16 md:h-20 w-auto max-w-[280px] object-contain object-left mix-blend-multiply"
-                />
-              ) : (
-                <div className="h-16 md:h-20 w-16 md:w-20 rounded-lg bg-slate-100 flex items-center justify-center font-manrope font-black text-4xl text-[#00213f]">
-                  {empresa.logo}
-                </div>
-              )}
-              <h1 className="font-manrope text-3xl md:text-4xl lg:text-[42px] font-black text-[#00213f] leading-[1.05] tracking-tight mt-4">
-                {empresa.nombre}
-              </h1>
-            </div>
+        <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 py-6 flex flex-wrap items-center gap-x-10 gap-y-5">
+          <div className="shrink-0">
+            {empresa.logoUrl ? (
+              <Image
+                src={empresa.logoUrl}
+                alt={empresa.nombre}
+                width={280}
+                height={100}
+                className="h-12 md:h-14 w-auto max-w-[200px] object-contain object-left mix-blend-multiply"
+              />
+            ) : (
+              <div className="h-12 md:h-14 w-12 md:w-14 rounded-lg bg-slate-100 flex items-center justify-center font-manrope font-black text-2xl text-[#00213f]">
+                {empresa.logo}
+              </div>
+            )}
+          </div>
 
-            <div className="flex-1 min-w-[200px] flex flex-wrap gap-x-8 gap-y-3 items-center text-sm">
+          {certs.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {certs.slice(0, 4).map((c, i) => (
+                <ChipNorma
+                  key={i}
+                  etiqueta={etiquetaNorma(c.codigo_norma, c.nombre_libre)}
+                  familia={familiaNorma(c.codigo_norma)}
+                  size="sm"
+                />
+              ))}
+              {certs.length > 4 && (
+                <span className="text-[11px] font-semibold text-slate-400">
+                  +{certs.length - 4}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="flex-1 min-w-[200px] flex flex-wrap gap-x-8 gap-y-3 items-center text-sm justify-end">
               {empresa.ubicacion && (
                 <span className="inline-flex items-center gap-2 text-slate-600">
                   <MapPin className="w-4 h-4 text-slate-400" />
@@ -663,20 +682,20 @@ async function EmpresaProfile({
                   className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 font-semibold transition-colors"
                 >
                   <Globe className="w-4 h-4" />
-                  {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                </a>
-              )}
-            </div>
-            <ModalContacto
-              nombre={empresa.nombre}
-              email={empresa.contacto.email}
-              telefono={empresa.contacto.telefono}
-              sitioWeb={empresa.contacto.sitioWeb}
-              ubicacion={empresa.ubicacion ?? undefined}
-              colorScheme="blue"
-              className="inline-flex items-center justify-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase"
-            />
+                {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+              </a>
+            )}
           </div>
+
+          <ModalContacto
+            nombre={empresa.nombre}
+            email={empresa.contacto.email}
+            telefono={empresa.contacto.telefono}
+            sitioWeb={empresa.contacto.sitioWeb}
+            ubicacion={empresa.ubicacion ?? undefined}
+            colorScheme="blue"
+            className="inline-flex items-center justify-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase shrink-0"
+          />
         </div>
       </div>
 
@@ -979,7 +998,7 @@ async function ProveedorProfile({
       />
       <RegistrarVisita tipo="proveedor" entidadId={provDb.id} />
       {/* Hero */}
-      <div className="relative min-h-[240px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
+      <div className="relative min-h-[320px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
         <div className="absolute inset-0 z-0">
           <Image src="/landing/hero-industrial.webp" alt="Fondo" fill className="object-cover object-center" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
@@ -1002,47 +1021,61 @@ async function ProveedorProfile({
             </span>
           </div>
 
+          <h1 className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-white leading-[1.05] tracking-tight max-w-3xl">
+            {proveedor.nombre}
+          </h1>
+          {proveedor.nombrePersonal && proveedor.nombrePersonal !== proveedor.nombre && (
+            <p className="text-white/55 text-base font-medium mt-2">{proveedor.nombrePersonal}</p>
+          )}
         </div>
       </div>
 
-      {/* Identidad: avatar → nombre → datos. Mismo orden que la ficha de
-          empresa. Acá el recuadro redondo SE CONSERVA: la imagen de un
-          particular es una foto/avatar, no un logotipo. */}
+      {/* Barra de identidad: avatar · normas · datos · contacto. Mismo criterio
+          que la ficha de empresa, pero acá el recuadro redondo SE CONSERVA: la
+          imagen de un particular es una foto, no un logotipo. */}
       <div className="border-b border-slate-200 bg-white">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8">
-          <div className="flex flex-wrap items-end gap-x-10 gap-y-6">
-            <div className="min-w-0">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-white border border-slate-200 flex items-center justify-center font-manrope font-black text-4xl text-[#10375c] shrink-0 overflow-hidden rounded-full shadow-sm">
-                {proveedor.logoUrl ? (
-                  <Image src={proveedor.logoUrl} alt={proveedor.nombre} width={96} height={96} className="object-cover w-full h-full" />
-                ) : (
-                  proveedor.logo
-                )}
-              </div>
-              <h1 className="font-manrope text-3xl md:text-4xl lg:text-[42px] font-black text-[#00213f] leading-[1.05] tracking-tight mt-4">
-                {proveedor.nombre}
-              </h1>
-              {proveedor.nombrePersonal && proveedor.nombrePersonal !== proveedor.nombre && (
-                <p className="text-slate-500 text-base font-medium mt-1">{proveedor.nombrePersonal}</p>
-              )}
-            </div>
-            <div className="flex-1 min-w-[200px] flex flex-wrap gap-x-8 gap-y-3 items-center text-sm">
-              {proveedor.ubicacion && (
-                <span className="inline-flex items-center gap-2 text-slate-600">
-                  <MapPin className="w-4 h-4 text-slate-400" />
-                  <span className="font-medium">{proveedor.ubicacion}</span>
-                </span>
-              )}
-            </div>
-            <ModalContacto
-              nombre={proveedor.nombre}
-              email={proveedor.contacto.email}
-              telefono={proveedor.contacto.telefono}
-              ubicacion={proveedor.ubicacion ?? undefined}
-              colorScheme="amber"
-              className="inline-flex items-center justify-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase"
-            />
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 flex flex-wrap items-center gap-x-10 gap-y-5">
+          <div className="w-16 h-16 md:w-20 md:h-20 bg-white border border-slate-200 flex items-center justify-center font-manrope font-black text-3xl text-[#10375c] shrink-0 overflow-hidden rounded-full shadow-sm">
+            {proveedor.logoUrl ? (
+              <Image src={proveedor.logoUrl} alt={proveedor.nombre} width={80} height={80} className="object-cover w-full h-full" />
+            ) : (
+              proveedor.logo
+            )}
           </div>
+
+          {certs.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {certs.slice(0, 4).map((c, i) => (
+                <ChipNorma
+                  key={i}
+                  etiqueta={etiquetaNorma(c.codigo_norma, c.nombre_libre)}
+                  familia={familiaNorma(c.codigo_norma)}
+                  size="sm"
+                />
+              ))}
+              {certs.length > 4 && (
+                <span className="text-[11px] font-semibold text-slate-400">+{certs.length - 4}</span>
+              )}
+            </div>
+          )}
+
+          <div className="flex-1 min-w-[200px] flex flex-wrap gap-x-8 gap-y-3 items-center text-sm justify-end">
+            {proveedor.ubicacion && (
+              <span className="inline-flex items-center gap-2 text-slate-600">
+                <MapPin className="w-4 h-4 text-slate-400" />
+                <span className="font-medium">{proveedor.ubicacion}</span>
+              </span>
+            )}
+          </div>
+
+          <ModalContacto
+            nombre={proveedor.nombre}
+            email={proveedor.contacto.email}
+            telefono={proveedor.contacto.telefono}
+            ubicacion={proveedor.ubicacion ?? undefined}
+            colorScheme="amber"
+            className="inline-flex items-center justify-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase shrink-0"
+          />
         </div>
       </div>
 
