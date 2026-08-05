@@ -129,6 +129,20 @@ export async function POST(request: Request) {
     }
 
     // 1. Insert into perfiles (bypassing RLS)
+    //
+    // Quien se engancha a una ficha del padrón entra DESACTIVADO y espera que un
+    // admin lo habilite. Un alta normal crea su propia ficha en
+    // `pendiente_revision`, así que ya nace bajo control; en cambio la ficha del
+    // padrón YA está aprobada y publicada, así que sin este freno el acceso se
+    // da solo. Y el CUIT es público: alcanza con conocerlo.
+    //
+    // Pasó de verdad el 2026-08-05: dos personas se registraron con el CUIT de
+    // Roll Paper con 13 minutos de diferencia y quedaron adentro de la ficha sin
+    // que nadie aprobara nada, mientras el mail al admin decía "pendiente de
+    // revisión". El gate de `perfiles.activo` ya existe (banea en Auth, el
+    // middleware corta la sesión y el login lo explica), sólo faltaba usarlo acá.
+    const quedaPendienteDeHabilitacion = Boolean(empresaExistenteId)
+
     const { error: profileError } = await supabaseAdmin
       .from('perfiles')
       .insert({
@@ -137,12 +151,23 @@ export async function POST(request: Request) {
         nombre_completo: fullName,
         rol_sistema: role,
         telefono: telefono || null,
-        activo: true // El usuario (persona vinculada) está activa, pero su empresa queda en pending.
+        activo: !quedaPendienteDeHabilitacion,
       })
 
     if (profileError) {
       console.error('Registration API: Profile Error -', profileError)
       return NextResponse.json({ error: 'Hubo un error al establecer tu perfil organizacional.' }, { status: 500 })
+    }
+
+    // El flag solo no alcanza: hay que banear en Auth, igual que hace
+    // /perfil/usuarios al desactivar. Si no, la sesión que el signUp ya dejó
+    // abierta sigue viva hasta que el middleware la corte.
+    if (quedaPendienteDeHabilitacion) {
+      try {
+        await supabaseAdmin.auth.admin.updateUserById(instanceId, { ban_duration: '876000h' })
+      } catch (err) {
+        console.error('[register-sync] No se pudo dejar en espera al usuario:', err)
+      }
     }
 
     // 2. Automatically instantiate "Empresa" or "Proveedor" with 'pending' status for admin review.
@@ -309,7 +334,15 @@ export async function POST(request: Request) {
         localidad: localidad || null,
         provincia: provincia || null,
         rubro: rubroLabel,
-        urlPanelAdmin,
+        // Cuando se engancha a una ficha del padrón no hay ninguna empresa nueva
+        // que aprobar: lo que hay que decidir es si esa PERSONA entra o no. El
+        // mail decía "nueva empresa pendiente de revisión" y mandaba a
+        // /admin/empresas, donde no aparecía nada — así se perdieron dos altas
+        // de Roll Paper el 2026-08-05.
+        urlPanelAdmin: quedaPendienteDeHabilitacion ? `${appUrl()}/admin/usuarios` : urlPanelAdmin,
+        vinculacionAFichaExistente: quedaPendienteDeHabilitacion
+          ? { empresa: razonSocial || 'la ficha del padrón' }
+          : undefined,
       })
 
       await enviarEmail({
@@ -390,9 +423,16 @@ export async function POST(request: Request) {
       console.error('[register-sync] error creando fila de suscripción inicial:', err)
     }
 
-    console.log(`[register-sync] Registro completado: ${role} (${fullName}) → pendiente de revisión + pendiente_pago`)
+    console.log(
+      `[register-sync] Registro completado: ${role} (${fullName}) → ` +
+        (quedaPendienteDeHabilitacion
+          ? 'vinculado a ficha del padrón, ACCESO EN ESPERA'
+          : 'pendiente de revisión + pendiente_pago')
+    )
 
-    return NextResponse.json({ success: true })
+    // `enEspera` le dice al front que no intente entrar: la cuenta quedó baneada
+    // a propósito y el auto-login fallaría con un error críptico en inglés.
+    return NextResponse.json({ success: true, enEspera: quedaPendienteDeHabilitacion })
   } catch (err: unknown) {
     console.error('Registration API Error:', err)
     return NextResponse.json({ error: 'Error interno de backend al procesar la integración profunda.' }, { status: 500 })

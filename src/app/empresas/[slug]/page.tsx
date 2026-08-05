@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
 import { CatalogoPublico, type CatalogoItem } from "@/components/ui/directorio/catalogo-publico";
 import { ModalContacto } from "@/components/ui/directorio/modal-contacto";
-import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock, Tag, Award, FileText } from "lucide-react";
+import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock, Tag, Award, FileText, Star, PackageSearch } from "lucide-react";
 import { ChipNorma } from "@/modulos/certificaciones/chip-norma";
 import { etiquetaNorma, familiaNorma, normaPorCodigo, estadoVigencia } from "@/modulos/certificaciones/normas";
 import Image from "next/image";
@@ -481,6 +481,30 @@ async function EmpresaProfile({
   // fuera del gate de auth.
   const certs = await fetchCertificaciones(supabase, "empresa_id", empresaDb.id);
 
+  // Señales de la barra de identidad. Van FUERA del gate de auth a propósito:
+  // son contadores, no contenido. Que un visitante sin cuenta vea "12 reseñas ·
+  // 6 productos" es justamente lo que lo empuja a registrarse para leerlos, y
+  // de paso le dice de un vistazo qué tan viva está la ficha. Dos queries
+  // `head: true` (sólo el count, sin traer filas) y una de calificaciones.
+  const [resenasPub, itemsPub] = await Promise.all([
+    supabase
+      .from("resenas")
+      .select("calificacion")
+      .eq("empresa_resenada_id", empresaDb.id)
+      .eq("estado", "aprobada"),
+    supabase
+      .from("items")
+      .select("id", { count: "exact", head: true })
+      .eq("empresa_id", empresaDb.id)
+      .eq("estado", "publicado"),
+  ]);
+
+  const notas = (resenasPub.data ?? []).map((r: any) => Number(r.calificacion)).filter(Number.isFinite);
+  const totalResenas = notas.length;
+  const promedioResenas =
+    totalResenas > 0 ? notas.reduce((a: number, b: number) => a + b, 0) / totalResenas : null;
+  const totalItems = itemsPub.count ?? 0;
+
   // Only fetch heavy data when authenticated to avoid wasted DB calls
   let finalResenas: any[] = [];
   let oportunidadesActivas: any[] = [];
@@ -619,6 +643,37 @@ async function EmpresaProfile({
           <h1 className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-white leading-[1.05] tracking-tight max-w-3xl">
             {empresa.nombre}
           </h1>
+
+          {/* La localidad sube al hero y con peso: en un directorio industrial
+              zonal, DÓNDE está es criterio de decisión, y abajo a la derecha de
+              la barra pasaba desapercibida. Por eso ya no se repite ahí. */}
+          {empresa.ubicacion && (
+            <p className="inline-flex items-center gap-2 text-blue-100/90 text-base md:text-lg font-semibold mt-3">
+              <MapPin className="w-4 h-4 text-blue-300 shrink-0" />
+              {empresa.ubicacion}
+            </p>
+          )}
+
+          {/* Los rubros reales estaban enterrados abajo de todo. Acá contestan
+              "¿a qué se dedica?" en el primer vistazo, que es lo que uno va a
+              buscar cuando abre una ficha del directorio. */}
+          {cats.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-5">
+              {cats.slice(0, 4).map((c: string) => (
+                <span
+                  key={c}
+                  className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-white/85 text-[12px] font-semibold backdrop-blur-sm"
+                >
+                  {c}
+                </span>
+              ))}
+              {cats.length > 4 && (
+                <span className="text-[12px] font-semibold text-blue-200/70">
+                  +{cats.length - 4} rubros
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -667,21 +722,34 @@ async function EmpresaProfile({
             </div>
           )}
 
-          <div className="flex-1 min-w-[200px] flex flex-wrap gap-x-8 gap-y-3 items-center text-sm justify-end">
-              {empresa.ubicacion && (
-                <span className="inline-flex items-center gap-2 text-slate-600">
-                  <MapPin className="w-4 h-4 text-slate-400" />
-                  <span className="font-medium">{empresa.ubicacion}</span>
+          {/* Señales de qué tan viva está la ficha. La localidad ya no va acá:
+              subió al hero, donde se lee. */}
+          <div className="flex-1 min-w-[200px] flex flex-wrap gap-x-7 gap-y-3 items-center text-sm justify-end">
+            {promedioResenas !== null && (
+              <span className="inline-flex items-center gap-1.5 text-slate-700">
+                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                <span className="font-bold">{promedioResenas.toFixed(1)}</span>
+                <span className="text-slate-500">
+                  · {totalResenas} {totalResenas === 1 ? "reseña" : "reseñas"}
                 </span>
-              )}
-              {empresa.contacto.sitioWeb && (
-                <a
-                  href={normalizarSitioWeb(empresa.contacto.sitioWeb) ?? "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 font-semibold transition-colors"
-                >
-                  <Globe className="w-4 h-4" />
+              </span>
+            )}
+            {totalItems > 0 && (
+              <span className="inline-flex items-center gap-2 text-slate-600">
+                <PackageSearch className="w-4 h-4 text-slate-400" />
+                <span className="font-medium">
+                  {totalItems} {totalItems === 1 ? "producto" : "productos"}
+                </span>
+              </span>
+            )}
+            {empresa.contacto.sitioWeb && (
+              <a
+                href={normalizarSitioWeb(empresa.contacto.sitioWeb) ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 font-semibold transition-colors"
+              >
+                <Globe className="w-4 h-4" />
                 {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
               </a>
             )}
@@ -951,6 +1019,26 @@ async function ProveedorProfile({
   // Certificaciones: contenido público, fuera del gate de auth.
   const certs = await fetchCertificaciones(supabase, "proveedor_id", provDb.id);
 
+  // Mismas señales públicas que la ficha de empresa (ver el comentario allá).
+  const [resenasPub, itemsPub] = await Promise.all([
+    supabase
+      .from("resenas")
+      .select("calificacion")
+      .eq("proveedor_resenado_id", provDb.id)
+      .eq("estado", "aprobada"),
+    supabase
+      .from("items")
+      .select("id", { count: "exact", head: true })
+      .eq("proveedor_id", provDb.id)
+      .eq("estado", "publicado"),
+  ]);
+
+  const notas = (resenasPub.data ?? []).map((r: any) => Number(r.calificacion)).filter(Number.isFinite);
+  const totalResenas = notas.length;
+  const promedioResenas =
+    totalResenas > 0 ? notas.reduce((a: number, b: number) => a + b, 0) / totalResenas : null;
+  const totalItems = itemsPub.count ?? 0;
+
   // Los prestadores de servicios no son calificados: no se traen reseñas.
   let catalogoItems: CatalogoItem[] = [];
 
@@ -1026,6 +1114,31 @@ async function ProveedorProfile({
           </h1>
           {proveedor.nombrePersonal && proveedor.nombrePersonal !== proveedor.nombre && (
             <p className="text-white/55 text-base font-medium mt-2">{proveedor.nombrePersonal}</p>
+          )}
+
+          {proveedor.ubicacion && (
+            <p className="inline-flex items-center gap-2 text-orange-100/90 text-base md:text-lg font-semibold mt-3">
+              <MapPin className="w-4 h-4 text-[#d4894a] shrink-0" />
+              {proveedor.ubicacion}
+            </p>
+          )}
+
+          {cats.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-5">
+              {cats.slice(0, 4).map((c: string) => (
+                <span
+                  key={c}
+                  className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-white/85 text-[12px] font-semibold backdrop-blur-sm"
+                >
+                  {c}
+                </span>
+              ))}
+              {cats.length > 4 && (
+                <span className="text-[12px] font-semibold text-orange-200/70">
+                  +{cats.length - 4} rubros
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>

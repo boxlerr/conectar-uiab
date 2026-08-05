@@ -310,6 +310,12 @@ export interface DatosNotificacionAdmin {
   provincia?: string | null;
   rubro?: string | null;
   urlPanelAdmin: string;
+  /**
+   * Presente cuando la persona NO trajo una empresa nueva sino que se enganchó
+   * a una ficha que ya estaba en el padrón. Cambia de raíz qué hay que decidir:
+   * no es "aprobar una empresa" sino "dejar entrar a esta persona".
+   */
+  vinculacionAFichaExistente?: { empresa: string };
 }
 
 /** Notificación al administrador de la UIAB: hay una nueva solicitud pendiente. */
@@ -336,23 +342,42 @@ export function plantillaNotificacionAdmin(d: DatosNotificacionAdmin): {
     ...(d.rubro ? [{ etiqueta: "Rubro", valor: d.rubro }] : []),
   ];
 
-  const cuerpo = `
+  const vinculada = d.vinculacionAFichaExistente;
+
+  const cuerpo = vinculada
+    ? `
+    <p style="margin: 0 0 12px 0;"><strong>${escapeText(d.nombre)}</strong> se registró con el CUIT de <strong>${escapeText(vinculada.empresa)}</strong>, que <em>ya está en el directorio</em>. No se creó una ficha nueva: se pide entrar a la que ya existe.</p>
+    <p style="margin: 0 0 12px 0;">Su acceso está <strong>en espera</strong>: no puede ingresar hasta que lo habilites. Confirmá que la persona realmente trabaja ahí antes de darle acceso — el CUIT de una empresa es público.</p>
+    ${tarjetaDatos(filas)}
+  `
+    : `
     <p style="margin: 0 0 12px 0;">Una nueva entidad completó el registro en <strong>UIAB Conecta</strong> y queda en estado <em>pendiente de revisión</em>. Ingresá al panel de administración para revisar los datos y aprobar o rechazar la solicitud.</p>
     ${tarjetaDatos(filas)}
   `;
 
+  const asunto = vinculada
+    ? `Pide acceso a ${vinculada.empresa} — ${d.nombre}`
+    : `${etiquetaTipo} pendiente de revisión — ${d.nombre}`;
+
   return {
-    asunto: `${etiquetaTipo} pendiente de revisión — ${d.nombre}`,
+    asunto,
     html: renderEmailBase({
-      preheader: `${etiquetaTipo}: ${d.nombre} espera tu revisión.`,
-      titulo: `${etiquetaTipo} pendiente`,
-      intro: "Una solicitud acaba de ingresar a la red y requiere tu aprobación.",
+      preheader: vinculada
+        ? `${d.nombre} pide entrar a la ficha de ${vinculada.empresa}.`
+        : `${etiquetaTipo}: ${d.nombre} espera tu revisión.`,
+      titulo: vinculada ? "Alguien pide acceso a una ficha" : `${etiquetaTipo} pendiente`,
+      intro: vinculada
+        ? "El acceso quedó en espera hasta que lo habilites."
+        : "Una solicitud acaba de ingresar a la red y requiere tu aprobación.",
       cuerpo,
-      cta: { etiqueta: "Revisar en el panel", href: d.urlPanelAdmin },
+      cta: {
+        etiqueta: vinculada ? "Revisar el acceso" : "Revisar en el panel",
+        href: d.urlPanelAdmin,
+      },
       pie: "Recibís esta notificación porque tu cuenta figura como administradora de la red UIAB Conecta.",
     }),
     texto: [
-      `${etiquetaTipo} pendiente de revisión — ${d.nombre}`,
+      asunto,
       "",
       `Email: ${d.email}`,
       d.cuit ? `CUIT: ${d.cuit}` : "",

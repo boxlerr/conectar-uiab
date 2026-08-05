@@ -471,6 +471,22 @@ function RegisterContent() {
 
       setIsLoading(false)
 
+      // Se enganchó a una ficha que ya estaba en el directorio: la cuenta queda
+      // en espera hasta que la UIAB confirme que la persona trabaja ahí. No
+      // podemos mandarla al panel ni al checkout — el usuario está baneado a
+      // propósito y el auto-login fallaría con un error críptico.
+      const { enEspera } = await res.json().catch(() => ({ enEspera: false }))
+      if (enEspera) {
+        await supabase.auth.signOut().catch(() => {})
+        toast.success('Tu empresa ya está en UIAB Conecta', {
+          description:
+            'Pedimos a la UIAB que habilite tu acceso a la ficha. Te avisamos por correo apenas esté listo.',
+          duration: 15000,
+        })
+        router.push('/login')
+        return
+      }
+
       // Sin sesión = Supabase pidió confirmar el correo antes de dejar entrar
       // (item 1.1 del reporte de Lucas: "el sistema crea la cuenta y habilita la
       // navegación del panel sin enviar ni validar un mail de confirmación").
