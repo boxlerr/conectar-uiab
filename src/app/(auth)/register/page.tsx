@@ -696,6 +696,47 @@ function RegisterContent() {
                             </p>
                           </div>
 
+                          {/* Desvío de socias, ARRIBA DE TODO y grande.
+                              Estaba como un chip al final del paso y no lo veía
+                              nadie: las socias se registraban acá, quedaban en
+                              el circuito arancelado y había que rescatarlas a
+                              mano. Su camino es /sumate, donde no pagan. */}
+                          <Link
+                            href="/sumate"
+                            className="block rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 sm:p-6 hover:bg-emerald-100/70 hover:border-emerald-400 transition-colors group"
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className="h-11 w-11 shrink-0 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/25">
+                                <ShieldCheck className="h-6 w-6" />
+                              </div>
+                              <div className="min-w-0">
+                                <p
+                                  className="text-lg sm:text-xl font-black text-emerald-900 tracking-tight leading-tight"
+                                  style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                                >
+                                  ¿Tu empresa ya es socia de la UIAB?
+                                </p>
+                                <p className="text-sm text-emerald-900/75 mt-1.5 leading-relaxed">
+                                  Entonces <strong>no te registres acá</strong>: tu acceso ya está incluido en
+                                  la cuota y no tiene ningún costo. Completá el formulario de socias y te lo
+                                  habilitamos.
+                                </p>
+                                <span className="inline-flex items-center gap-1.5 mt-3 text-sm font-black text-white bg-emerald-600 group-hover:bg-emerald-700 px-4 py-2 rounded-lg transition-colors">
+                                  Ir al formulario de socias
+                                  <ArrowRight className="h-4 w-4" />
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+
+                          <div className="flex items-center gap-3 py-1">
+                            <div className="h-px flex-1 bg-slate-200" />
+                            <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                              No soy socia
+                            </span>
+                            <div className="h-px flex-1 bg-slate-200" />
+                          </div>
+
                           <FormField control={form.control} name="role" render={({ field }) => (
                             <div className="grid gap-3" role="radiogroup" aria-label="Tipo de registro">
                               {OPCIONES_REGISTRO.map((op) => {
@@ -748,18 +789,7 @@ function RegisterContent() {
                             </div>
                           )} />
 
-                          {/* Las socias UIAB no pagan: mejor desviarlas acá que cobrarles de más */}
-                          <Link
-                            href="/sumate"
-                            className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 hover:bg-emerald-50 transition-colors"
-                          >
-                            <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                            <p className="text-xs text-slate-600 leading-relaxed">
-                              <span className="font-bold text-emerald-800">¿Tu empresa ya es socia de la UIAB?</span>{' '}
-                              Tu acceso está incluido en la cuota: activalo desde el alta de socias, sin cargo.
-                              <span className="font-bold text-emerald-700 underline underline-offset-2 ml-1">Ir al alta →</span>
-                            </p>
-                          </Link>
+                          {/* El desvío de socias ahora vive arriba de todo, grande. */}
 
                           <Button type="button" onClick={() => validateStep(1)} className="w-full h-12 sm:h-14 bg-[#00213f] hover:bg-black text-white font-black text-base sm:text-lg rounded-xl transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98]">
                             Continuar <ArrowRight className="ml-3 h-5 w-5" />

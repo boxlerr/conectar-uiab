@@ -215,6 +215,16 @@ export default function Home() {
                       <UserPlus className="w-4 h-4 mr-2" />
                       Registrate
                     </Link>
+                    {/* Las socias no pagan y su camino es /sumate, no /register.
+                        Sin este botón en el hero terminaban registrándose por el
+                        circuito arancelado y había que rescatarlas a mano. */}
+                    <Link
+                      href="/sumate"
+                      className="h-12 px-7 rounded-sm font-bold text-[14px] bg-emerald-500 text-white hover:bg-emerald-400 shadow-xl shadow-emerald-900/25 active:scale-[0.98] transition-all inline-flex items-center justify-center"
+                    >
+                      <ShieldCheck className="w-4 h-4 mr-2" />
+                      Soy socia de la UIAB
+                    </Link>
                     <Link
                       href="/directorio"
                       className="h-12 px-7 rounded-sm font-semibold text-[14px] text-white/80 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/[0.06] transition-all inline-flex items-center justify-center"
