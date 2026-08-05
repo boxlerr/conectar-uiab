@@ -353,7 +353,8 @@ function Encabezado() {
       </div>
       <p className="text-slate-500 text-sm mt-1 max-w-2xl">
         Cargá cada norma o habilitación por separado con su certificado. El sello aparece en tu
-        ficha y como iconito en el directorio; el archivo del certificado queda privado.
+        ficha y como iconito en el directorio, y quien la visite puede abrir el certificado como
+        respaldo de lo que declarás.
       </p>
     </div>
   );
@@ -581,8 +582,14 @@ function FormularioCertificacion({
               onChange={onElegirArchivo}
               className="hidden"
             />
+            {/* Antes acá decía "Sólo lo ve la UIAB. No se publica.", pero el
+                archivo no lo miraba nadie: no existe pantalla de verificación y
+                ninguna certificación llegó nunca a `verificada`. Ahora el
+                certificado se publica en la ficha como respaldo, así que hay que
+                decirlo ANTES de que la socia lo suba. */}
             <p className="text-[11px] text-slate-400 mt-1.5">
-              Sólo lo ve la UIAB para verificar tu carga. No se publica.
+              Se publica en tu ficha, para respaldar la norma que declarás. Subí sólo el
+              certificado, sin anexos con datos que no quieras mostrar.
             </p>
           </div>
         </div>

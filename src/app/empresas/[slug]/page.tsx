@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
 import { CatalogoPublico, type CatalogoItem } from "@/components/ui/directorio/catalogo-publico";
 import { ModalContacto } from "@/components/ui/directorio/modal-contacto";
-import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock, Tag, Award } from "lucide-react";
+import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock, Tag, Award, FileText } from "lucide-react";
 import { ChipNorma } from "@/modulos/certificaciones/chip-norma";
 import { etiquetaNorma, familiaNorma, normaPorCodigo, estadoVigencia } from "@/modulos/certificaciones/normas";
 import Image from "next/image";
@@ -73,6 +73,7 @@ function createAdminClient() {
 }
 
 interface CertFicha {
+  id: string;
   codigo_norma: string;
   nombre_libre: string | null;
   verificada: boolean;
@@ -80,6 +81,7 @@ interface CertFicha {
   organismo_certificador: string | null;
   numero_certificado: string | null;
   fecha_vencimiento: string | null;
+  ruta_archivo: string | null;
 }
 
 async function fetchCertificaciones(
@@ -90,7 +92,7 @@ async function fetchCertificaciones(
   const { data } = await supabase
     .from("certificaciones")
     .select(
-      "codigo_norma, nombre_libre, verificada, alcance, organismo_certificador, numero_certificado, fecha_vencimiento"
+      "id, codigo_norma, nombre_libre, verificada, alcance, organismo_certificador, numero_certificado, fecha_vencimiento, ruta_archivo"
     )
     .eq(key, id)
     .order("verificada", { ascending: false });
@@ -136,13 +138,31 @@ function SeccionCertificaciones({ certs, accent }: { certs: CertFicha[]; accent:
                   {c.numero_certificado && <>Cert. N° {c.numero_certificado}</>}
                 </p>
               )}
+              {/* El respaldo es lo que le da sentido al adjunto: la UIAB no
+                  audita, así que quien mira la ficha puede abrir el certificado
+                  y juzgar por su cuenta. */}
+              {c.ruta_archivo && (
+                <a
+                  href={`/api/certificaciones/${c.id}/archivo`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-1.5 mt-2.5 text-[12px] font-semibold ${
+                    accent === "amber"
+                      ? "text-[#bf7035] hover:text-[#a0622c]"
+                      : "text-blue-700 hover:text-blue-900"
+                  } transition-colors`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  Ver certificado
+                </a>
+              )}
             </div>
           );
         })}
       </div>
       <p className="text-[11px] text-slate-400 mt-5 pt-4 border-t border-slate-100 leading-relaxed">
-        Certificaciones declaradas por cada empresa bajo su responsabilidad. La UIAB no emite,
-        verifica ni audita certificaciones.
+        Certificaciones y certificados publicados por cada empresa bajo su responsabilidad. La UIAB
+        no emite, verifica ni audita certificaciones.
       </p>
     </section>
   );
