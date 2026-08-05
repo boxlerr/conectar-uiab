@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -107,7 +108,10 @@ export default function BandejaEntradaPage() {
 
     async function load() {
       const entityId = currentUser!.entityId!;
-      const role = currentUser!.role;
+      // El tipo de ficha sale de la MEMBRESÍA, no de `rol_sistema`: con el rol
+      // crudo, un admin con ficha propia (Vaxler) no matcheaba "company" y caía
+      // en la rama de proveedor, así que la bandeja le salía siempre vacía.
+      const role = tipoEntidadDe(currentUser) ?? "provider";
 
       try {
         // Solicitudes

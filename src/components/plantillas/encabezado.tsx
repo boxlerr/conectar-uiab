@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { User, Shield, Building, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase, BookOpen, GraduationCap, Landmark, Factory, Users, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utilidades";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import type { User as UserType } from "@/tipos";
 import { CampanaNotificaciones } from "@/components/ui/campana-notificaciones";
 
@@ -80,14 +81,26 @@ function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType,
                <p className="text-sm font-bold text-slate-900 truncate">{currentUser.name}</p>
                <p className="text-xs text-slate-500 capitalize flex items-center gap-1 mt-0.5">
                  <Sparkles className="w-3 h-3 text-emerald-500" />
-                 {currentUser.role === 'company' ? 'Empresa' : currentUser.role === 'provider' ? 'Proveedor de servicios' : 'Admin'}
+                 {/* El rótulo dice ficha Y permisos: un admin puede además ser
+                     dueño de una empresa (Vaxler) y antes sólo se leía "Admin". */}
+                 {[
+                   esFichaDeEmpresa(currentUser)
+                     ? 'Empresa'
+                     : tipoEntidadDe(currentUser) === 'provider'
+                       ? 'Proveedor de servicios'
+                       : null,
+                   currentUser.role === 'admin' ? 'Admin' : null,
+                 ].filter(Boolean).join(' · ') || 'Cuenta'}
                </p>
             </div>
-            
+
             <div className="p-1">
-              {currentUser.role !== 'admin' && (
-                <Link 
-                  href="/perfil" 
+              {/* "Mi Perfil" se muestra por FICHA, no por rol: antes se escondía a
+                  todo admin, así que un admin con empresa propia no tenía por
+                  dónde entrar a configurarla desde el menú. */}
+              {tipoEntidadDe(currentUser) && (
+                <Link
+                  href="/perfil"
                   onClick={() => setIsOpen(false)}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-700 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-colors"
                 >

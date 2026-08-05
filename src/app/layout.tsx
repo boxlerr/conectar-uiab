@@ -36,6 +36,7 @@ import { RecargaTrasDeploy } from "@/components/plantillas/recarga-tras-deploy";
 import { cn } from "@/lib/utilidades";
 import { Toaster } from "@/components/ui/sonner";
 import { createClient } from "@/lib/supabase/servidor";
+import { resolverEntidadDePerfil } from "@/modulos/autenticacion/entidad-del-perfil";
 import type { User } from "@/tipos";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
@@ -141,7 +142,6 @@ async function getServerUser(): Promise<User | null> {
 
     if (!profile) return null;
 
-    let entityId: string | null = null;
     let entidadEstado: string | null = null;
     let logoUrl: string | null = null;
 
@@ -151,35 +151,45 @@ async function getServerUser(): Promise<User | null> {
       return pub?.publicUrl ?? null;
     };
 
-    if (profile.rol_sistema === 'company') {
-      const { data: memberData } = await supabase
-        .from('miembros_empresa')
-        .select('empresa_id, empresas:empresa_id(estado, ruta_logo, bucket_logo)')
-        .eq('perfil_id', user.id)
-        .single();
-      entityId = memberData?.empresa_id ?? null;
-      const ent = (memberData as any)?.empresas;
-      entidadEstado = ent?.estado ?? null;
-      logoUrl = resolverLogoUrl(ent?.bucket_logo, ent?.ruta_logo);
-    } else if (profile.rol_sistema === 'provider') {
-      const { data: memberData } = await supabase
-        .from('miembros_proveedor')
-        .select('proveedor_id, proveedores:proveedor_id(estado, ruta_logo, bucket_logo)')
-        .eq('perfil_id', user.id)
-        .single();
-      entityId = memberData?.proveedor_id ?? null;
-      const ent = (memberData as any)?.proveedores;
-      entidadEstado = ent?.estado ?? null;
-      logoUrl = resolverLogoUrl(ent?.bucket_logo, ent?.ruta_logo);
+    // La ficha se resuelve por MEMBRESÍA, no por `rol_sistema`.
+    //
+    // Este archivo se quedó afuera de la migración a `entidad-del-perfil` y era
+    // el que rompía: ramificaba en `rol_sistema === 'company' | 'provider'`, así
+    // que un ADMIN con ficha propia (Vaxler) no matcheaba ninguna rama, salía con
+    // `entityId: null` y sin `entityRole`. Y como el AuthProvider recibe este
+    // objeto como `initialUser`, el cliente NO vuelve a resolverlo: se queda con
+    // esta versión incompleta. Resultado: /perfil rebotaba al admin con "Debes
+    // dirigirte al panel de administración" aunque su ficha estuviera bien
+    // vinculada, mientras /panel-de-control (que resuelve aparte) sí la mostraba.
+    const entidad = await resolverEntidadDePerfil(supabase, user.id);
+    const entityId = entidad?.id ?? null;
+    const entityRole = entidad?.tipo ?? null;
+
+    if (entidad?.tipo === 'company') {
+      const { data: emp } = await supabase
+        .from('empresas')
+        .select('estado, ruta_logo, bucket_logo')
+        .eq('id', entidad.id)
+        .maybeSingle();
+      entidadEstado = emp?.estado ?? null;
+      logoUrl = resolverLogoUrl(emp?.bucket_logo, emp?.ruta_logo);
+    } else if (entidad?.tipo === 'provider') {
+      const { data: prov } = await supabase
+        .from('proveedores')
+        .select('estado, ruta_logo, bucket_logo')
+        .eq('id', entidad.id)
+        .maybeSingle();
+      entidadEstado = prov?.estado ?? null;
+      logoUrl = resolverLogoUrl(prov?.bucket_logo, prov?.ruta_logo);
     }
 
     let subscriptionEstado: string | null = null;
-    if (entityId && (profile.rol_sistema === 'company' || profile.rol_sistema === 'provider')) {
-      const fk = profile.rol_sistema === 'company' ? 'empresa_id' : 'proveedor_id';
+    if (entidad) {
+      const fk = entidad.tipo === 'company' ? 'empresa_id' : 'proveedor_id';
       const { data: sub } = await supabase
         .from('suscripciones')
         .select('estado')
-        .eq(fk, entityId)
+        .eq(fk, entidad.id)
         .order('creado_en', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -193,6 +203,7 @@ async function getServerUser(): Promise<User | null> {
       role: profile.rol_sistema as User['role'],
       isMember: profile.activo || false,
       entityId,
+      entityRole,
       subscriptionEstado,
       tutorialesVistos: ((profile as any).tutoriales_vistos ?? {}) as Record<string, string | null>,
       entidadEstado,
