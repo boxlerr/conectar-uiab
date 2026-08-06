@@ -145,6 +145,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
           entityRole,
           subscriptionEstado,
           tutorialesVistos: (data.tutoriales_vistos ?? {}) as Record<string, string | null>,
+          creadoEn: (data.creado_en ?? null) as string | null,
           entidadEstado,
           logoUrl,
         };

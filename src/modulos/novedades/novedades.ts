@@ -12,3 +12,48 @@ export type NovedadId = "usuarios_empresa";
 export function claveNovedad(id: NovedadId): string {
   return `novedad_${id}`;
 }
+
+/**
+ * Cuándo salió cada novedad (hora de Argentina).
+ *
+ * Una novedad sólo es novedad para quien ya usaba el sistema antes. A la que
+ * recién crea su cuenta el cartel la confunde: le anuncia como "nuevo" algo que
+ * para ella siempre estuvo, y le lista arreglos de errores que nunca sufrió.
+ * Por eso se compara contra `perfiles.creado_en`.
+ */
+export const NOVEDAD_PUBLICADA_EL: Record<NovedadId, string> = {
+  // Deploy de "cada socia da de alta a los usuarios de su empresa" (2026-08-04).
+  usuarios_empresa: "2026-08-04T00:00:00-03:00",
+};
+
+type PerfilParaNovedad = {
+  /** ISO de `perfiles.creado_en`. Si no lo sabemos, no bloqueamos el cartel. */
+  creadoEn?: string | null;
+  tutorialesVistos?: Record<string, string | null> | null;
+} | null | undefined;
+
+/**
+ * ¿Le mostramos esta novedad a esta persona?
+ *
+ * Función pura para poder decidirlo sin tocar la base: el modal ya tiene el
+ * perfil que vino del servidor.
+ */
+export function debeVerNovedad(id: NovedadId, perfil: PerfilParaNovedad): boolean {
+  if (!perfil) return false;
+
+  // Ya la cerró alguna vez (en cualquier dispositivo: esto vive en el perfil).
+  if (perfil.tutorialesVistos?.[claveNovedad(id)]) return false;
+
+  // Cuenta creada después de que la novedad salió: para esa persona no es
+  // ninguna novedad. Lo que tiene que saber (que puede sumar usuarios de su
+  // empresa) se lo explica el formulario de registro / el alta de socias.
+  if (perfil.creadoEn) {
+    const creado = Date.parse(perfil.creadoEn);
+    const publicada = Date.parse(NOVEDAD_PUBLICADA_EL[id]);
+    if (Number.isFinite(creado) && Number.isFinite(publicada) && creado >= publicada) {
+      return false;
+    }
+  }
+
+  return true;
+}

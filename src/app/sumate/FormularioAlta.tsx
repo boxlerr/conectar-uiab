@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SelectUIAB } from "@/components/ui/select-uiab";
-import { CheckCircle2, Send, Loader2, PartyPopper, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Send, Loader2, PartyPopper, ShieldCheck, Users } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -240,6 +240,21 @@ export function FormularioAlta() {
           Persona de contacto
         </legend>
 
+        {/* Duda que llegó por WhatsApp (Evelyn, UIAB, 6-ago): las socias creían
+            que había que llenar este formulario una vez por la empresa y otra
+            por cada persona de cada área. Es una sola alta; el resto de los
+            accesos los crea la propia empresa desde /perfil/usuarios. */}
+        <div className="flex items-start gap-3 bg-emerald-50/70 border border-emerald-100 rounded-lg px-4 py-3.5">
+          <Users className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+          <p className="text-[13px] text-slate-600 leading-relaxed">
+            <span className="font-bold text-[#00213f]">Se completa una sola vez, por la empresa.</span>{" "}
+            Esta persona es la que recibe el acceso. Después, ya dentro de la plataforma, desde{" "}
+            <span className="font-semibold text-[#00213f]">Mi Perfil → Usuarios</span> le crea un
+            usuario propio a cada persona de la empresa (Compras, Mantenimiento, RRHH, Logística…),
+            con su email y su contraseña. Nadie más tiene que llenar este formulario.
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label htmlFor="referente_nombre" className={labelCls}>
@@ -283,7 +298,8 @@ export function FormularioAlta() {
               required
             />
             <p className="text-[11px] text-slate-400 mt-1.5 ml-1">
-              Con este correo ingresa a la plataforma la persona que va a usar el sistema. No se publica.
+              Con este correo ingresa a la plataforma la persona que va a usar el sistema. No se
+              publica. Los usuarios del resto del equipo se agregan después, desde adentro.
             </p>
           </div>
           <div>

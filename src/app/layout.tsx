@@ -136,7 +136,7 @@ async function getServerUser(): Promise<User | null> {
 
     const { data: profile } = await supabase
       .from('perfiles')
-      .select('id, nombre_completo, rol_sistema, activo, tutoriales_vistos')
+      .select('id, nombre_completo, rol_sistema, activo, tutoriales_vistos, creado_en')
       .eq('id', user.id)
       .single();
 
@@ -206,6 +206,7 @@ async function getServerUser(): Promise<User | null> {
       entityRole,
       subscriptionEstado,
       tutorialesVistos: ((profile as any).tutoriales_vistos ?? {}) as Record<string, string | null>,
+      creadoEn: (profile as any).creado_en ?? null,
       entidadEstado,
       logoUrl,
     };

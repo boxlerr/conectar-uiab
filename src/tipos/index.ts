@@ -28,6 +28,11 @@ export interface User {
   subscriptionEstado: string | null; // 'activa' | 'pendiente_pago' | 'en_mora' | 'suspendida' | 'cancelada' | null
   /** Mapa seccion -> timestamp ISO (o null si no lo vio). Persistido en perfiles.tutoriales_vistos. */
   tutorialesVistos?: Record<string, string | null>;
+  /**
+   * ISO de `perfiles.creado_en`. Se usa para no anunciarle "novedades" a quien
+   * creó la cuenta después de que salieron: para esa persona no son nuevas.
+   */
+  creadoEn?: string | null;
   /** Estado de la entidad (empresa/proveedor) — 'pendiente_revision' | 'aprobada'/'aprobado' | 'rechazada'/'rechazado'. */
   entidadEstado?: string | null;
   /** URL pública del logo/avatar de la entidad. Se muestra en el avatar del header. */

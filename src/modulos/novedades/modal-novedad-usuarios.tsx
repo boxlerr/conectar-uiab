@@ -7,7 +7,7 @@ import { ArrowRight, Users, X, Check, KeyRound, UserX } from "lucide-react";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { marcarNovedadVista } from "./acciones";
-import { claveNovedad } from "./novedades";
+import { debeVerNovedad } from "./novedades";
 
 /**
  * Cartel de novedad: "ahora podés dar acceso a tu equipo".
@@ -17,11 +17,14 @@ import { claveNovedad } from "./novedades";
  * No usa localStorage a propósito — si no, volvería a aparecer en cada
  * dispositivo y en cada navegador.
  *
+ * NO le sale a quien creó la cuenta después de que la novedad salió: para esa
+ * persona los usuarios de la ficha siempre existieron, y la lista de errores
+ * corregidos habla de problemas que nunca vio. A ella se lo explica el propio
+ * formulario de registro.
+ *
  * Se decide con el `currentUser` que ya vino del servidor, así que no hay
  * fetch extra ni parpadeo: o está en el primer render o no está.
  */
-
-const CLAVE = claveNovedad("usuarios_empresa");
 
 /** Rutas donde un cartel modal sólo estorba (formularios de acceso). */
 const RUTAS_SIN_CARTEL = [
@@ -38,12 +41,12 @@ export function ModalNovedadUsuarios() {
   const pathname = usePathname();
   const [cerrado, setCerrado] = useState(false);
 
-  const yaLaVio = Boolean(currentUser?.tutorialesVistos?.[CLAVE]);
+  const leCorresponde = debeVerNovedad("usuarios_empresa", currentUser);
   // Sólo a quien administra una ficha: es la única que puede dar accesos.
   const tieneFicha = Boolean(tipoEntidadDe(currentUser));
   const enRutaDeAcceso = RUTAS_SIN_CARTEL.some((r) => pathname.startsWith(r));
 
-  if (!currentUser || !tieneFicha || yaLaVio || cerrado || enRutaDeAcceso) return null;
+  if (!currentUser || !tieneFicha || !leCorresponde || cerrado || enRutaDeAcceso) return null;
 
   async function cerrar() {
     setCerrado(true);

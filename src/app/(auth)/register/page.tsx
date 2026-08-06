@@ -10,7 +10,7 @@ import Image from 'next/image'
 import { createBrowserClient } from '@supabase/ssr'
 import {
   Building2, Truck, Loader2, CheckCircle2, ArrowRight, ChevronLeft, ChevronDown, ShieldCheck,
-  Target, Award, Globe, Lock, Mail, User, LayoutDashboard, Megaphone, Rocket,
+  Target, Award, Globe, Lock, Mail, User, Users, LayoutDashboard, Megaphone, Rocket,
   Shield, Check, Search, Factory, Settings2, MapPin, FileText, Phone, Link2, X, Sparkles, Zap
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -694,6 +694,15 @@ function RegisterContent() {
                               Elegí la opción que describe a tu organización. El acceso y el precio son los
                               mismos en los dos casos: sólo cambia cómo te mostramos en el directorio.
                             </p>
+                            {/* Duda que llegó por WhatsApp (Evelyn, UIAB, 6-ago): las socias
+                                entendían que había que registrar la empresa Y además a cada
+                                persona de cada área. Se aclara acá, en el primer paso, y de
+                                nuevo en el paso de las credenciales. */}
+                            <p className="text-sm text-slate-500 font-inter max-w-md">
+                              <span className="font-bold text-[#00213f]">Se registra la empresa, una sola vez.</span>{' '}
+                              Las personas de cada área no se registran por su cuenta: sus usuarios los
+                              creás vos después, desde adentro del sitio.
+                            </p>
                           </div>
 
                           {/* Desvío de socias, ARRIBA DE TODO y grande.
@@ -1177,6 +1186,20 @@ function RegisterContent() {
                               <p className="text-slate-500 font-inter text-xs sm:text-sm">Estas credenciales serán las maestras para gestionar el panel.</p>
                             </div>
                             <Shield className="h-10 w-10 sm:h-12 sm:w-12 text-slate-200 hidden sm:block" />
+                          </div>
+
+                          {/* La confusión más repetida: creer que además de la empresa hay
+                              que registrar una por una a las personas de cada área. El alta
+                              es una sola; los demás accesos salen de /perfil/usuarios. */}
+                          <div className="flex items-start gap-3 rounded-xl border border-primary-100 bg-primary-50/60 px-4 py-3.5">
+                            <Users className="h-5 w-5 text-primary-600 shrink-0 mt-0.5" />
+                            <p className="text-[13px] text-slate-600 leading-relaxed">
+                              <span className="font-bold text-[#00213f]">Este es el usuario principal de la empresa.</span>{' '}
+                              Con la cuenta creada, desde <span className="font-semibold text-[#00213f]">Mi Perfil → Usuarios</span>{' '}
+                              le das acceso propio a cada persona de tu empresa —Compras, Mantenimiento,
+                              RRHH, Logística— con su email y su contraseña. Ellos no tienen que registrarse
+                              ni pagar aparte.
+                            </p>
                           </div>
 
                           <div className="grid gap-4 sm:gap-6">
