@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { HelpCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utilidades";
-import { useTour } from "../contexto-tour";
+import { useTour, useTourIncompletoMontado } from "../contexto-tour";
 import type { TourId } from "../tipos";
 
 interface BotonReiniciarTourProps {
@@ -23,9 +23,13 @@ export function BotonReiniciarTour({
   className,
   variant = "pill",
 }: BotonReiniciarTourProps) {
-  const { iniciarTour, tourIncompleto } = useTour();
+  const { iniciarTour } = useTour();
   const [cargando, setCargando] = useState(false);
-  const incompleto = tourIncompleto(tour);
+  // "Tour a medias" sale de localStorage: en el servidor no existe. Si lo
+  // leyéramos en el primer render, el botón saldría con `title`, clases extra
+  // y el puntito en el cliente pero no en el HTML del servidor, y React tiraba
+  // "Hydration failed…" descartando el árbol entero de la página.
+  const incompleto = useTourIncompletoMontado(tour);
 
   const onClick = async () => {
     setCargando(true);
