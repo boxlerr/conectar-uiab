@@ -8,6 +8,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import dynamic from "next/dynamic";
@@ -137,6 +138,11 @@ export function TourProvider({ children }: TourProviderProps) {
 
   // Progreso (paso donde el usuario cerró con ESC/X) por tour. Persistido en
   // localStorage para que el botón "Tutorial" pueda titilar al volver.
+  //
+  // OJO: `progreso` es un valor que sólo existe en el cliente. Quien lo use
+  // para pintar HTML tiene que esperar a estar montado, o el server y el
+  // cliente renderizan distinto y React descarta el árbol entero
+  // ("Hydration failed…"). Ver el comentario de `tourIncompleto`.
   const [progreso, setProgreso] = useState<Partial<Record<TourId, number>>>(
     () => leerProgreso()
   );
@@ -159,6 +165,11 @@ export function TourProvider({ children }: TourProviderProps) {
     });
   }, []);
 
+  /**
+   * True si quedó un tour a medias. Sale de localStorage, así que en el
+   * servidor SIEMPRE es false: el que lo consuma para renderizar tiene que
+   * diferirlo hasta después del montaje (lo hace `useTourIncompletoMontado`).
+   */
   const tourIncompleto = useCallback(
     (id: TourId) => progreso[id] !== undefined,
     [progreso]
@@ -636,3 +647,33 @@ export function useTour() {
   if (!ctx) throw new Error("useTour debe usarse dentro de <TourProvider>");
   return ctx;
 }
+
+/**
+ * `tourIncompleto` seguro para renderizar: devuelve false hasta que el
+ * componente que lo llama está montado en el cliente.
+ *
+ * Por qué el flag vive acá y no en el provider: el App Router hidrata por
+ * partes. El layout (donde vive <TourProvider>) hidrata y corre sus efectos
+ * ANTES de que hidrate el árbol de la página, así que cualquier estado que el
+ * provider levante en un efecto ya está cambiado cuando le toca el turno al
+ * botón — y el mismatch vuelve igual. La única forma de que el primer render
+ * de un componente coincida con el HTML del servidor es que el propio
+ * componente difiera el dato.
+ */
+export function useTourIncompletoMontado(id: TourId): boolean {
+  const { tourIncompleto } = useTour();
+  // useSyncExternalStore garantiza que durante la hidratación se use el
+  // snapshot del servidor (false) y recién después el del cliente (true).
+  const hidratado = useSyncExternalStore(
+    sinSuscripcion,
+    snapshotCliente,
+    snapshotServidor
+  );
+  return hidratado && tourIncompleto(id);
+}
+
+// Referencias estables a nivel de módulo: si se recrearan en cada render,
+// React resuscribiría el store en cada uno.
+const sinSuscripcion = () => () => {};
+const snapshotCliente = () => true;
+const snapshotServidor = () => false;
