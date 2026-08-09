@@ -37,6 +37,7 @@ import {
   cerrarSolicitud,
 } from "./acciones";
 import { cn } from "@/lib/utilidades";
+import { llamarAccion, fallo } from "@/lib/accion-segura";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -197,24 +198,24 @@ export default function BandejaEntradaPage() {
 
   const handleMarcarVista = (id: string) => {
     startTransition(async () => {
-      const res = await marcarSolicitudVista(id);
-      if (res.success) setTick((x) => x + 1);
+      const res = await llamarAccion(() => marcarSolicitudVista(id));
+      if (!fallo(res) && res.success) setTick((x) => x + 1);
       else toast.error("No se pudo actualizar", { description: res.error });
     });
   };
 
   const handleResponder = (id: string) => {
     startTransition(async () => {
-      const res = await marcarSolicitudRespondida(id);
-      if (res.success) { toast.success("Marcada como respondida"); setTick((x) => x + 1); }
+      const res = await llamarAccion(() => marcarSolicitudRespondida(id));
+      if (!fallo(res) && res.success) { toast.success("Marcada como respondida"); setTick((x) => x + 1); }
       else toast.error("No se pudo actualizar", { description: res.error });
     });
   };
 
   const handleCerrar = (id: string) => {
     startTransition(async () => {
-      const res = await cerrarSolicitud(id);
-      if (res.success) { toast.success("Solicitud cerrada"); setTick((x) => x + 1); }
+      const res = await llamarAccion(() => cerrarSolicitud(id));
+      if (!fallo(res) && res.success) { toast.success("Solicitud cerrada"); setTick((x) => x + 1); }
       else toast.error("No se pudo cerrar", { description: res.error });
     });
   };

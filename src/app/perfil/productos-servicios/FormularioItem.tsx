@@ -42,6 +42,7 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { createClient } from "@/lib/supabase/cliente";
 import { TarjetaItem } from "@/components/ui/catalogo/TarjetaItem";
+import { llamarAccion, fallo } from "@/lib/accion-segura";
 
 interface FormularioItemProps {
   itemInit?: any;
@@ -209,7 +210,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
   }
 
   async function eliminarRemota(id: string) {
-    const res = await eliminarImagenItem(id);
+    const res = await llamarAccion(() => eliminarImagenItem(id));
     if (res?.error) {
       toast.error("No se pudo eliminar la imagen", { description: res.error });
       return;
@@ -322,13 +323,18 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
           return;
         }
       } else {
-        const res = await createItem(
+        const entityId = currentUser.entityId;
+        const res = await llamarAccion(() => createItem(
           tipoEntidadDe(currentUser)!,
-          currentUser.entityId,
+          entityId,
           payload
-        );
-        if (res?.error || !res?.id) {
-          toast.error("Error al crear", { description: res?.error });
+        ));
+        if (fallo(res)) {
+          toast.error("Error al crear", { description: res.error });
+          return;
+        }
+        if (!res?.id) {
+          toast.error("Error al crear");
           return;
         }
         itemId = res.id;
@@ -347,7 +353,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
             toast.error(`No se pudo subir "${img.file.name}"`, { description: upErr.message });
             continue;
           }
-          await registrarImagenItem({
+          await llamarAccion(() => registrarImagenItem({
             item_id: itemId,
             bucket: BUCKET,
             ruta_archivo: path,
@@ -356,12 +362,12 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
             tamano_bytes: img.file.size,
             texto_alternativo: img.alt || undefined,
             orden: orden++,
-          });
+          }));
         }
       }
 
       if (imagenesRemotas.length > 0) {
-        await reordenarImagenesItem(imagenesRemotas.map((im, i) => ({ id: im.id, orden: i })));
+        await llamarAccion(() => reordenarImagenesItem(imagenesRemotas.map((im, i) => ({ id: im.id, orden: i }))));
       }
 
       toast.success(itemInit ? "Actualizado con éxito" : "Creado con éxito");

@@ -10,6 +10,7 @@ import {
   aprobarEmpresa,
   rechazarEmpresa,
 } from "@/modulos/admin/acciones";
+import { llamarAccion } from "@/lib/accion-segura";
 
 // El selector de Tarifa 1/2/3 salió de este panel: desde el modelo de precio
 // único (jul-2026) los tres niveles valen $50.000, así que elegir uno no hacía
@@ -94,14 +95,14 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
 
   async function handleAprobar(id: string, e?: React.MouseEvent) {
     e?.stopPropagation();
-    await aprobarEmpresa(id);
+    await llamarAccion(() => aprobarEmpresa(id));
     refresh();
     if (seleccionada?.id === id) setSeleccionada(prev => prev ? { ...prev, estado: "aprobada" } : null);
   }
 
   async function handleRechazar() {
     if (!modalRechazo || !motivoRechazo.trim()) return;
-    await rechazarEmpresa(modalRechazo.id, motivoRechazo);
+    await llamarAccion(() => rechazarEmpresa(modalRechazo.id, motivoRechazo));
     setModalRechazo(null);
     setMotivoRechazo("");
     refresh();

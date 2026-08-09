@@ -27,6 +27,7 @@ import {
   eliminarEtiqueta,
 } from "@/modulos/admin/acciones";
 import { TIPO_TAG_LABELS, TIPO_TAG_ORDEN } from "@/modulos/compartido/etiquetas";
+import { llamarAccion } from "@/lib/accion-segura";
 
 export type EtiquetaAdmin = {
   id: string;
@@ -109,7 +110,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
   }
 
   async function handlePromover(etiqueta: EtiquetaAdmin) {
-    const res = await promoverEtiqueta(etiqueta.id);
+    const res = await llamarAccion(() => promoverEtiqueta(etiqueta.id));
     if (res.error) {
       toast.error("No se pudo promover", { description: res.error });
       return;
@@ -121,7 +122,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
   }
 
   async function handleRechazar(etiqueta: EtiquetaAdmin) {
-    const res = await rechazarEtiqueta(etiqueta.id);
+    const res = await llamarAccion(() => rechazarEtiqueta(etiqueta.id));
     if (res.error) {
       toast.error("No se pudo rechazar", { description: res.error });
       return;
@@ -133,7 +134,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
   }
 
   async function handleToggle(etiqueta: EtiquetaAdmin) {
-    const res = await toggleActivarEtiqueta(etiqueta.id, !etiqueta.activo);
+    const res = await llamarAccion(() => toggleActivarEtiqueta(etiqueta.id, !etiqueta.activo));
     if (res.error) {
       toast.error("Error al cambiar estado", { description: res.error });
       return;
@@ -150,7 +151,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
 
   async function handleGuardarEdicion() {
     if (!enEdicion) return;
-    const res = await actualizarEtiqueta(enEdicion.id, nombre, tipoTag);
+    const res = await llamarAccion(() => actualizarEtiqueta(enEdicion.id, nombre, tipoTag));
     if (res.error) {
       toast.error("No se pudo guardar", { description: res.error });
       return;
@@ -163,7 +164,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
   async function handleFusionar() {
     if (!aFusionar || !destinoFusion) return;
     const destino = opcionesFusion.find((e) => e.id === destinoFusion);
-    const res = await fusionarEtiqueta(aFusionar.id, destinoFusion);
+    const res = await llamarAccion(() => fusionarEtiqueta(aFusionar.id, destinoFusion));
     if (res.error) {
       toast.error("No se pudo fusionar", { description: res.error });
       return;
@@ -178,7 +179,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
 
   async function handleEliminar() {
     if (!aEliminar) return;
-    const res = await eliminarEtiqueta(aEliminar.id);
+    const res = await llamarAccion(() => eliminarEtiqueta(aEliminar.id));
     if (res.error) {
       toast.error("No se pudo eliminar", { description: res.error });
       return;

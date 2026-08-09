@@ -37,6 +37,7 @@ import {
 import Link from "next/link";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
+import { llamarAccion, fallo } from "@/lib/accion-segura";
 
 const BUCKET_DOCS = "documentos-privados";
 const MAX_MB = 10;
@@ -250,7 +251,7 @@ export default function MiPerfilCertificacionesPage() {
         ...datosArchivo,
       };
 
-      const res = await guardarCertificacion(role, entityId, payload, form.id);
+      const res = await llamarAccion(() => guardarCertificacion(role, entityId, payload, form.id));
       if ("error" in res) {
         toast.error(res.error);
         setSaving(false);
@@ -258,7 +259,11 @@ export default function MiPerfilCertificacionesPage() {
       }
 
       // Refrescar la lista desde el server (trae verificada, timestamps, etc.).
-      const data = await listarCertificaciones(role, entityId);
+      const data = await llamarAccion(() => listarCertificaciones(role, entityId));
+      if (fallo(data)) {
+        toast.error(data.error);
+        return;
+      }
       setCerts(data);
       toast.success(form.id ? "Certificación actualizada" : "Certificación agregada", {
         description: "Ya aparece en tu ficha y en el directorio.",
@@ -272,7 +277,7 @@ export default function MiPerfilCertificacionesPage() {
   const eliminar = async (c: CertificacionFila) => {
     const etq = etiquetaNorma(c.codigo_norma, c.nombre_libre);
     if (!window.confirm(`¿Eliminar "${etq}"? Esta acción no se puede deshacer.`)) return;
-    const res = await eliminarCertificacion(c.id);
+    const res = await llamarAccion(() => eliminarCertificacion(c.id));
     if ("error" in res) {
       toast.error(res.error);
       return;

@@ -6,6 +6,7 @@ import { Users, Search, Shield, Building, Wrench, UserX, UserCheck, X, Phone, Ma
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toggleActivarUsuario, cambiarRolUsuario } from "@/modulos/admin/acciones";
+import { llamarAccion } from "@/lib/accion-segura";
 
 type Usuario = {
   id: string;
@@ -71,14 +72,14 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
 
   async function handleToggleActivo(id: string, activo: boolean, e?: React.MouseEvent) {
     e?.stopPropagation();
-    await toggleActivarUsuario(id, !activo);
+    await llamarAccion(() => toggleActivarUsuario(id, !activo));
     refresh();
     if (seleccionado?.id === id) setSeleccionado(prev => prev ? { ...prev, activo: !activo } : null);
   }
 
   async function handleCambiarRol(id: string, nuevoRol: string) {
     setCambiandoRol(id);
-    await cambiarRolUsuario(id, nuevoRol);
+    await llamarAccion(() => cambiarRolUsuario(id, nuevoRol));
     setCambiandoRol(null);
     refresh();
     if (seleccionado?.id === id) setSeleccionado(prev => prev ? { ...prev, rol_sistema: nuevoRol } : null);

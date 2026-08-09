@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { tieneAcceso } from '@/lib/mercadopago/suscripciones'
+import { fetchConTimeoutServidor } from './fetch-con-timeout'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -13,6 +14,10 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      // El middleware corre en TODA navegación, incluidos los fetch RSC y los
+      // prefetch de <Link>. Sin timeout, una query lenta cuelga la navegación
+      // entera sin que el usuario vea ningún error — ver fetch-con-timeout.ts.
+      global: { fetch: fetchConTimeoutServidor },
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -29,6 +34,31 @@ export async function updateSession(request: NextRequest) {
       },
     }
   )
+
+  /**
+   * Redirige SIN PERDER LAS COOKIES que Supabase acaba de escribir.
+   *
+   * `NextResponse.redirect()` crea una respuesta nueva y vacía. Si `getUser()`
+   * rotó el token, las cookies nuevas quedaron en `supabaseResponse` — y al
+   * devolver el redirect pelado se tiraban. El browser se quedaba con el refresh
+   * token VIEJO, que Supabase ya invalidó al rotarlo: a partir de ahí todas las
+   * llamadas fallan y la sesión "se muere sola" a mitad de navegación.
+   *
+   * Es exactamente el caso contra el que advierte el comentario del final de
+   * este archivo, y que los 5 redirects de acá abajo no respetaban.
+   */
+  const redirigir = (url: URL) => {
+    const res = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => res.cookies.set(cookie))
+    return res
+  }
+
+  /** Misma idea que `redirigir`, para las respuestas JSON de las rutas /api. */
+  const responderJson = (body: unknown, init: { status: number }) => {
+    const res = NextResponse.json(body, init)
+    supabaseResponse.cookies.getAll().forEach((cookie) => res.cookies.set(cookie))
+    return res
+  }
 
   // Do not run code between createServerClient and
   // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
@@ -57,18 +87,23 @@ export async function updateSession(request: NextRequest) {
   // 1. Authentication Check (Require JWT)
   if (isProtectedRoute && (!user || userError)) {
     if (isApiRoute) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return responderJson({ error: 'Unauthorized' }, { status: 401 });
     }
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(url)
+    return redirigir(url)
   }
 
   // 2. Approval gate: non-admin authenticated users must be approved to access
   //    most protected routes. Unapproved users are redirected to the "pending"
   //    page, and can only reach /perfil, /pendiente-aprobacion and auth APIs.
   let isApproved = true;
+  // Se propaga hasta la regla 3: sin esto, a la cuenta desactivada la mandábamos
+  // a /login y la regla 3 la rebotaba a /panel-de-control, de donde volvía a
+  // salir a /login — un loop de redirección infinito, del que sólo se salía
+  // borrando cookies a mano.
+  let cuentaDesactivada = false;
   if (user && !userError) {
     const { data: perfil } = await supabase
       .from('perfiles')
@@ -82,18 +117,19 @@ export async function updateSession(request: NextRequest) {
     // Va acá y no en una consulta aparte porque es la MISMA query que ya se
     // hacía para el gating por aprobación: no agrega latencia.
     if (perfil && perfil.activo === false) {
+      cuentaDesactivada = true;
       // /api/auth/* queda afuera: si le cortamos también el logout, el usuario
       // desactivado se queda con la sesión muerta pegada en el browser y sin
       // forma de limpiarla.
       if (isApiRoute && !pathname.startsWith('/api/auth/')) {
-        return NextResponse.json({ error: 'Cuenta desactivada' }, { status: 403 });
+        return responderJson({ error: 'Cuenta desactivada' }, { status: 403 });
       }
       if (pathname !== '/login') {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         url.search = ''
         url.searchParams.set('cuenta', 'desactivada')
-        return NextResponse.redirect(url)
+        return redirigir(url)
       }
     }
 
@@ -134,18 +170,21 @@ export async function updateSession(request: NextRequest) {
 
   if (user && !userError && !isApproved && isProtectedRoute && !isPendingAllowedPath) {
     if (isApiRoute) {
-      return NextResponse.json({ error: 'Cuenta pendiente de aprobación' }, { status: 403 });
+      return responderJson({ error: 'Cuenta pendiente de aprobación' }, { status: 403 });
     }
     const url = request.nextUrl.clone()
     url.pathname = '/pendiente-aprobacion'
-    return NextResponse.redirect(url)
+    return redirigir(url)
   }
 
-  // 3. Redirect logged in users away from auth pages and root landing
-  if (user && !userError && (pathname === '/' || pathname === '/login' || pathname === '/register')) {
+  // 3. Redirect logged in users away from auth pages and root landing.
+  //    `!cuentaDesactivada` es lo que corta el loop: a esa cuenta el bloque de
+  //    arriba la dejó justamente en /login para que lea el aviso, así que acá no
+  //    hay que volver a sacarla.
+  if (user && !userError && !cuentaDesactivada && (pathname === '/' || pathname === '/login' || pathname === '/register')) {
     const url = request.nextUrl.clone()
     url.pathname = isApproved ? '/panel-de-control' : '/pendiente-aprobacion'
-    return NextResponse.redirect(url)
+    return redirigir(url)
   }
 
   // 3. Subscription gate: bloquea rutas pagantes si la suscripción no está activa.
@@ -195,7 +234,7 @@ export async function updateSession(request: NextRequest) {
           const url = request.nextUrl.clone();
           url.pathname = '/suscripcion/bloqueado';
           url.searchParams.set('from', pathname);
-          return NextResponse.redirect(url);
+          return redirigir(url);
         }
       }
     }

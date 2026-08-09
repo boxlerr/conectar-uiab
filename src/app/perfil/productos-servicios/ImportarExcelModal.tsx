@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { createItemsBulk, type ItemPayload } from "./acciones";
+import { llamarAccion, fallo } from "@/lib/accion-segura";
 
 type Columna = {
   key: keyof ItemPayload | "palabras_clave_texto";
@@ -199,9 +200,9 @@ export function ImportarExcelModal({ role, entityId, onClose, onSuccess }: Props
       return;
     }
     setImportando(true);
-    const res = await createItemsBulk(role, entityId, validas.map((f) => f.payload!));
+    const res = await llamarAccion(() => createItemsBulk(role, entityId, validas.map((f) => f.payload!)));
     setImportando(false);
-    if (res?.error) {
+    if (fallo(res)) {
       toast.error("Error al importar", { description: res.error });
       return;
     }

@@ -5,6 +5,7 @@ import { Send, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { enviarConsultaContacto, type ContactoInput } from "@/modulos/contacto/acciones";
+import { llamarAccion } from "@/lib/accion-segura";
 
 const inputCls =
   "block w-full bg-[#f2f4f6] text-[#00213f] rounded px-5 py-3 text-sm outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all font-medium border-none placeholder:text-slate-400";
@@ -29,7 +30,7 @@ export function FormularioContacto() {
     if (form.mensaje.trim().length < 5) return toast.error("Escribí un mensaje un poco más largo.");
 
     startTransition(async () => {
-      const res = await enviarConsultaContacto(form as ContactoInput);
+      const res = await llamarAccion(() => enviarConsultaContacto(form as ContactoInput));
       if (res?.error) {
         toast.error(res.error);
         return;

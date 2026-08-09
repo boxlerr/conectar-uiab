@@ -11,6 +11,7 @@ import { enviarAltaSocio } from "@/modulos/altas/acciones";
 import { CATEGORIAS_ALTA, type AltaSocioInput } from "@/modulos/altas/constantes";
 import { LOCALIDADES_ALMIRANTE_BROWN } from "@/lib/datos/geografia-ar";
 import { normalizarSitioWeb } from "@/lib/utilidades";
+import { llamarAccion } from "@/lib/accion-segura";
 
 const ESTADO_INICIAL = {
   razon_social: "",
@@ -62,7 +63,7 @@ export function FormularioAlta() {
       return toast.error("Necesitamos tu consentimiento para tratar los datos.");
 
     startTransition(async () => {
-      const res = await enviarAltaSocio(form as AltaSocioInput);
+      const res = await llamarAccion(() => enviarAltaSocio(form as AltaSocioInput));
       if (res?.error) {
         toast.error(res.error);
         return;

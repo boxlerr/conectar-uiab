@@ -6,6 +6,7 @@ import { Briefcase, X, Search, XCircle, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cerrarOportunidad, eliminarOportunidad } from "@/modulos/admin/acciones";
+import { llamarAccion } from "@/lib/accion-segura";
 
 type Oportunidad = {
   id: string;
@@ -55,14 +56,14 @@ export function PanelOportunidades({ oportunidades }: { oportunidades: Oportunid
 
   async function handleCerrar(id: string, e?: React.MouseEvent) {
     e?.stopPropagation();
-    await cerrarOportunidad(id);
+    await llamarAccion(() => cerrarOportunidad(id));
     refresh();
     if (seleccionada?.id === id) setSeleccionada(prev => prev ? { ...prev, estado: "cerrada" } : null);
   }
 
   async function handleEliminar() {
     if (!confirmarEliminar) return;
-    await eliminarOportunidad(confirmarEliminar);
+    await llamarAccion(() => eliminarOportunidad(confirmarEliminar));
     setConfirmarEliminar(null);
     refresh();
     if (seleccionada?.id === confirmarEliminar) setSeleccionada(null);

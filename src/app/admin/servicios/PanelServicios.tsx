@@ -14,6 +14,7 @@ import {
   eliminarCategoria,
   promoverCategoria,
 } from "@/modulos/admin/acciones";
+import { llamarAccion } from "@/lib/accion-segura";
 
 type Servicio = {
   id: string;
@@ -76,7 +77,7 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
     }
     
     if (servicioEnEdicion) {
-      const res = await editarCategoria(servicioEnEdicion.id, nombre, descripcion);
+      const res = await llamarAccion(() => editarCategoria(servicioEnEdicion.id, nombre, descripcion));
       if (res.error) {
         toast.error("Error al editar", { description: res.error });
       } else {
@@ -85,7 +86,7 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
         refresh();
       }
     } else {
-      const res = await crearCategoria(nombre, descripcion);
+      const res = await llamarAccion(() => crearCategoria(nombre, descripcion));
       if (res.error) {
         toast.error("Error al crear", { description: res.error });
       } else {
@@ -98,7 +99,7 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
 
   async function handleConfirmarEliminar() {
     if (!servicioAEliminar) return;
-    const res = await eliminarCategoria(servicioAEliminar.id);
+    const res = await llamarAccion(() => eliminarCategoria(servicioAEliminar.id));
     if (res.error) {
       toast.error("No se pudo eliminar", { description: res.error });
     } else {
@@ -109,7 +110,7 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
   }
 
   async function handleToggle(id: string, activaActual: boolean) {
-    const res = await toggleActivarCategoria(id, !activaActual);
+    const res = await llamarAccion(() => toggleActivarCategoria(id, !activaActual));
     if (res.error) {
       toast.error("Error al cambiar estado", { description: res.error });
     } else {
@@ -119,7 +120,7 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
   }
 
   async function handlePromover(id: string, nombre: string, oficialActual: boolean) {
-    const res = await promoverCategoria(id, !oficialActual);
+    const res = await llamarAccion(() => promoverCategoria(id, !oficialActual));
     if (res.error) {
       toast.error("Error al cambiar el catálogo", { description: res.error });
     } else {

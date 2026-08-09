@@ -16,6 +16,7 @@ import {
   validarEtiquetaLibre,
 } from "@/modulos/compartido/etiquetas";
 import { toast } from "sonner";
+import { llamarAccion } from "@/lib/accion-segura";
 
 interface TagRow {
   id: string;
@@ -152,7 +153,7 @@ export default function MiPerfilEtiquetasPage() {
       }
 
       setCreando(true);
-      const res = await crearEtiquetaLibre(texto);
+      const res = await llamarAccion(() => crearEtiquetaLibre(texto));
       setCreando(false);
 
       if ("error" in res) {
@@ -187,18 +188,19 @@ export default function MiPerfilEtiquetasPage() {
   }
 
   const handleSave = async () => {
-    if (!currentUser.entityId) {
+    const entityId = currentUser.entityId;
+    if (!entityId) {
       toast.error("Falta tu perfil principal", {
         description: "Antes de seleccionar etiquetas, completá tus datos en Datos y Contacto.",
       });
       return;
     }
     setSaving(true);
-    const res = await saveTags(
+    const res = await llamarAccion(() => saveTags(
       tipoEntidadDe(currentUser)!,
-      currentUser.entityId,
+      entityId,
       Array.from(selectedIds)
-    );
+    ));
     if (!res.error) {
       toast.success("Etiquetas actualizadas", {
         description: "El algoritmo de match ya está usando tus nuevas etiquetas.",

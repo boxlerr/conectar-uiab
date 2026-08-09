@@ -5,6 +5,7 @@ import { Loader2, Send, X, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { postularseAOportunidad } from "./acciones";
+import { llamarAccion, fallo } from "@/lib/accion-segura";
 
 interface Props {
   oportunidadId: string;
@@ -63,12 +64,17 @@ export default function DialogoPostularse({
       cantidad.trim().length > 0 && !isNaN(Number(cantidad)) ? Number(cantidad) : null;
 
     startTransition(async () => {
-      const res = await postularseAOportunidad(
+      const res = await llamarAccion(() => postularseAOportunidad(
         oportunidadId,
         mensaje,
         cantidadNum,
         unidad.trim() || null
-      );
+      ));
+
+      if (fallo(res)) {
+        toast.error("No se pudo enviar", { description: res.error });
+        return;
+      }
 
       if (res.success) {
         toast.success("Postulación enviada", {

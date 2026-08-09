@@ -25,6 +25,7 @@ import {
   Users,
   Shapes,
 } from "lucide-react";
+import { llamarAccion, fallo } from "@/lib/accion-segura";
 
 /** Manrope está cargada en el layout pero no registrada como token de Tailwind:
  *  `font-manrope` no genera nada. Se aplica por style, como en la landing. */
@@ -291,15 +292,19 @@ export function FormularioOportunidad({
     for (const tagId of selectedTags) formData.append("tag_ids", tagId);
     for (const termino of nuevasEtiquetas) formData.append("nuevas_etiquetas", termino);
 
-    const result = await crearOportunidad(formData);
+    const result = await llamarAccion(() => crearOportunidad(formData));
 
-    if (result.error) {
+    if (fallo(result)) {
       setError(result.error);
       setLoading(false);
     } else if (result.redirect) {
       if (result.avisoTags) toast.warning(result.avisoTags);
       router.push(result.redirect);
       router.refresh();
+    } else {
+      // Ni error ni redirect: sin esta rama el botón se quedaba en "Publicando…"
+      // para siempre si el action devolvía una forma inesperada.
+      setLoading(false);
     }
   }
 

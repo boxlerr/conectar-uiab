@@ -8,6 +8,7 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { marcarNovedadVista } from "./acciones";
 import { debeVerNovedad } from "./novedades";
+import { llamarAccion, fallo } from "@/lib/accion-segura";
 
 /**
  * Cartel de novedad: "ahora podés dar acceso a tu equipo".
@@ -50,10 +51,10 @@ export function ModalNovedadUsuarios() {
 
   async function cerrar() {
     setCerrado(true);
-    const r = await marcarNovedadVista("usuarios_empresa");
+    const r = await llamarAccion(() => marcarNovedadVista("usuarios_empresa"));
     // Refrescamos el perfil para que el mapa de vistos quede al día en el
     // contexto; si falla, el cartel igual ya no molesta en esta sesión.
-    if (r.ok) refreshUser();
+    if (!fallo(r) && r.ok) refreshUser();
   }
 
   return (

@@ -6,6 +6,7 @@ import { MessageSquare, Check, X, Star, Search, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { aprobarResena, rechazarResena } from "@/modulos/admin/acciones";
+import { llamarAccion } from "@/lib/accion-segura";
 
 type Resena = {
   id: string;
@@ -76,13 +77,13 @@ export function PanelResenas({ resenas }: { resenas: Resena[] }) {
 
   async function handleAprobar(id: string, e?: React.MouseEvent) {
     e?.stopPropagation();
-    await aprobarResena(id);
+    await llamarAccion(() => aprobarResena(id));
     refresh();
   }
 
   async function handleRechazar() {
     if (!modalRechazo || !motivo.trim()) return;
-    await rechazarResena(modalRechazo, motivo);
+    await llamarAccion(() => rechazarResena(modalRechazo, motivo));
     setModalRechazo(null);
     setMotivo("");
     refresh();

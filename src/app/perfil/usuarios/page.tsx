@@ -30,6 +30,7 @@ import {
   type UsuarioEquipo,
   type CredencialesNuevoUsuario,
 } from "./acciones";
+import { llamarAccion } from "@/lib/accion-segura";
 
 const inputCls =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base sm:text-sm text-slate-800 placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition";
@@ -104,7 +105,7 @@ export default function UsuariosDeLaFichaPage() {
   // Refresco después de cada acción: no prende el spinner, la lista ya está en
   // pantalla y volver a blanquearla sólo hace parpadear todo.
   const cargar = useCallback(async () => {
-    aplicar(await listarUsuariosDeLaFicha());
+    aplicar(await llamarAccion(() => listarUsuariosDeLaFicha()));
   }, [aplicar]);
 
   // Sin ficha no hay nada que pedir: esa pantalla se resuelve abajo, en el
@@ -113,7 +114,7 @@ export default function UsuariosDeLaFichaPage() {
     if (authLoading || !tipo) return;
     let vivo = true;
     (async () => {
-      const res = await listarUsuariosDeLaFicha();
+      const res = await llamarAccion(() => listarUsuariosDeLaFicha());
       if (vivo) aplicar(res);
     })();
     return () => {
@@ -126,7 +127,7 @@ export default function UsuariosDeLaFichaPage() {
     if (u.activo && !confirm(`¿Desactivar el acceso de ${u.nombre || u.email}?`)) return;
 
     setProcesando(u.perfilId);
-    const res = await cambiarEstadoUsuarioDeLaFicha(u.perfilId, !u.activo);
+    const res = await llamarAccion(() => cambiarEstadoUsuarioDeLaFicha(u.perfilId, !u.activo));
     setProcesando(null);
 
     if ("error" in res) {
@@ -145,7 +146,7 @@ export default function UsuariosDeLaFichaPage() {
     if (!confirm(`¿Generar una contraseña nueva para ${u.nombre || u.email}?`)) return;
 
     setProcesando(u.perfilId);
-    const res = await cambiarPasswordUsuarioDeLaFicha(u.perfilId, generarPassword());
+    const res = await llamarAccion(() => cambiarPasswordUsuarioDeLaFicha(u.perfilId, generarPassword()));
     setProcesando(null);
 
     if ("error" in res) {
@@ -411,7 +412,7 @@ function ModalAlta({
     setGuardando(true);
     setError(null);
 
-    const res = await crearUsuarioDeLaFicha({ nombre, apellido, email, password, cargo });
+    const res = await llamarAccion(() => crearUsuarioDeLaFicha({ nombre, apellido, email, password, cargo }));
     setGuardando(false);
 
     if ("error" in res) {

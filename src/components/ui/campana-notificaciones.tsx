@@ -24,6 +24,7 @@ import {
   type Notificacion,
 } from "@/modulos/notificaciones/acciones";
 import { useRouter } from "next/navigation";
+import { llamarAccion } from "@/lib/accion-segura";
 
 const ICONO: Record<Notificacion["tipo"], React.ReactNode> = {
   resena_aprobada: <Check className="w-3.5 h-3.5 text-emerald-600" />,
@@ -118,7 +119,7 @@ export function CampanaNotificaciones() {
       setNotificaciones((prev) =>
         prev.map((x) => (x.id === n.id ? { ...x, leida: true } : x))
       );
-      await marcarLeida(n.id);
+      await llamarAccion(() => marcarLeida(n.id));
     }
     setOpen(false);
     if (n.url) router.push(n.url);

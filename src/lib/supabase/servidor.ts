@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { fetchConTimeoutServidor } from './fetch-con-timeout'
 
 /**
  * If using Fluid compute: Don't put this client in a global variable. Always create a new client within each
@@ -12,6 +13,9 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      // Sin esto una query colgada bloquea el render RSC hasta el tope de la
+      // función (300s) — ver fetch-con-timeout.ts.
+      global: { fetch: fetchConTimeoutServidor },
       cookies: {
         getAll() {
           return cookieStore.getAll()

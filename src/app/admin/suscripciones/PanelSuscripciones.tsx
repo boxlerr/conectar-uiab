@@ -28,6 +28,7 @@ import {
   actualizarSuscripcionParticular,
 } from "@/modulos/admin/acciones";
 import { NivelTarifa } from "@/tipos";
+import { llamarAccion } from "@/lib/accion-segura";
 
 type Empresa = {
   id: string;
@@ -166,13 +167,13 @@ export function PanelSuscripciones({
   }
 
   async function handleAsignarTarifa(empresaId: string, tarifa: NivelTarifa) {
-    await asignarTarifa(empresaId, tarifa);
+    await llamarAccion(() => asignarTarifa(empresaId, tarifa));
     refresh();
   }
 
   async function handleGuardarEmpleados(empresaId: string) {
     const n = parseInt(empleadosDraft.replace(/\D/g, ""), 10);
-    await actualizarCantidadEmpleados(empresaId, Number.isFinite(n) && n > 0 ? n : null);
+    await llamarAccion(() => actualizarCantidadEmpleados(empresaId, Number.isFinite(n) && n > 0 ? n : null));
     setEditandoEmpleados(null);
     setEmpleadosDraft("");
     refresh();
@@ -181,7 +182,7 @@ export function PanelSuscripciones({
   async function handleGuardarPrecio(nivel: 1 | 2 | 3) {
     const n = parseInt(precioDraft.replace(/\D/g, ""), 10);
     if (!Number.isFinite(n) || n <= 0) return;
-    await actualizarPrecioTarifa(nivel, n);
+    await llamarAccion(() => actualizarPrecioTarifa(nivel, n));
     setEditandoPrecio(null);
     setPrecioDraft("");
     refresh();
@@ -192,7 +193,7 @@ export function PanelSuscripciones({
     const datos: { estado?: string; monto?: number } = {};
     if (estadoProvDraft) datos.estado = estadoProvDraft;
     if (Number.isFinite(monto) && monto > 0) datos.monto = monto;
-    await actualizarSuscripcionParticular(proveedorId, datos);
+    await llamarAccion(() => actualizarSuscripcionParticular(proveedorId, datos));
     setEditandoSusParticular(null);
     setMontoProvDraft("");
     setEstadoProvDraft("");

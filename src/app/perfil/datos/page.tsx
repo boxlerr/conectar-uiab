@@ -14,6 +14,7 @@ import Image from "next/image";
 import { PROVINCIAS_AR, LOCALIDADES_ALMIRANTE_BROWN } from "@/lib/datos/geografia-ar";
 import { cn, normalizarSitioWeb, pareceEmail } from "@/lib/utilidades";
 import { AvisoConflictosPadronAuto } from "@/modulos/altas/componentes/aviso-conflictos-padron-auto";
+import { llamarAccion, fallo } from "@/lib/accion-segura";
 
 // text-base en mobile: abajo de 16px Safari iOS hace zoom solo al enfocar el campo.
 const selectCls =
@@ -257,9 +258,9 @@ export default function MiPerfilDatosPage() {
         dataToSave.apellido = restoNombre.join(" ") || null;
       }
 
-      const result = await updateCompanyOrProvider(tipoEntidadDe(currentUser)!, currentUser.entityId, currentUser.id, dataToSave);
+      const result = await llamarAccion(() => updateCompanyOrProvider(tipoEntidadDe(currentUser)!, currentUser.entityId, currentUser.id, dataToSave));
 
-      if (result.error) {
+      if (fallo(result)) {
         toast.error("Error al guardar", { description: result.error });
       } else {
         if (result.newEntityId) {

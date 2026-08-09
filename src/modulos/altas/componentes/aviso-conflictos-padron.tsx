@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { AlertCircle, Check, X } from "lucide-react";
 import type { ConflictoPadron, OrigenDato } from "../padron";
 import { descartarConflictosPadron, resolverConflictoPadron } from "../conflictos";
+import { llamarAccion } from "@/lib/accion-segura";
 
 const ORIGEN_ETIQUETA: Record<OrigenDato, string> = {
   formulario: "Lo que cargaste",
@@ -37,7 +38,7 @@ export function AvisoConflictosPadron({
 
   async function elegir(conflicto: ConflictoPadron, eleccion: OrigenDato) {
     setGuardando(conflicto.campo);
-    const res = await resolverConflictoPadron(conflicto.campo, eleccion).catch(() => null);
+    const res = await llamarAccion(() => resolverConflictoPadron(conflicto.campo, eleccion)).catch(() => null);
     setGuardando(null);
 
     if (!res) return toast.error("No se pudo guardar. Probá de nuevo.");
@@ -51,7 +52,7 @@ export function AvisoConflictosPadron({
 
   async function descartar() {
     setGuardando("__todos__");
-    const res = await descartarConflictosPadron().catch(() => null);
+    const res = await llamarAccion(() => descartarConflictosPadron()).catch(() => null);
     setGuardando(null);
 
     if (!res) return toast.error("No se pudo guardar. Probá de nuevo.");

@@ -6,6 +6,7 @@ import { Wrench, Check, X, Search, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { aprobarProveedor, rechazarProveedor } from "@/modulos/admin/acciones";
+import { llamarAccion } from "@/lib/accion-segura";
 
 type Particular = {
   id: string;
@@ -69,14 +70,14 @@ export function PanelProveedores({ proveedores: particulares }: { proveedores: P
 
   async function handleAprobar(id: string, e?: React.MouseEvent) {
     e?.stopPropagation();
-    await aprobarProveedor(id);
+    await llamarAccion(() => aprobarProveedor(id));
     refresh();
     if (seleccionado?.id === id) setSeleccionado(prev => prev ? { ...prev, estado: "aprobado" } : null);
   }
 
   async function handleRechazar() {
     if (!modalRechazo || !motivoRechazo.trim()) return;
-    await rechazarProveedor(modalRechazo.id, motivoRechazo);
+    await llamarAccion(() => rechazarProveedor(modalRechazo.id, motivoRechazo));
     setModalRechazo(null);
     setMotivoRechazo("");
     refresh();

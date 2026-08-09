@@ -83,6 +83,7 @@ import { pasosPerfil } from "./pasos/pasos-perfil";
 import { pasosDirectorio } from "./pasos/pasos-directorio";
 import { pasosOportunidades } from "./pasos/pasos-oportunidades";
 import { pasosDashboard } from "./pasos/pasos-dashboard";
+import { llamarAccion, fallo } from "@/lib/accion-segura";
 
 const CATALOGO_PASOS: Record<TourId, Step[]> = {
   pago_pendiente: [],
@@ -261,8 +262,8 @@ export function TourProvider({ children }: TourProviderProps) {
   const iniciarTour = useCallback(
     async (id: TourId) => {
       if (vistosLocal[id]) {
-        const res = await resetearTour(id);
-        if (res.ok) setVistosLocal(res.tutorialesVistos);
+        const res = await llamarAccion(() => resetearTour(id));
+        if (!fallo(res) && res.ok) setVistosLocal(res.tutorialesVistos);
       }
       // Si el usuario había cerrado el tour a la mitad, reanudamos desde
       // ese paso. Si no, arrancamos de cero.

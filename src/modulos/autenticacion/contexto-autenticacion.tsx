@@ -198,11 +198,21 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       dbg('onAuthStateChange:', event, session ? 'session=yes' : 'session=no');
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (session?.user) {
-          const profile = await fetchProfile(session.user.id, session.user.email!);
-          setCurrentUser(profile);
+        // El try/finally y el guard de abajo son los mismos que ya tenía
+        // `refreshUser`. Este handler se quedó afuera del fix de 188623b y era el
+        // agujero por donde volvía el bug: TOKEN_REFRESHED llega solo cada ~50
+        // min, y si `fetchProfile` fallaba por un hipo de red, este
+        // `setCurrentUser(profile)` con profile=null borraba al usuario sin que
+        // nadie tocara nada — la sesión "se caía sola" a mitad de navegación.
+        try {
+          if (session?.user) {
+            const profile = await fetchProfile(session.user.id, session.user.email!);
+            if (profile) setCurrentUser(profile);
+            else if (!currentUserRef.current) setCurrentUser(null);
+          }
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         setLoading(false);

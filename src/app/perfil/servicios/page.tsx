@@ -14,6 +14,7 @@ import {
   validarEspecialidadLibre,
 } from "@/modulos/compartido/especialidades";
 import { toast } from "sonner";
+import { llamarAccion } from "@/lib/accion-segura";
 
 type Categoria = {
   id: string;
@@ -104,12 +105,13 @@ export default function MiPerfilServiciosPage() {
   };
 
   const handleSave = async () => {
-    if (!currentUser.entityId) {
+    const entityId = currentUser.entityId;
+    if (!entityId) {
        toast.error("Falta tu Perfil Principal", { description: "Antes de seleccionar servicios, primero completa la información en Datos y Contacto." });
        return;
     }
     setSaving(true);
-    const res = await saveCategories(tipoEntidadDe(currentUser)!, currentUser.entityId, selectedIds);
+    const res = await llamarAccion(() => saveCategories(tipoEntidadDe(currentUser)!, entityId, selectedIds));
     if (!res.error) {
       toast.success("Especialidades actualizadas", { description: "Tus servicios se han registrado en tu perfil público." });
     } else {
@@ -132,7 +134,7 @@ export default function MiPerfilServiciosPage() {
     }
 
     setCreando(true);
-    const res = await crearEspecialidadLibre(texto);
+    const res = await llamarAccion(() => crearEspecialidadLibre(texto));
     setCreando(false);
 
     if ("error" in res) {

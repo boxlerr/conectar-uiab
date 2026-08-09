@@ -47,6 +47,7 @@ import {
 } from "@/modulos/altas/constantes";
 import { conflictosPendientes, type ConflictoPadron } from "@/modulos/altas/padron";
 import { normalizarSitioWeb } from "@/lib/utilidades";
+import { llamarAccion } from "@/lib/accion-segura";
 
 type Alta = {
   id: string;
@@ -427,7 +428,7 @@ export function PanelAltas({
   }, [altas, filtro, busqueda]);
 
   async function cambiarEstado(id: string, estado: string) {
-    const res = await actualizarEstadoAlta(id, estado);
+    const res = await llamarAccion(() => actualizarEstadoAlta(id, estado));
     if (res?.error) return toast.error(res.error);
     toast.success("Estado actualizado");
     refresh();
@@ -436,7 +437,7 @@ export function PanelAltas({
 
   async function borrar(id: string) {
     if (!confirm("¿Eliminar esta solicitud definitivamente? No se puede deshacer.")) return;
-    const res = await eliminarAlta(id);
+    const res = await llamarAccion(() => eliminarAlta(id));
     if (res?.error) return toast.error(res.error);
     toast.success("Solicitud eliminada");
     setSeleccionada(null);

@@ -8,6 +8,7 @@ import { Star, MessageSquareQuote, Loader2, Info } from "lucide-react";
 import { crearResena } from "./acciones-resenas";
 import { toast } from "sonner";
 import Link from "next/link";
+import { llamarAccion } from "@/lib/accion-segura";
 
 interface FormularioResenaProps {
   targetType: "empresa" | "proveedor";
@@ -90,13 +91,13 @@ export function FormularioResena({ targetType, targetId }: FormularioResenaProps
     }
 
     setIsSubmitting(true);
-    const res = await crearResena(
+    const res = await llamarAccion(() => crearResena(
       targetType,
       targetId,
       "company",
       currentUser.entityId as string,
       { calificacion: rating, comentario }
-    );
+    ));
     setIsSubmitting(false);
 
     if (res.error) {
