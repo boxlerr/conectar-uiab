@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://uiabconecta.com";
+/**
+ * Con `www`, igual que layout.tsx, robots.ts y sitemap.ts.
+ *
+ * Antes salía de `NEXT_PUBLIC_SITE_URL` con fallback al apex pelado, así que el
+ * canonical de /oportunidades apuntaba a `https://uiabconecta.com/oportunidades`
+ * — un dominio que redirige a www. Un canonical hacia una URL que redirige es
+ * una señal contradictoria: Google tiene que elegir por su cuenta cuál es la
+ * buena.
+ */
+const SITE_URL = "https://www.uiabconecta.com";
 const LOGO_URL = `${SITE_URL}/logo-uiab-conecta-header.svg`;
 
 export const metadata: Metadata = {
@@ -46,30 +55,19 @@ export const metadata: Metadata = {
 };
 
 export default function OportunidadesLayout({ children }: { children: ReactNode }) {
-  // JSON-LD: Organization + WebSite. Le permite a Google asociar el logo con
-  // la marca y mostrarlo en el knowledge panel y resultados de búsqueda.
+  /**
+   * Sólo el `WebPage` de esta sección.
+   *
+   * Acá vivía también un nodo `Organization` propio, con `@id`
+   * `https://uiabconecta.com/#organization` — distinto del que el layout raíz ya
+   * emite en TODAS las páginas (`https://www.uiabconecta.com/#organizacion`).
+   * Para Google eran dos organizaciones diferentes compitiendo por la misma
+   * marca en la misma página, con dos logos distintos. Se queda una sola, la de
+   * la raíz, y desde acá se la referencia por `@id`.
+   */
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
-      {
-        "@type": "Organization",
-        "@id": `${SITE_URL}/#organization`,
-        name: "UIAB Conecta",
-        alternateName: "Unión Industrial de Almirante Brown — Conecta",
-        url: SITE_URL,
-        logo: {
-          "@type": "ImageObject",
-          url: LOGO_URL,
-          width: 1612,
-          height: 279,
-        },
-        description:
-          "Plataforma de vinculación comercial B2B de la Unión Industrial de Almirante Brown.",
-        areaServed: {
-          "@type": "AdministrativeArea",
-          name: "Almirante Brown, Buenos Aires, Argentina",
-        },
-      },
       {
         "@type": "WebPage",
         "@id": `${SITE_URL}/oportunidades#webpage`,
@@ -77,13 +75,13 @@ export default function OportunidadesLayout({ children }: { children: ReactNode 
         name: "Oportunidades UIAB Conecta",
         description:
           "Licitaciones B2B verificadas con aval institucional UIAB.",
+        inLanguage: "es-AR",
         primaryImageOfPage: {
           "@type": "ImageObject",
           url: LOGO_URL,
         },
-        isPartOf: {
-          "@id": `${SITE_URL}/#organization`,
-        },
+        isPartOf: { "@id": `${SITE_URL}/#website` },
+        about: { "@id": `${SITE_URL}/#organizacion` },
       },
     ],
   };

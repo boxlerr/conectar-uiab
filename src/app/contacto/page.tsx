@@ -2,9 +2,13 @@ import { Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
 import { FormularioContacto } from "./FormularioContacto";
 
+// El título NO lleva "| UIAB Conecta": el template del layout raíz ya lo
+// agrega, y venía saliendo duplicado ("Contacto | UIAB Conecta | UIAB Conecta").
 export const metadata = {
-  title: "Contacto | UIAB Conecta",
-  description: "Ponte en contacto con la Unión Industrial de Almirante Brown",
+  title: "Contacto",
+  description:
+    "Contactá a la Unión Industrial de Almirante Brown: teléfono, correo y dirección de la sede en Burzaco, más el formulario para consultas sobre UIAB Conecta.",
+  alternates: { canonical: "/contacto" },
 };
 
 export default function ContactoPage() {

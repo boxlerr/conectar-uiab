@@ -11,6 +11,7 @@ export const metadata = {
   title: "Directorio UIAB — Empresas y prestadores verificados",
   description:
     "Directorio público de la Unión Industrial de Almirante Brown: empresas socias, prestadores de productos y servicios, entidades financieras y educativas, y cooperativas verificadas de la red. Buscá en toda la red desde un solo lugar.",
+  alternates: { canonical: "/directorio" },
 };
 
 export default async function DirectorioPage() {

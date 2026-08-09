@@ -90,7 +90,14 @@ export const metadata: Metadata = {
   description:
     "Directorio comercial B2B de la Unión Industrial de Almirante Brown: empresas socias, prestadores de productos y servicios, entidades financieras y educativas y cooperativas verificadas de Almirante Brown.",
   applicationName: "UIAB Conecta",
-  alternates: { canonical: "/" },
+  // OJO: acá NO va `alternates`. Los campos de metadata se heredan hacia abajo,
+  // así que un `canonical: "/"` en la raíz se lo comía TODO el sitio: /directorio,
+  // /sumate, /contacto, /terminos, /privacidad y /cookies salían declarando que
+  // la home era su versión canónica, o sea "soy un duplicado de la portada".
+  // Google las plegaba contra la home y no las indexaba — de 64 URLs del sitemap
+  // había 10 indexadas, y /directorio ni siquiera figuraba como rastreada.
+  // El canonical va SIEMPRE en la ruta, nunca en la raíz (la home tiene el suyo
+  // en src/app/page.tsx).
   keywords: [
     "UIAB",
     "UIAB Conecta",

@@ -274,9 +274,19 @@ export default function InstitucionesBancariasPage() {
   }, [empresas, categoriaSeleccionada, searchTerm]);
 
   const tieneAcceso       = currentUser?.role === 'admin' || currentUser?.subscriptionEstado === 'activa';
-  const mostrarInformativo = !loading && !currentUser;
-  const mostrarBloqueado   = !loading && !!currentUser && !tieneAcceso;
-  const mostrarDirectorio  = !loading && !!currentUser && tieneAcceso;
+  /**
+   * Sin `loading` — mismo criterio que /instituciones-educativas.
+   *
+   * En SSR `loading` es true, así que la página entera se renderizaba vacía:
+   * Googlebot recibía 95 palabras y cero encabezados. El AuthProvider hidrata
+   * `currentUser` con el `initialUser` que resuelve el servidor (layout.tsx),
+   * así que ramificar sólo por él da el mismo resultado en el HTML del servidor
+   * y en el primer render del cliente — y para un anónimo (o el crawler) es la
+   * variante informativa, que es la pública.
+   */
+  const mostrarInformativo = !currentUser;
+  const mostrarBloqueado   = !!currentUser && !tieneAcceso;
+  const mostrarDirectorio  = !!currentUser && tieneAcceso;
 
   return (
     <div className="min-h-svh overflow-x-hidden bg-slate-50 font-inter">

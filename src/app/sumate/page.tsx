@@ -8,6 +8,7 @@ export const metadata = {
   title: "Alta de socios UIAB | Cargá los datos de tu empresa",
   description:
     "Formulario exclusivo para organizaciones socias de la UIAB: verificamos tus datos contra el padrón y activamos el acceso de tu empresa a UIAB Conecta.",
+  alternates: { canonical: "/sumate" },
 };
 
 // El listado se actualiza a medida que las empresas completan el formulario.

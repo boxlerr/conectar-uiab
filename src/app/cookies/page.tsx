@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Cookie, Settings2, ChevronRight, Mail } from "lucide-react";
 
+// Sin "| UIAB Conecta": lo agrega el template del layout raíz.
 export const metadata = {
-  title: "Política de Cookies | UIAB Conecta",
+  title: "Política de Cookies",
   description:
     "Información sobre el uso de cookies y tecnologías similares en UIAB Conecta, conforme a la Ley 25.326 de Protección de los Datos Personales.",
+  alternates: { canonical: "/cookies" },
 };
 
 const secciones = [

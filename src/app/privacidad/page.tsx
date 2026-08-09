@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { ShieldCheck, FileText, Mail, ChevronRight } from "lucide-react";
 
+// Sin "| UIAB Conecta": lo agrega el template del layout raíz.
 export const metadata = {
-  title: "Política de Privacidad | UIAB Conecta",
+  title: "Política de Privacidad",
   description:
     "Política de privacidad y tratamiento de datos personales conforme a la Ley 25.326 de Protección de los Datos Personales de la República Argentina.",
+  alternates: { canonical: "/privacidad" },
 };
 
 const secciones = [

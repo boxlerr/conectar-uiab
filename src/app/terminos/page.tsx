@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Scale, FileText, Mail, ChevronRight } from "lucide-react";
 
+// Sin "| UIAB Conecta": lo agrega el template del layout raíz.
 export const metadata = {
-  title: "Términos y Condiciones | UIAB Conecta",
+  title: "Términos y Condiciones",
   description:
     "Términos y condiciones de uso de UIAB Conecta, la plataforma de vinculación comercial B2B de la Unión Industrial de Almirante Brown.",
+  alternates: { canonical: "/terminos" },
 };
 
 const secciones = [

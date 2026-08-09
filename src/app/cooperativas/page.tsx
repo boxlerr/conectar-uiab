@@ -118,12 +118,6 @@ export default function CooperativasPage() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // Evita el mismatch de hidratación: el contenido depende del estado de auth
-  // (resuelto en el cliente), así que el server y el primer render del cliente
-  // se mantienen idénticos hasta que el componente monta.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   const fetchCooperativas = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa')) {
       setCargandoDatos(false);
@@ -255,9 +249,25 @@ export default function CooperativasPage() {
   }, [cooperativas, categoriaSeleccionada, searchTerm]);
 
   const tieneAcceso       = currentUser?.role === 'admin' || currentUser?.subscriptionEstado === 'activa';
-  const mostrarInformativo = mounted && !loading && !currentUser;
-  const mostrarBloqueado   = mounted && !loading && !!currentUser && !tieneAcceso;
-  const mostrarDirectorio  = mounted && !loading && !!currentUser && tieneAcceso;
+  /**
+   * Sólo `currentUser`, sin `mounted` ni `loading` — mismo criterio que
+   * /instituciones-educativas.
+   *
+   * Con `mounted && !loading` esta página no renderizaba NADA en el servidor
+   * (`mounted` arranca en false, `loading` en true), así que a Googlebot le
+   * llegaban 95 palabras y ningún encabezado: una cáscara vacía que Google
+   * clasifica como página sin contenido. De ahí que /cooperativas nunca se
+   * indexara.
+   *
+   * No reintroduce el mismatch de hidratación que `mounted` venía a tapar: el
+   * AuthProvider recibe `initialUser` resuelto en el servidor (ver layout.tsx),
+   * así que `currentUser` vale lo mismo en el HTML del servidor y en el primer
+   * render del cliente. Para un visitante anónimo —y para el crawler— eso es
+   * `null`, o sea la variante informativa, que es justo la pública.
+   */
+  const mostrarInformativo = !currentUser;
+  const mostrarBloqueado   = !!currentUser && !tieneAcceso;
+  const mostrarDirectorio  = !!currentUser && tieneAcceso;
 
   return (
     <div className="min-h-svh overflow-x-hidden bg-slate-50 font-inter">
