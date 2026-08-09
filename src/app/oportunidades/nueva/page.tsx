@@ -16,7 +16,9 @@ export default async function NuevaOportunidadPage() {
 
   // Cargar categorías activas y tags disponibles en paralelo
   const [{ data: categorias }, { data: tags }] = await Promise.all([
-    supabase.from('categorias').select('id, nombre').order('nombre'),
+    // `activa` importa: /admin/servicios permite dar de baja un rubro, y sin este
+    // filtro el rubro dado de baja seguía ofreciéndose sólo acá.
+    supabase.from('categorias').select('id, nombre').eq('activa', true).order('nombre'),
     // Sólo el catálogo curado: una etiqueta inventada acá matchearía contra
     // cero candidatos y diluiría el puntaje de tags de todos los demás.
     supabase
