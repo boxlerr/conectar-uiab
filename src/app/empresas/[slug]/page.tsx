@@ -15,6 +15,8 @@ import { RegistrarVisita } from "@/components/ui/registrar-visita";
 import type { Metadata } from "next";
 import { ID_ORG_UIAB, SITE_URL, telefonoE164 } from "@/lib/seo/entidad";
 import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
+import { landingDeCategoria, perteneceAlRubro, RUBROS_SEO } from "@/lib/datos/rubros-seo";
+import { Migas } from "@/components/ui/migas";
 
 async function fetchCatalogoItems(
   supabase: any,
@@ -420,7 +422,8 @@ export default async function EmpresaProfilePage({
         ruta_logo,
         empresas_categorias (
           categorias (
-            nombre
+            nombre,
+            slug
           )
         ),
         empresas_tags (
@@ -489,6 +492,10 @@ export default async function EmpresaProfilePage({
   return (
     <EmpresaProfile
       empresaDb={empresaDb}
+      // `empresasData` ya está en memoria: la página trae la tabla entera para
+      // resolver el slug (no hay columna `slug`, así que no se puede filtrar en
+      // SQL). Aprovecharla para las empresas hermanas no cuesta una query más.
+      todasLasEmpresas={empresasData ?? []}
       supabase={supabase}
       isAuthenticated={isAuthenticated}
       currentPath={`/empresas/${slug}`}
@@ -501,17 +508,98 @@ export default async function EmpresaProfilePage({
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function EmpresaProfile({
   empresaDb,
+  todasLasEmpresas,
   supabase,
   isAuthenticated,
   currentPath,
 }: {
   empresaDb: any;
+  todasLasEmpresas: any[];
   supabase: any;
   isAuthenticated: boolean;
   currentPath: string;
 }) {
   const cats = empresaDb.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
   const mainCat = cats.length > 0 ? cats[0] : "General";
+
+  /**
+   * Rubros de la ficha con su landing, si la tienen.
+   *
+   * Los chips ya traían el anchor text perfecto ("Automatización y Robótica",
+   * "Ingeniería y Consultoría Técnica") pero eran <span>: texto de enlace
+   * escrito y desperdiciado en las 59 fichas. `landingDeCategoria` además
+   * colapsa los slugs fragmentados del catálogo —los cuatro de informática, los
+   * tres de electricidad— contra la MISMA landing.
+   */
+  const rubrosConLanding: { nombre: string; href: string | null }[] = (
+    empresaDb.empresas_categorias || []
+  )
+    .map((ec: any) => ec.categorias)
+    .filter((c: any) => c?.nombre)
+    .map((c: any) => {
+      const landing = landingDeCategoria(c.slug);
+      return { nombre: c.nombre as string, href: landing ? `/rubros/${landing.slug}` : null };
+    });
+
+  /**
+   * Empresas hermanas: otras socias que comparten alguna categoría.
+   *
+   * Las 59 fichas eran hojas terminales — 0 enlaces salientes a otras fichas—,
+   * así que todo el enlace interno entraba por /directorio y no circulaba. Con
+   * esto cada ficha reparte hacia 4-6 pares del mismo rubro, que además es
+   * navegación genuinamente útil para quien está comparando proveedores.
+   *
+   * Se filtra en memoria sobre la lista que la página ya tenía cargada: cero
+   * queries nuevas.
+   */
+  const slugsCategoria = new Set<string>(
+    (empresaDb.empresas_categorias || [])
+      .map((ec: any) => ec.categorias?.slug)
+      .filter(Boolean)
+  );
+
+  const candidatas = (todasLasEmpresas || []).filter(
+    (e: any) => e.id !== empresaDb.id && !esEmpresaInstitucional(e.id) && e.razon_social
+  );
+
+  const datosRubro = (e: any) => ({
+    categoriaSlugs: (e.empresas_categorias || [])
+      .map((ec: any) => ec.categorias?.slug)
+      .filter(Boolean),
+    tags: (e.empresas_tags || []).map((et: any) => et.tags?.nombre).filter(Boolean),
+  });
+
+  // Primero por categoría exacta compartida. Después, si no llega a 6, se
+  // completa con la landing de rubro: el catálogo de categorías está
+  // fragmentado (los cuatro slugs de informática son cuatro filas distintas
+  // para el mismo rubro), así que el match exacto solo deja fichas como Vaxler
+  // con uno o dos pares cuando en realidad comparte rubro con varias más.
+  const porCategoria = candidatas.filter((e: any) =>
+    (e.empresas_categorias || []).some((ec: any) => slugsCategoria.has(ec.categorias?.slug))
+  );
+  const landing = rubrosConLanding.find((r) => r.href);
+  const rubroDeLanding = landing
+    ? RUBROS_SEO.find((r) => `/rubros/${r.slug}` === landing.href)
+    : undefined;
+  const porLanding = rubroDeLanding
+    ? candidatas.filter((e: any) => perteneceAlRubro(rubroDeLanding, datosRubro(e)))
+    : [];
+
+  const hermanas = Array.from(
+    new Map(
+      [...porCategoria, ...porLanding].map((e: any) => [e.id, e])
+    ).values()
+  )
+    .sort((a: any, b: any) =>
+      a.razon_social.localeCompare(b.razon_social, "es", { sensitivity: "base" })
+    )
+    .slice(0, 6)
+    .map((e: any) => ({
+      nombre: e.razon_social as string,
+      slug: crearSlug(e.razon_social),
+      localidad: (e.localidad as string) || null,
+      rubro: (e.empresas_categorias || [])[0]?.categorias?.nombre ?? null,
+    }));
   const logoUrl = empresaDb.bucket_logo && empresaDb.ruta_logo
     ? supabase.storage.from(empresaDb.bucket_logo).getPublicUrl(empresaDb.ruta_logo).data.publicUrl
     : null;
@@ -680,10 +768,26 @@ async function EmpresaProfile({
         </div>
 
         <div className="relative z-10 w-full max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 pb-10">
-          <Link href="/directorio" className="inline-flex items-center text-blue-200/70 hover:text-white mb-6 transition-colors text-[11px] font-bold tracking-[0.2em] uppercase">
-            <ArrowLeft className="w-3.5 h-3.5 mr-2" />
-            Directorio
-          </Link>
+          {/*
+            La miga reemplaza al "← Directorio" suelto que había acá.
+            Mismo enlace, más jerarquía: agrega el rubro en el medio (otra vía
+            hacia /rubros) y emite el BreadcrumbList, que es el único rich
+            result que Google todavía muestra de forma consistente para un
+            directorio — en el resultado se ve `uiabconecta.com › Directorio ›
+            Química › Vaxler` en vez de la URL cruda.
+          */}
+          <Migas
+            tono="claro"
+            className="mb-6"
+            migas={[
+              { nombre: "Inicio", href: "/" },
+              { nombre: "Directorio", href: "/directorio" },
+              ...(rubrosConLanding[0]?.href
+                ? [{ nombre: rubrosConLanding[0].nombre, href: rubrosConLanding[0].href }]
+                : []),
+              { nombre: empresa.nombre },
+            ]}
+          />
 
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <span className="inline-flex items-center px-2.5 py-1 rounded-sm bg-blue-500/15 border border-blue-400/30 text-blue-200 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -838,22 +942,36 @@ async function EmpresaProfile({
               </section>
             )}
 
-            {(tieneServiciosReales || tieneTags) && (
+            {(rubrosConLanding.length > 0 || tieneTags) && (
               <section className="bg-white p-7 rounded-md border border-slate-200">
                 <div className="flex items-center gap-2.5 mb-5">
                   <Wrench className="w-4 h-4 text-blue-600" />
                   <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Rubros y especialidades</h2>
                 </div>
-                {tieneServiciosReales && (
+                {/* Chips de rubro: los que tienen landing son <Link>; los que
+                    no (categorías por debajo del umbral de 3 socias) siguen
+                    siendo <span>, porque enlazar a una URL que no existe es
+                    peor que no enlazar. */}
+                {rubrosConLanding.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {empresa.servicios.map((servicio: string, idx: number) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-                      >
-                        {servicio}
-                      </span>
-                    ))}
+                    {rubrosConLanding.map((r, idx) =>
+                      r.href ? (
+                        <Link
+                          key={idx}
+                          href={r.href}
+                          className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                        >
+                          {r.nombre}
+                        </Link>
+                      ) : (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded"
+                        >
+                          {r.nombre}
+                        </span>
+                      )
+                    )}
                   </div>
                 )}
                 {tieneTags && (
@@ -1041,6 +1159,53 @@ async function EmpresaProfile({
             </div>
           </aside>
         </div>
+
+        {/*
+          Empresas hermanas. Antes cada ficha era una hoja terminal: 0 enlaces
+          salientes hacia otras fichas, así que el enlace interno entraba por
+          /directorio y ahí se moría. Estos 4-6 enlaces por ficha hacen que el
+          rastreo circule entre pares del mismo rubro.
+        */}
+        {hermanas.length > 0 && (
+          <section
+            aria-labelledby="empresas-relacionadas"
+            className="mt-14 pt-10 border-t border-slate-200"
+          >
+            <h2
+              id="empresas-relacionadas"
+              className="font-manrope text-xl font-black text-[#00213f] tracking-tight mb-1"
+            >
+              Otras empresas de {(rubrosConLanding[0]?.nombre ?? mainCat).toLocaleLowerCase("es")} en Almirante Brown
+            </h2>
+            <p className="text-[14px] text-slate-500 mb-6">
+              Socias de la UIAB que comparten rubro con {empresa.nombre}.
+            </p>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {hermanas.map((h) => (
+                <li key={h.slug}>
+                  <Link
+                    href={`/empresas/${h.slug}`}
+                    className="block h-full bg-white rounded-md border border-slate-200 p-4 hover:border-blue-300 hover:shadow-md transition-all"
+                  >
+                    <p className="font-bold text-[14.5px] text-[#00213f] leading-snug">{h.nombre}</p>
+                    <p className="mt-1 text-[12.5px] text-slate-500">
+                      {[h.rubro, h.localidad].filter(Boolean).join(" · ")}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {rubrosConLanding[0]?.href && (
+              <Link
+                href={rubrosConLanding[0].href}
+                className="mt-6 inline-flex items-center gap-1.5 text-[14px] font-semibold text-blue-700 hover:underline"
+              >
+                Ver todo el rubro {rubrosConLanding[0].nombre}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );

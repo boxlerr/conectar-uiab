@@ -4,6 +4,7 @@ import { EmpresasCliente } from "./empresas-cliente";
 import { IndiceEmpresas } from "@/components/ui/directorio/indice-empresas";
 import { RUBROS_SEO, perteneceAlRubro } from "@/lib/datos/rubros-seo";
 import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
+import { obtenerSociasConLogo } from "@/lib/datos/socias-logos";
 
 /**
  * `/empresas` pasó de ser un client component suelto a un Server Component que
@@ -26,7 +27,10 @@ import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
 export const dynamic = "force-dynamic";
 
 export default async function EmpresasPage() {
-  const { entidades } = await obtenerDirectorio();
+  const [{ entidades }, sociasLogos] = await Promise.all([
+    obtenerDirectorio(),
+    obtenerSociasConLogo(),
+  ]);
 
   // Sólo empresas (no prestadores/financieras/educativas/cooperativas): esta
   // ruta es la de empresas y su landing habla de empresas.
@@ -53,6 +57,7 @@ export default async function EmpresasPage() {
           empresasPreview={empresas.slice(0, 3)}
           sectores={sectores}
           totalEmpresas={socias.length}
+          sociasLogos={sociasLogos}
         />
       </Suspense>
       <IndiceEmpresas entidades={entidades} />

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Inicio from "./inicio-cliente";
+import { obtenerSociasConLogo } from "@/lib/datos/socias-logos";
 
 /**
  * La portada es un Server Component finito cuyo único trabajo es declarar la
@@ -14,6 +15,16 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export default function Page() {
-  return <Inicio />;
+/**
+ * El marquee de logos ahora se resuelve acá y baja por props.
+ *
+ * Era un fetch en useEffect dentro de un client component, así que la home le
+ * servía a Googlebot CERO enlaces a fichas: los ~50 `<Link>` del marquee recién
+ * aparecían después de hidratar. Con las fichas colgando de un solo documento
+ * (/directorio) y sin backlinks externos, ese era el enlace interno más caro
+ * que el proyecto estaba tirando a la basura.
+ */
+export default async function Page() {
+  const sociasLogos = await obtenerSociasConLogo();
+  return <Inicio sociasLogos={sociasLogos} />;
 }

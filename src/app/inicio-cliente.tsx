@@ -22,6 +22,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { BannerLogosSocias } from "@/components/ui/directorio/banner-logos-socias";
+import type { SociaConLogo } from "@/lib/datos/socias-logos";
 import { PreviewDirectorio } from "@/components/ui/directorio/preview-directorio";
 import { SeccionBeneficios } from "@/components/ui/directorio/seccion-beneficios";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
@@ -110,7 +111,7 @@ const TAMBIEN_INCLUYE = [
   "Acompañamiento UIAB",
 ];
 
-export default function Home() {
+export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
   const { openAuthModal, currentUser, loading } = useAuth();
   const router = useRouter();
   // Anual por defecto: es el plan que conviene y el que queremos comparar.
@@ -411,7 +412,7 @@ export default function Home() {
       {/* ═══════════════════════════════════════════
           BANNER — logos de empresas socias en movimiento
       ═══════════════════════════════════════════ */}
-      <BannerLogosSocias />
+      <BannerLogosSocias empresas={sociasLogos} />
 
       {/* ═══════════════════════════════════════════
           HOW IT WORKS — 3 step visual with isometric connection

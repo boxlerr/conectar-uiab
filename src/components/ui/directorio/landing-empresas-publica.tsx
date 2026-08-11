@@ -32,6 +32,7 @@ import {
 import { LandingProfileCard } from "@/components/ui/directorio/tarjeta-perfil-landing";
 import { BannerLogosSocias } from "@/components/ui/directorio/banner-logos-socias";
 import type { Entidad } from "@/lib/datos/directorio";
+import type { SociaConLogo } from "@/lib/datos/socias-logos";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 
@@ -133,7 +134,7 @@ const journey = [
     title: "Conexión con la Red",
     description: "Comience a recibir oportunidades, conecte con otras empresas y proveedores de servicios. Acceda al ecosistema completo de herramientas B2B.",
     icon: Users,
-    detail: "Red activa • +60 empresas",
+    detail: "Red activa • Empresas socias de la UIAB",
   },
 ];
 
@@ -142,7 +143,10 @@ export function PublicEmpresasLanding({
   empresasPreview = [],
   sectores = [],
   totalEmpresas = 0,
+  sociasLogos = [],
 }: {
+  /** Logos de las socias, resueltos en el servidor. Ver socias-logos.ts. */
+  sociasLogos?: SociaConLogo[];
   /** Rubros REALES con su conteo y su landing. Ver ICONO_POR_RUBRO. */
   sectores?: { slug: string; nombre: string; total: number }[];
   /** Socias aprobadas en la base. Antes decía "+60" a mano. */
@@ -292,7 +296,7 @@ export function PublicEmpresasLanding({
             </span>
           </motion.div>
         </div>
-        <BannerLogosSocias />
+        <BannerLogosSocias empresas={sociasLogos} />
       </section>
 
       {/* ═══════════════════════════════════════════

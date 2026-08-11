@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Entidad } from "@/lib/datos/directorio"; // Only for typing now
+import type { SociaConLogo } from "@/lib/datos/socias-logos";
 import { mapearCertificaciones, SELECT_CERTIFICACIONES_DIRECTORIO } from "@/modulos/certificaciones/normas";
 import {
   CategoriaSocio,
@@ -59,6 +60,7 @@ export function EmpresasCliente({
   empresasPreview,
   sectores,
   totalEmpresas,
+  sociasLogos,
 }: {
   /** Socias reales para las tarjetas de muestra de la landing pública. */
   empresasPreview: Entidad[];
@@ -66,6 +68,8 @@ export function EmpresasCliente({
   sectores: { slug: string; nombre: string; total: number }[];
   /** Socias aprobadas en la base, para las cifras de la landing. */
   totalEmpresas: number;
+  /** Logos resueltos en el servidor para el marquee (ver socias-logos.ts). */
+  sociasLogos: SociaConLogo[];
 }) {
   const { currentUser, loading } = useAuth();
   const searchParams = useSearchParams();
@@ -350,6 +354,7 @@ export function EmpresasCliente({
         empresasPreview={empresasPreview}
         sectores={sectores}
         totalEmpresas={totalEmpresas}
+        sociasLogos={sociasLogos}
       />
     );
   }

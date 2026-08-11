@@ -227,19 +227,27 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
   // Logueado: el Directorio va primero (es a donde caés al entrar y donde más
   // se trabaja), el Panel de Control en tercer lugar y Nosotros al final.
   // Visitante: arranca en Inicio.
+  //
+  // "Nosotros" apuntaba a https://www.uiab.org con `external: true`, o sea que
+  // el único ítem del menú que promete contestar "qué es esto" se iba del
+  // dominio — desde las 64 URLs del sitio, porque el nav es global. El sitio
+  // exportaba su propia definición justo a la entidad contra la que compite en
+  // la consulta de marca. Ahora va a /nosotros, que existe; el enlace al sitio
+  // institucional vive en el pie (sin nofollow: asociar las dos entidades es
+  // deseable).
   const navigation: NavItem[] = currentUser
     ? [
         { name: "Directorio", href: "/directorio", icon: BookOpen },
         { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
         { name: "Panel de Control", href: "/panel-de-control", icon: null },
         { name: "Contacto", href: "/contacto", icon: null },
-        { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
+        { name: "Nosotros", href: "/nosotros", icon: null },
       ]
     : [
         { name: "Inicio", href: "/", icon: null },
         { name: "Directorio", href: "/directorio", icon: BookOpen },
         { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
-        { name: "Nosotros", href: "https://www.uiab.org", icon: null, external: true },
+        { name: "Nosotros", href: "/nosotros", icon: null },
         { name: "Contacto", href: "/contacto", icon: null },
       ];
 
