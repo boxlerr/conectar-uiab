@@ -151,7 +151,7 @@ export const RUBROS_SEO: RubroSeo[] = [
     slug: "automatizacion-y-electricidad",
     nombre: "Automatización y electricidad",
     h1: "Automatización industrial y tableros eléctricos en Almirante Brown",
-    title: "Automatización Industrial y Tableros Eléctricos en Almirante Brown",
+    title: "Automatización Industrial y Tableros Eléctricos",
     description:
       "Empresas de automatización industrial, tableros eléctricos e instalaciones socias de la UIAB en Almirante Brown: PLC, SCADA, cableado industrial y material eléctrico.",
     intro:

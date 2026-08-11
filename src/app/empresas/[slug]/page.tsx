@@ -870,7 +870,10 @@ async function EmpresaProfile({
           de 3 renglones recortaba los chips y el link "Directorio" por arriba */}
       <div className="relative min-h-[320px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
         <div className="absolute inset-0 z-0">
-          <Image src="/landing/hero-industrial.webp" alt="" fill className="object-cover object-center" priority />
+          {/* `sizes` + `quality` bajos a propósito: es una franja de ~320px de alto
+              tapada por dos gradientes, y sin `sizes` next/image asume 100vw y
+              sirve ~282 KB de WebP. Es el candidato a LCP de las 59 fichas. */}
+          <Image src="/landing/hero-industrial.webp" alt="" fill sizes="(max-width: 768px) 100vw, 1200px" quality={60} className="object-cover object-center" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#00213f] via-[#00213f]/60 to-transparent" />
         </div>
@@ -1449,7 +1452,7 @@ async function ProveedorProfile({
       {/* Hero */}
       <div className="relative min-h-[320px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
         <div className="absolute inset-0 z-0">
-          <Image src="/landing/hero-industrial.webp" alt="Fondo" fill className="object-cover object-center" priority />
+          <Image src="/landing/hero-industrial.webp" alt="" fill sizes="(max-width: 768px) 100vw, 1200px" quality={60} className="object-cover object-center" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#00182e] via-[#00213f]/70 to-transparent" />
         </div>

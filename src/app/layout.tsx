@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Poppins, Open_Sans, Geist, Manrope, Inter } from "next/font/google";
-import { Suspense } from "react";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 
@@ -221,9 +220,7 @@ export default async function RootLayout({
         />
         <AuthProvider initialUser={initialUser}>
           <TourProvider>
-            <Suspense>
-              <AppShell>{children}</AppShell>
-            </Suspense>
+            <AppShell>{children}</AppShell>
           </TourProvider>
         </AuthProvider>
         <Toaster />
