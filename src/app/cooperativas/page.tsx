@@ -49,7 +49,7 @@ const stagger = {
 const beneficiosRed = [
   {
     icon: Factory,
-    titulo: "Acceso a +60 Socios UIAB",
+    titulo: "Acceso a las empresas socias de la UIAB",
     copy: "Conecta tu cooperativa directamente con empresas manufactureras, metalúrgicas, químicas y de servicios industriales del polo de Almirante Brown.",
   },
   {

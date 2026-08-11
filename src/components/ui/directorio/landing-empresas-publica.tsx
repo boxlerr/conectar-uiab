@@ -118,9 +118,9 @@ const journey = [
   {
     step: "01",
     title: "Registro y Verificación",
-    description: "Complete el formulario con los datos de su empresa y sector. Nuestro equipo valida la información y la documentación.",
+    description: "Complete el formulario con los datos de su empresa y sector. La UIAB contrasta el CUIT contra su padrón de socias y revisa la información antes de publicar la ficha.",
     icon: FileText,
-    detail: "Proceso 100% digital • Respuesta en 48hs",
+    detail: "Proceso 100% digital • Con aprobación de la UIAB",
   },
   {
     step: "02",
@@ -361,7 +361,7 @@ export function PublicEmpresasLanding({
                         </div>
                       ))}
                     </div>
-                    <span className="text-[11px] font-bold text-[#191c1e] uppercase tracking-widest">+60 EMPRESAS</span>
+                    <span className="text-[11px] font-bold text-[#191c1e] uppercase tracking-widest">EMPRESAS SOCIAS</span>
                   </div>
                 </div>
               </div>
@@ -740,10 +740,10 @@ export function PublicEmpresasLanding({
                 </div>
                 <h3 className="text-2xl lg:text-3xl font-bold mb-4" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Directorio Industrial Completo</h3>
                 <p className="text-primary-100/70 text-base lg:text-lg leading-relaxed max-w-xl mb-10">
-                  Acceso a la base de datos de +60 empresas e industrias verificadas del partido. Busque proveedores de servicios por sector o servicio y contacte de forma directa.
+                  Acceso a la base de datos de empresas e industrias verificadas del partido. Busque proveedores de servicios por sector o servicio y contacte de forma directa.
                 </p>
                 <div className="flex flex-wrap gap-2 mt-auto">
-                  {["Base de Datos +60", "Filtros Técnicos", "Contacto Sin Intermediarios"].map((tag) => (
+                  {["Base de Datos Verificada", "Filtros Técnicos", "Contacto Sin Intermediarios"].map((tag) => (
                     <span key={tag} className="text-[11px] font-bold text-white/50 bg-white/[0.04] border border-white/5 rounded-sm px-3 py-1.5 uppercase tracking-wider">{tag}</span>
                   ))}
                 </div>
@@ -824,7 +824,7 @@ export function PublicEmpresasLanding({
                   Conozca algunas de nuestras empresas
                 </motion.h2>
                 <motion.p variants={fadeUp} custom={2} className="text-[15px] text-slate-500 leading-relaxed">
-                  Esta es solo una muestra. El directorio completo incluye +60 empresas radicadas con perfiles verificados.
+                  Esta es solo una muestra. El directorio completo incluye a todas las empresas socias radicadas en el partido, con perfiles verificados.
                 </motion.p>
               </div>
 

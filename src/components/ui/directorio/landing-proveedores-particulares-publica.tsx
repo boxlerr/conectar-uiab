@@ -87,7 +87,7 @@ const pasos = [
     titulo: "La UIAB valida tu perfil",
     descripcion:
       "Verificamos habilitación, matrícula profesional y referencias. Una vez aprobado, recibís el sello de Socio UIAB (para empresas) o el alta como profesional en la red.",
-    detalle: "Respuesta en 48hs",
+    detalle: "Con aprobación de la UIAB",
     audiencia: "ambos",
   },
   {
@@ -100,32 +100,6 @@ const pasos = [
   },
 ];
 
-const historias = [
-  {
-    nombre: "Ingeniería Martín SRL",
-    oficio: "Empresa socia · Metalmecánica",
-    tipo: "empresa",
-    texto:
-      "Pasamos de ser desconocidos en el partido a tener una cartera estable de clientes industriales. Las oportunidades que circulan en la red son reales y relevantes.",
-    metric: "+12 proyectos/año",
-  },
-  {
-    nombre: "Elena F.",
-    oficio: "Particular · Contabilidad y Auditoría",
-    tipo: "particular",
-    texto:
-      "El sello de Particular UIAB me dio la confianza que las PyMEs comerciales de Almirante Brown necesitaban. Hoy asesoro a más de 12 comercios locales.",
-    metric: "12 clientes fijos",
-  },
-  {
-    nombre: "Marcos L.",
-    oficio: "Particular · Sistemas y Soporte IT",
-    tipo: "particular",
-    texto:
-      "Increíble la cantidad de empresas que buscan digitalizarse. A través del directorio encontré proyectos de automatización y trazabilidad en tiempo récord.",
-    metric: "8 proyectos IT",
-  },
-];
 
 /* ─── Component ─── */
 export function PublicProveedoresParticularesLanding({
@@ -253,7 +227,7 @@ export function PublicProveedoresParticularesLanding({
                 <ShieldCheck className="w-4 h-4 text-emerald-400" /> Matrícula & habilitación
               </span>
               <span className="flex items-center gap-1.5 font-semibold">
-                <Clock className="w-4 h-4 text-emerald-400" /> En 48hs activo
+                <Clock className="w-4 h-4 text-emerald-400" /> Alta con aprobación
               </span>
             </motion.div>
           </motion.div>
@@ -596,16 +570,19 @@ export function PublicProveedoresParticularesLanding({
           <div className="space-y-0">
             {[
               {
-                num: "+60",
-                label: "Empresas industriales",
+                num: "UIAB",
+                label: "Empresas socias del partido",
                 heading: "Empresas y comercios del partido necesitan tu servicio",
-                body: "Cientos de empresas y emprendimientos en Almirante Brown necesitan productos, servicios, profesionales, técnicos y oficios todas las semanas. Cada fábrica, cada negocio y cada PyME del partido es un cliente potencial tanto para empresas socias como para proveedores de servicios.",
+                body: "Las empresas y emprendimientos de Almirante Brown necesitan productos, servicios, profesionales, técnicos y oficios todas las semanas. Cada fábrica, cada negocio y cada PyME del partido es un cliente potencial tanto para empresas socias como para proveedores de servicios.",
                 icon: Users,
                 tone: "blue" as const,
               },
               {
-                num: "24h",
-                label: "Tiempo promedio de contacto",
+                // Decía "24h · Tiempo promedio de contacto": una métrica que
+                // nadie mide. El hecho verificable es que el contacto es
+                // directo, no cuánto tarda.
+                num: "Directo",
+                label: "Contacto sin intermediarios",
                 heading: "Contacto directo vía email, teléfono o WhatsApp",
                 body: "Cuando una empresa necesita tu servicio te contactará directamente, o podés ser vos quien los contacte al ver sus oportunidades publicadas. Sin plataformas que se queden con un porcentaje, sin intermediarios.",
                 icon: Phone,
@@ -615,7 +592,7 @@ export function PublicProveedoresParticularesLanding({
                 num: "100%",
                 label: "Credibilidad UIAB",
                 heading: "Verificación institucional real, no un perfil anónimo",
-                body: "El sello UIAB —Socio (si sos empresa)— le dice a las empresas que tu habilitación, matrícula y trayectoria son reales y fueron validadas institucionalmente. No es un perfil suelto en una red social: es respaldo institucional verificado.",
+                body: "El sello UIAB le dice a las empresas que tu ficha fue revisada y aprobada por la cámara antes de publicarse, y que tu CUIT figura en su padrón de socias. No es un perfil suelto en una red social: es respaldo institucional.",
                 icon: BadgeCheck,
                 tone: "amber" as const,
               },
@@ -910,127 +887,60 @@ export function PublicProveedoresParticularesLanding({
       {/* ═══════════════════════════════════════════
           SECTION 7: TESTIMONIALS
       ═══════════════════════════════════════════ */}
+      {/*
+        Acá había una sección "Historias reales" con tres testimonios
+        inventados —"Ingeniería Martín SRL" con "+12 proyectos/año", "Elena F."
+        con "12 clientes fijos", "Marcos L." con "8 proyectos IT"— bajo un
+        subtítulo que afirmaba que cada historia era de un socio que "hoy tiene
+        clientes industriales fijos gracias a UIAB Conecta".
+
+        Iban borrosos detrás del gate de login, pero el blur es CSS: el texto
+        estaba entero en el HTML y Google lo leía. Y encima prometían reseñas
+        que no existen (`resenas` aprobadas = 0).
+
+        En su lugar va lo que sí es cierto y verificable mirando el propio
+        sitio: cómo funciona la red. Cuando haya testimonios reales y con
+        consentimiento de las socias, este es el lugar donde van.
+      */}
       <section className="py-24 lg:py-32 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
-            variants={stagger}
-            className="flex flex-col lg:flex-row lg:items-end lg:justify-between mb-16"
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <span className="text-[11px] font-semibold text-primary-600 tracking-[0.14em] uppercase block mb-3">
+            Cómo funciona
+          </span>
+          <h2
+            className="text-3xl lg:text-4xl font-bold text-[#191c1e] tracking-tight mb-8"
+            style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
           >
-            <div className="max-w-md mb-6 lg:mb-0">
-              <motion.span
-                variants={fadeUp}
-                custom={0}
-                className="text-[11px] font-semibold text-primary-600 tracking-[0.14em] uppercase block mb-3"
-              >
-                Historias reales
-              </motion.span>
-              <motion.h2
-                variants={fadeUp}
-                custom={1}
-                className="text-3xl lg:text-4xl font-bold text-[#191c1e] tracking-tight"
-                style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
-              >
-                Empresas y proveedores de servicios que ya trabajan con la red
-              </motion.h2>
-            </div>
-            <motion.p
-              variants={fadeUp}
-              custom={2}
-              className="text-[13px] text-[#191c1e]/60 max-w-sm"
-            >
-              Cada historia es de un socio UIAB o profesional independiente que hoy tiene clientes
-              industriales fijos gracias a UIAB Conecta.
-            </motion.p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-40px" }}
-            variants={stagger}
-            className="grid md:grid-cols-3 gap-5 relative"
-          >
-            <div
-              aria-hidden
-              className="absolute inset-0 z-10 pointer-events-none"
-              style={{
-                backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
-                background: "rgba(255,255,255,0.35)",
-              }}
-            />
-            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-              <div className="pointer-events-auto flex flex-col items-center gap-3 bg-white/90 backdrop-blur-md border border-slate-200 rounded-sm px-6 py-5 shadow-xl max-w-sm text-center">
-                <div className="w-10 h-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <p className="text-[13px] font-semibold text-[#191c1e] leading-snug">
-                  Iniciá sesión o registrate para leer las reseñas completas de la red.
-                </p>
-                <Button
-                  onClick={openAuthModal}
-                  className="h-10 px-5 rounded-sm font-bold text-[12px] bg-[#00213f] hover:bg-[#10375c] text-white shadow-md active:scale-[0.98] transition-all"
-                >
-                  Iniciar sesión o registrarse
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
+            Qué pasa cuando entrás a la red
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: BadgeCheck,
+                titulo: "Tu perfil queda verificado",
+                texto:
+                  "La UIAB valida los datos contra su padrón antes de publicar la ficha. El sello de socia verificada no se pide: se aprueba.",
+              },
+              {
+                icon: Users,
+                titulo: "Te encuentran por lo que hacés",
+                texto:
+                  "Tu ficha aparece en el directorio y en la página de tu rubro, con tus etiquetas y capacidades. Quien busca un proveedor en Almirante Brown llega ahí.",
+              },
+              {
+                icon: Handshake,
+                titulo: "El contacto es directo",
+                texto:
+                  "Teléfono, correo y web quedan a la vista en tu ficha. No hay intermediarios ni comisiones sobre lo que cierres.",
+              },
+            ].map(({ icon: Icon, titulo, texto }) => (
+              <div key={titulo}>
+                <Icon className="w-5 h-5 text-primary-600 mb-3" />
+                <p className="font-bold text-[15px] text-[#191c1e] mb-2">{titulo}</p>
+                <p className="text-[14px] text-[#191c1e]/70 leading-relaxed">{texto}</p>
               </div>
-            </div>
-            {historias.map((h, i) => (
-              <motion.div
-                key={i}
-                variants={fadeUp}
-                custom={i}
-                aria-hidden
-                className="bg-[#f7f9fb] rounded-sm p-7 relative group border border-slate-100 select-none"
-                style={{ filter: "blur(5px)" }}
-              >
-                <div className="flex items-center gap-3 mb-5">
-                  <div
-                    className={`w-10 h-10 flex items-center justify-center text-white font-bold text-[13px] ${
-                      h.tipo === "empresa"
-                        ? "rounded-sm bg-[#00213f]"
-                        : "rounded-full bg-amber-600"
-                    }`}
-                  >
-                    {h.nombre
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2)}
-                  </div>
-                  <div>
-                    <p className="text-[14px] font-bold text-[#191c1e]">{h.nombre}</p>
-                    <p className="text-[11px] text-[#191c1e]/35">{h.oficio}</p>
-                  </div>
-                </div>
-
-                <p className="text-[14px] text-[#191c1e]/75 leading-relaxed mb-5">
-                  &ldquo;{h.texto}&rdquo;
-                </p>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-0.5">
-                    {[...Array(5)].map((_, si) => (
-                      <Star key={si} className="w-3 h-3 text-primary-500 fill-primary-500" />
-                    ))}
-                  </div>
-                  <span
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-sm ${
-                      h.tipo === "empresa"
-                        ? "text-primary-700 bg-primary-50"
-                        : "text-amber-800 bg-amber-50"
-                    }`}
-                  >
-                    {h.metric}
-                  </span>
-                </div>
-              </motion.div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 

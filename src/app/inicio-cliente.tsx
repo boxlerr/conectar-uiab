@@ -474,7 +474,7 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                   {
                     icon: ShieldCheck,
                     title: "UIAB como ente verificador",
-                    desc: "La Unión Industrial valida la identidad, matrículas y trayectoria de cada participante, garantizando una red de confianza.",
+                    desc: "La Unión Industrial contrasta el CUIT de cada alta contra su padrón de socias y revisa la ficha antes de publicarla.",
                     link: "/nosotros",
                     linkLabel: "Conocer la UIAB",
                   },
