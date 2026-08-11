@@ -103,6 +103,26 @@ describe("no se publican datos inventados", () => {
     expect(fuente).toContain("export interface Entidad");
   });
 
+  it("/empresas/[slug] no tiene loading.tsx (reintroduce el soft 404)", () => {
+    // El notFound() de la ficha corre DESPUÉS de que loading.tsx hace flush del
+    // shell, y el status HTTP viaja en esa primera cabecera: un slug inexistente
+    // devolvía 200 con la pantalla de error. Importa acá más que en otras rutas
+    // porque el slug se recalcula de `razon_social` en cada render, así que
+    // renombrar una socia convierte su URL ya indexada en un soft 404
+    // permanente. El detalle está en POR-QUE-NO-HAY-LOADING.md, al lado.
+    const existe = (() => {
+      try {
+        readFileSync(join(RAIZ, "src/app/empresas/[slug]/loading.tsx"), "utf8");
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+    expect(existe, "volver a poner loading.tsx hace que un slug inexistente devuelva 200").toBe(
+      false
+    );
+  });
+
   it("no hay reseñas ni ratings inventados en el marcado", () => {
     // `resenas` aprobadas = 0. Un aggregateRating sin reseñas visibles es
     // motivo de acción manual por spam de datos estructurados.
