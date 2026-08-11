@@ -13,6 +13,14 @@ export interface Entidad {
   slug: string;
   nombre: string;
   categoria: string;
+  /**
+   * Slugs de TODAS las categorías de la entidad, no sólo el nombre de la
+   * principal. Los necesitan las landings de rubro (src/lib/datos/rubros-seo.ts)
+   * para resolver la pertenencia sin depender de comparar nombres, que en este
+   * catálogo vienen fragmentados ('Informática' vs 'Informática, Sistemas y
+   * Soporte IT' vs 'Desarrollo de Software Industrial' son la misma cosa).
+   */
+  categoriaSlugs?: string[];
   descripcionCorta: string;
   descripcionLarga: string;
   logo: string;

@@ -13,8 +13,8 @@ import Image from "next/image";
 import { BotonWhatsApp } from "@/components/ui/boton-whatsapp";
 import { RegistrarVisita } from "@/components/ui/registrar-visita";
 import type { Metadata } from "next";
-
-const SITE_URL = "https://www.uiabconecta.com";
+import { ID_ORG_UIAB, SITE_URL, telefonoE164 } from "@/lib/seo/entidad";
+import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
 
 async function fetchCatalogoItems(
   supabase: any,
@@ -304,9 +304,23 @@ export async function generateMetadata({
   };
 }
 
-// JSON-LD Organization: le dice a Google que la empresa está registrada y es
-// miembro de la UIAB (memberOf). Ayuda a que al buscar su nombre aparezca su
-// ficha en UIAB Conecta con datos estructurados.
+/**
+ * JSON-LD Organization de la ficha: le dice a Google que ESTA página describe a
+ * ESA empresa, y que la empresa es socia de la UIAB.
+ *
+ * Por qué el NAP completo importa tanto acá: para que la ficha aparezca cuando
+ * alguien busca el nombre de la socia, Google tiene que aceptar que la página
+ * *describe* a la empresa y no que apenas la *menciona*. Eso lo decide cruzando
+ * teléfono + dirección postal + dominio propio contra lo que ya sabe de ella.
+ * Con nombre y localidad solos —que era todo lo que emitíamos— la ficha queda
+ * del lado de "la menciona", y una mención nunca desplaza al sitio propio de la
+ * empresa.
+ *
+ * `memberOf` va por `@id` contra el nodo que el layout raíz emite en el mismo
+ * documento. Antes cada ficha creaba un nodo anónimo nuevo que además declaraba
+ * `url: SITE_URL` para la cámara — 59 afirmaciones de que la UIAB vive en
+ * uiabconecta.com, contradiciendo lo que Google ya tiene indexado.
+ */
 function jsonLdOrganizacion(opts: {
   nombre: string;
   descripcion: string | null;
@@ -315,33 +329,56 @@ function jsonLdOrganizacion(opts: {
   logoUrl: string | null;
   sitioWeb: string | null;
   url: string;
+  direccion?: string | null;
+  codigoPostal?: string | number | null;
+  telefono?: string | null;
+  email?: string | null;
+  cuit?: string | null;
 }) {
+  const tel = telefonoE164(opts.telefono);
+  const web = normalizarSitioWeb(opts.sitioWeb);
+  const cp = opts.codigoPostal != null ? String(opts.codigoPostal).trim() : "";
+
+  // Sin localidad no hay PostalAddress que valga: `streetAddress` suelto no
+  // ubica nada. Con localidad, sumamos todo lo que haya.
+  const address = opts.localidad
+    ? {
+        "@type": "PostalAddress",
+        ...(opts.direccion?.trim() ? { streetAddress: opts.direccion.trim() } : {}),
+        addressLocality: opts.localidad,
+        ...(opts.provincia ? { addressRegion: opts.provincia } : {}),
+        ...(cp ? { postalCode: cp } : {}),
+        addressCountry: "AR",
+      }
+    : null;
+
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": `${opts.url}#organizacion`,
     name: opts.nombre,
     url: opts.url,
+    mainEntityOfPage: opts.url,
     ...(opts.descripcion ? { description: opts.descripcion } : {}),
     ...(opts.logoUrl ? { logo: opts.logoUrl, image: opts.logoUrl } : {}),
-    ...(normalizarSitioWeb(opts.sitioWeb)
-      ? { sameAs: [normalizarSitioWeb(opts.sitioWeb)!] }
-      : {}),
-    ...(opts.localidad
+    // El sitio propio de la socia es la corroboración externa más fuerte que
+    // tiene la ficha: es el que le dice a Google de qué empresa estamos
+    // hablando. 50 de las 59 lo tienen cargado; las 9 que no, difícilmente
+    // aparezcan al buscar su nombre hasta que se les cargue.
+    ...(web ? { sameAs: [web] } : {}),
+    ...(address ? { address } : {}),
+    ...(tel ? { telephone: tel } : {}),
+    ...(opts.email?.trim() ? { email: opts.email.trim() } : {}),
+    ...(opts.cuit?.trim()
       ? {
-          address: {
-            "@type": "PostalAddress",
-            addressLocality: opts.localidad,
-            ...(opts.provincia ? { addressRegion: opts.provincia } : {}),
-            addressCountry: "AR",
+          identifier: {
+            "@type": "PropertyValue",
+            propertyID: "CUIT",
+            value: opts.cuit.trim(),
           },
         }
       : {}),
-    memberOf: {
-      "@type": "Organization",
-      name: "Unión Industrial de Almirante Brown",
-      alternateName: "UIAB",
-      url: SITE_URL,
-    },
+    memberOf: { "@id": ID_ORG_UIAB },
   };
   return jsonLd;
 }
@@ -368,6 +405,8 @@ export default async function EmpresaProfilePage({
         direccion,
         localidad,
         provincia,
+        codigo_postal,
+        cuit,
         actividad,
         descripcion,
         sitio_web,
@@ -598,22 +637,38 @@ async function EmpresaProfile({
 
   return (
     <div className="min-h-svh bg-slate-50 font-inter pb-20">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
-            jsonLdOrganizacion({
-              nombre: empresa.nombre,
-              descripcion: empresa.actividad,
-              localidad: empresaDb.localidad || null,
-              provincia: empresaDb.provincia || null,
-              logoUrl: empresa.logoUrl,
-              sitioWeb: empresaDb.sitio_web || null,
-              url: `${SITE_URL}${currentPath}`,
-            })
-          ),
-        }}
-      />
+      {/*
+        La ficha de la propia UIAB NO emite Organization.
+        El layout raíz ya declara la cámara con su `@id` en uiab.org, su NAP y
+        sus redes; emitir acá un segundo Organization homónimo —con otro logo y
+        otra localidad— reintroduce en un solo documento las dos entidades
+        rivales que el grafo raíz acaba de desambiguar. La página se sigue
+        indexando igual: lo que se omite es el marcado redundante, no el
+        contenido.
+      */}
+      {!esEmpresaInstitucional(empresaDb.id) && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              jsonLdOrganizacion({
+                nombre: empresa.nombre,
+                descripcion: empresa.actividad,
+                localidad: empresaDb.localidad || null,
+                provincia: empresaDb.provincia || null,
+                logoUrl: empresa.logoUrl,
+                sitioWeb: empresaDb.sitio_web || null,
+                url: `${SITE_URL}${currentPath}`,
+                direccion: empresaDb.direccion || null,
+                codigoPostal: empresaDb.codigo_postal ?? null,
+                telefono: empresaDb.telefono || empresaDb.whatsapp || null,
+                email: empresaDb.email || null,
+                cuit: empresaDb.cuit || null,
+              })
+            ),
+          }}
+        />
+      )}
       <RegistrarVisita tipo="empresa" entidadId={empresaDb.id} />
       {/* Hero — always visible for SEO. min-h en vez de h: con alto fijo + overflow-hidden un nombre
           de 3 renglones recortaba los chips y el link "Directorio" por arriba */}
@@ -1080,6 +1135,8 @@ async function ProveedorProfile({
               logoUrl: proveedor.logoUrl,
               sitioWeb: provDb.sitio_web || null,
               url: `${SITE_URL}${currentPath}`,
+              telefono: provDb.telefono || null,
+              email: provDb.email || null,
             })
           ),
         }}

@@ -30,5 +30,8 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "src/tests", "respaldo"]
+  // `herramientas` son scripts sueltos que se corren con
+  // `node --experimental-strip-types`, no parte del build de Next: importan con
+  // extensión `.ts` explícita, que es justo lo que este tsconfig no permite.
+  "exclude": ["node_modules", "src/tests", "respaldo", "herramientas"]
 }

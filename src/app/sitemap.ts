@@ -1,6 +1,7 @@
 import { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { crearSlug } from "@/lib/utilidades";
+import { RUBROS_SEO } from "@/lib/datos/rubros-seo";
 
 const BASE_URL = "https://www.uiabconecta.com";
 
@@ -40,6 +41,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/`, lastModified: ultimaAlta, changeFrequency: "daily", priority: 1.0 },
     { url: `${BASE_URL}/directorio`, lastModified: ultimaAlta, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE_URL}/empresas`, lastModified: ultimaAlta, changeFrequency: "daily", priority: 0.9 },
+    { url: `${BASE_URL}/rubros`, lastModified: ultimaAlta, changeFrequency: "weekly", priority: 0.8 },
+    // Las 13 landings de rubro. Salen del array de src/lib/datos/rubros-seo.ts,
+    // no de la tabla `categorias`: si se generaran solas, cualquier categoría
+    // nueva se publicaría como URL indexable con una sola socia adentro.
+    ...RUBROS_SEO.map((r) => ({
+      url: `${BASE_URL}/rubros/${r.slug}`,
+      lastModified: ultimaAlta,
+      changeFrequency: "weekly" as const,
+      priority: 0.75,
+    })),
+    { url: `${BASE_URL}/nosotros`, lastModified: ACTUALIZACION_PAGINAS_FIJAS, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/oportunidades`, lastModified: ultimaAlta, changeFrequency: "daily", priority: 0.8 },
     { url: `${BASE_URL}/instituciones-bancarias`, lastModified: ultimaAlta, changeFrequency: "weekly", priority: 0.7 },
     { url: `${BASE_URL}/instituciones-educativas`, lastModified: ultimaAlta, changeFrequency: "weekly", priority: 0.7 },

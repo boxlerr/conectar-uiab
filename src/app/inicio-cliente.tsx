@@ -163,26 +163,39 @@ export default function Home() {
               >
                 <ShieldCheck className="w-4 h-4 text-primary-300" />
                 <span className="text-[12px] font-semibold text-white/60 tracking-[0.08em] uppercase">
-                  Directorio Comercial
+                  Conectamos industria con profesionales
                 </span>
               </motion.div>
 
-              {/* Main heading */}
+              {/*
+                El H1 tiene que contener la marca literal.
+
+                Antes decía "Conectamos / Industria / con Profesionales": un
+                buen claim, pero sin una sola aparición de "UIAB Conecta" — que
+                además no estaba en NINGÚN H1 del sitio y aparecía una sola vez
+                en todo el texto visible de la home. Para una consulta de marca
+                en un dominio nuevo y sin backlinks, la coincidencia exacta del
+                nombre en title + H1 + primer párrafo es prácticamente la única
+                señal de relevancia que el sitio puede aportar por sí mismo; sin
+                ella Google resuelve "uiab conecta" hacia uiab.org, que es la
+                entidad que ya conoce. El claim viejo no se perdió: pasó al
+                kicker de arriba.
+              */}
               <motion.h1
                 variants={fadeUp}
                 custom={1}
                 className="text-[2.5rem] sm:text-[3rem] md:text-[2.5rem] lg:text-[2.75rem] xl:text-[3.5rem] font-bold text-white leading-[1.06] tracking-[-0.02em] mb-6"
                 style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
               >
-                Conectamos
-                <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-200 to-blue-300">
-                  Industria
-                </span>{" "}
-                con
+                  UIAB Conecta
+                </span>
                 <br />
+                el directorio industrial
+                <br />
+                de{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-300 to-primary-100">
-                  Profesionales
+                  Almirante Brown
                 </span>
               </motion.h1>
 
@@ -193,7 +206,10 @@ export default function Home() {
                 className="text-[16px] text-white/60 max-w-md mb-9 leading-relaxed"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
               >
-                La plataforma de la UIAB que une a las empresas y comercios de Almirante Brown con proveedores verificados. Directorio, oportunidades y networking en un solo lugar.
+                <strong className="font-semibold text-white/80">UIAB Conecta</strong> es la
+                plataforma de la Unión Industrial de Almirante Brown que une a las empresas y
+                comercios del partido con proveedores verificados. Directorio, oportunidades y
+                networking en un solo lugar.
               </motion.p>
 
               {/* CTAs */}
@@ -239,13 +255,13 @@ export default function Home() {
               {/* Trust signals */}
               <motion.div variants={fadeUp} custom={4} className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-white/90">
                 <span className="flex items-center gap-1.5 font-bold">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> +60 empresas
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Empresas socias de la UIAB
                 </span>
                 <span className="flex items-center gap-1.5 font-bold">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" /> 50+ proveedores
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" /> Perfiles verificados
                 </span>
                 <span className="flex items-center gap-1.5 font-bold">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> 100% verificado
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Contacto directo
                 </span>
               </motion.div>
             </motion.div>
@@ -292,8 +308,8 @@ export default function Home() {
                       <Factory className="w-4.5 h-4.5 text-primary-200" />
                     </div>
                     <div>
-                      <p className="text-[18px] font-bold text-white">+60 Empresas</p>
-                      <p className="text-[11px] text-white/50">registradas en el partido</p>
+                      <p className="text-[18px] font-bold text-white">Empresas socias</p>
+                      <p className="text-[11px] text-white/50">radicadas en Almirante Brown</p>
                     </div>
                   </div>
                 </motion.div>
@@ -311,7 +327,7 @@ export default function Home() {
                       <Wrench className="w-4.5 h-4.5 text-primary-200" />
                     </div>
                     <div>
-                      <p className="text-[13px] font-bold text-white">50+ Proveedores de servicios</p>
+                      <p className="text-[13px] font-bold text-white">Productos y servicios</p>
                       <p className="text-[10px] text-white/40">Verificados UIAB</p>
                     </div>
                   </div>
@@ -342,7 +358,18 @@ export default function Home() {
                   </div>
                 </motion.div>
 
-                {/* Floating card — Testimonial/Review */}
+                {/*
+                  Acá vivía un testimonio inventado: cinco estrellas, una cita
+                  ("Ricardo es un excelente profesional…") y una persona con
+                  nombre y cargo —"Roberto M., Director en Logística Brown"— que
+                  no existe. Es el peor dato falso de todos los que tenía el
+                  sitio: no es una cifra optimista, es una reseña fabricada
+                  publicada por una cámara empresaria.
+                  En su lugar va una afirmación sobre cómo funciona la
+                  plataforma, que es verificable mirando el propio directorio.
+                  Cuando haya reseñas reales y con consentimiento, este es el
+                  lugar donde van (la tabla `resenas` hoy tiene 0 aprobadas).
+                */}
                 <motion.div
                   variants={float}
                   initial="initial"
@@ -351,23 +378,24 @@ export default function Home() {
                   style={{ animationDelay: "2s" }}
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <div className="flex gap-0.5">
-                      {[1,2,3,4,5].map(i => <Star key={i} className="w-2.5 h-2.5 fill-emerald-400 text-emerald-400" />)}
-                    </div>
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
                     <span className="text-[9px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      Servicio Eléctrico
+                      Padrón UIAB
                     </span>
                   </div>
-                  <p className="text-[11px] text-white font-medium italic leading-relaxed mb-4">
-                    "Ricardo es un excelente profesional. Resolvió la instalación técnica de nuestro depósito en Almirante Brown sin demoras."
+                  <p className="text-[11px] text-white font-medium leading-relaxed mb-4">
+                    Cada ficha de UIAB Conecta corresponde a una empresa socia validada contra el
+                    padrón de la Unión Industrial de Almirante Brown.
                   </p>
                   <div className="flex items-center gap-3 pt-3 border-t border-white/10">
-                    <div className="w-8 h-8 rounded-full bg-primary-500/30 flex items-center justify-center text-[10px] font-bold text-white shadow-inner">
-                      RM
+                    <div className="w-8 h-8 rounded-full bg-primary-500/30 flex items-center justify-center shadow-inner">
+                      <Factory className="w-4 h-4 text-primary-200" />
                     </div>
                     <div>
-                       <p className="text-[11px] font-bold text-white">Roberto M.</p>
-                       <p className="text-[9px] text-white/50 uppercase tracking-wider font-bold">Director en Logística Brown</p>
+                      <p className="text-[11px] font-bold text-white">Sin intermediarios</p>
+                      <p className="text-[9px] text-white/50 uppercase tracking-wider font-bold">
+                        Contacto directo con la empresa
+                      </p>
                     </div>
                   </div>
                 </motion.div>
@@ -795,7 +823,7 @@ export default function Home() {
                   </Link>
 
                   <p className="text-center text-[12px] text-white/40 mt-3">
-                    Sin permanencia · Cancelás cuando quieras · +60 empresas ya publicadas
+                    Sin permanencia · Cancelás cuando quieras · Empresas socias ya publicadas
                   </p>
                 </div>
 

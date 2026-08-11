@@ -31,7 +31,7 @@ import {
   Factory,
 } from "lucide-react";
 import { LandingProfileCard } from "@/components/ui/directorio/tarjeta-perfil-landing";
-import { getEmpresas, getProveedores } from "@/lib/datos/directorio";
+import type { Entidad } from "@/lib/datos/directorio";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 
@@ -128,10 +128,23 @@ const historias = [
 ];
 
 /* ─── Component ─── */
-export function PublicProveedoresParticularesLanding() {
+export function PublicProveedoresParticularesLanding({
+  empresasPreview = [],
+  totalEmpresas = 0,
+}: {
+  /**
+   * Socias REALES, resueltas en el servidor por src/app/empresas/page.tsx.
+   *
+   * Antes salían del array mock de src/lib/datos/directorio.ts: una empresa y
+   * dos "particulares" inventados. Los particulares además no existen —hay 0
+   * prestadores aprobados en la base—, así que la vista previa no mostraba una
+   * muestra del directorio: mostraba ficción.
+   */
+  empresasPreview?: Entidad[];
+  /** Socias aprobadas en la base. Antes decía "+60" a mano. */
+  totalEmpresas?: number;
+}) {
   const { openAuthModal } = useAuth();
-  const empresasPreview = getEmpresas().slice(0, 1);
-  const particularesPreview = getProveedores().slice(0, 2);
 
   return (
     <div className="bg-[#f7f9fb] overflow-x-hidden">
@@ -256,11 +269,13 @@ export function PublicProveedoresParticularesLanding() {
           variants={stagger}
           className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
         >
+          {/* Se cayeron "50+ Proveedores activos" (hay 0 aprobados) y
+              "24h Tiempo de contacto" (no hay ninguna métrica que lo mida ni
+              compromiso que lo sostenga). */}
           {[
-            { val: "+60", label: "Empresas socias" },
-            { val: "50+", label: "Proveedores activos" },
-            { val: "24h", label: "Tiempo de contacto" },
-            { val: "20+", label: "Rubros & oficios" },
+            { val: String(totalEmpresas), label: "Empresas socias" },
+            { val: "Directo", label: "Contacto sin intermediarios" },
+            { val: "Verificados", label: "Perfiles validados por la UIAB" },
           ].map((s, i) => (
             <motion.div
               key={s.label}
@@ -1079,18 +1094,17 @@ export function PublicProveedoresParticularesLanding() {
             className="relative"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {empresasPreview.map((emp, i) => (
+              {/* La última se muestra difuminada como gancho del gate. Antes el
+                  difuminado tapaba un prestador inventado; ahora tapa una socia
+                  real, que es lo que el visitante efectivamente se está
+                  perdiendo. */}
+              {empresasPreview.slice(0, 3).map((emp, i) => (
                 <motion.div key={`emp-${emp.id}`} variants={fadeUp} custom={i}>
-                  <LandingProfileCard entidad={emp} basePath="/empresas" />
-                </motion.div>
-              ))}
-              {particularesPreview.map((prov, i) => (
-                <motion.div key={`prov-${prov.id}`} variants={fadeUp} custom={i + 1}>
                   <div
-                    className={i === 1 ? "pointer-events-none select-none" : ""}
-                    style={i === 1 ? { filter: "blur(6px)", opacity: 0.4 } : undefined}
+                    className={i === 2 ? "pointer-events-none select-none" : ""}
+                    style={i === 2 ? { filter: "blur(6px)", opacity: 0.4 } : undefined}
                   >
-                    <LandingProfileCard entidad={prov} basePath="/empresas" />
+                    <LandingProfileCard entidad={emp} basePath="/empresas" />
                   </div>
                 </motion.div>
               ))}
