@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Header } from "@/components/plantillas/encabezado";
@@ -38,10 +39,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // sale cortado) y el dvh reflowea sin parar mientras la barra entra y sale.
   return (
     <div className="flex flex-col min-h-svh">
-      <Header
-        currentUser={currentUser}
-        onLogout={logout}
-      />
+      {/*
+        El Suspense vive acá y no en el layout raíz.
+
+        Cuando envolvía a TODO el AppShell, React difería el body entero: en la
+        ficha de una socia salían 14 bloques `<div hidden id="S:n">` y el <h1>
+        aparecía recién en el byte 99.357 — después del footer en orden de
+        documento. Googlebot resuelve esos chunks, así que no bloqueaba la
+        indexación, pero GPTBot, ClaudeBot, PerplexityBot y parte de Bingbot ven
+        una página sin texto. Para un directorio que quiere ser descubrible, eso
+        es medio canal apagado.
+
+        El único que necesita el boundary es el Header, que usa
+        `useSearchParams`. Acotarlo acá deja el contenido de la página dentro
+        del primer flush.
+      */}
+      <Suspense fallback={<div className="h-20 lg:h-24" aria-hidden />}>
+        <Header
+          currentUser={currentUser}
+          onLogout={logout}
+        />
+      </Suspense>
       
       <main className="flex-grow flex flex-col min-h-0">
         {children}

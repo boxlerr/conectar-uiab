@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Poppins, Open_Sans, Geist, Manrope, Inter } from "next/font/google";
-import { Suspense } from "react";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 
@@ -41,45 +40,21 @@ import type { User } from "@/tipos";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
-const SITE_URL = "https://www.uiabconecta.com";
+import { grafoSitio } from "@/lib/seo/entidad";
 
-// Datos estructurados del sitio (Organization + WebSite). Le da a Google la
-// identidad de la marca y habilita el cuadro de búsqueda en los resultados.
-const JSON_LD_SITIO = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      "@id": `${SITE_URL}/#organizacion`,
-      name: "UIAB Conecta",
-      alternateName: ["Unión Industrial de Almirante Brown", "UIAB"],
-      url: SITE_URL,
-      logo: `${SITE_URL}/icono-uiab.png`,
-      description:
-        "Directorio comercial B2B de la Unión Industrial de Almirante Brown: empresas socias, prestadores de servicios, entidades financieras y educativas y cooperativas verificadas.",
-      areaServed: {
-        "@type": "AdministrativeArea",
-        name: "Almirante Brown, Buenos Aires, Argentina",
-      },
-    },
-    {
-      "@type": "WebSite",
-      "@id": `${SITE_URL}/#website`,
-      url: SITE_URL,
-      name: "UIAB Conecta",
-      inLanguage: "es-AR",
-      publisher: { "@id": `${SITE_URL}/#organizacion` },
-      potentialAction: {
-        "@type": "SearchAction",
-        target: {
-          "@type": "EntryPoint",
-          urlTemplate: `${SITE_URL}/directorio?q={search_term_string}`,
-        },
-        "query-input": "required name=search_term_string",
-      },
-    },
-  ],
-};
+/**
+ * Organization (el directorio) + Organization (la cámara) + WebSite.
+ *
+ * Son DOS organizaciones emparentadas, no una. El detalle de por qué está en
+ * src/lib/seo/entidad.ts: mientras este grafo declaró que UIAB Conecta se
+ * llamaba también "Unión Industrial de Almirante Brown", el sitio le competía
+ * la identidad a uiab.org en vez de heredarla, y Google resolvía la consulta de
+ * marca hacia el titular más viejo.
+ *
+ * Viaja en todas las páginas, así que cualquier ruta puede citar sus nodos por
+ * `@id` en vez de duplicarlos.
+ */
+const JSON_LD_SITIO = grafoSitio();
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.uiabconecta.com"),
@@ -87,8 +62,13 @@ export const metadata: Metadata = {
     default: "UIAB Conecta | Directorio Industrial",
     template: "%s | UIAB Conecta",
   },
+  // Arranca con la marca literal a propósito. Para una consulta de marca en un
+  // dominio nuevo y sin backlinks, la coincidencia exacta del nombre en title +
+  // description + H1 es casi la única señal de relevancia propia disponible;
+  // antes esta línea empezaba por "Directorio comercial B2B de la Unión
+  // Industrial…", o sea nombrando a la entidad que ya rankea y no a esta.
   description:
-    "Directorio comercial B2B de la Unión Industrial de Almirante Brown: empresas socias, prestadores de productos y servicios, entidades financieras y educativas y cooperativas verificadas de Almirante Brown.",
+    "UIAB Conecta es el directorio comercial B2B de la Unión Industrial de Almirante Brown: empresas socias, prestadores de productos y servicios, entidades financieras y educativas y cooperativas verificadas de Almirante Brown.",
   applicationName: "UIAB Conecta",
   // OJO: acá NO va `alternates`. Los campos de metadata se heredan hacia abajo,
   // así que un `canonical: "/"` en la raíz se lo comía TODO el sitio: /directorio,
@@ -240,9 +220,7 @@ export default async function RootLayout({
         />
         <AuthProvider initialUser={initialUser}>
           <TourProvider>
-            <Suspense>
-              <AppShell>{children}</AppShell>
-            </Suspense>
+            <AppShell>{children}</AppShell>
           </TourProvider>
         </AuthProvider>
         <Toaster />

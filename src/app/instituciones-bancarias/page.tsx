@@ -116,8 +116,8 @@ const comoFunciona = [
 ];
 
 const cifrasRed = [
-  { valor: "60+", label: "Socios UIAB", sublabel: "en el directorio activo" },
-  { valor: "50+", label: "Proveedores de servicios verificados", sublabel: "auditados por UIAB" },
+  { valor: "Socias", label: "Empresas de la UIAB", sublabel: "en el directorio activo" },
+  { valor: "Verificados", label: "Perfiles validados", sublabel: "contra el padrón de la UIAB" },
   { valor: "100%", label: "Cobertura territorial", sublabel: "Almirante Brown y Conurbano Sur" },
   { valor: "24/7", label: "Directorio online", sublabel: "acceso permanente" },
 ];
@@ -354,7 +354,7 @@ export default function InstitucionesBancariasPage() {
                 custom={2}
                 className="text-slate-600 text-base md:text-lg leading-relaxed mb-8 max-w-lg"
               >
-                Suma tu banco al directorio de la UIAB y accede a más de 60 Socios
+                Suma tu banco al directorio de la UIAB y accede a las empresas socias
                 UIAB y 50 proveedores de servicios verificados del Conurbano Sur.
                 Una red comercial curada, con respaldo institucional.
               </motion.p>
@@ -392,7 +392,7 @@ export default function InstitucionesBancariasPage() {
                 </span>
                 <span className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  +110 miembros
+                  Empresas socias
                 </span>
                 <span className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />

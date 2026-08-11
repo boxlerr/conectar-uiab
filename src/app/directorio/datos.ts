@@ -121,7 +121,8 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
           categoria_socio,
           empresas_categorias (
             categorias (
-              nombre
+              nombre,
+              slug
             )
           ),
           empresas_tags (
@@ -154,6 +155,13 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
     const categoriaSocio: string | null = emp.categoria_socio || null;
     const cats =
       emp.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
+    const catSlugs: string[] = Array.from(
+      new Set(
+        (emp.empresas_categorias || [])
+          .map((ec: any) => ec.categorias?.slug)
+          .filter((s: any): s is string => Boolean(s))
+      )
+    );
     const tags: string[] = Array.from(
       new Set(
         // Sólo etiquetas del catálogo curado: el buscador global matchea contra
@@ -184,6 +192,7 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
       slug: crearSlug(emp.razon_social),
       nombre: emp.razon_social,
       categoria: mainCat,
+      categoriaSlugs: catSlugs,
       // Lo que escribió la socia manda sobre el rubro que trajo el padrón.
       descripcionCorta:
         emp.descripcion ||

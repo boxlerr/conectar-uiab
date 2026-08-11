@@ -1,0 +1,616 @@
+"use client";
+
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { Entidad } from "@/lib/datos/directorio"; // Only for typing now
+import type { SociaConLogo } from "@/lib/datos/socias-logos";
+import { mapearCertificaciones, SELECT_CERTIFICACIONES_DIRECTORIO } from "@/modulos/certificaciones/normas";
+import {
+  CategoriaSocio,
+  CATEGORIAS_SOCIO_META,
+  parseCategoriaSocioParam,
+} from "@/lib/datos/categorias-socio";
+import { FilterSidebar } from "@/components/ui/directorio/barra-filtros";
+import { DirectoryProfileCard } from "@/components/ui/directorio/tarjeta-perfil-directorio";
+import { PublicEmpresasLanding } from "@/components/ui/directorio/landing-empresas-publica";
+import { PublicProveedoresParticularesLanding } from "@/components/ui/directorio/landing-proveedores-particulares-publica";
+import { AccesoRequerido } from "@/components/ui/acceso-requerido";
+import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
+import { Building2, LayoutGrid, List, User } from "lucide-react";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
+import { motion, AnimatePresence } from "framer-motion";
+import { createClient, resetClient } from "@/lib/supabase/cliente";
+import { leerCacheDirectorio, guardarCacheDirectorio } from "@/lib/datos/cache-directorio";
+
+import { crearSlug } from "@/lib/utilidades";
+import { BotonReiniciarTour } from "@/modulos/onboarding/componentes/boton-reiniciar-tour";
+
+// Timeout para queries browser: si Supabase cuelga (lock huérfano, red caída),
+// rechazamos en Nms para que la UI muestre error en vez de skeleton infinito.
+// Ante timeout, reciclamos el cliente singleton (rompe el deadlock de navigator.locks).
+async function conTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_, rej) => {
+        timer = setTimeout(() => {
+          console.error(`[empresas] TIMEOUT ${ms}ms en ${label} — reciclando cliente Supabase`);
+          resetClient();
+          rej(new Error(`Timeout en ${label}`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * Vista con filtros de /empresas. Sigue siendo client a propósito: el listado
+ * completo con datos de contacto está detrás del gate de suscripción y se
+ * arma en el browser con la sesión del usuario.
+ *
+ * Lo que cambió es quién la monta: ahora la envuelve un Server Component
+ * (src/app/empresas/page.tsx) que resuelve en el servidor las socias reales
+ * para la vista previa de la landing y para el índice A-Z. Antes la vista
+ * previa salía de un array mock con empresas que no existen.
+ */
+export function EmpresasCliente({
+  empresasPreview,
+  sectores,
+  totalEmpresas,
+  sociasLogos,
+}: {
+  /** Socias reales para las tarjetas de muestra de la landing pública. */
+  empresasPreview: Entidad[];
+  /** Rubros con su conteo real, para la grilla de sectores y sus enlaces. */
+  sectores: { slug: string; nombre: string; total: number }[];
+  /** Socias aprobadas en la base, para las cifras de la landing. */
+  totalEmpresas: number;
+  /** Logos resueltos en el servidor para el marquee (ver socias-logos.ts). */
+  sociasLogos: SociaConLogo[];
+}) {
+  const { currentUser, loading } = useAuth();
+  const searchParams = useSearchParams();
+  const categoriaSocio: CategoriaSocio | null = parseCategoriaSocioParam(searchParams.get("categoria"));
+  const metaSocio = categoriaSocio ? CATEGORIAS_SOCIO_META[categoriaSocio] : null;
+  
+  // Real Data states
+  const [empresas, setEmpresas] = useState<Entidad[]>([]);
+  const [cargandoDatos, setCargandoDatos] = useState(true);
+  // Separamos "error de red/timeout" de "lista vacía real" — así la UI
+  // muestra retry en vez de un falso "no hay empresas".
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  // Tabs solo aplican cuando la vista mezcla socios + particulares
+  const mezclaParticulares = categoriaSocio === 'proveedores_servicios_productos';
+  const [activeTab, setActiveTab] = useState<'socios' | 'particulares'>('socios');
+
+  // Helper: ejecuta la query principal con 1 retry automático. Supabase a
+  // veces tiene cold-start lento (>10s) en la primera query del Turbopack dev
+  // server; un retry inmediato casi siempre la resuelve rápido.
+  const ejecutarQueryDirectorio = useCallback(async () => {
+    const supabase = createClient();
+    let query = supabase.from('vista_directorio').select('*');
+
+    if (categoriaSocio === 'proveedores_servicios_productos') {
+      query = query.or(`categoria_socio.eq.${categoriaSocio},es_socio.eq.false`);
+    } else if (categoriaSocio) {
+      query = query.eq('categoria_socio', categoriaSocio);
+    }
+
+    return await conTimeout(
+      (async () => await query)(),
+      20000, // 20s: margen para cold-start de Supabase
+      'vista_directorio'
+    );
+  }, [categoriaSocio]);
+
+  // Fetch real companies from Supabase — wrapped in useCallback for reuse
+  const fetchEmpresas = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!currentUser) return;
+
+    const cacheKey = categoriaSocio ?? "all";
+    // En una revalidación silenciosa (SWR) NO limpiamos la pantalla: seguimos
+    // mostrando lo cacheado y sólo actualizamos al terminar.
+    if (!silent) {
+      setCargandoDatos(true);
+      setErrorCarga(null);
+      setEmpresas([]);
+    }
+    const supabase = createClient();
+
+    let data: any[] | null = null;
+    let error: any = null;
+
+    // Intento 1 + retry automático si el 1° falla por timeout o error de red.
+    for (let intento = 1; intento <= 2; intento++) {
+      try {
+        const res = await ejecutarQueryDirectorio();
+        data = res.data as any[] | null;
+        error = res.error;
+        if (!error) break; // éxito → salir del loop
+      } catch (err) {
+        error = err;
+        if (intento === 1) {
+          console.warn(`[empresas] intento ${intento} falló, reintentando con cliente fresco`);
+          // resetClient ya corrió dentro de conTimeout → la próxima createClient
+          // devuelve instancia nueva.
+          continue;
+        }
+      }
+    }
+
+    if (error || !data) {
+      console.error("Error fetching vista_directorio (tras retry):", error);
+      // En revalidación silenciosa mantenemos los datos cacheados en pantalla.
+      if (!silent) {
+        setErrorCarga(
+          error?.message?.includes('Timeout')
+            ? 'La carga está tardando más de lo habitual. Tu conexión puede estar lenta.'
+            : 'No pudimos cargar el directorio. Intentá de nuevo.'
+        );
+        setCargandoDatos(false);
+      }
+      return;
+    }
+
+    // Obtenemos los tags/categorías manualmente porque PostgREST no suele mapear M2M en vistas
+    const empresaIds = data.filter((d: any) => d.tipo_entidad === 'empresa').map((d: any) => d.id);
+    const proveedorIds = data.filter((d: any) => d.tipo_entidad === 'proveedor').map((d: any) => d.id);
+
+    // Paralelizamos carga de categorías y de reseñas (con timeout combinado)
+    let resEmp: any, resProv: any, resResenas: any, resCerts: any;
+    try {
+      [resEmp, resProv, resResenas, resCerts] = await conTimeout(
+        Promise.all([
+          empresaIds.length > 0
+            ? (async () => await supabase.from('empresas_categorias').select('empresa_id, categorias(nombre)').in('empresa_id', empresaIds))()
+            : Promise.resolve({ data: [] }),
+          proveedorIds.length > 0
+            ? (async () => await supabase.from('proveedores_categorias').select('proveedor_id, categorias(nombre)').in('proveedor_id', proveedorIds))()
+            : Promise.resolve({ data: [] }),
+          (async () => await supabase.from('resenas').select('calificacion, empresa_resenada_id, proveedor_resenado_id').eq('estado', 'aprobada'))(),
+          (empresaIds.length > 0 || proveedorIds.length > 0)
+            ? (async () => await supabase.from('certificaciones').select(SELECT_CERTIFICACIONES_DIRECTORIO).or(`empresa_id.in.(${empresaIds.join(',') || 'null'}),proveedor_id.in.(${proveedorIds.join(',') || 'null'})`))()
+            : Promise.resolve({ data: [] }),
+        ]),
+        10000,
+        'categorías y reseñas'
+      );
+    } catch (err) {
+      console.error("Error fetching categorías/reseñas:", err);
+      // Continuamos con data vacía — no bloqueamos el render del directorio
+      resEmp = { data: [] };
+      resProv = { data: [] };
+      resResenas = { data: [] };
+      resCerts = { data: [] };
+    }
+
+    const certMap = mapearCertificaciones(resCerts.data);
+
+    const catMap = new Map();
+    if (resEmp.data) {
+      resEmp.data.forEach((ec: any) => {
+        const current = catMap.get(ec.empresa_id) || [];
+        if (ec.categorias?.nombre) current.push(ec.categorias.nombre);
+        catMap.set(ec.empresa_id, current);
+      });
+    }
+    if (resProv.data) {
+      resProv.data.forEach((pc: any) => {
+        const current = catMap.get(pc.proveedor_id) || [];
+        if (pc.categorias?.nombre) current.push(pc.categorias.nombre);
+        catMap.set(pc.proveedor_id, current);
+      });
+    }
+
+    // Cálculo de promedios de reseñas
+    const ratingsMap = new Map();
+    if (resResenas.data) {
+      resResenas.data.forEach((r: any) => {
+        const id = r.empresa_resenada_id || r.proveedor_resenado_id;
+        if (!id) return;
+        const current = ratingsMap.get(id) || { sum: 0, count: 0 };
+        current.sum += r.calificacion;
+        current.count += 1;
+        ratingsMap.set(id, current);
+      });
+    }
+
+    const mappedData: Entidad[] = data.map((item: any) => {
+      const cats = catMap.get(item.id) || [];
+      const mainCat = cats.length > 0 ? cats[0] : "Industrial General";
+      
+      const nombre = item.razon_social || item.nombre || "Sin nombre";
+      const logoUrl = item.bucket_logo && item.ruta_logo
+        ? supabase.storage.from(item.bucket_logo).getPublicUrl(item.ruta_logo).data.publicUrl
+        : null;
+
+      const rData = ratingsMap.get(item.id);
+      const rating = rData ? Number((rData.sum / rData.count).toFixed(1)) : undefined;
+
+      return {
+        id: item.id,
+        tipo: item.tipo_entidad || (item.es_socio ? "empresa" : "proveedor"),
+        slug: crearSlug(nombre),
+        nombre: nombre,
+        categoria: mainCat,
+        // Lo que escribió la socia manda sobre el rubro que trajo el padrón.
+        descripcionCorta: item.descripcion || item.actividad || item.descripcion_corta || "Sin descripción",
+        descripcionLarga: item.descripcion || item.actividad || "",
+        logo: nombre.charAt(0).toUpperCase(),
+        logoUrl,
+        ubicacion: `${item.localidad || ''}, ${item.direccion || ''}`.replace(/^, | ,|, $/g, ''),
+        servicios: cats.slice(1),
+        tags: [],
+        certificaciones: certMap.get(item.id) ?? [],
+        contacto: {
+          email: item.email || "",
+          telefono: item.telefono || "",
+          sitioWeb: item.sitio_web || ""
+        },
+        esSocio: item.es_socio,
+        rating,
+        reviews: rData?.count
+      };
+    });
+
+    guardarCacheDirectorio(cacheKey, mappedData);
+    setEmpresas(mappedData);
+    setCargandoDatos(false);
+  }, [currentUser, categoriaSocio]);
+
+  // Fetch data on mount and handle back-navigation
+  useEffect(() => {
+    if (loading || !currentUser) return;
+    if (currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa') return;
+
+    // SWR: si ya vimos esta categoría, la mostramos al instante (sin skeleton)
+    // y revalidamos en silencio. Si no, carga normal con skeleton.
+    const servirDesdeCache = () => {
+      const cacheado = leerCacheDirectorio(categoriaSocio ?? "all");
+      if (cacheado) {
+        setEmpresas(cacheado);
+        setCargandoDatos(false);
+        setErrorCarga(null);
+        fetchEmpresas({ silent: true });
+      } else {
+        fetchEmpresas();
+      }
+    };
+
+    servirDesdeCache();
+
+    // Handle back-navigation: popstate fires when browser history changes
+    const handlePopState = () => {
+      servirDesdeCache();
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [loading, currentUser, categoriaSocio, fetchEmpresas]);
+
+  const empresasFiltradas = useMemo(() => {
+    return empresas.filter((empresa) => {
+      const matchTab = !mezclaParticulares
+        ? true
+        : activeTab === 'particulares'
+          ? empresa.esSocio === false
+          : empresa.esSocio !== false;
+      const matchCategoria = categoriaSeleccionada ? empresa.categoria === categoriaSeleccionada : true;
+      const term = searchTerm.toLowerCase();
+      const matchSearch = term === "" ||
+        empresa.nombre.toLowerCase().includes(term) ||
+        empresa.descripcionCorta.toLowerCase().includes(term) ||
+        empresa.servicios.some((s: string) => s.toLowerCase().includes(term));
+
+      return matchTab && matchCategoria && matchSearch;
+    });
+  }, [empresas, categoriaSeleccionada, searchTerm, mezclaParticulares, activeTab]);
+
+  const countSocios = useMemo(() => empresas.filter(e => e.esSocio !== false).length, [empresas]);
+  const countParticulares = useMemo(() => empresas.filter(e => e.esSocio === false).length, [empresas]);
+
+  // Categorías dinámicas por tab — los particulares traen sus propios sectores,
+  // no mostramos los sectores de empresas cuando estamos en el tab Particulares.
+  const categorias = useMemo(() => {
+    const fuente = !mezclaParticulares
+      ? empresas
+      : activeTab === 'particulares'
+        ? empresas.filter(e => e.esSocio === false)
+        : empresas.filter(e => e.esSocio !== false);
+    return Array.from(new Set(fuente.map(e => e.categoria))).filter(Boolean).sort();
+  }, [empresas, mezclaParticulares, activeTab]);
+
+  // Al cambiar de tab, limpiar el sector seleccionado porque probablemente
+  // no existe en el nuevo conjunto de categorías.
+  const handleTabChange = useCallback((tab: 'socios' | 'particulares') => {
+    setActiveTab(tab);
+    setCategoriaSeleccionada(null);
+  }, []);
+
+  // Public landing for unauthenticated users — branch by categoria
+  // No mostramos spinner durante `loading`: SSR y cliente deben renderizar el
+  // mismo árbol para no romper hidratación. Si no hay currentUser (sea por
+  // loading inicial o por estar deslogueado), mostramos la landing.
+  if (!currentUser) {
+    if (categoriaSocio === 'proveedores_servicios_productos') {
+      return (
+        <PublicProveedoresParticularesLanding
+          empresasPreview={empresasPreview}
+          totalEmpresas={totalEmpresas}
+        />
+      );
+    }
+    return (
+      <PublicEmpresasLanding
+        empresasPreview={empresasPreview}
+        sectores={sectores}
+        totalEmpresas={totalEmpresas}
+        sociasLogos={sociasLogos}
+      />
+    );
+  }
+
+  // Gate: suscripción requerida para ver el directorio
+  if (currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa') {
+    return (
+      <AccesoRequerido
+        estado={resolverEstadoGate(currentUser.subscriptionEstado ?? null, currentUser.isMember)}
+        className="min-h-svh"
+      />
+    );
+  }
+
+  // Authenticated directory view - PREMIUM B2B
+  return (
+    <div className="min-h-svh bg-[#f7f9fb] font-inter pb-20">
+      
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-16">
+
+        {/* ─── Hero estilo "Directorio activo" ─── */}
+        {(() => {
+          const accent = categoriaSocio === 'instituciones_bancarias'
+            ? { bar: 'bg-emerald-600', eyebrow: 'text-emerald-700', title: 'text-emerald-700' }
+            : categoriaSocio === 'instituciones_educativas'
+              ? { bar: 'bg-violet-600', eyebrow: 'text-violet-700', title: 'text-violet-700' }
+              : { bar: 'bg-blue-600', eyebrow: 'text-blue-700', title: 'text-blue-700' };
+
+          const tituloPrincipal = categoriaSocio === 'proveedores_servicios_productos'
+            ? 'Empresas y proveedores'
+            : metaSocio?.nombreCorto ?? 'Empresas y proveedores';
+          const tituloAccent = !metaSocio
+            ? 'del polo industrial.'
+            : categoriaSocio === 'proveedores_servicios_productos'
+              ? 'aliados a la UIAB.'
+              : 'aliadas a la UIAB.';
+
+          const conteoTexto = cargandoDatos
+            ? 'Cargando expedientes del directorio…'
+            : mezclaParticulares
+              ? `${countSocios} empresas socias · ${countParticulares} proveedores de servicios verificados.`
+              : `${empresas.length} ${metaSocio?.sustantivoPlural ?? 'empresas'} verificadas · ficha completa visible como socio UIAB.`;
+
+          return (
+            <motion.div
+              data-tour="directorio-hero"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] as const }}
+              className="mb-14 flex flex-col md:flex-row md:items-end md:justify-between gap-6"
+            >
+              <div className="max-w-2xl">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className={`w-10 h-[2px] ${accent.bar}`} />
+                  <span className={`text-[11px] font-black tracking-[0.3em] uppercase ${accent.eyebrow}`}>
+                    Directorio activo
+                  </span>
+                </div>
+                <h1 className="font-manrope text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.05]">
+                  {tituloPrincipal}
+                  <span className={`block ${accent.title}`}>{tituloAccent}</span>
+                </h1>
+              </div>
+
+              <p data-tour="directorio-stats" className="text-slate-500 text-sm font-medium md:max-w-xs md:text-right">
+                {conteoTexto}
+              </p>
+            </motion.div>
+          );
+        })()}
+
+        {/* ─── Tabs (cuando la vista mezcla socios + particulares) ─── */}
+        {mezclaParticulares && (
+          <>
+            <div className="flex flex-wrap gap-2 mb-8 bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit max-w-full">
+              <button
+                onClick={() => handleTabChange('socios')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                  activeTab === 'socios'
+                    ? 'bg-white text-blue-700 shadow-sm border border-slate-200'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                Empresas socias
+                {!cargandoDatos && (
+                  <span className="ml-1 text-xs font-black text-slate-400">{countSocios}</span>
+                )}
+              </button>
+              <button
+                onClick={() => handleTabChange('particulares')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                  activeTab === 'particulares'
+                    ? 'bg-white text-amber-700 shadow-sm border border-slate-200'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <User className="w-4 h-4" />
+                Proveedores de servicios
+                {!cargandoDatos && (
+                  <span className="ml-1 text-xs font-black text-slate-400">{countParticulares}</span>
+                )}
+              </button>
+            </div>
+          </>
+        )}
+
+        <div className="flex flex-col tab:flex-row gap-8 md:gap-10 lg:gap-14">
+          {/* Sidebar */}
+          <aside className="w-full tab:w-[38%] lg:w-3/12 xl:w-1/4 shrink-0">
+            {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo */}
+            <div className="tab:sticky tab:top-24">
+              <FilterSidebar
+                categorias={categorias}
+                categoriaSeleccionada={categoriaSeleccionada}
+                onCategoriaChange={setCategoriaSeleccionada}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                colorScheme={mezclaParticulares && activeTab === 'particulares' ? 'amber' : 'blue'}
+              />
+            </div>
+          </aside>
+          
+          {/* Main Grid Area */}
+          <main className="w-full tab:w-[62%] lg:w-9/12 xl:w-3/4 min-w-0">
+            
+            {/* Toolbar */}
+            <div data-tour="directorio-toolbar" className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
+              <div className="flex items-center gap-3">
+                <h3 className="font-manrope text-lg font-bold text-slate-800">
+                  {cargandoDatos
+                    ? "Buscando..."
+                    : `${empresasFiltradas.length} resultados encontrados`}
+                </h3>
+                <BotonReiniciarTour tour="directorio" label="Ver tutorial" />
+              </div>
+
+              <div data-tour="directorio-vista" className="flex items-center gap-3">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vista:</span>
+                <div className="bg-slate-100 p-1 rounded-lg flex gap-1 border border-slate-200">
+                  <button 
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-700'}`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('list')}
+                    className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-700'}`}
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Results */}
+            {cargandoDatos ? (
+              <div className={viewMode === 'grid'
+                ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+                : "bg-white rounded-2xl border border-slate-200/70 overflow-hidden divide-y divide-slate-200/70"
+              }>
+                {Array.from({ length: viewMode === 'grid' ? 6 : 5 }).map((_, i) => (
+                  viewMode === 'grid' ? (
+                    <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 h-[280px] animate-pulse">
+                      <div className="flex justify-between mb-6">
+                        <div className="w-14 h-14 rounded-lg bg-slate-100" />
+                        <div className="w-24 h-6 rounded bg-slate-100" />
+                      </div>
+                      <div className="h-5 w-3/4 bg-slate-100 rounded mb-3" />
+                      <div className="h-3 w-full bg-slate-100 rounded mb-2" />
+                      <div className="h-3 w-5/6 bg-slate-100 rounded mb-6" />
+                      <div className="pt-5 border-t border-slate-100">
+                        <div className="h-8 w-full bg-slate-50 rounded" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={i} className="px-8 py-6 flex items-center gap-8 animate-pulse">
+                      <div className="w-20 h-20 rounded-[10px] bg-slate-100" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-24 bg-slate-100 rounded" />
+                        <div className="h-5 w-2/3 bg-slate-100 rounded" />
+                        <div className="h-3 w-1/2 bg-slate-100 rounded" />
+                      </div>
+                      <div className="hidden md:block w-[170px] space-y-2">
+                        <div className="h-3 w-16 bg-slate-100 rounded" />
+                        <div className="h-4 w-28 bg-slate-100 rounded" />
+                      </div>
+                      <div className="hidden md:block w-32 h-9 rounded-full bg-slate-100" />
+                    </div>
+                  )
+                ))}
+              </div>
+            ) : empresasFiltradas.length > 0 ? (
+              <div
+                key={viewMode}
+                data-tour="directorio-resultados"
+                className={viewMode === 'grid'
+                  ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+                  : "bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_32px_-12px_rgba(15,23,42,0.08)] overflow-hidden divide-y divide-slate-200/70"
+                }
+              >
+                {empresasFiltradas.map((empresa) => (
+                  <DirectoryProfileCard
+                    key={empresa.id}
+                    entidad={empresa}
+                    basePath="/empresas"
+                    variant={viewMode}
+                    colorScheme="blue"
+                  />
+                ))}
+              </div>
+            ) : errorCarga ? (
+              // Estado de ERROR (timeout/red): mostramos retry — distinto del
+              // "lista vacía real" para no confundir al usuario.
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-white rounded-2xl p-8 sm:p-12 lg:p-20 text-center border border-amber-200 shadow-sm"
+              >
+                <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-100">
+                  <Building2 className="w-10 h-10 text-amber-400" />
+                </div>
+                <h3 className="font-manrope text-2xl font-bold text-slate-800 mb-3">No pudimos cargar el directorio</h3>
+                <p className="text-slate-500 max-w-md mx-auto mb-8 font-medium">{errorCarga}</p>
+                <button
+                  onClick={() => fetchEmpresas()}
+                  className="bg-primary text-white px-8 py-3.5 rounded-lg font-bold shadow-lg hover:bg-blue-800 transition-all uppercase tracking-widest text-xs"
+                >
+                  Reintentar
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-white rounded-2xl p-8 sm:p-12 lg:p-20 text-center border border-slate-200 shadow-sm"
+              >
+                <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-100">
+                  <Building2 className="w-10 h-10 text-blue-300" />
+                </div>
+                <h3 className="font-manrope text-2xl font-bold text-slate-800 mb-3">No se encontraron empresas</h3>
+                <p className="text-slate-500 max-w-sm mx-auto mb-8 font-medium">
+                  Pruebe ajustando los filtros de búsqueda o seleccionando una categoría diferente industrial.
+                </p>
+                <button
+                  onClick={() => { setSearchTerm(''); setCategoriaSeleccionada(null); }}
+                  className="bg-primary text-white px-8 py-3.5 rounded-lg font-bold shadow-lg hover:bg-blue-800 transition-all uppercase tracking-widest text-xs"
+                >
+                  Restablecer
+                </button>
+              </motion.div>
+            )}
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}

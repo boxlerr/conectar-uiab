@@ -14,7 +14,7 @@ const SITE_URL = "https://www.uiabconecta.com";
 const LOGO_URL = `${SITE_URL}/logo-uiab-conecta-header.svg`;
 
 export const metadata: Metadata = {
-  title: "Oportunidades UIAB Conecta | Licitaciones B2B en Almirante Brown",
+  title: "Oportunidades y licitaciones B2B en Almirante Brown",
   description:
     "Plataforma B2B de la Unión Industrial de Almirante Brown. Licitaciones verificadas, conexión directa entre empresas y proveedores de servicios de la región, sin comisiones.",
   keywords: [
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: `${SITE_URL}/oportunidades`,
-    title: "Oportunidades UIAB Conecta | Licitaciones B2B en Almirante Brown",
+    title: "Oportunidades y licitaciones B2B en Almirante Brown | UIAB Conecta",
     description:
       "Red privada B2B con aval institucional UIAB. Acceso directo a licitaciones verificadas en Almirante Brown.",
     siteName: "UIAB Conecta",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Oportunidades UIAB Conecta",
+    title: "Oportunidades y licitaciones B2B en Almirante Brown | UIAB Conecta",
     description:
       "Licitaciones B2B verificadas por la Unión Industrial de Almirante Brown.",
     images: [LOGO_URL],

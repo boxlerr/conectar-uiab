@@ -13,8 +13,10 @@ import Image from "next/image";
 import { BotonWhatsApp } from "@/components/ui/boton-whatsapp";
 import { RegistrarVisita } from "@/components/ui/registrar-visita";
 import type { Metadata } from "next";
-
-const SITE_URL = "https://www.uiabconecta.com";
+import { ID_ORG_UIAB, SITE_URL, telefonoE164 } from "@/lib/seo/entidad";
+import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
+import { landingDeCategoria, perteneceAlRubro, RUBROS_SEO } from "@/lib/datos/rubros-seo";
+import { Migas } from "@/components/ui/migas";
 
 async function fetchCatalogoItems(
   supabase: any,
@@ -212,18 +214,43 @@ function LoginGate({ currentPath }: { currentPath: string }) {
 }
 
 // ── SEO: datos mínimos por slug (empresa o proveedor) para metadata + JSON-LD ──
+/**
+ * 45 de las 59 descripciones están escritas íntegramente en MAYÚSCULAS
+ * ("FABRICACION DE ENVASES PLASTICOS"): es cómo se cargó el padrón, no una
+ * decisión de estilo, y así salía tanto en la ficha como en la meta description
+ * que ve Google.
+ *
+ * Se normaliza al RENDERIZAR y no en la base, para no pisar lo que la socia
+ * escriba después desde /perfil/datos. Sólo se toca si el texto es
+ * mayoritariamente mayúsculas — así una descripción normal con siglas (ERP,
+ * PVC, ISO) queda intacta.
+ */
+function normalizarMayusculas(t: string): string {
+  const letras = t.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü]/g, "");
+  if (letras.length < 8) return t;
+  const mayus = (t.match(/[A-ZÁÉÍÓÚÑÜ]/g) || []).length;
+  if (mayus / letras.length < 0.8) return t;
+  const minus = t.toLocaleLowerCase("es");
+  return minus.charAt(0).toLocaleUpperCase("es") + minus.slice(1);
+}
+
 async function datosSeoPorSlug(slug: string) {
   const db = createAdminClient();
 
   const { data: empresas } = await db
     .from("empresas")
-    .select("razon_social, actividad, descripcion, localidad, provincia, sitio_web, bucket_logo, ruta_logo")
+    .select(
+      "razon_social, actividad, descripcion, localidad, provincia, sitio_web, bucket_logo, ruta_logo, empresas_categorias(categorias(nombre))"
+    )
     .eq("estado", "aprobada");
   const emp = empresas?.find((e: any) => crearSlug(e.razon_social) === slug);
   if (emp) {
     return {
       esProveedor: false,
       nombre: emp.razon_social as string,
+      categoria:
+        (((emp.empresas_categorias || [])[0]?.categorias as any)?.nombre as string | undefined) ??
+        null,
       descripcion: (emp.descripcion as string) || (emp.actividad as string) || null,
       localidad: (emp.localidad as string) || null,
       provincia: (emp.provincia as string) || null,
@@ -248,6 +275,7 @@ async function datosSeoPorSlug(slug: string) {
     return {
       esProveedor: true,
       nombre: dn as string,
+      categoria: null as string | null,
       descripcion: (prov.descripcion as string) || null,
       localidad: (prov.localidad as string) || null,
       provincia: (prov.provincia as string) || null,
@@ -269,16 +297,38 @@ export async function generateMetadata({
   const { slug } = await params;
   const d = await datosSeoPorSlug(slug);
   if (!d) {
-    return { title: "Perfil no encontrado | UIAB Conecta", robots: { index: false, follow: true } };
+    // `absolute` para saltear el template del layout, que si no agrega un
+    // segundo " | UIAB Conecta" y el <title> sale con la marca dos veces.
+    return {
+      title: { absolute: "Perfil no encontrado | UIAB Conecta" },
+      robots: { index: false, follow: true },
+    };
   }
+  /**
+   * TITLE. Antes era `${nombre} — Empresa socia UIAB` y el template raíz le
+   * sumaba ` | UIAB Conecta`: 10 de las 59 pasaban los 60 caracteres y el
+   * máximo llegaba a 77, así que Google cortaba justo el sufijo de marca — la
+   * parte que más nos importa que se vea. Ahora el diferenciador es el rubro y
+   * la localidad, que además es lo que la persona está buscando.
+   */
+  const contexto = [d.categoria, d.localidad].filter(Boolean).join(" en ");
   const rolTitulo = d.esProveedor ? "Prestador verificado UIAB" : "Empresa socia UIAB";
-  const ubic = d.localidad ? ` en ${d.localidad}${d.provincia ? ", " + d.provincia : ""}` : "";
-  // El layout raíz agrega " | UIAB Conecta" vía template; `title` no debe repetirlo.
-  const title = `${d.nombre} — ${rolTitulo}`;
+  const title = contexto ? `${d.nombre} — ${contexto}` : `${d.nombre} — ${rolTitulo}`;
   const tituloCompleto = `${title} | UIAB Conecta`;
-  const description = `${d.nombre}${d.descripcion ? ": " + d.descripcion : ""}. ${
-    d.esProveedor ? "Prestador de productos y servicios verificado" : "Empresa socia registrada"
-  } en la Unión Industrial de Almirante Brown (UIAB)${ubic}. Perfil oficial verificado en UIAB Conecta.`.slice(0, 300);
+
+  /**
+   * DESCRIPTION. La versión anterior anteponía plantilla y cortaba a 300 con un
+   * `slice` seco: la parte propia promediaba 83 caracteres contra 142 de
+   * boilerplate, y cuatro fichas cortaban a mitad de palabra ("…integración
+   * entre sistema"). Ahora va primero lo específico de la empresa y el corte
+   * respeta el límite de palabra.
+   */
+  const ubic = d.localidad ? ` en ${d.localidad}${d.provincia ? ", " + d.provincia : ""}` : "";
+  const propio = normalizarMayusculas((d.descripcion || "").trim());
+  const relleno = `${d.esProveedor ? "Prestador verificado" : "Empresa socia"} de la Unión Industrial de Almirante Brown${ubic}. Contacto directo en UIAB Conecta.`;
+  const crudo = propio ? `${d.nombre}: ${propio} — ${relleno}` : `${d.nombre}. ${relleno}`;
+  const description =
+    crudo.length <= 158 ? crudo : crudo.slice(0, 155).replace(/\s+\S*$/, "") + "…";
   const url = `${SITE_URL}/empresas/${slug}`;
 
   return {
@@ -304,9 +354,23 @@ export async function generateMetadata({
   };
 }
 
-// JSON-LD Organization: le dice a Google que la empresa está registrada y es
-// miembro de la UIAB (memberOf). Ayuda a que al buscar su nombre aparezca su
-// ficha en UIAB Conecta con datos estructurados.
+/**
+ * JSON-LD Organization de la ficha: le dice a Google que ESTA página describe a
+ * ESA empresa, y que la empresa es socia de la UIAB.
+ *
+ * Por qué el NAP completo importa tanto acá: para que la ficha aparezca cuando
+ * alguien busca el nombre de la socia, Google tiene que aceptar que la página
+ * *describe* a la empresa y no que apenas la *menciona*. Eso lo decide cruzando
+ * teléfono + dirección postal + dominio propio contra lo que ya sabe de ella.
+ * Con nombre y localidad solos —que era todo lo que emitíamos— la ficha queda
+ * del lado de "la menciona", y una mención nunca desplaza al sitio propio de la
+ * empresa.
+ *
+ * `memberOf` va por `@id` contra el nodo que el layout raíz emite en el mismo
+ * documento. Antes cada ficha creaba un nodo anónimo nuevo que además declaraba
+ * `url: SITE_URL` para la cámara — 59 afirmaciones de que la UIAB vive en
+ * uiabconecta.com, contradiciendo lo que Google ya tiene indexado.
+ */
 function jsonLdOrganizacion(opts: {
   nombre: string;
   descripcion: string | null;
@@ -315,33 +379,56 @@ function jsonLdOrganizacion(opts: {
   logoUrl: string | null;
   sitioWeb: string | null;
   url: string;
+  direccion?: string | null;
+  codigoPostal?: string | number | null;
+  telefono?: string | null;
+  email?: string | null;
+  cuit?: string | null;
 }) {
+  const tel = telefonoE164(opts.telefono);
+  const web = normalizarSitioWeb(opts.sitioWeb);
+  const cp = opts.codigoPostal != null ? String(opts.codigoPostal).trim() : "";
+
+  // Sin localidad no hay PostalAddress que valga: `streetAddress` suelto no
+  // ubica nada. Con localidad, sumamos todo lo que haya.
+  const address = opts.localidad
+    ? {
+        "@type": "PostalAddress",
+        ...(opts.direccion?.trim() ? { streetAddress: opts.direccion.trim() } : {}),
+        addressLocality: opts.localidad,
+        ...(opts.provincia ? { addressRegion: opts.provincia } : {}),
+        ...(cp ? { postalCode: cp } : {}),
+        addressCountry: "AR",
+      }
+    : null;
+
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": `${opts.url}#organizacion`,
     name: opts.nombre,
     url: opts.url,
+    mainEntityOfPage: opts.url,
     ...(opts.descripcion ? { description: opts.descripcion } : {}),
     ...(opts.logoUrl ? { logo: opts.logoUrl, image: opts.logoUrl } : {}),
-    ...(normalizarSitioWeb(opts.sitioWeb)
-      ? { sameAs: [normalizarSitioWeb(opts.sitioWeb)!] }
-      : {}),
-    ...(opts.localidad
+    // El sitio propio de la socia es la corroboración externa más fuerte que
+    // tiene la ficha: es el que le dice a Google de qué empresa estamos
+    // hablando. 50 de las 59 lo tienen cargado; las 9 que no, difícilmente
+    // aparezcan al buscar su nombre hasta que se les cargue.
+    ...(web ? { sameAs: [web] } : {}),
+    ...(address ? { address } : {}),
+    ...(tel ? { telephone: tel } : {}),
+    ...(opts.email?.trim() ? { email: opts.email.trim() } : {}),
+    ...(opts.cuit?.trim()
       ? {
-          address: {
-            "@type": "PostalAddress",
-            addressLocality: opts.localidad,
-            ...(opts.provincia ? { addressRegion: opts.provincia } : {}),
-            addressCountry: "AR",
+          identifier: {
+            "@type": "PropertyValue",
+            propertyID: "CUIT",
+            value: opts.cuit.trim(),
           },
         }
       : {}),
-    memberOf: {
-      "@type": "Organization",
-      name: "Unión Industrial de Almirante Brown",
-      alternateName: "UIAB",
-      url: SITE_URL,
-    },
+    memberOf: { "@id": ID_ORG_UIAB },
   };
   return jsonLd;
 }
@@ -368,6 +455,8 @@ export default async function EmpresaProfilePage({
         direccion,
         localidad,
         provincia,
+        codigo_postal,
+        cuit,
         actividad,
         descripcion,
         sitio_web,
@@ -381,7 +470,8 @@ export default async function EmpresaProfilePage({
         ruta_logo,
         empresas_categorias (
           categorias (
-            nombre
+            nombre,
+            slug
           )
         ),
         empresas_tags (
@@ -450,6 +540,10 @@ export default async function EmpresaProfilePage({
   return (
     <EmpresaProfile
       empresaDb={empresaDb}
+      // `empresasData` ya está en memoria: la página trae la tabla entera para
+      // resolver el slug (no hay columna `slug`, así que no se puede filtrar en
+      // SQL). Aprovecharla para las empresas hermanas no cuesta una query más.
+      todasLasEmpresas={empresasData ?? []}
       supabase={supabase}
       isAuthenticated={isAuthenticated}
       currentPath={`/empresas/${slug}`}
@@ -462,17 +556,98 @@ export default async function EmpresaProfilePage({
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function EmpresaProfile({
   empresaDb,
+  todasLasEmpresas,
   supabase,
   isAuthenticated,
   currentPath,
 }: {
   empresaDb: any;
+  todasLasEmpresas: any[];
   supabase: any;
   isAuthenticated: boolean;
   currentPath: string;
 }) {
   const cats = empresaDb.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
   const mainCat = cats.length > 0 ? cats[0] : "General";
+
+  /**
+   * Rubros de la ficha con su landing, si la tienen.
+   *
+   * Los chips ya traían el anchor text perfecto ("Automatización y Robótica",
+   * "Ingeniería y Consultoría Técnica") pero eran <span>: texto de enlace
+   * escrito y desperdiciado en las 59 fichas. `landingDeCategoria` además
+   * colapsa los slugs fragmentados del catálogo —los cuatro de informática, los
+   * tres de electricidad— contra la MISMA landing.
+   */
+  const rubrosConLanding: { nombre: string; href: string | null }[] = (
+    empresaDb.empresas_categorias || []
+  )
+    .map((ec: any) => ec.categorias)
+    .filter((c: any) => c?.nombre)
+    .map((c: any) => {
+      const landing = landingDeCategoria(c.slug);
+      return { nombre: c.nombre as string, href: landing ? `/rubros/${landing.slug}` : null };
+    });
+
+  /**
+   * Empresas hermanas: otras socias que comparten alguna categoría.
+   *
+   * Las 59 fichas eran hojas terminales — 0 enlaces salientes a otras fichas—,
+   * así que todo el enlace interno entraba por /directorio y no circulaba. Con
+   * esto cada ficha reparte hacia 4-6 pares del mismo rubro, que además es
+   * navegación genuinamente útil para quien está comparando proveedores.
+   *
+   * Se filtra en memoria sobre la lista que la página ya tenía cargada: cero
+   * queries nuevas.
+   */
+  const slugsCategoria = new Set<string>(
+    (empresaDb.empresas_categorias || [])
+      .map((ec: any) => ec.categorias?.slug)
+      .filter(Boolean)
+  );
+
+  const candidatas = (todasLasEmpresas || []).filter(
+    (e: any) => e.id !== empresaDb.id && !esEmpresaInstitucional(e.id) && e.razon_social
+  );
+
+  const datosRubro = (e: any) => ({
+    categoriaSlugs: (e.empresas_categorias || [])
+      .map((ec: any) => ec.categorias?.slug)
+      .filter(Boolean),
+    tags: (e.empresas_tags || []).map((et: any) => et.tags?.nombre).filter(Boolean),
+  });
+
+  // Primero por categoría exacta compartida. Después, si no llega a 6, se
+  // completa con la landing de rubro: el catálogo de categorías está
+  // fragmentado (los cuatro slugs de informática son cuatro filas distintas
+  // para el mismo rubro), así que el match exacto solo deja fichas como Vaxler
+  // con uno o dos pares cuando en realidad comparte rubro con varias más.
+  const porCategoria = candidatas.filter((e: any) =>
+    (e.empresas_categorias || []).some((ec: any) => slugsCategoria.has(ec.categorias?.slug))
+  );
+  const landing = rubrosConLanding.find((r) => r.href);
+  const rubroDeLanding = landing
+    ? RUBROS_SEO.find((r) => `/rubros/${r.slug}` === landing.href)
+    : undefined;
+  const porLanding = rubroDeLanding
+    ? candidatas.filter((e: any) => perteneceAlRubro(rubroDeLanding, datosRubro(e)))
+    : [];
+
+  const hermanas = Array.from(
+    new Map(
+      [...porCategoria, ...porLanding].map((e: any) => [e.id, e])
+    ).values()
+  )
+    .sort((a: any, b: any) =>
+      a.razon_social.localeCompare(b.razon_social, "es", { sensitivity: "base" })
+    )
+    .slice(0, 6)
+    .map((e: any) => ({
+      nombre: e.razon_social as string,
+      slug: crearSlug(e.razon_social),
+      localidad: (e.localidad as string) || null,
+      rubro: (e.empresas_categorias || [])[0]?.categorias?.nombre ?? null,
+    }));
   const logoUrl = empresaDb.bucket_logo && empresaDb.ruta_logo
     ? supabase.storage.from(empresaDb.bucket_logo).getPublicUrl(empresaDb.ruta_logo).data.publicUrl
     : null;
@@ -562,7 +737,30 @@ async function EmpresaProfile({
   // `actividad` es el rubro que trajo el padrón. Mandan sus palabras, y caemos
   // al padrón mientras no haya escrito nada.
   const textoEmpresa = (empresaDb.descripcion || empresaDb.actividad || "").trim();
-  const tieneActividadReal = textoEmpresa.length > 8;
+
+  /**
+   * El umbral era `> 8` caracteres, y con eso la sección "Sobre la empresa"
+   * DESAPARECÍA entera en las fichas más cortas: `actividad = "QUIMICA"` son 7.
+   * En /empresas/alkanos-sa los únicos H2 que quedaban eran "Rubros y
+   * especialidades" y "Catálogo", o sea que la página no decía en ninguna parte
+   * a qué se dedica la empresa. Con 3 caracteres alcanza para saber que hay
+   * algo cargado.
+   */
+  const tieneActividadReal = textoEmpresa.length > 2;
+
+
+  /**
+   * Cuando la socia todavía no escribió su descripción, se compone una frase
+   * con datos que YA están en la base: rubro, localidad y etiquetas. No es
+   * contenido inventado —cada dato sale de una columna— y saca a la ficha del
+   * 60-72% de plantilla que compartía con las demás.
+   *
+   * No reemplaza a la descripción propia: sólo aparece cuando no hay ninguna, o
+   * como complemento cuando la que hay es telegráfica (menos de 120 caracteres,
+   * que son 53 de las 59 fichas).
+   */
+  const textoMostrado = tieneActividadReal ? normalizarMayusculas(textoEmpresa) : null;
+
   const serviciosExtra = cats.slice(1);
   const tieneServiciosReales = serviciosExtra.length > 0;
 
@@ -577,10 +775,47 @@ async function EmpresaProfile({
   ).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   const tieneTags = tagsEmpresa.length > 0;
 
+  /**
+   * Frase derivada. Cada dato sale de una columna: `empresas_categorias`,
+   * `localidad` y `empresas_tags`. Se muestra cuando la descripción propia es
+   * corta o no existe; si la socia escribió 120+ caracteres, sobra.
+   */
+  const resumenDerivado = ((): string | null => {
+    if (textoMostrado && textoMostrado.length >= 120) return null;
+
+    const nombre = empresaDb.razon_social as string;
+    const rubros = rubrosConLanding.map((r) => r.nombre.toLocaleLowerCase("es"));
+    const partes: string[] = [];
+
+    if (rubros.length > 0) {
+      const lista =
+        rubros.length === 1
+          ? rubros[0]
+          : `${rubros.slice(0, -1).join(", ")} y ${rubros[rubros.length - 1]}`;
+      partes.push(
+        `${nombre} trabaja en ${lista}${
+          empresaDb.localidad ? ` desde ${empresaDb.localidad}` : ""
+        }, en el partido de Almirante Brown`
+      );
+    } else if (empresaDb.localidad) {
+      partes.push(`${nombre} está radicada en ${empresaDb.localidad}, Almirante Brown`);
+    } else {
+      partes.push(`${nombre} integra el directorio de la Unión Industrial de Almirante Brown`);
+    }
+
+    if (tagsEmpresa.length > 0) {
+      const caps = tagsEmpresa.slice(0, 6).map((t) => t.nombre.toLocaleLowerCase("es"));
+      partes.push(`Entre sus capacidades declaradas figuran ${caps.join(", ")}`);
+    }
+
+    partes.push("Es socia verificada de la UIAB y su ficha se puede contactar directo");
+    return partes.join(". ") + ".";
+  })();
+
   const empresa = {
     nombre: empresaDb.razon_social,
     categoria: mainCat,
-    actividad: tieneActividadReal ? textoEmpresa : null,
+    actividad: textoMostrado,
     logo: empresaDb.razon_social.charAt(0).toUpperCase(),
     logoUrl,
     ubicacion: [empresaDb.localidad, empresaDb.direccion].filter(Boolean).join(", ") || null,
@@ -598,37 +833,72 @@ async function EmpresaProfile({
 
   return (
     <div className="min-h-svh bg-slate-50 font-inter pb-20">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
-            jsonLdOrganizacion({
-              nombre: empresa.nombre,
-              descripcion: empresa.actividad,
-              localidad: empresaDb.localidad || null,
-              provincia: empresaDb.provincia || null,
-              logoUrl: empresa.logoUrl,
-              sitioWeb: empresaDb.sitio_web || null,
-              url: `${SITE_URL}${currentPath}`,
-            })
-          ),
-        }}
-      />
+      {/*
+        La ficha de la propia UIAB NO emite Organization.
+        El layout raíz ya declara la cámara con su `@id` en uiab.org, su NAP y
+        sus redes; emitir acá un segundo Organization homónimo —con otro logo y
+        otra localidad— reintroduce en un solo documento las dos entidades
+        rivales que el grafo raíz acaba de desambiguar. La página se sigue
+        indexando igual: lo que se omite es el marcado redundante, no el
+        contenido.
+      */}
+      {!esEmpresaInstitucional(empresaDb.id) && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              jsonLdOrganizacion({
+                nombre: empresa.nombre,
+                descripcion: empresa.actividad,
+                localidad: empresaDb.localidad || null,
+                provincia: empresaDb.provincia || null,
+                logoUrl: empresa.logoUrl,
+                sitioWeb: empresaDb.sitio_web || null,
+                url: `${SITE_URL}${currentPath}`,
+                direccion: empresaDb.direccion || null,
+                codigoPostal: empresaDb.codigo_postal ?? null,
+                telefono: empresaDb.telefono || empresaDb.whatsapp || null,
+                email: empresaDb.email || null,
+                cuit: empresaDb.cuit || null,
+              })
+            ),
+          }}
+        />
+      )}
       <RegistrarVisita tipo="empresa" entidadId={empresaDb.id} />
       {/* Hero — always visible for SEO. min-h en vez de h: con alto fijo + overflow-hidden un nombre
           de 3 renglones recortaba los chips y el link "Directorio" por arriba */}
       <div className="relative min-h-[320px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
         <div className="absolute inset-0 z-0">
-          <Image src="/landing/hero-industrial.webp" alt="" fill className="object-cover object-center" priority />
+          {/* `sizes` + `quality` bajos a propósito: es una franja de ~320px de alto
+              tapada por dos gradientes, y sin `sizes` next/image asume 100vw y
+              sirve ~282 KB de WebP. Es el candidato a LCP de las 59 fichas. */}
+          <Image src="/landing/hero-industrial.webp" alt="" fill sizes="(max-width: 768px) 100vw, 1200px" quality={60} className="object-cover object-center" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#00213f] via-[#00213f]/60 to-transparent" />
         </div>
 
         <div className="relative z-10 w-full max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 pb-10">
-          <Link href="/directorio" className="inline-flex items-center text-blue-200/70 hover:text-white mb-6 transition-colors text-[11px] font-bold tracking-[0.2em] uppercase">
-            <ArrowLeft className="w-3.5 h-3.5 mr-2" />
-            Directorio
-          </Link>
+          {/*
+            La miga reemplaza al "← Directorio" suelto que había acá.
+            Mismo enlace, más jerarquía: agrega el rubro en el medio (otra vía
+            hacia /rubros) y emite el BreadcrumbList, que es el único rich
+            result que Google todavía muestra de forma consistente para un
+            directorio — en el resultado se ve `uiabconecta.com › Directorio ›
+            Química › Vaxler` en vez de la URL cruda.
+          */}
+          <Migas
+            tono="claro"
+            className="mb-6"
+            migas={[
+              { nombre: "Inicio", href: "/" },
+              { nombre: "Directorio", href: "/directorio" },
+              ...(rubrosConLanding[0]?.href
+                ? [{ nombre: rubrosConLanding[0].nombre, href: rubrosConLanding[0].href }]
+                : []),
+              { nombre: empresa.nombre },
+            ]}
+          />
 
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <span className="inline-flex items-center px-2.5 py-1 rounded-sm bg-blue-500/15 border border-blue-400/30 text-blue-200 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -770,35 +1040,64 @@ async function EmpresaProfile({
       <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 mt-10 relative z-10">
         <div className="flex flex-col tab:flex-row gap-6 tab:gap-8">
           <main className="w-full tab:w-[62%] lg:w-[72%] min-w-0 space-y-6">
-            {/* Always visible for SEO */}
-            {empresa.actividad && (
-              <section className="bg-white p-7 rounded-md border border-slate-200">
-                <div className="flex items-center gap-2.5 mb-4">
-                  <Building2 className="w-4 h-4 text-blue-600" />
-                  <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Sobre la empresa</h2>
-                </div>
+            {/*
+              "Sobre la empresa" siempre se renderiza, y fuera del gate: es el
+              único bloque de la ficha que dice a qué se dedica la empresa, y
+              antes desaparecía entero cuando la actividad tenía 8 caracteres o
+              menos. La frase derivada usa sólo columnas de la base (rubro,
+              localidad, etiquetas) — nada inventado — y existe porque 53 de las
+              59 descripciones tienen menos de 120 caracteres, o sea que sin
+              ella la ficha comparte 60-72% de su texto con las demás.
+            */}
+            <section className="bg-white p-7 rounded-md border border-slate-200">
+              <div className="flex items-center gap-2.5 mb-4">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Sobre la empresa</h2>
+              </div>
+              {empresa.actividad && (
                 <p className="text-slate-700 font-medium leading-relaxed text-[15px]">
                   {empresa.actividad}
                 </p>
-              </section>
-            )}
+              )}
+              {resumenDerivado && (
+                <p
+                  className={`text-slate-600 leading-relaxed text-[14.5px] ${empresa.actividad ? "mt-3" : ""}`}
+                >
+                  {resumenDerivado}
+                </p>
+              )}
+            </section>
 
-            {(tieneServiciosReales || tieneTags) && (
+            {(rubrosConLanding.length > 0 || tieneTags) && (
               <section className="bg-white p-7 rounded-md border border-slate-200">
                 <div className="flex items-center gap-2.5 mb-5">
                   <Wrench className="w-4 h-4 text-blue-600" />
                   <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Rubros y especialidades</h2>
                 </div>
-                {tieneServiciosReales && (
+                {/* Chips de rubro: los que tienen landing son <Link>; los que
+                    no (categorías por debajo del umbral de 3 socias) siguen
+                    siendo <span>, porque enlazar a una URL que no existe es
+                    peor que no enlazar. */}
+                {rubrosConLanding.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {empresa.servicios.map((servicio: string, idx: number) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-                      >
-                        {servicio}
-                      </span>
-                    ))}
+                    {rubrosConLanding.map((r, idx) =>
+                      r.href ? (
+                        <Link
+                          key={idx}
+                          href={r.href}
+                          className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                        >
+                          {r.nombre}
+                        </Link>
+                      ) : (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded"
+                        >
+                          {r.nombre}
+                        </span>
+                      )
+                    )}
                   </div>
                 )}
                 {tieneTags && (
@@ -876,15 +1175,31 @@ async function EmpresaProfile({
                 </div>
               </>
             ) : (
-              <div className="bg-white p-7 rounded-md border border-slate-200">
-                <div className="flex items-center gap-2.5 mb-5">
-                  <Briefcase className="w-4 h-4 text-blue-600" />
-                  <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
-                    Catálogo, oportunidades y reseñas
-                  </h2>
+              /*
+                El gate SÓLO se muestra si detrás hay algo.
+                Antes se renderizaba en las 59 fichas prometiendo "el catálogo
+                completo, reseñas y datos de contacto", cuando hay 0 reseñas
+                aprobadas en toda la base, 0 oportunidades abiertas y sólo 4
+                empresas con catálogo publicado. O sea: en 55 fichas era una
+                promesa vacía y ~30 palabras de plantilla idéntica que además
+                empeoraban el problema de contenido duplicado entre fichas.
+                `totalItems` y `totalResenas` ya se calculaban acá arriba: es un if.
+              */
+              (totalItems > 0 || totalResenas > 0) && (
+                <div className="bg-white p-7 rounded-md border border-slate-200">
+                  <div className="flex items-center gap-2.5 mb-5">
+                    <Briefcase className="w-4 h-4 text-blue-600" />
+                    <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
+                      {totalItems > 0 && totalResenas > 0
+                        ? "Catálogo y reseñas"
+                        : totalItems > 0
+                          ? "Catálogo de productos y servicios"
+                          : "Reseñas de la red"}
+                    </h2>
+                  </div>
+                  <LoginGate currentPath={currentPath} />
                 </div>
-                <LoginGate currentPath={currentPath} />
-              </div>
+              )
             )}
           </main>
 
@@ -986,6 +1301,53 @@ async function EmpresaProfile({
             </div>
           </aside>
         </div>
+
+        {/*
+          Empresas hermanas. Antes cada ficha era una hoja terminal: 0 enlaces
+          salientes hacia otras fichas, así que el enlace interno entraba por
+          /directorio y ahí se moría. Estos 4-6 enlaces por ficha hacen que el
+          rastreo circule entre pares del mismo rubro.
+        */}
+        {hermanas.length > 0 && (
+          <section
+            aria-labelledby="empresas-relacionadas"
+            className="mt-14 pt-10 border-t border-slate-200"
+          >
+            <h2
+              id="empresas-relacionadas"
+              className="font-manrope text-xl font-black text-[#00213f] tracking-tight mb-1"
+            >
+              Otras empresas de {(rubrosConLanding[0]?.nombre ?? mainCat).toLocaleLowerCase("es")} en Almirante Brown
+            </h2>
+            <p className="text-[14px] text-slate-500 mb-6">
+              Socias de la UIAB que comparten rubro con {empresa.nombre}.
+            </p>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {hermanas.map((h) => (
+                <li key={h.slug}>
+                  <Link
+                    href={`/empresas/${h.slug}`}
+                    className="block h-full bg-white rounded-md border border-slate-200 p-4 hover:border-blue-300 hover:shadow-md transition-all"
+                  >
+                    <p className="font-bold text-[14.5px] text-[#00213f] leading-snug">{h.nombre}</p>
+                    <p className="mt-1 text-[12.5px] text-slate-500">
+                      {[h.rubro, h.localidad].filter(Boolean).join(" · ")}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {rubrosConLanding[0]?.href && (
+              <Link
+                href={rubrosConLanding[0].href}
+                className="mt-6 inline-flex items-center gap-1.5 text-[14px] font-semibold text-blue-700 hover:underline"
+              >
+                Ver todo el rubro {rubrosConLanding[0].nombre}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );
@@ -1080,6 +1442,8 @@ async function ProveedorProfile({
               logoUrl: proveedor.logoUrl,
               sitioWeb: provDb.sitio_web || null,
               url: `${SITE_URL}${currentPath}`,
+              telefono: provDb.telefono || null,
+              email: provDb.email || null,
             })
           ),
         }}
@@ -1088,7 +1452,7 @@ async function ProveedorProfile({
       {/* Hero */}
       <div className="relative min-h-[320px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
         <div className="absolute inset-0 z-0">
-          <Image src="/landing/hero-industrial.webp" alt="Fondo" fill className="object-cover object-center" priority />
+          <Image src="/landing/hero-industrial.webp" alt="" fill sizes="(max-width: 768px) 100vw, 1200px" quality={60} className="object-cover object-center" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#00182e] via-[#00213f]/70 to-transparent" />
         </div>
