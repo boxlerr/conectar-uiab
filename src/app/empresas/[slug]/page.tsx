@@ -214,18 +214,43 @@ function LoginGate({ currentPath }: { currentPath: string }) {
 }
 
 // ── SEO: datos mínimos por slug (empresa o proveedor) para metadata + JSON-LD ──
+/**
+ * 45 de las 59 descripciones están escritas íntegramente en MAYÚSCULAS
+ * ("FABRICACION DE ENVASES PLASTICOS"): es cómo se cargó el padrón, no una
+ * decisión de estilo, y así salía tanto en la ficha como en la meta description
+ * que ve Google.
+ *
+ * Se normaliza al RENDERIZAR y no en la base, para no pisar lo que la socia
+ * escriba después desde /perfil/datos. Sólo se toca si el texto es
+ * mayoritariamente mayúsculas — así una descripción normal con siglas (ERP,
+ * PVC, ISO) queda intacta.
+ */
+function normalizarMayusculas(t: string): string {
+  const letras = t.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü]/g, "");
+  if (letras.length < 8) return t;
+  const mayus = (t.match(/[A-ZÁÉÍÓÚÑÜ]/g) || []).length;
+  if (mayus / letras.length < 0.8) return t;
+  const minus = t.toLocaleLowerCase("es");
+  return minus.charAt(0).toLocaleUpperCase("es") + minus.slice(1);
+}
+
 async function datosSeoPorSlug(slug: string) {
   const db = createAdminClient();
 
   const { data: empresas } = await db
     .from("empresas")
-    .select("razon_social, actividad, descripcion, localidad, provincia, sitio_web, bucket_logo, ruta_logo")
+    .select(
+      "razon_social, actividad, descripcion, localidad, provincia, sitio_web, bucket_logo, ruta_logo, empresas_categorias(categorias(nombre))"
+    )
     .eq("estado", "aprobada");
   const emp = empresas?.find((e: any) => crearSlug(e.razon_social) === slug);
   if (emp) {
     return {
       esProveedor: false,
       nombre: emp.razon_social as string,
+      categoria:
+        (((emp.empresas_categorias || [])[0]?.categorias as any)?.nombre as string | undefined) ??
+        null,
       descripcion: (emp.descripcion as string) || (emp.actividad as string) || null,
       localidad: (emp.localidad as string) || null,
       provincia: (emp.provincia as string) || null,
@@ -250,6 +275,7 @@ async function datosSeoPorSlug(slug: string) {
     return {
       esProveedor: true,
       nombre: dn as string,
+      categoria: null as string | null,
       descripcion: (prov.descripcion as string) || null,
       localidad: (prov.localidad as string) || null,
       provincia: (prov.provincia as string) || null,
@@ -271,16 +297,38 @@ export async function generateMetadata({
   const { slug } = await params;
   const d = await datosSeoPorSlug(slug);
   if (!d) {
-    return { title: "Perfil no encontrado | UIAB Conecta", robots: { index: false, follow: true } };
+    // `absolute` para saltear el template del layout, que si no agrega un
+    // segundo " | UIAB Conecta" y el <title> sale con la marca dos veces.
+    return {
+      title: { absolute: "Perfil no encontrado | UIAB Conecta" },
+      robots: { index: false, follow: true },
+    };
   }
+  /**
+   * TITLE. Antes era `${nombre} — Empresa socia UIAB` y el template raíz le
+   * sumaba ` | UIAB Conecta`: 10 de las 59 pasaban los 60 caracteres y el
+   * máximo llegaba a 77, así que Google cortaba justo el sufijo de marca — la
+   * parte que más nos importa que se vea. Ahora el diferenciador es el rubro y
+   * la localidad, que además es lo que la persona está buscando.
+   */
+  const contexto = [d.categoria, d.localidad].filter(Boolean).join(" en ");
   const rolTitulo = d.esProveedor ? "Prestador verificado UIAB" : "Empresa socia UIAB";
-  const ubic = d.localidad ? ` en ${d.localidad}${d.provincia ? ", " + d.provincia : ""}` : "";
-  // El layout raíz agrega " | UIAB Conecta" vía template; `title` no debe repetirlo.
-  const title = `${d.nombre} — ${rolTitulo}`;
+  const title = contexto ? `${d.nombre} — ${contexto}` : `${d.nombre} — ${rolTitulo}`;
   const tituloCompleto = `${title} | UIAB Conecta`;
-  const description = `${d.nombre}${d.descripcion ? ": " + d.descripcion : ""}. ${
-    d.esProveedor ? "Prestador de productos y servicios verificado" : "Empresa socia registrada"
-  } en la Unión Industrial de Almirante Brown (UIAB)${ubic}. Perfil oficial verificado en UIAB Conecta.`.slice(0, 300);
+
+  /**
+   * DESCRIPTION. La versión anterior anteponía plantilla y cortaba a 300 con un
+   * `slice` seco: la parte propia promediaba 83 caracteres contra 142 de
+   * boilerplate, y cuatro fichas cortaban a mitad de palabra ("…integración
+   * entre sistema"). Ahora va primero lo específico de la empresa y el corte
+   * respeta el límite de palabra.
+   */
+  const ubic = d.localidad ? ` en ${d.localidad}${d.provincia ? ", " + d.provincia : ""}` : "";
+  const propio = normalizarMayusculas((d.descripcion || "").trim());
+  const relleno = `${d.esProveedor ? "Prestador verificado" : "Empresa socia"} de la Unión Industrial de Almirante Brown${ubic}. Contacto directo en UIAB Conecta.`;
+  const crudo = propio ? `${d.nombre}: ${propio} — ${relleno}` : `${d.nombre}. ${relleno}`;
+  const description =
+    crudo.length <= 158 ? crudo : crudo.slice(0, 155).replace(/\s+\S*$/, "") + "…";
   const url = `${SITE_URL}/empresas/${slug}`;
 
   return {
@@ -689,7 +737,30 @@ async function EmpresaProfile({
   // `actividad` es el rubro que trajo el padrón. Mandan sus palabras, y caemos
   // al padrón mientras no haya escrito nada.
   const textoEmpresa = (empresaDb.descripcion || empresaDb.actividad || "").trim();
-  const tieneActividadReal = textoEmpresa.length > 8;
+
+  /**
+   * El umbral era `> 8` caracteres, y con eso la sección "Sobre la empresa"
+   * DESAPARECÍA entera en las fichas más cortas: `actividad = "QUIMICA"` son 7.
+   * En /empresas/alkanos-sa los únicos H2 que quedaban eran "Rubros y
+   * especialidades" y "Catálogo", o sea que la página no decía en ninguna parte
+   * a qué se dedica la empresa. Con 3 caracteres alcanza para saber que hay
+   * algo cargado.
+   */
+  const tieneActividadReal = textoEmpresa.length > 2;
+
+
+  /**
+   * Cuando la socia todavía no escribió su descripción, se compone una frase
+   * con datos que YA están en la base: rubro, localidad y etiquetas. No es
+   * contenido inventado —cada dato sale de una columna— y saca a la ficha del
+   * 60-72% de plantilla que compartía con las demás.
+   *
+   * No reemplaza a la descripción propia: sólo aparece cuando no hay ninguna, o
+   * como complemento cuando la que hay es telegráfica (menos de 120 caracteres,
+   * que son 53 de las 59 fichas).
+   */
+  const textoMostrado = tieneActividadReal ? normalizarMayusculas(textoEmpresa) : null;
+
   const serviciosExtra = cats.slice(1);
   const tieneServiciosReales = serviciosExtra.length > 0;
 
@@ -704,10 +775,47 @@ async function EmpresaProfile({
   ).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   const tieneTags = tagsEmpresa.length > 0;
 
+  /**
+   * Frase derivada. Cada dato sale de una columna: `empresas_categorias`,
+   * `localidad` y `empresas_tags`. Se muestra cuando la descripción propia es
+   * corta o no existe; si la socia escribió 120+ caracteres, sobra.
+   */
+  const resumenDerivado = ((): string | null => {
+    if (textoMostrado && textoMostrado.length >= 120) return null;
+
+    const nombre = empresaDb.razon_social as string;
+    const rubros = rubrosConLanding.map((r) => r.nombre.toLocaleLowerCase("es"));
+    const partes: string[] = [];
+
+    if (rubros.length > 0) {
+      const lista =
+        rubros.length === 1
+          ? rubros[0]
+          : `${rubros.slice(0, -1).join(", ")} y ${rubros[rubros.length - 1]}`;
+      partes.push(
+        `${nombre} trabaja en ${lista}${
+          empresaDb.localidad ? ` desde ${empresaDb.localidad}` : ""
+        }, en el partido de Almirante Brown`
+      );
+    } else if (empresaDb.localidad) {
+      partes.push(`${nombre} está radicada en ${empresaDb.localidad}, Almirante Brown`);
+    } else {
+      partes.push(`${nombre} integra el directorio de la Unión Industrial de Almirante Brown`);
+    }
+
+    if (tagsEmpresa.length > 0) {
+      const caps = tagsEmpresa.slice(0, 6).map((t) => t.nombre.toLocaleLowerCase("es"));
+      partes.push(`Entre sus capacidades declaradas figuran ${caps.join(", ")}`);
+    }
+
+    partes.push("Es socia verificada de la UIAB y su ficha se puede contactar directo");
+    return partes.join(". ") + ".";
+  })();
+
   const empresa = {
     nombre: empresaDb.razon_social,
     categoria: mainCat,
-    actividad: tieneActividadReal ? textoEmpresa : null,
+    actividad: textoMostrado,
     logo: empresaDb.razon_social.charAt(0).toUpperCase(),
     logoUrl,
     ubicacion: [empresaDb.localidad, empresaDb.direccion].filter(Boolean).join(", ") || null,
@@ -929,18 +1037,33 @@ async function EmpresaProfile({
       <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 mt-10 relative z-10">
         <div className="flex flex-col tab:flex-row gap-6 tab:gap-8">
           <main className="w-full tab:w-[62%] lg:w-[72%] min-w-0 space-y-6">
-            {/* Always visible for SEO */}
-            {empresa.actividad && (
-              <section className="bg-white p-7 rounded-md border border-slate-200">
-                <div className="flex items-center gap-2.5 mb-4">
-                  <Building2 className="w-4 h-4 text-blue-600" />
-                  <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Sobre la empresa</h2>
-                </div>
+            {/*
+              "Sobre la empresa" siempre se renderiza, y fuera del gate: es el
+              único bloque de la ficha que dice a qué se dedica la empresa, y
+              antes desaparecía entero cuando la actividad tenía 8 caracteres o
+              menos. La frase derivada usa sólo columnas de la base (rubro,
+              localidad, etiquetas) — nada inventado — y existe porque 53 de las
+              59 descripciones tienen menos de 120 caracteres, o sea que sin
+              ella la ficha comparte 60-72% de su texto con las demás.
+            */}
+            <section className="bg-white p-7 rounded-md border border-slate-200">
+              <div className="flex items-center gap-2.5 mb-4">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Sobre la empresa</h2>
+              </div>
+              {empresa.actividad && (
                 <p className="text-slate-700 font-medium leading-relaxed text-[15px]">
                   {empresa.actividad}
                 </p>
-              </section>
-            )}
+              )}
+              {resumenDerivado && (
+                <p
+                  className={`text-slate-600 leading-relaxed text-[14.5px] ${empresa.actividad ? "mt-3" : ""}`}
+                >
+                  {resumenDerivado}
+                </p>
+              )}
+            </section>
 
             {(rubrosConLanding.length > 0 || tieneTags) && (
               <section className="bg-white p-7 rounded-md border border-slate-200">
@@ -1049,15 +1172,31 @@ async function EmpresaProfile({
                 </div>
               </>
             ) : (
-              <div className="bg-white p-7 rounded-md border border-slate-200">
-                <div className="flex items-center gap-2.5 mb-5">
-                  <Briefcase className="w-4 h-4 text-blue-600" />
-                  <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
-                    Catálogo, oportunidades y reseñas
-                  </h2>
+              /*
+                El gate SÓLO se muestra si detrás hay algo.
+                Antes se renderizaba en las 59 fichas prometiendo "el catálogo
+                completo, reseñas y datos de contacto", cuando hay 0 reseñas
+                aprobadas en toda la base, 0 oportunidades abiertas y sólo 4
+                empresas con catálogo publicado. O sea: en 55 fichas era una
+                promesa vacía y ~30 palabras de plantilla idéntica que además
+                empeoraban el problema de contenido duplicado entre fichas.
+                `totalItems` y `totalResenas` ya se calculaban acá arriba: es un if.
+              */
+              (totalItems > 0 || totalResenas > 0) && (
+                <div className="bg-white p-7 rounded-md border border-slate-200">
+                  <div className="flex items-center gap-2.5 mb-5">
+                    <Briefcase className="w-4 h-4 text-blue-600" />
+                    <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
+                      {totalItems > 0 && totalResenas > 0
+                        ? "Catálogo y reseñas"
+                        : totalItems > 0
+                          ? "Catálogo de productos y servicios"
+                          : "Reseñas de la red"}
+                    </h2>
+                  </div>
+                  <LoginGate currentPath={currentPath} />
                 </div>
-                <LoginGate currentPath={currentPath} />
-              </div>
+              )
             )}
           </main>
 

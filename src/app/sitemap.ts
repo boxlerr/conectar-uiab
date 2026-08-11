@@ -73,18 +73,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const [{ data: empresas }, { data: proveedores }, { data: oportunidades }] =
       await Promise.all([
-        supabase.from("empresas").select("razon_social, creado_en").eq("estado", "aprobada"),
-        supabase.from("proveedores").select("razon_social, creado_en").eq("estado", "aprobado"),
+        supabase.from("empresas").select("razon_social, creado_en, actualizado_en").eq("estado", "aprobada"),
+        supabase.from("proveedores").select("razon_social, creado_en, actualizado_en").eq("estado", "aprobado"),
         supabase.from("oportunidades").select("id, creado_en").eq("estado", "abierta"),
       ]);
 
     const fecha = (v: string | null | undefined) => (v ? new Date(v) : ACTUALIZACION_PAGINAS_FIJAS);
 
+    /**
+     * `lastmod` de una ficha = la más reciente entre alta y última edición.
+     *
+     * Antes usaba sólo `creado_en`, así que 50 de las 59 fichas declaraban no
+     * haber cambiado desde el 2026-04-12 — cuando después se les cargaron
+     * certificaciones, etiquetas y `es_socia_uiab`. Un lastmod que se queda
+     * viejo es la instrucción explícita de "no vuelvas a pasar": Google baja la
+     * frecuencia de rastreo justo de las páginas que sí cambiaron.
+     *
+     * Es el mismo principio que el comentario de arriba sobre las páginas
+     * fijas, al revés: allá el lastmod mentía diciendo que TODO cambió recién;
+     * acá mentía diciendo que NADA cambió nunca.
+     */
+    const ultimoCambio = (e: { creado_en?: string | null; actualizado_en?: string | null }) => {
+      const c = fecha(e.creado_en);
+      const a = e.actualizado_en ? new Date(e.actualizado_en) : null;
+      return a && a > c ? a : c;
+    };
+
     const empresaRoutes: MetadataRoute.Sitemap = (empresas ?? [])
       .filter((e) => e.razon_social)
       .map((e) => ({
         url: `${BASE_URL}/empresas/${crearSlug(e.razon_social)}`,
-        lastModified: fecha(e.creado_en),
+        lastModified: ultimoCambio(e),
         changeFrequency: "weekly" as const,
         priority: 0.8,
       }));
@@ -99,7 +118,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .filter((p) => p.razon_social)
       .map((p) => ({
         url: `${BASE_URL}/empresas/${crearSlug(p.razon_social)}`,
-        lastModified: fecha(p.creado_en),
+        lastModified: ultimoCambio(p),
         changeFrequency: "weekly" as const,
         priority: 0.8,
       }));
