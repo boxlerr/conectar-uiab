@@ -73,13 +73,23 @@ export async function escenaDirectorio({ page, BASE }) {
   await progreso(page, 52);
 
   // ── Entrar a una ficha ──────────────────────────────────────────
+  // A propósito la de Vaxler y no "la primera que salga": es la ficha más
+  // completa de la base —6 servicios con foto, 10 etiquetas, descripción,
+  // logo y web—, y una ficha vacía en el video vende exactamente lo contrario
+  // de lo que queremos vender. Si no aparece, cae en la primera.
   await subOff(page);
   const TARJETA = '[data-tour="directorio-resultados"] a[href^="/empresas/"]';
   await scrollA(page, TARJETA, { offset: 190, ms: 560 });
   await sub(page, "Entrá a la ficha", "Cada tarjeta lleva al perfil completo.");
   await dormir(500);
-  const destino = await page.locator(TARJETA).first().getAttribute("href");
-  await clickEn(page, TARJETA, { ms: 460 });
+
+  const iFicha = await page.evaluate((s) => {
+    const els = [...document.querySelectorAll(s)];
+    const i = els.findIndex((e) => /vaxler/i.test(e.textContent || ""));
+    return i >= 0 ? i : 0;
+  }, TARJETA);
+  const destino = await page.locator(TARJETA).nth(iFicha).getAttribute("href");
+  await clickEn(page, TARJETA, { ms: 460, idx: iFicha });
   await page.waitForURL(/\/empresas\//, { timeout: 15_000 }).catch(() => {});
   await asentar(page, 600);
   await progreso(page, 62);
