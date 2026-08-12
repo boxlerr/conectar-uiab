@@ -48,6 +48,54 @@ ponga ffmpeg en post.
 | "Se queda sin pasar nada" / "se va rapidísimo" | Ritmo dirigido: cada plano dura lo que tiene que durar, con speed ramp sobre lo aburrido (scroll, tipeo). |
 | Música | Bajarla (Pixabay, uso comercial sin atribución) y dejarla en `assets/musica.mp3`. El montaje ya la normaliza a −16 LUFS. |
 
+## La investigación
+
+En `direccion/` están los tres documentos que salieron de investigar referencias
+(Linear, Stripe, Vercel, Apple; técnicas de punch-in sobre grabaciones de
+pantalla; tipografía cinética; recetas de ffmpeg):
+
+| Archivo | Qué es |
+| --- | --- |
+| `01-tratamiento.md` | Escaleta plano por plano de 58 s, con encuadres, zooms y tiempos de texto al milisegundo. |
+| `02-viabilidad-tecnica.md` | Auditoría contra el binario real de ffmpeg. Qué se puede, qué no, y las cadenas de filtros exactas. |
+| `03-critica-creativa.md` | Crítica dura del tratamiento. Léela antes de implementar nada. |
+
+### Los tres hallazgos que cambian el plan
+
+**1. No hay que grabar video del sitio.** Se capturan PNG a 3200×1800
+(viewport 1600×900 con `deviceScaleFactor: 2`) y **todo el movimiento lo genera
+ffmpeg**. Eso hace desaparecer de raíz las cuatro críticas —lo tosco, lo lento,
+lo rapidísimo y la marca horrible— porque desaparece la causa común: el tiempo
+real. Regalo técnico: mostrando la pantalla a 1600×900, cualquier zoom hasta 2×
+es 1:1 de píxel. Nunca se escala hacia arriba.
+
+**2. `drawtext` no existe en este binario de ffmpeg.** FFmpeg 7.0 hizo de
+harfbuzz una dependencia dura del filtro y este build no lo trae; el filtro se
+cayó silenciosamente. **Todo el texto sale de Chromium como PNG, sin plan B.**
+Corolario: el rotulado y la captura tienen que vivir en el mismo proceso de
+Playwright, porque los números que se muestran se leen del DOM.
+
+**3. Los `cubic-bezier` hay que traducirlos** a expresiones cerradas
+(`easeOutExpo` = `1-pow(2,-10*p)`, etc.). No hace falta ninguna tabla.
+
+### Lo que la crítica marca y hay que decidir
+
+- El tratamiento derivó en **demo reel de lanzamiento SaaS**: planos de 1 a 1.5 s,
+  21 cortes por minuto, 8 carteles de menos de 42 caracteres. Para un dueño de
+  metalúrgica de 55 años eso no es dinámico, es hostil. Y son ~300 caracteres de
+  texto para explicar un marketplace.
+- **La paleta es el preset**: navy en gradiente, acento naranja, glow radial,
+  mockup de dispositivo flotando. Es el default de landing generada por IA.
+- **"Match" no existe en el producto**: la UI dice "Recomendados" y "Oportunidades
+  para vos". El video enseñaría una palabra que después no se encuentra.
+- **"El parque" está mal**: Almirante Brown es un *partido*. La propia landing
+  del sitio dice "empresas radicadas del partido".
+- **Falta locución**, y es la palanca que más mueve la aguja. El guion ya está
+  escrito en el onboarding del producto (`src/modulos/onboarding/pasos/*`).
+- **Falta versión vertical**: este público mira desde el celular en la planta y
+  el video va a circular por WhatsApp.
+- Varios planos apuntan a selectores que no existen o están en otra página.
+
 ## Restricciones técnicas
 
 - La post-producción es **sólo ffmpeg 7.x** desde Node. No hay After Effects.
