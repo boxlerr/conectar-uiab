@@ -276,7 +276,7 @@ function CatalogoModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as const }}
-        className="bg-white rounded-md w-full max-w-5xl max-h-[calc(100svh-7rem)] lg:max-h-[82svh] relative overflow-hidden flex flex-col"
+        className="bg-white rounded-md w-full max-w-5xl max-h-[calc(100svh-7rem)] sm:max-h-[calc(100svh-8rem)] lg:max-h-[calc(100svh-10rem)] relative overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ boxShadow: "0 16px 48px rgba(25, 28, 30, 0.12), 0 2px 8px rgba(25, 28, 30, 0.04)" }}
       >
@@ -292,9 +292,20 @@ function CatalogoModal({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1.15fr_1fr] overflow-y-auto">
-          {/* Imagen / Galería */}
-          <div className="relative bg-slate-100 md:min-h-[560px] aspect-[4/3] md:aspect-auto">
+        {/* overscroll-contain: el overlay también scrollea, y sin esto el
+            gesto encadena de esta grilla al overlay y se mueve todo junto. */}
+        <div className="grid grid-cols-1 md:grid-cols-[1.15fr_1fr] overflow-y-auto overscroll-contain">
+          {/* Imagen / Galería —
+              El panel va con relación de aspecto fija y self-start a propósito.
+              Antes usaba md:aspect-auto + md:min-h: al ser un grid item se
+              estiraba al alto de la columna de texto y quedaba un marco
+              vertical angosto, así que object-cover recortaba entre el 40% y el
+              70% del ancho de fotos apaisadas. Peor: al desplegar "Leer más" la
+              columna crecía 200px animados y la foto se re-encuadraba en vivo.
+              Con alto propio el encuadre es estable y object-contain no recorta
+              nada — importa porque acá se muestran capturas de pantalla, donde
+              perder los bordes es perder la mitad del contenido. */}
+          <div className="relative bg-slate-100 aspect-[4/3] md:self-start md:sticky md:top-0">
             {item.imagenes.length > 0 ? (
               <>
                 <Image
@@ -302,8 +313,8 @@ function CatalogoModal({
                   src={item.imagenes[idx].url}
                   alt={item.imagenes[idx].alt || item.nombre}
                   fill
-                  sizes="(min-width: 768px) 55vw, 100vw"
-                  className="object-cover"
+                  sizes="(min-width: 1056px) 548px, (min-width: 768px) 53vw, 100vw"
+                  className="object-contain"
                 />
                 {item.imagenes.length > 1 && (
                   <>
