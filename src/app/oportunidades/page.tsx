@@ -13,6 +13,7 @@ import { oportunidadesService, Oportunidad, Match } from "@/modulos/oportunidade
 
 import { PublicOportunidadesLanding } from "./landing-oportunidades-publica";
 import { AccesoRequerido } from "@/components/ui/acceso-requerido";
+import { aTextoPlano } from "@/lib/utilidades";
 import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
 import { BotonReiniciarTour } from "@/modulos/onboarding/componentes/boton-reiniciar-tour";
 // Remove MOCK_OPORTUNIDADES
@@ -170,8 +171,11 @@ export default function OportunidadesPage() {
                           {op.empresa?.razon_social || "Empresa del parque"}
                         </p>
 
+                        {/* La descripción se carga en un editor enriquecido, así que
+                            en la base es HTML. Acá va como texto, y sin pasarla a
+                            plano se veían las etiquetas: "<p>Necesitamos <b>500 kg…". */}
                         <p className="text-slate-600 mt-3 mb-3 line-clamp-2 text-sm font-inter leading-relaxed">
-                          {op.descripcion}
+                          {aTextoPlano(op.descripcion)}
                         </p>
 
                         <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs font-inter text-slate-400">

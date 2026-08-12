@@ -103,7 +103,26 @@ export async function moverAlSelector(page, selector, { ms = 460, dx = 0, dy = 0
   const crudoY = c.y + c.h / 2 + dy + (Math.random() - 0.5) * Math.min(10, c.h * 0.18);
   const y = Math.max(BANDA_SEGURA.arriba, Math.min(alto - BANDA_SEGURA.abajo, crudoY));
   await moverA(page, x, y, ms);
-  return { x, y, ...c };
+  // Ojo con el orden: con `{ x, y, ...c }` el spread pisaba x e y con la
+  // esquina de la caja, así que quien usara el valor devuelto recibía la
+  // posición del ELEMENTO y no la del click. El click siempre estuvo bien
+  // (lo hace page.mouse donde quedó el puntero); lo que mentía era el retorno.
+  return { ...c, x, y };
+}
+
+/**
+ * Escribe en un campo sin simular el mouse.
+ *
+ * Para lo que se completa FUERA de plano. `tipear` mueve el puntero y clickea
+ * por coordenadas, que es lo que hace que se vea humano en cámara, pero es
+ * frágil con editores enriquecidos y campos al borde del viewport. Acá no hay
+ * nadie mirando: lo que importa es que el dato entre.
+ */
+export async function tipearDirecto(page, selector, texto, { porChar = 8 } = {}) {
+  const campo = page.locator(selector).first();
+  await campo.click({ timeout: 5000 });
+  await dormir(120);
+  await page.keyboard.type(texto, { delay: porChar });
 }
 
 export async function clickEn(page, selector, { ms = 460, pausa = 150, dx = 0, dy = 0, idx = 0 } = {}) {

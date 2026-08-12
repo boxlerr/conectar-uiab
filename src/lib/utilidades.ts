@@ -5,6 +5,33 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Pasa a texto plano una descripción guardada como HTML.
+ *
+ * Las descripciones de oportunidades se cargan en un editor enriquecido, o sea
+ * que en la base viven como "<p>Necesitamos <b>500 kg</b>…</p>". Donde se las
+ * muestra como HTML se ven bien; donde se las imprime como texto —la tarjeta
+ * del listado— salían las etiquetas a la vista.
+ *
+ * No sanitiza: es sólo para MOSTRAR un resumen. Para renderizar el contenido
+ * con formato hay que seguir usando el camino de siempre.
+ */
+export function aTextoPlano(html: string | null | undefined): string {
+  if (!html) return "";
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|div|li|h[1-6])>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function crearSlug(texto: string) {
   return texto
     .toString()

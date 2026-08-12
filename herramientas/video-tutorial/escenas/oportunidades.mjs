@@ -8,7 +8,7 @@
  * llegar ahí, así que se cuenta al trote y los textos tipeados son cortos.
  */
 import {
-  dormir, asentar, plano, clickEn, clickPorTexto, tipear, opcional,
+  dormir, asentar, plano, clickEn, clickPorTexto, tipear, tipearDirecto, opcional,
   scrollA, asegurarVisible, posicionarCursor, indicePorTexto,
 } from "../piloto.mjs";
 
@@ -67,6 +67,10 @@ export async function escenaOportunidades({ page, BASE }) {
   // que se filma ya se postuló, o si es la dueña del pedido.
   await opcional("postularse", async () => {
     const CAJA = '[data-tour="op-detalle-postular"] button';
+    // La caja de postulación se monta después de la hidratación. Sin esperarla,
+    // el paso se saltaba por "no hay ningún botón que diga postular" y se
+    // perdía el tramo más importante del capítulo.
+    await page.waitForSelector(CAJA, { timeout: 8000, state: "visible" });
     await scrollA(page, CAJA, { offset: 220, ms: 480 });
     await dormir(280);
     // Por texto: al lado del de postularse hay uno de "Compartir", y apuntar
@@ -115,31 +119,65 @@ export async function escenaOportunidades({ page, BASE }) {
   });
 
   // El rubro es un combobox propio: el panel se monta con portal en el body.
+  //
+  // El plano TERMINA con el panel abierto, y recién después se elige. Es a
+  // propósito: elegir una opción que está abajo obliga a scrollear la lista, y
+  // ese scroll se llevaba el combobox a 585 px por encima del viewport — la
+  // caja quedaba fuera de pantalla y el plano se caía a plano general. Lo que
+  // hay para mostrar acá es el panel con los rubros, no el click.
+  const OPCION = 'div[role="listbox"][aria-label="Rubro"] div[role="option"]';
   await opcional("rubro", async () => {
     await plano(page, {
       id: "rubro",
-      encuadre: "#categoria_id",
+      encuadre: 'div[role="listbox"][aria-label="Rubro"]',
       rotulo: "Elegí el rubro",
       texto: "192 rubros: el sistema lo usa para encontrar a quién le sirve.",
-      velocidad: 1.2,
     }, async () => {
       await clickEn(page, "#categoria_id", { ms: 420 });
-      await dormir(500);
-      const OPCION = 'div[role="listbox"][aria-label="Rubro"] div[role="option"]';
-      // Por TEXTO, no por posición: son 192 rubros y el orden alfabético pone
-      // cualquier cosa en un índice fijo (quedaba "Adhesivos y Selladores"
-      // para un pedido de chapa).
-      let iRubro = await indicePorTexto(page, OPCION, /chapa, perfiles y corte/i);
-      if (iRubro < 0) iRubro = await indicePorTexto(page, OPCION, /metal.rgica/i);
-      if (iRubro >= 0) {
-        await asegurarVisible(page, OPCION, iRubro);
-        await clickEn(page, OPCION, { ms: 400, idx: iRubro });
-      } else {
-        await page.keyboard.press("Escape");
-      }
-      await dormir(400);
+      await page.waitForSelector(OPCION, { timeout: 5000, state: "visible" });
+      await dormir(900);
     });
+
+    // La elección va fuera de plano.
+    //
+    // Por TEXTO y no por posición: son 193 rubros y el orden alfabético pone
+    // cualquier cosa en un índice fijo (quedaba "Adhesivos y Selladores" para
+    // un pedido de chapa). Los nombres están verificados contra el catálogo
+    // real: "Chapa, perfiles y corte" NO existe —era un invento— y por eso el
+    // rubro quedaba sin elegir y el formulario se veía a medio llenar en el
+    // plano final.
+    let iRubro = -1;
+    for (const patron of [/^corte y plegado$/i, /^chapas$/i, /^metal.rgica$/i]) {
+      iRubro = await indicePorTexto(page, OPCION, patron);
+      if (iRubro >= 0) break;
+    }
+    if (iRubro >= 0) {
+      // Con el locator de Playwright y no moviendo el mouse a mano: la lista
+      // mide 288 px con 193 opciones, así que la elegida cae abajo de todo y
+      // el click por coordenadas disparaba un scroll de la PÁGINA que se
+      // llevaba el formulario 585 px para arriba. Esto pasa fuera de plano,
+      // así que el realismo del cursor acá no importa.
+      await page.locator(OPCION).nth(iRubro).click({ timeout: 5000 });
+    } else {
+      console.log("    · ningún rubro conocido en la lista: sigo sin elegir");
+      await page.keyboard.press("Escape");
+    }
+    await dormir(400);
   });
+
+  // Localidad y descripción se completan FUERA de plano: no aportan nada
+  // filmadas (es tipeo sobre campos vacíos) pero sin ellas el plano del
+  // remate muestra un formulario a medio llenar, que vende lo contrario.
+  // Con `tipearDirecto` y no con `tipear`: el editor de la descripción arranca
+  // en y≈967, o sea casi todo debajo del pliegue, y el click por coordenadas
+  // lo enfocaba a veces sí y a veces no (quedaba el foco en BODY y el texto se
+  // perdía sin error). Como esto no se filma, el mouse no aporta nada.
+  await opcional("localidad", () =>
+    tipearDirecto(page, "#localidad", "Burzaco, Buenos Aires"));
+  await opcional("descripción", () =>
+    tipearDirecto(page, 'div[role="textbox"][aria-labelledby="lbl-descripcion"]',
+      "Corte láser y plegado de chapa de 2 mm, entrega en planta de Burzaco."));
+  await dormir(300);
 
   // ── 7. El pico: el match ────────────────────────────────────────
   // El remate va sin selectores que puedan faltar: si el formulario quedó a
@@ -149,15 +187,19 @@ export async function escenaOportunidades({ page, BASE }) {
     await dormir(300);
   });
 
-  const BOTON = 'main form button[type="submit"]';
-  const hayBoton = await page.locator(BOTON).count() > 0;
+  // Se encuadra el FORMULARIO COMPLETADO, no el botón de publicar. El botón
+  // vive en una barra sticky pegada al borde inferior, así que encuadrarlo
+  // dejaba el remate de la pieza en una franja vacía con el cartel encima.
+  // Lo que hay que ver acá es el pedido ya cargado.
+  const FORM = "main form";
+  const hayForm = await page.locator(FORM).count() > 0;
 
   await plano(page, {
     id: "match",
-    encuadre: hayBoton ? BOTON : null,
-    escala: hayBoton ? "auto" : 1,
+    encuadre: hayForm ? FORM : null,
+    escala: hayForm ? 1.35 : 1,
     rotulo: "Y listo",
     texto: "El sistema se lo sugiere a los proveedores que matchean.",
     sello: "Match",
-  }, () => dormir(1400));
+  }, () => dormir(1500));
 }

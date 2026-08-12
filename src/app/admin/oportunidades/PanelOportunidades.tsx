@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cerrarOportunidad, eliminarOportunidad } from "@/modulos/admin/acciones";
 import { llamarAccion } from "@/lib/accion-segura";
+import { aTextoPlano } from "@/lib/utilidades";
 
 type Oportunidad = {
   id: string;
@@ -199,7 +200,7 @@ export function PanelOportunidades({ oportunidades }: { oportunidades: Oportunid
               {seleccionada.descripcion && (
                 <section>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">Descripción</p>
-                  <p className="text-sm text-slate-700 bg-slate-50 p-4 rounded-xl leading-relaxed">{seleccionada.descripcion}</p>
+                  <p className="text-sm text-slate-700 bg-slate-50 p-4 rounded-xl leading-relaxed">{aTextoPlano(seleccionada.descripcion)}</p>
                 </section>
               )}
             </div>

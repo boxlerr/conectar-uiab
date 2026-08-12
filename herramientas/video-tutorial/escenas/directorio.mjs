@@ -129,8 +129,18 @@ export async function escenaDirectorio({ page, BASE }) {
   // ── 7. El catálogo (lo mejor que tiene Vaxler) ──────────────────
   // No hay data-tour en el catálogo: se lo busca por el texto de su título,
   // que es más estable que un `nth-of-type` sobre la grilla de secciones.
+  // Ojo con el nombre: la sección se llama "Productos y Servicios". Buscando
+  // /catálogo/ no matcheaba nunca y el plano se saltaba en silencio.
   const CATALOGO = "main div.rounded-2xl";
-  const iCat = await indicePorTexto(page, CATALOGO, /cat.logo/i);
+  // El catálogo lo pinta el cliente después de la hidratación: sin esperarlo,
+  // a veces se buscaba antes de que existiera y el plano —que es el mejor
+  // material que hay en la base— se salteaba en silencio.
+  await page.waitForFunction(
+    () => [...document.querySelectorAll("main div.rounded-2xl")]
+      .some((e) => /productos y servicios/i.test(e.textContent || "")),
+    null, { timeout: 8000 },
+  ).catch(() => console.log("    · el catálogo no apareció en 8 s"));
+  const iCat = await indicePorTexto(page, CATALOGO, /productos y servicios/i);
   if (iCat >= 0) {
     await scrollA(page, CATALOGO, { offset: 150, ms: 620, idx: iCat });
     await dormir(360);
