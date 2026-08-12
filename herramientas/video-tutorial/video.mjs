@@ -9,12 +9,13 @@
  * revisa antes que estén las condiciones: si falta algo, lo dice en castellano
  * y explica cómo resolverlo, en vez de escupir un stack trace a la mitad.
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
+const RAIZ = resolve(AQUI, "../..");
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 
 const args = process.argv.slice(2);
@@ -33,22 +34,85 @@ const correr = (script, extra = []) => {
 
 const titulo = (n, texto) => console.log(`\n\x1b[1m${n}/4 · ${texto}\x1b[0m`);
 
-// ── Antes de empezar: ¿está la app levantada? ────────────────────────
-// Es el error número uno y el más confuso, porque grabar.mjs falla recién
-// en el login y el mensaje no dice nada del dev server.
-console.log(`Voy a grabar contra ${BASE}`);
-try {
-  const r = await fetch(BASE, { signal: AbortSignal.timeout(15_000) });
-  if (!r.ok) throw new Error(`respondió HTTP ${r.status}`);
-} catch (e) {
-  console.error(`\n✗ No pude entrar a ${BASE} (${e.message}).\n`);
-  console.error("  La app tiene que estar corriendo. En OTRA terminal, desde la");
-  console.error("  raíz del repo:\n");
-  console.error("      npm run dev\n");
-  console.error("  Cuando diga \"Ready\", volvé acá y repetí este comando.");
-  console.error("  Si arrancó en otro puerto, pasáselo:  BASE_URL=http://localhost:3001 npm run video");
+// "contesta" ≠ "contesta bien": si el puerto responde pero con 500, la app
+// arrancó y el problema es de configuración, no del arranque. Distinguirlo
+// cambia por completo el consejo que damos al final.
+let contestoAlgunaVez = false;
+const responde = async () => {
+  try {
+    const r = await fetch(BASE, { signal: AbortSignal.timeout(4000) });
+    contestoAlgunaVez = true;
+    return r.ok;
+  } catch {
+    return false;
+  }
+};
+
+// ── La app ───────────────────────────────────────────────────────────
+// Si ya está levantada, la usamos. Si no, la levantamos NOSOTROS desde la
+// raíz del repo y la bajamos al terminar. Antes esto pedía abrir una segunda
+// terminal y correr `npm run dev` allá; el paso se prestaba a hacerlo en la
+// carpeta equivocada —donde no existe ese script— y el error que salía
+// ("Missing script: dev") no tenía nada que ver con el video.
+let dev = null;
+
+async function asegurarApp() {
+  if (await responde()) {
+    console.log(`· la app ya está corriendo en ${BASE}`);
+    return;
+  }
+
+  console.log(`· levantando la app (npm run dev en ${RAIZ})`);
+  dev = spawn("npm", ["run", "dev"], {
+    cwd: RAIZ,
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
+    shell: process.platform === "win32",
+  });
+
+  let salida = "";
+  dev.stdout.on("data", (d) => { salida += d; });
+  dev.stderr.on("data", (d) => { salida += d; });
+
+  // Hasta 90 s: la primera compilación de Next puede tardar.
+  for (let i = 0; i < 90; i++) {
+    if (dev.exitCode !== null) break;
+    if (await responde()) {
+      console.log("· lista");
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+
+  bajarApp();
+  if (contestoAlgunaVez) {
+    console.error(`\n✗ La app levantó en ${BASE} pero devuelve error.`);
+    console.error("  Casi siempre es el .env de la raíz del repo: revisá que estén");
+    console.error("  NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+    console.error("  y SUPABASE_SERVICE_ROLE_KEY.\n");
+  } else {
+    console.error(`\n✗ No pude levantar la app en ${BASE}.`);
+    console.error("  Si arrancó en otro puerto, pasáselo:");
+    console.error("      BASE_URL=http://localhost:3001 npm run video\n");
+  }
+  console.error("  Lo último que dijo:\n");
+  console.error(salida.split("\n").slice(-25).join("\n"));
   process.exit(1);
 }
+
+function bajarApp() {
+  if (!dev || dev.exitCode !== null) return;
+  // detached:true agrupa a Next y sus hijos: matando el grupo (-pid) no queda
+  // ningún proceso ocupando el puerto.
+  try { process.kill(-dev.pid, "SIGTERM"); } catch {}
+  dev = null;
+}
+
+process.on("exit", bajarApp);
+process.on("SIGINT", () => { bajarApp(); process.exit(130); });
+
+console.log(`Voy a grabar contra ${BASE}`);
+await asegurarApp();
 
 titulo(1, "Planos aéreos");
 if (existsSync(join(AQUI, "assets/apertura.mp4")) && existsSync(join(AQUI, "assets/cierre.mp4"))) {
@@ -85,6 +149,10 @@ try {
     }
   }
 }
+
+// El montaje no toca la app: la bajamos ahora y no durante los minutos que
+// tarda ffmpeg.
+bajarApp();
 
 titulo(4, "Montar");
 correr("montar.mjs", paraMontar);

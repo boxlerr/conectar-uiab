@@ -22,17 +22,7 @@ npm install
 
 Eso ya trae ffmpeg y ffprobe — no hay que instalar nada más a mano.
 
-**Cada vez que quieras el video**, hacen falta dos terminales:
-
-En la **primera**, desde la raíz del repo, levantás la app:
-
-```bash
-npm run dev
-```
-
-Esperá a que diga `Ready`. Dejala corriendo y **no la cierres**.
-
-En la **segunda**:
+**Cada vez que quieras el video**, una sola terminal y un solo comando:
 
 ```bash
 cd herramientas/video-tutorial
@@ -42,9 +32,16 @@ npm run video
 Listo. Cuando termina, el archivo queda en
 `herramientas/video-tutorial/tutorial-uiab-conecta.mp4`.
 
-`npm run video` hace los cuatro pasos solo (baja los planos, genera el logo,
-graba y monta) y, si falta algo, te dice qué en castellano. Si la app arrancó en
-otro puerto, avisale: `BASE_URL=http://localhost:3001 npm run video`.
+`npm run video` hace todo solo: **levanta la app** si no está corriendo (y la
+baja al terminar), baja los planos aéreos, genera el logo, graba y monta. Si
+falta algo, te dice qué en castellano.
+
+> Si ya tenías la app corriendo en otra terminal, la usa y no la toca. Si la
+> levantaste en otro puerto: `BASE_URL=http://localhost:3001 npm run video`.
+
+Para que la grabación funcione, el `.env` de la raíz del repo tiene que tener
+las claves de Supabase — son las mismas con las que corrés la app todos los
+días, no hay que configurar nada aparte.
 
 ### Variantes
 
