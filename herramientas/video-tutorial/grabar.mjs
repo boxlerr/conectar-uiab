@@ -121,6 +121,30 @@ async function iniciarSesion(navegador) {
   await page.waitForLoadState("networkidle").catch(() => {});
 
   await ctx.storageState({ path: ESTADO });
+
+  // Calentar las rutas ANTES de encender la cámara. `next dev` compila cada
+  // ruta la primera vez que se la visita, y esos segundos quedaban grabados:
+  // el capítulo de Oportunidades tenía presupuesto de ~32 s y salía en 77 s,
+  // casi todo esperando compilaciones que el espectador ve como cuelgues.
+  // Esta pasada no se filma, así que acá no cuestan nada.
+  process.stdout.write("  · calentando rutas");
+  for (const ruta of ["/directorio", "/oportunidades", "/oportunidades/nueva"]) {
+    await page.goto(`${BASE}${ruta}`, { waitUntil: "domcontentloaded" }).catch(() => {});
+    await page.waitForLoadState("networkidle").catch(() => {});
+    process.stdout.write(".");
+  }
+  // La ficha de empresa es otra ruta más ([slug]) y también hay que compilarla.
+  await page.goto(`${BASE}/directorio`, { waitUntil: "domcontentloaded" }).catch(() => {});
+  await page.waitForLoadState("networkidle").catch(() => {});
+  const ficha = await page.locator('a[href^="/empresas/"]').first().getAttribute("href")
+    .catch(() => null);
+  if (ficha) {
+    await page.goto(`${BASE}${ficha}`, { waitUntil: "domcontentloaded" }).catch(() => {});
+    await page.waitForLoadState("networkidle").catch(() => {});
+    process.stdout.write(".");
+  }
+  console.log(" listo");
+
   await ctx.close();
   console.log("  ✓ sesión iniciada y guardada");
 }

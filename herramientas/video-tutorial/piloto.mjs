@@ -181,6 +181,38 @@ export async function saltarTutorial(page) {
   }
 }
 
+/**
+ * Corre un tramo que puede no estar disponible y sigue si falla.
+ *
+ * La pantalla cambia según el estado: el modal de "Postularse" no existe si
+ * ya te postulaste, el tablero está vacío si no hay pedidos. Sin esto, un
+ * elemento que no aparece corta la pasada entera y se pierde todo lo que
+ * venía después — que suele ser lo mejor del capítulo.
+ */
+export async function opcional(nombre, fn) {
+  try {
+    await fn();
+    return true;
+  } catch (e) {
+    console.log(`    · me salteo "${nombre}": ${e.message.split("\n")[0]}`);
+    return false;
+  }
+}
+
+/**
+ * Clickea el elemento cuyo TEXTO matchea, no el que esté en una posición.
+ * Los `button:nth-of-type(1)` se rompen solos: alcanza con que la pantalla
+ * agregue un botón arriba, o con que el que buscábamos no se renderice.
+ */
+export async function clickPorTexto(page, selector, patron, opts = {}) {
+  const i = await page.evaluate(([s, p]) => {
+    const re = new RegExp(p, "i");
+    return [...document.querySelectorAll(s)].findIndex((e) => re.test(e.textContent || ""));
+  }, [selector, patron.source ?? patron]);
+  if (i < 0) throw new Error(`No hay ningún ${selector} que diga /${patron.source ?? patron}/`);
+  return clickEn(page, selector, { ...opts, idx: i });
+}
+
 /** Trae un elemento al viewport dentro de su propio contenedor scrolleable. */
 export async function asegurarVisible(page, selector, idx = 0) {
   const ok = await page.evaluate(([s, i]) => {
