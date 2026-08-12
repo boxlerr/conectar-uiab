@@ -101,19 +101,31 @@ async function fetchCertificaciones(
 
 // Sección pública "Certificaciones y normas". Contenido público de alto valor:
 // va FUERA del gate de login. accent = "blue" (empresas) | "amber" (prestadores).
-function SeccionCertificaciones({ certs, accent }: { certs: CertFicha[]; accent: "blue" | "amber" }) {
+// Vive en la columna derecha, debajo de los datos de contacto: es un dato de
+// respaldo para decidir si contactar a la empresa, no contenido de la ficha —
+// en el medio se comía una pantalla entera para mostrar dos líneas.
+function TarjetaCertificaciones({ certs, accent }: { certs: CertFicha[]; accent: "blue" | "amber" }) {
   if (certs.length === 0) return null;
-  const iconColor = accent === "amber" ? "text-[#bf7035]" : "text-blue-600";
+  const esAmber = accent === "amber";
+  const iconColor = esAmber ? "text-[#bf7035]" : "text-blue-600";
 
   return (
-    <section className="bg-white p-7 rounded-md border border-slate-200">
-      <div className="flex items-center gap-2.5 mb-5">
+    <section
+      className={`bg-white rounded-md border overflow-hidden ${
+        esAmber ? "border-[#191c1e]/8" : "border-slate-200"
+      }`}
+    >
+      <div
+        className={`flex items-center gap-2.5 px-6 py-4 border-b ${
+          esAmber ? "border-[#191c1e]/6 bg-[#f7f9fb]" : "border-slate-200 bg-slate-50/50"
+        }`}
+      >
         <Award className={`w-4 h-4 ${iconColor}`} />
-        <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
+        <h3 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
           Certificaciones y normas
-        </h2>
+        </h3>
       </div>
-      <div className="space-y-4">
+      <div className="p-6 space-y-4">
         {certs.map((c, idx) => {
           const etiqueta = etiquetaNorma(c.codigo_norma, c.nombre_libre);
           const familia = familiaNorma(c.codigo_norma);
@@ -159,11 +171,11 @@ function SeccionCertificaciones({ certs, accent }: { certs: CertFicha[]; accent:
             </div>
           );
         })}
+        <p className="text-[11px] text-slate-400 pt-4 border-t border-slate-100 leading-relaxed">
+          Publicadas por cada empresa bajo su responsabilidad. La UIAB no emite, verifica ni audita
+          certificaciones.
+        </p>
       </div>
-      <p className="text-[11px] text-slate-400 mt-5 pt-4 border-t border-slate-100 leading-relaxed">
-        Certificaciones y certificados publicados por cada empresa bajo su responsabilidad. La UIAB
-        no emite, verifica ni audita certificaciones.
-      </p>
     </section>
   );
 }
@@ -822,8 +834,6 @@ async function EmpresaProfile({
               </section>
             )}
 
-            <SeccionCertificaciones certs={certs} accent="blue" />
-
             {/* Gated content */}
             {isAuthenticated ? (
               <>
@@ -889,8 +899,12 @@ async function EmpresaProfile({
           </main>
 
           <aside data-tour="ficha-sidebar-contacto" className="w-full tab:w-[38%] lg:w-[28%]">
-            {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo */}
-            <div className="bg-white rounded-md border border-slate-200 sticky top-24 overflow-hidden">
+            {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo. El
+                max-h + overflow van en el wrapper pegado: con varias
+                certificaciones la columna puede pasar el alto de pantalla y sin
+                eso el pie queda fuera de alcance. */}
+            <div className="sticky top-24 space-y-4 max-h-[calc(100svh-7rem)] overflow-y-auto">
+            <div className="bg-white rounded-md border border-slate-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
                 <h3 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
                   Datos de contacto
@@ -983,6 +997,9 @@ async function EmpresaProfile({
                   </a>
                 </div>
               </>
+            </div>
+
+            <TarjetaCertificaciones certs={certs} accent="blue" />
             </div>
           </aside>
         </div>
@@ -1226,8 +1243,6 @@ async function ProveedorProfile({
               </div>
             </section>
 
-            <SeccionCertificaciones certs={certs} accent="amber" />
-
             {/* Gated content — los prestadores no reciben reseñas, solo catálogo */}
             {isAuthenticated ? (
               catalogoItems.length > 0 && (
@@ -1248,8 +1263,12 @@ async function ProveedorProfile({
 
           {/* Sidebar */}
           <aside className="w-full tab:w-[40%] lg:w-[35%]">
-            {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo */}
-            <div className="bg-white rounded-md border border-[#191c1e]/8 sticky top-24 overflow-hidden">
+            {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo. El
+                max-h + overflow van en el wrapper pegado: con varias
+                certificaciones la columna puede pasar el alto de pantalla y sin
+                eso el pie queda fuera de alcance. */}
+            <div className="sticky top-24 space-y-4 max-h-[calc(100svh-7rem)] overflow-y-auto">
+            <div className="bg-white rounded-md border border-[#191c1e]/8 overflow-hidden">
               <div className="px-6 py-4 border-b border-[#191c1e]/6 bg-[#f7f9fb]">
                 <h3 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
                   Datos de Contacto
@@ -1341,6 +1360,9 @@ async function ProveedorProfile({
                   </a>
                 </div>
               </>
+            </div>
+
+            <TarjetaCertificaciones certs={certs} accent="amber" />
             </div>
           </aside>
         </div>
