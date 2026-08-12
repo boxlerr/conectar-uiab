@@ -27,7 +27,10 @@ const correr = (script, extra = []) => {
   const r = spawnSync(process.execPath, [join(AQUI, script), ...extra], {
     stdio: "inherit",
     cwd: AQUI,
-    env: process.env,
+    // BASE_URL explícito y no `process.env` pelado: acá ya sabemos contra qué
+    // dirección levantamos la app, y si no se la pasamos, grabar.mjs cae en su
+    // propio valor por defecto y va a grabar a otro puerto.
+    env: { ...process.env, BASE_URL: BASE },
   });
   if (r.status !== 0) throw new Error(`${script} terminó con código ${r.status}`);
 };

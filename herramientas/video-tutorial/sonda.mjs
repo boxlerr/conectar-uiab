@@ -4,7 +4,7 @@
  */
 import { chromium } from "playwright";
 
-const BASE = process.env.BASE_URL || "http://localhost:51400";
+const BASE = process.env.BASE_URL || "http://localhost:3000";
 const EMAIL = "boxlerjulian+empresatest@hotmail.com";
 const PASS = "UiabPrueba.2026!";
 

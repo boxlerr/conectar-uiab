@@ -19,7 +19,10 @@ import { CAPA_VISUAL, dormir } from "./piloto.mjs";
 import { escenaDirectorio } from "./escenas/directorio.mjs";
 import { escenaOportunidades } from "./escenas/oportunidades.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:51400";
+// 3000 y no un puerto suelto: es el que usa `next dev` y el que da por sentado
+// el resto de la herramienta. Tener dos valores por defecto distintos entre
+// este archivo y video.mjs ya hizo que la grabación fuera a parar a otro lado.
+const BASE = process.env.BASE_URL || "http://localhost:3000";
 const SALIDA = join(process.cwd(), "grabaciones");
 const ESTADO = join(process.cwd(), "sesion.json");
 
