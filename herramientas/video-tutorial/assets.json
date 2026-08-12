@@ -1,0 +1,24 @@
+{
+  "_comentario": [
+    "Planos cinematográficos generados con Higgsfield (modelo seedance_2_0,",
+    "1920x1080, 16:9, sin audio). Los MP4 no se versionan — se bajan con",
+    "`node traer-assets.mjs`. Si una URL caduca, regenerá el plano con el",
+    "prompt de acá abajo y actualizá el link."
+  ],
+  "planos": [
+    {
+      "nombre": "apertura",
+      "destino": "assets/apertura.mp4",
+      "duracion": 4,
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39DWmsuAL4sm2RdSCFiMqD1gGlA/hf_20260812_162039_500ba4e5-0bb6-4196-833f-c7787319d665.mp4",
+      "prompt": "Aerial drone shot flying fast and low over a modern industrial park at golden hour: long metal-roofed warehouses, loading docks, parked trucks, container yards, green strips between plots. The camera accelerates forward with a slight downward tilt. Thin luminous orange and cyan light trails snake between the rooftops like a network linking the buildings, growing brighter as the camera pushes in. Warm low sun, long shadows, volumetric haze, clean modern cinematography, high contrast, deep navy blue shadows. No text, no logos, no people."
+    },
+    {
+      "nombre": "cierre",
+      "destino": "assets/cierre.mp4",
+      "duracion": 5,
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39DWmsuAL4sm2RdSCFiMqD1gGlA/hf_20260812_162039_caf7adf9-eb77-4da6-b2bd-65413d45891b.mp4",
+      "prompt": "Slow cinematic drone pull-back rising above a modern industrial park at dusk, blue hour: warehouse roofs with warm light glowing through skylights, trucks with headlights on the access road, a soft grid of orange and cyan lights linking the rooftops and fading toward the horizon of a wide plain. Calm, majestic, wide angle, deep navy sky with a last orange band on the horizon, volumetric haze, cinematic color grade. No text, no logos, no people."
+    }
+  ]
+}

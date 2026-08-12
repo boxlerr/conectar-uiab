@@ -56,6 +56,9 @@
   #uiab-cursor.presionado { scale: .82; }
   /* Sobre una placa a pantalla completa no hay nada que señalar: el puntero
      flotando ahí sólo delata que es una grabación automatizada. */
+  /* El chip, el sello y el subtítulo quedan tapados por la placa sin regla:
+     va después en el DOM y pinta encima. El cursor y la onda no, porque van
+     todavía más abajo. */
   #uiab-placa.visible ~ #uiab-cursor,
   #uiab-placa.visible ~ #uiab-onda { opacity: 0; transition: opacity .3s ease; }
   #uiab-onda {
@@ -70,34 +73,53 @@
   }
 
   /* ── Foco sobre un elemento ─────────────────────────────────────── */
+  /* Las transiciones son cortas a propósito: el recuadro tiene que LLEGAR,
+     no viajar. Viajando se lee como una animación; llegando, como un corte. */
   #uiab-foco {
     position: absolute; border-radius: 14px; opacity: 0;
     border: 2.5px solid ${MARCA.naranja};
     box-shadow: 0 0 0 4px rgba(249,115,22,.16),
                 0 0 26px 6px rgba(249,115,22,.28),
                 0 0 0 9999px rgba(7,42,68,0);
-    transition: opacity .32s ease, top .5s cubic-bezier(.22,1,.36,1),
-                left .5s cubic-bezier(.22,1,.36,1),
-                width .5s cubic-bezier(.22,1,.36,1),
-                height .5s cubic-bezier(.22,1,.36,1),
-                box-shadow .45s ease;
+    transition: opacity .16s ease, top .34s cubic-bezier(.16,1.15,.3,1),
+                left .34s cubic-bezier(.16,1.15,.3,1),
+                width .34s cubic-bezier(.16,1.15,.3,1),
+                height .34s cubic-bezier(.16,1.15,.3,1),
+                box-shadow .3s ease;
   }
   #uiab-foco.visible { opacity: 1; }
   #uiab-foco.atenuando { box-shadow: 0 0 0 4px rgba(249,115,22,.16),
                 0 0 26px 6px rgba(249,115,22,.28),
                 0 0 0 9999px rgba(7,42,68,.42); }
+  /* Destello al aterrizar: es el golpe que hace que el ojo salte al elemento. */
+  #uiab-foco::after {
+    content: ""; position: absolute; inset: -3px; border-radius: inherit;
+    border: 2px solid ${MARCA.naranja}; opacity: 0;
+  }
+  #uiab-foco.destello::after { animation: uiab-destello .5s cubic-bezier(.2,.7,.3,1); }
+  @keyframes uiab-destello {
+    0%   { opacity: .9; transform: scale(1); }
+    100% { opacity: 0;  transform: scale(1.055); }
+  }
 
   /* ── Zona inferior: chip de capítulo + subtítulo, alineados ─────── */
   #uiab-inferior {
     position: absolute; left: 50%; bottom: 54px; width: min(940px, 78vw);
     transform: translateX(-50%);
-    display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
+    display: flex; flex-direction: column; align-items: stretch; gap: 12px;
+  }
+  /* Chip a la izquierda, sello a la derecha, en la misma línea. El sello
+     oculto sigue ocupando su lugar, así que el chip no se mueve al entrar. */
+  #uiab-fila {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
   }
 
   /* ── Subtítulo (lower third) ────────────────────────────────────── */
+  /* Entra con overshoot (la curva pasa de 1 y vuelve): el cartel "rebota" en
+     lugar de deslizarse. Es la diferencia entre informar y puntuar. */
   #uiab-sub {
     position: relative; width: 100%;
-    transform: translateY(26px); opacity: 0;
+    transform: translateY(18px) scale(.97); opacity: 0;
     background: rgba(12,60,96,.95);
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
     backdrop-filter: blur(16px) saturate(1.3);
@@ -105,18 +127,19 @@
     border-left: 5px solid ${MARCA.naranja};
     padding: 20px 30px 22px;
     box-shadow: 0 22px 55px rgba(2,20,40,.5);
-    transition: opacity .42s ease, transform .52s cubic-bezier(.22,1,.36,1);
+    transition: opacity .15s ease, transform .38s cubic-bezier(.16,1.5,.3,1);
   }
-  #uiab-sub.visible { opacity: 1; transform: translateY(0); }
+  #uiab-sub.visible { opacity: 1; transform: translateY(0) scale(1); }
   #uiab-sub .rotulo {
     font-family: var(--font-poppins), Poppins, system-ui, sans-serif;
     font-weight: 700; font-size: 13px; letter-spacing: .13em;
     text-transform: uppercase; color: ${MARCA.azulClaro}; margin-bottom: 7px;
   }
   #uiab-sub .cuerpo {
-    font-size: 25px; line-height: 1.36; color: #fff; font-weight: 400;
+    font-size: 27px; line-height: 1.32; color: #fff; font-weight: 500;
+    letter-spacing: -.005em;
   }
-  #uiab-sub .cuerpo b { font-weight: 700; color: #ffd9b8; }
+  #uiab-sub .cuerpo b { font-weight: 800; color: #ffb877; }
 
   /* ── Chip de capítulo (arriba del subtítulo, no sobre el logo) ──── */
   #uiab-chip {
@@ -126,8 +149,8 @@
     border: 1px solid rgba(255,255,255,.12);
     border-radius: 999px; padding: 9px 18px 9px 14px;
     box-shadow: 0 10px 30px rgba(2,20,40,.35);
-    opacity: 0; transform: translateY(-14px);
-    transition: opacity .38s ease, transform .45s cubic-bezier(.22,1,.36,1);
+    opacity: 0; transform: translateY(-12px);
+    transition: opacity .14s ease, transform .34s cubic-bezier(.16,1.45,.3,1);
   }
   #uiab-chip.visible { opacity: 1; transform: translateY(0); }
   #uiab-chip .punto {
@@ -140,12 +163,42 @@
     text-transform: uppercase; color: #fff;
   }
 
+  /* ── Sello: el golpe de la pieza ────────────────────────────────── */
+  /* Entra de una, con overshoot y una pizca de rotación, y se va rápido.
+     Vive en la fila del chip (no flotando arriba a la derecha): ahí chocaba
+     con el recuadro de foco cada vez que el elemento resaltado era ancho,
+     que es casi siempre — la toolbar y el hero ocupan todo el ancho. */
+  #uiab-sello {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 26px 14px 22px; border-radius: 999px;
+    background: linear-gradient(135deg, ${MARCA.naranja}, #ff9d4d);
+    box-shadow: 0 18px 44px rgba(249,115,22,.42),
+                0 0 0 6px rgba(249,115,22,.14);
+    opacity: 0; transform: scale(.6) rotate(-7deg);
+    transition: opacity .12s ease, transform .1s ease;
+  }
+  #uiab-sello .texto {
+    font-family: var(--font-poppins), Poppins, system-ui, sans-serif;
+    font-weight: 800; font-size: 24px; letter-spacing: .04em;
+    text-transform: uppercase; color: #fff; white-space: nowrap;
+  }
+  #uiab-sello .tilde {
+    width: 26px; height: 26px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: rgba(255,255,255,.28);
+    font-size: 16px; font-weight: 900; color: #fff; line-height: 1;
+  }
+  #uiab-sello.visible {
+    opacity: 1; transform: scale(1) rotate(-2deg);
+    transition: opacity .1s ease, transform .42s cubic-bezier(.16,1.75,.35,1);
+  }
+
   /* ── Barra de progreso ──────────────────────────────────────────── */
   #uiab-barra {
-    position: absolute; top: 0; left: 0; height: 4px; width: 0%;
+    position: absolute; top: 0; left: 0; height: 5px; width: 0%;
     background: linear-gradient(90deg, ${MARCA.azul}, ${MARCA.naranja});
-    box-shadow: 0 0 12px rgba(249,115,22,.5);
-    transition: width .85s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 0 14px rgba(249,115,22,.6);
+    transition: width .45s cubic-bezier(.2,.9,.25,1);
   }
 
   /* ── Placa a pantalla completa ──────────────────────────────────── */
@@ -155,7 +208,7 @@
     align-items: center; justify-content: center; gap: 0;
     background:
       radial-gradient(1100px 620px at 50% 34%, #14507f 0%, ${MARCA.navy} 46%, ${MARCA.navyOscuro} 100%);
-    transition: opacity .62s ease;
+    transition: opacity .28s ease;
   }
   #uiab-placa.visible { opacity: 1; }
   #uiab-placa .trama {
@@ -173,41 +226,43 @@
     position: relative; display: flex; flex-direction: column;
     align-items: center; text-align: center; padding: 0 60px;
   }
+  /* La cascada arranca casi junta: escalonada a .1/.22/.32/.5/.6 la placa se
+     comía casi un segundo sólo en armarse, y son 3 placas en la pieza. */
   #uiab-placa .logo {
     height: 62px; margin-bottom: 40px;
     filter: brightness(0) invert(1);
-    opacity: 0; transform: translateY(16px);
-    transition: opacity .7s ease .1s, transform .8s cubic-bezier(.22,1,.36,1) .1s;
+    opacity: 0; transform: translateY(14px);
+    transition: opacity .3s ease .02s, transform .44s cubic-bezier(.18,1.3,.32,1) .02s;
   }
   #uiab-placa .rotulo {
     font-family: var(--font-poppins), Poppins, system-ui, sans-serif;
     font-weight: 700; font-size: 15px; letter-spacing: .3em;
     text-transform: uppercase; color: ${MARCA.naranja}; margin-bottom: 18px;
-    opacity: 0; transform: translateY(16px);
-    transition: opacity .7s ease .22s, transform .8s cubic-bezier(.22,1,.36,1) .22s;
+    opacity: 0; transform: translateY(14px);
+    transition: opacity .3s ease .08s, transform .44s cubic-bezier(.18,1.3,.32,1) .08s;
   }
   #uiab-placa h1 {
     font-family: var(--font-poppins), Poppins, system-ui, sans-serif;
-    font-weight: 800; font-size: 66px; line-height: 1.08; color: #fff;
-    letter-spacing: -.02em; max-width: 17ch;
-    opacity: 0; transform: translateY(20px);
-    transition: opacity .75s ease .32s, transform .85s cubic-bezier(.22,1,.36,1) .32s;
+    font-weight: 800; font-size: 72px; line-height: 1.06; color: #fff;
+    letter-spacing: -.025em; max-width: 17ch;
+    opacity: 0; transform: translateY(18px) scale(.98);
+    transition: opacity .3s ease .14s, transform .5s cubic-bezier(.18,1.35,.32,1) .14s;
   }
   #uiab-placa .regla {
     width: 0; height: 4px; border-radius: 2px; margin: 30px 0 26px;
     background: linear-gradient(90deg, ${MARCA.naranja}, ${MARCA.azul});
-    transition: width .9s cubic-bezier(.22,1,.36,1) .5s;
+    transition: width .5s cubic-bezier(.2,.9,.25,1) .24s;
   }
   #uiab-placa p {
     font-size: 25px; line-height: 1.5; color: rgba(233,244,252,.86);
     max-width: 30ch; font-weight: 300;
-    opacity: 0; transform: translateY(16px);
-    transition: opacity .75s ease .6s, transform .85s cubic-bezier(.22,1,.36,1) .6s;
+    opacity: 0; transform: translateY(14px);
+    transition: opacity .32s ease .3s, transform .46s cubic-bezier(.18,1.3,.32,1) .3s;
   }
   #uiab-placa.entrar .logo,
   #uiab-placa.entrar .rotulo,
-  #uiab-placa.entrar h1,
   #uiab-placa.entrar p { opacity: 1; transform: translateY(0); }
+  #uiab-placa.entrar h1 { opacity: 1; transform: translateY(0) scale(1); }
   #uiab-placa.entrar .regla { width: 128px; }
   `;
 
@@ -218,7 +273,10 @@
     <div id="uiab-barra"></div>
     <div id="uiab-foco"></div>
     <div id="uiab-inferior">
-      <div id="uiab-chip"><span class="punto"></span><span class="texto"></span></div>
+      <div id="uiab-fila">
+        <div id="uiab-chip"><span class="punto"></span><span class="texto"></span></div>
+        <div id="uiab-sello"><span class="tilde">✓</span><span class="texto"></span></div>
+      </div>
       <div id="uiab-sub"><div class="rotulo"></div><div class="cuerpo"></div></div>
     </div>
     <div id="uiab-placa">
@@ -284,31 +342,47 @@
     },
     posicionarCursor(x, y) { montar(); mover(x, y); },
 
+    /* Los tiempos de acá son plata pura: se pagan una vez por paso y el guion
+       tiene ~20 pasos. Cada 100 ms de más son ~2 s de video. */
     async sub(rotulo, cuerpo) {
       montar();
       const el = $("#uiab-sub");
       const yaVisible = el.classList.contains("visible");
-      if (yaVisible) { el.classList.remove("visible"); await espera(300); }
+      if (yaVisible) { el.classList.remove("visible"); await espera(130); }
       el.querySelector(".rotulo").textContent = rotulo;
       el.querySelector(".cuerpo").innerHTML = cuerpo;
       void el.offsetWidth;
       el.classList.add("visible");
-      await espera(520);
+      await espera(240);
     },
     async subOff() {
       const el = $("#uiab-sub");
       if (!el?.classList.contains("visible")) return;
       el.classList.remove("visible");
-      await espera(420);
+      await espera(190);
     },
 
     async chip(texto) {
       montar();
       const el = $("#uiab-chip");
-      if (texto === null) { el.classList.remove("visible"); await espera(380); return; }
+      if (texto === null) { el.classList.remove("visible"); await espera(180); return; }
       el.querySelector(".texto").textContent = texto;
       el.classList.add("visible");
-      await espera(420);
+      await espera(220);
+    },
+
+    /** Sello: el golpe. Entra de una, se queda poco y se va. */
+    async sello(texto, { ms = 1100 } = {}) {
+      montar();
+      const el = $("#uiab-sello");
+      if (texto === null) { el.classList.remove("visible"); await espera(180); return; }
+      el.querySelector(".texto").textContent = texto;
+      el.classList.remove("visible");
+      void el.offsetWidth;
+      el.classList.add("visible");
+      await espera(ms);
+      el.classList.remove("visible");
+      await espera(150);
     },
 
     progreso(pct) { montar(); $("#uiab-barra").style.width = `${pct}%`; },
@@ -327,13 +401,18 @@
       el.style.height = `${r.height + m * 2}px`;
       el.classList.toggle("atenuando", atenuar);
       el.classList.add("visible");
-      await espera(520);
+      // Re-disparar la animación del ::after exige sacar la clase y forzar
+      // reflow: si no, el segundo foco seguido no destella.
+      el.classList.remove("destello");
+      void el.offsetWidth;
+      el.classList.add("destello");
+      await espera(250);
       return true;
     },
     async focoOff() {
       const el = $("#uiab-foco");
-      el.classList.remove("visible", "atenuando");
-      await espera(340);
+      el.classList.remove("visible", "atenuando", "destello");
+      await espera(170);
     },
 
     async placa({ rotulo = "", titulo = "", texto = "", ms = 2600 }) {
@@ -352,7 +431,7 @@
     async placaOff() {
       const el = $("#uiab-placa");
       el.classList.remove("visible");
-      await espera(660);
+      await espera(330);
       el.classList.remove("entrar");
     },
 

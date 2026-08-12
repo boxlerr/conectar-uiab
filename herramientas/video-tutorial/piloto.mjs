@@ -26,12 +26,14 @@ const pos = (page) => posiciones.get(page) ?? { x: 700, y: 640 };
  * Mueve el mouse describiendo una curva suave, con easing en el tiempo.
  * La recta perfecta es lo que más delata a un bot en un screencast.
  */
-export async function moverA(page, x, y, ms = 700) {
+export async function moverA(page, x, y, ms = 460) {
   const desde = pos(page);
   const dist = Math.hypot(x - desde.x, y - desde.y);
   if (dist < 1.5) { posiciones.set(page, { x, y }); return; }
 
-  const duracion = Math.max(220, Math.min(ms, 180 + dist * 1.05));
+  // Antes: 180 + dist*1.05, tope 700. Un viaje de punta a punta se comía casi
+  // un segundo. La curva y el easing siguen ahí — lo que baja es el reloj.
+  const duracion = Math.max(150, Math.min(ms, 120 + dist * 0.62));
   const pasos = Math.max(12, Math.round(duracion / 16));
 
   // Punto de control perpendicular al trayecto: le da el arco natural.
@@ -68,7 +70,7 @@ export async function caja(page, selector, idx = 0) {
 // subtítulo. Fuera de esta banda, un click por coordenadas no llega al elemento.
 const BANDA_SEGURA = { arriba: 140, abajo: 90 };
 
-export async function moverAlSelector(page, selector, { ms = 700, dx = 0, dy = 0, idx = 0 } = {}) {
+export async function moverAlSelector(page, selector, { ms = 460, dx = 0, dy = 0, idx = 0 } = {}) {
   const alto = page.viewportSize().height;
   let c = await caja(page, selector, idx);
   if (!c) return null;
@@ -79,8 +81,8 @@ export async function moverAlSelector(page, selector, { ms = 700, dx = 0, dy = 0
   const arribaDeTodo = c.y < BANDA_SEGURA.arriba;
   const abajoDeTodo = c.y + Math.min(c.h, 300) > alto - BANDA_SEGURA.abajo;
   if (arribaDeTodo || abajoDeTodo) {
-    await scrollA(page, selector, { offset: 220, ms: 700, idx });
-    await dormir(220);
+    await scrollA(page, selector, { offset: 220, ms: 480, idx });
+    await dormir(140);
     c = await caja(page, selector, idx);
     if (!c) return null;
   }
@@ -95,24 +97,28 @@ export async function moverAlSelector(page, selector, { ms = 700, dx = 0, dy = 0
   return { x, y, ...c };
 }
 
-export async function clickEn(page, selector, { ms = 700, pausa = 260, dx = 0, dy = 0, idx = 0 } = {}) {
+export async function clickEn(page, selector, { ms = 460, pausa = 150, dx = 0, dy = 0, idx = 0 } = {}) {
   const p = await moverAlSelector(page, selector, { ms, dx, dy, idx });
   if (!p) throw new Error(`No encontré para clickear: ${selector} (idx ${idx})`);
   await dormir(pausa);
   await page.mouse.down();
-  await dormir(75);
+  await dormir(60);
   await page.mouse.up();
   return p;
 }
 
-/** Tipeo con ritmo irregular y micro-pausas después de los espacios. */
-export async function tipear(page, selector, texto, { porChar = 62, clickPrimero = true, idx = 0 } = {}) {
-  if (clickPrimero) await clickEn(page, selector, { pausa: 200, idx });
-  await dormir(240);
+/**
+ * Tipeo con ritmo irregular y micro-pausas después de los espacios.
+ * El jitter se achicó (era 0.55–1.5×): a esta velocidad la cola larga se
+ * notaba como trabas, no como una persona escribiendo.
+ */
+export async function tipear(page, selector, texto, { porChar = 34, clickPrimero = true, idx = 0 } = {}) {
+  if (clickPrimero) await clickEn(page, selector, { pausa: 120, idx });
+  await dormir(140);
   for (const ch of texto) {
     await page.keyboard.type(ch);
-    const jitter = porChar * (0.55 + Math.random() * 0.95);
-    await dormir(ch === " " ? jitter + 45 : jitter);
+    const jitter = porChar * (0.7 + Math.random() * 0.6);
+    await dormir(ch === " " ? jitter + 25 : jitter);
   }
 }
 
@@ -131,6 +137,7 @@ export const foco = (page, sel, opts = {}) => cast(page, "foco", sel, opts);
 export const focoOff = (page) => cast(page, "focoOff");
 export const placa = (page, opts) => cast(page, "placa", opts);
 export const placaOff = (page) => cast(page, "placaOff");
+export const sello = (page, texto, opts = {}) => cast(page, "sello", texto, opts);
 export const scrollSuave = (page, y, ms) => cast(page, "scrollSuave", y, ms);
 export const scrollA = (page, sel, opts = {}) => cast(page, "scrollAlSelector", sel, opts);
 
@@ -138,15 +145,15 @@ export const scrollA = (page, sel, opts = {}) => cast(page, "scrollAlSelector", 
  * Resalta un elemento y muestra el subtítulo a la vez: es el gesto base del
  * tutorial (señalo algo + lo explico).
  */
-export async function señalar(page, selector, rotulo, texto, { leer = 1500, mover = true, atenuar = false, idx = 0 } = {}) {
+export async function señalar(page, selector, rotulo, texto, { leer = 900, mover = true, atenuar = false, idx = 0 } = {}) {
   if (!selector) {
     await sub(page, rotulo, texto);
     await dormir(leer);
     return;
   }
-  await scrollA(page, selector, { offset: 190, ms: 900, idx });
-  await dormir(140);
-  if (mover) await moverAlSelector(page, selector, { ms: 620, idx });
+  await scrollA(page, selector, { offset: 190, ms: 560, idx });
+  await dormir(90);
+  if (mover) await moverAlSelector(page, selector, { ms: 420, idx });
   // El recuadro y el cartel entran JUNTOS. Encadenados, el resaltado nuevo
   // quedaba medio segundo emparejado con el texto del paso anterior.
   await Promise.all([
@@ -182,12 +189,12 @@ export async function asegurarVisible(page, selector, idx = 0) {
     el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
     return true;
   }, [selector, idx]);
-  if (ok) await dormir(620);
+  if (ok) await dormir(420);
   return ok;
 }
 
 /** Espera a que la app haya pintado y la capa esté montada tras navegar. */
-export async function asentar(page, ms = 800) {
+export async function asentar(page, ms = 520) {
   await page.waitForLoadState("networkidle").catch(() => {});
   await saltarTutorial(page);
   await page.evaluate(() => window.__cast?.listo());
