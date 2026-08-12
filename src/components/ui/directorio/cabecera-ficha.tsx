@@ -1,0 +1,335 @@
+import Image from "next/image";
+import Link from "next/link";
+import { MapPin } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ *  CABECERA DE FICHA
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ *  Antes la cabecera eran DOS bloques a ancho completo: una franja azul de
+ *  320px con el nombre pegado a la izquierda —y el 60% derecho vacío— y debajo
+ *  una barra blanca con el logo solo de un lado y tres datos sueltos del otro.
+ *  Entre las dos se comían ~470px de alto para decir el nombre, la localidad y
+ *  el sitio web.
+ *
+ *  Acá va todo junto en UNA tarjeta y en tres franjas:
+ *
+ *    1. sellos (rubro · verificación) y el CTA de contacto, enfrentados;
+ *    2. identidad —logo, nombre, ubicación, resumen y rubros— contra una
+ *       columna de datos duros que es justamente lo que llenaba el vacío;
+ *    3. una franja de métricas que contesta "¿esta ficha tiene algo adentro?"
+ *       sin scrollear.
+ *
+ *  Todo lo que entra viene por props desde el Server Component: el componente
+ *  no sabe de Supabase y no inventa nada. Cada fila que no tenga dato real
+ *  simplemente no se pasa, y la grilla se recompone sola (`auto-fit`), así que
+ *  una ficha con tres datos no queda con dos huecos.
+ */
+
+export type DatoCabecera = {
+  icono: LucideIcon;
+  etiqueta: string;
+  valor: string;
+  href?: string;
+  /** true para sitios externos (target=_blank + rel) */
+  externo?: boolean;
+};
+
+export type MetricaCabecera = {
+  icono: LucideIcon;
+  valor: string;
+  etiqueta: string;
+};
+
+export type RubroCabecera = { nombre: string; href: string | null };
+
+type Acento = "blue" | "amber";
+
+const ACENTO = {
+  blue: {
+    fondo: "bg-[#00182e]",
+    velo: "from-[#00182e] via-[#00213f]/92 to-[#10375c]/55",
+    lateral: "from-[#00213f] via-[#00213f]/70 to-transparent",
+    selloRubro: "bg-blue-500/20 border-blue-400/35 text-blue-100",
+    icono: "text-blue-300",
+    enlace: "text-blue-200 hover:text-white",
+    chipHover: "hover:bg-white/20 hover:border-white/35",
+  },
+  amber: {
+    fondo: "bg-[#00182e]",
+    velo: "from-[#00182e] via-[#0d1a26]/92 to-[#2a2118]/55",
+    lateral: "from-[#001220] via-[#001220]/70 to-transparent",
+    selloRubro: "bg-[#bf7035]/25 border-[#d4894a]/40 text-[#f6d0aa]",
+    icono: "text-[#e2a06a]",
+    enlace: "text-[#f0c9a2] hover:text-white",
+    chipHover: "hover:bg-white/20 hover:border-white/35",
+  },
+} as const;
+
+interface Props {
+  nombre: string;
+  /** Segunda línea bajo el nombre: nombre personal del prestador, si difiere. */
+  subtitulo?: string | null;
+  /** Sello de rubro principal (arriba a la izquierda). */
+  rubroPrincipal: string;
+  /** Landing del rubro principal, si existe: el sello pasa a ser un enlace. */
+  rubroPrincipalHref?: string | null;
+  /** Sello de estado: "Verificado UIAB" / "Particular". */
+  selloEstado: { icono: LucideIcon; texto: string };
+  logoUrl: string | null;
+  /** Inicial de respaldo cuando no hay logo cargado. */
+  inicial: string;
+  /** `true` para prestadores: la imagen es una foto, no un logotipo. */
+  logoRedondo?: boolean;
+  ubicacion?: string | null;
+  /**
+   * Resumen corto. Es `actividad` (el rubro que trajo el padrón), no la
+   * descripción larga: esa vive en "Sobre la empresa" y repetirla acá sería
+   * el mismo texto dos veces en el mismo documento.
+   */
+  resumen?: string | null;
+  /**
+   * Rubros SECUNDARIOS. El principal ya se lee arriba, en el sello: pasarlo
+   * también acá dejaba el mismo nombre dos veces en la misma pantalla, que es
+   * lo que pasaba en las 45 fichas que tienen un solo rubro.
+   */
+  rubros?: RubroCabecera[];
+  datos?: DatoCabecera[];
+  metricas?: MetricaCabecera[];
+  /** El botón de contacto: se inyecta porque es un client component. */
+  cta?: React.ReactNode;
+  acento?: Acento;
+}
+
+export function CabeceraFicha({
+  nombre,
+  subtitulo,
+  rubroPrincipal,
+  rubroPrincipalHref,
+  selloEstado,
+  logoUrl,
+  inicial,
+  logoRedondo = false,
+  ubicacion,
+  resumen,
+  rubros = [],
+  datos = [],
+  metricas = [],
+  cta,
+  acento = "blue",
+}: Props) {
+  const c = ACENTO[acento];
+  const SelloIcono = selloEstado.icono;
+  // 5 secundarios + el principal del sello = 6, que es el máximo que tiene
+  // cualquier ficha: con este tope los rubros dejan de repetirse abajo en su
+  // propia sección.
+  const rubrosVisibles = rubros.slice(0, 5);
+  const rubrosOcultos = rubros.length - rubrosVisibles.length;
+
+  return (
+    <section
+      data-tour="ficha-identidad"
+      className={`relative isolate overflow-hidden rounded-2xl ${c.fondo} shadow-[0_10px_40px_-12px_rgba(0,24,46,0.45)]`}
+    >
+      {/* Fondo. `sizes` acotado a propósito: la foto queda debajo de dos velos
+          y de todo el texto, y es la candidata a LCP de las 59 fichas. */}
+      <div className="absolute inset-0 -z-10">
+        <Image
+          src="/landing/hero-industrial.webp"
+          alt=""
+          fill
+          sizes="(max-width: 768px) 100vw, 1200px"
+          quality={60}
+          className="object-cover object-center"
+          priority
+        />
+        <div className={`absolute inset-0 bg-gradient-to-t ${c.velo} mix-blend-multiply`} />
+        <div className={`absolute inset-0 bg-gradient-to-r ${c.lateral}`} />
+        {/* Tercer velo, sólo a la derecha: es donde caen la columna de datos y
+            el CTA, y justo ahí la foto tiene cielo claro. Sin esto las
+            etiquetas en blanco al 50% quedan por debajo del contraste mínimo. */}
+        <div className="absolute inset-y-0 right-0 w-2/3 bg-gradient-to-l from-[#00182e]/75 via-[#00182e]/35 to-transparent" />
+      </div>
+
+      <div className="p-5 sm:p-7 lg:p-9">
+        {/* ── 1. Sellos + CTA ────────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {rubroPrincipalHref ? (
+              <Link
+                href={rubroPrincipalHref}
+                className={`inline-flex items-center rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors hover:brightness-125 ${c.selloRubro}`}
+              >
+                {rubroPrincipal}
+              </Link>
+            ) : (
+              <span
+                className={`inline-flex items-center rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] ${c.selloRubro}`}
+              >
+                {rubroPrincipal}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white">
+              <SelloIcono className={`h-3 w-3 ${c.icono}`} />
+              {selloEstado.texto}
+            </span>
+          </div>
+          {cta}
+        </div>
+
+        {/* ── 2. Identidad + datos duros ─────────────────────────────────── */}
+        <div className="mt-6 flex flex-col gap-7 lg:mt-8 lg:flex-row lg:items-start lg:gap-10">
+          {/* En mobile el logo va ARRIBA y no al costado: al costado le comía
+              100px a la columna de texto y los chips de rubro caían en una
+              tira de uno por renglón contra el borde derecho. */}
+          <div className="flex min-w-0 flex-1 flex-col items-start gap-4 sm:flex-row sm:gap-6">
+            {/* La placa blanca no es decorativa: muchos logos están guardados
+                como JPG con fondo blanco y sobre el azul dejaban un rectángulo.
+                Antes se tapaba con `mix-blend-multiply`, que a cambio apagaba
+                los logos con transparencia real. */}
+            <div
+              className={`grid shrink-0 place-items-center overflow-hidden bg-white shadow-lg shadow-black/20 ${
+                logoRedondo
+                  ? "h-20 w-20 rounded-full sm:h-24 sm:w-24"
+                  : "h-20 w-20 rounded-xl p-3 sm:h-24 sm:w-24 sm:rounded-2xl sm:p-4 lg:h-28 lg:w-28"
+              }`}
+            >
+              {logoUrl ? (
+                <Image
+                  src={logoUrl}
+                  alt={nombre}
+                  width={280}
+                  height={280}
+                  className={
+                    logoRedondo ? "h-full w-full object-cover" : "h-full w-full object-contain"
+                  }
+                />
+              ) : (
+                <span className="font-manrope text-3xl font-black text-[#00213f]">{inicial}</span>
+              )}
+            </div>
+
+            <div className="w-full min-w-0 flex-1">
+              <h1 className="font-manrope text-2xl font-black leading-[1.08] tracking-tight text-white sm:text-3xl lg:text-[2.6rem]">
+                {nombre}
+              </h1>
+
+              {subtitulo && (
+                <p className="mt-1 text-[15px] font-medium text-white/55">{subtitulo}</p>
+              )}
+
+              {ubicacion && (
+                <p className="mt-2 inline-flex items-center gap-1.5 text-[15px] font-semibold text-white/85">
+                  <MapPin className={`h-4 w-4 shrink-0 ${c.icono}`} />
+                  {ubicacion}
+                </p>
+              )}
+
+              {resumen && (
+                <p className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-white/70">
+                  {resumen}
+                </p>
+              )}
+
+              {rubrosVisibles.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                  {rubrosVisibles.map((r) =>
+                    r.href ? (
+                      <Link
+                        key={r.nombre}
+                        href={r.href}
+                        className={`inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[12px] font-semibold text-white/85 backdrop-blur-sm transition-colors ${c.chipHover}`}
+                      >
+                        {r.nombre}
+                      </Link>
+                    ) : (
+                      <span
+                        key={r.nombre}
+                        className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[12px] font-semibold text-white/85 backdrop-blur-sm"
+                      >
+                        {r.nombre}
+                      </span>
+                    )
+                  )}
+                  {rubrosOcultos > 0 && (
+                    <span className="text-[12px] font-semibold text-white/50">
+                      +{rubrosOcultos} {rubrosOcultos === 1 ? "rubro" : "rubros"}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Columna de datos duros: es la que llena el vacío de la derecha.
+              Sólo se renderiza si hay algo real que poner. */}
+          {datos.length > 0 && (
+            <dl className="shrink-0 border-t border-white/12 pt-5 lg:w-[19rem] lg:border-l lg:border-t-0 lg:pl-9 lg:pt-1">
+              {datos.map((d) => {
+                const Icono = d.icono;
+                const contenido = d.href ? (
+                  <a
+                    href={d.href}
+                    {...(d.externo ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    className={`font-semibold transition-colors ${c.enlace} break-words`}
+                  >
+                    {d.valor}
+                  </a>
+                ) : (
+                  <span className="font-semibold text-white break-words">{d.valor}</span>
+                );
+
+                return (
+                  <div
+                    key={d.etiqueta}
+                    className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-b-0"
+                  >
+                    <dt className="inline-flex shrink-0 items-center gap-2 text-[12.5px] text-white/50">
+                      <Icono className="h-3.5 w-3.5 shrink-0" />
+                      {d.etiqueta}
+                    </dt>
+                    <dd className="min-w-0 text-right text-[13.5px] leading-snug">{contenido}</dd>
+                  </div>
+                );
+              })}
+            </dl>
+          )}
+        </div>
+
+        {/* ── 3. Franja de métricas ──────────────────────────────────────── */}
+        {metricas.length > 0 && (
+          <div
+            className="mt-7 grid gap-px overflow-hidden rounded-xl border border-white/12 bg-white/12"
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(9.5rem, 1fr))" }}
+          >
+            {metricas.map((m) => {
+              const Icono = m.icono;
+              return (
+                <div
+                  key={m.etiqueta}
+                  className="flex items-center gap-3 bg-[#00182e]/70 px-3.5 py-3.5 backdrop-blur-sm sm:px-4"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/10">
+                    <Icono className={`h-4 w-4 ${c.icono}`} />
+                  </span>
+                  {/* Sin `truncate`: en 390px "Productos y servicios" salía
+                      "Productos y …", que no dice nada. Que envuelva. */}
+                  <span className="min-w-0">
+                    <span className="block font-manrope text-[15px] font-bold leading-tight text-white">
+                      {m.valor}
+                    </span>
+                    <span className="mt-0.5 block text-[11.5px] leading-tight text-white/55">
+                      {m.etiqueta}
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}

@@ -6,12 +6,21 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Package, Wrench, Star, ExternalLink, X,
   Globe, FileText, BookOpen, ChevronLeft, ChevronRight,
-  Youtube, Link as LinkIcon, ImageOff,
+  Youtube, Link as LinkIcon, ImageOff, ImagePlus,
 } from "lucide-react";
-import { TarjetaItem } from "@/components/ui/catalogo/TarjetaItem";
 
 const DETALLE_MAX_H = 120;
 const DETALLE_MAX_H_EXPANDED = 320;
+
+/**
+ * Cuántos ítems se listan antes de plegar el resto.
+ *
+ * La ficha entera medía casi 14.000 px de alto y el catálogo se llevaba la
+ * mitad: seis tarjetas de 4:3 apiladas en dos columnas. Con la tarjeta
+ * compacta entran ocho en el alto que antes ocupaban dos, así que el tope
+ * existe sólo para los catálogos grandes.
+ */
+const TOPE_PREVIA = 8;
 
 // ─── Tipos (matchean el shape devuelto desde el server component) ────────────
 export type CatalogoEnlace = {
@@ -62,6 +71,9 @@ const COLORS = {
     accentBg: "bg-blue-50",
     accentBorder: "border-blue-100",
     accentHover: "hover:border-blue-300",
+    barra: "bg-blue-600",
+    tarjetaHover: "hover:border-blue-300",
+    tituloHover: "group-hover:text-blue-700",
     pillActive: "bg-[#00213f] text-white",
     pillIdle: "text-slate-500 hover:text-slate-800",
     ctaBg: "bg-[#00182e] hover:bg-[#10375c]",
@@ -72,6 +84,9 @@ const COLORS = {
     accentBg: "bg-amber-50",
     accentBorder: "border-amber-100",
     accentHover: "hover:border-amber-300",
+    barra: "bg-amber-600",
+    tarjetaHover: "hover:border-amber-300",
+    tituloHover: "group-hover:text-amber-700",
     pillActive: "bg-amber-700 text-white",
     pillIdle: "text-slate-500 hover:text-slate-800",
     ctaBg: "bg-amber-700 hover:bg-amber-800",
@@ -82,6 +97,9 @@ const COLORS = {
     accentBg: "bg-emerald-50",
     accentBorder: "border-emerald-100",
     accentHover: "hover:border-emerald-300",
+    barra: "bg-emerald-600",
+    tarjetaHover: "hover:border-emerald-300",
+    tituloHover: "group-hover:text-emerald-700",
     pillActive: "bg-[#022c22] text-white",
     pillIdle: "text-slate-500 hover:text-slate-800",
     ctaBg: "bg-[#022c22] hover:bg-[#064e3b]",
@@ -89,10 +107,92 @@ const COLORS = {
   },
 } as const;
 
+type Color = (typeof COLORS)[keyof typeof COLORS];
+
+/**
+ * Tarjeta compacta del catálogo.
+ *
+ * La portada baja a una placa de 56 px y el precio y las palabras clave se van
+ * al modal. Suena a pérdida y es al revés: apilada en la columna de la ficha,
+ * la tarjeta de 4:3 obligaba a scrollear tres pantallas para saber qué vende
+ * la empresa, que es lo único que se viene a mirar en esta lista. Con la placa
+ * chica las seis entran de un vistazo y las imágenes se leen como un set de
+ * íconos; la que quiera verse grande está a un click, en el modal.
+ */
+function TarjetaCompacta({
+  item,
+  color,
+  onClick,
+}: {
+  item: CatalogoItem;
+  color: Color;
+  onClick: () => void;
+}) {
+  const esServicio = item.tipo_item === "servicio";
+  const Icono = esServicio ? Wrench : Package;
+  const portada = item.imagenes[0];
+
+  // Sólo se muestra el precio cuando hay un número: "A consultar" en las seis
+  // tarjetas es ruido, y esa condición ya se lee en el modal.
+  const precio =
+    !item.precio_a_consultar && item.precio != null
+      ? `${item.moneda === "USD" ? "US$" : "$"} ${Number(item.precio).toLocaleString("es-AR")}`
+      : null;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-2.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${color.tarjetaHover}`}
+    >
+      <span className="relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg bg-slate-100">
+        {portada ? (
+          <Image
+            src={portada.url}
+            alt={portada.alt || item.nombre}
+            fill
+            sizes="128px"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <ImagePlus className="h-5 w-5 text-slate-300" />
+        )}
+        {item.destacado && (
+          <span
+            className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-amber-400 text-amber-950"
+            title="Destacado"
+          >
+            <Star className="h-2.5 w-2.5 fill-current" />
+          </span>
+        )}
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span
+          className={`line-clamp-2 block text-[13.5px] font-bold leading-snug text-[#00213f] transition-colors ${color.tituloHover}`}
+        >
+          {item.nombre}
+        </span>
+        <span className="mt-1 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400">
+          <Icono className="h-3 w-3 shrink-0" />
+          {item.tipo_item}
+          {precio && (
+            <>
+              <span className="text-slate-300">·</span>
+              <span className="text-emerald-700 normal-case tracking-normal">{precio}</span>
+            </>
+          )}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 export function CatalogoPublico({ items, colorScheme = "blue" }: CatalogoPublicoProps) {
   const c = COLORS[colorScheme];
   const [filtro, setFiltro] = useState<"todos" | "producto" | "servicio">("todos");
   const [itemAbierto, setItemAbierto] = useState<CatalogoItem | null>(null);
+  const [verTodos, setVerTodos] = useState(false);
 
   const itemsFiltrados = useMemo(() => {
     if (filtro === "todos") return items;
@@ -102,32 +202,36 @@ export function CatalogoPublico({ items, colorScheme = "blue" }: CatalogoPublico
   const countProductos = useMemo(() => items.filter(i => i.tipo_item === "producto").length, [items]);
   const countServicios = useMemo(() => items.filter(i => i.tipo_item === "servicio").length, [items]);
 
+  const visibles = verTodos ? itemsFiltrados : itemsFiltrados.slice(0, TOPE_PREVIA);
+  const ocultos = itemsFiltrados.length - visibles.length;
+
   if (items.length === 0) return null;
 
   return (
-    <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xl shadow-primary/5 border border-slate-200/60">
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-7">
       {/* ─── Header de sección ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 pb-6 border-b border-slate-100">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-lg ${c.accentBg} flex items-center justify-center border ${c.accentBorder}`}>
-            <Package className={`w-5 h-5 ${c.accent}`} />
-          </div>
+          <span
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg border ${c.accentBg} ${c.accentBorder}`}
+          >
+            <Package className={`h-4 w-4 ${c.accent}`} />
+          </span>
           <div>
-            <h2 className="font-manrope text-2xl font-extrabold text-slate-800 tracking-tight">
-              Productos y Servicios
+            <h2 className="font-manrope text-[17px] font-black tracking-tight text-[#00213f]">
+              Productos y servicios{" "}
+              <span className="font-bold text-slate-400">({items.length})</span>
             </h2>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-              {items.length} {items.length === 1 ? "ítem publicado" : "ítems publicados"}
-            </p>
+            <span className={`mt-1.5 block h-[3px] w-7 rounded-full ${c.barra}`} />
           </div>
         </div>
 
         {/* Filtros — solo si hay mezcla */}
         {countProductos > 0 && countServicios > 0 && (
-          <div className="flex gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit">
+          <div className="flex w-fit gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1">
             <button
               onClick={() => setFiltro("todos")}
-              className={`px-4 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all ${
+              className={`rounded-md px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
                 filtro === "todos" ? c.pillActive : c.pillIdle
               }`}
             >
@@ -135,49 +239,53 @@ export function CatalogoPublico({ items, colorScheme = "blue" }: CatalogoPublico
             </button>
             <button
               onClick={() => setFiltro("producto")}
-              className={`px-4 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
                 filtro === "producto" ? c.pillActive : c.pillIdle
               }`}
             >
-              <Package className="w-3 h-3" /> {countProductos}
+              <Package className="h-3 w-3" /> {countProductos}
             </button>
             <button
               onClick={() => setFiltro("servicio")}
-              className={`px-4 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all ${
                 filtro === "servicio" ? c.pillActive : c.pillIdle
               }`}
             >
-              <Wrench className="w-3 h-3" /> {countServicios}
+              <Wrench className="h-3 w-3" /> {countServicios}
             </button>
           </div>
         )}
       </div>
 
-      {/* ─── Grid ───
-          Este catálogo vive SIEMPRE dentro de la columna del 72%/65% de la
-          ficha, nunca a ancho completo: por eso vuelve a una columna en md. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-        {itemsFiltrados.map((item) => (
-          <TarjetaItem
+      {/* ─── Grilla compacta ───
+          `auto-fill` en vez de breakpoints: el catálogo vive dentro de la
+          columna principal de la ficha, que cambia de ancho con el sidebar y
+          con el breakpoint `tab`, y adivinar cuántas columnas entran en cada
+          combinación daba siempre una de más o una de menos. */}
+      <div
+        className="grid gap-3"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(12.5rem, 1fr))" }}
+      >
+        {visibles.map((item) => (
+          <TarjetaCompacta
             key={item.id}
+            item={item}
+            color={c}
             onClick={() => setItemAbierto(item)}
-            item={{
-              nombre: item.nombre,
-              tipo_item: item.tipo_item,
-              descripcion_corta: item.descripcion_corta,
-              destacado: item.destacado,
-              precio: item.precio,
-              precio_a_consultar: item.precio_a_consultar,
-              moneda: item.moneda,
-              unidad: item.unidad,
-              sku: item.sku,
-              palabras_clave: item.palabras_clave,
-              enlaces: item.enlaces,
-              portadaUrl: item.imagenes[0]?.url || null,
-            }}
           />
         ))}
       </div>
+
+      {ocultos > 0 && (
+        <button
+          type="button"
+          onClick={() => setVerTodos(true)}
+          className={`mt-4 inline-flex items-center gap-1.5 text-[13px] font-bold ${c.accent} transition-opacity hover:opacity-75`}
+        >
+          Ver los {itemsFiltrados.length} {itemsFiltrados.length === 1 ? "ítem" : "ítems"}
+          <span aria-hidden>→</span>
+        </button>
+      )}
 
       {/* ─── Modal detalle ─── */}
       <AnimatePresence>
@@ -189,7 +297,7 @@ export function CatalogoPublico({ items, colorScheme = "blue" }: CatalogoPublico
           />
         )}
       </AnimatePresence>
-    </div>
+    </section>
   );
 }
 
@@ -200,7 +308,7 @@ function CatalogoModal({
   onClose,
 }: {
   item: CatalogoItem;
-  color: (typeof COLORS)[keyof typeof COLORS];
+  color: Color;
   onClose: () => void;
 }) {
   const [idx, setIdx] = useState(0);

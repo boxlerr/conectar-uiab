@@ -6,10 +6,15 @@ import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
 import { CatalogoPublico, type CatalogoItem } from "@/components/ui/directorio/catalogo-publico";
 import { ModalContacto } from "@/components/ui/directorio/modal-contacto";
-import { MapPin, Mail, Phone, Globe, CheckCircle2, ArrowLeft, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock, Tag, Award, FileText, Star, PackageSearch } from "lucide-react";
+import { MapPin, Mail, Phone, Globe, CheckCircle2, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock, Tag, Award, FileText, Star, PackageSearch, ShieldCheck, Users, Layers } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  CabeceraFicha,
+  type DatoCabecera,
+  type MetricaCabecera,
+} from "@/components/ui/directorio/cabecera-ficha";
 import { ChipNorma } from "@/modulos/certificaciones/chip-norma";
 import { etiquetaNorma, familiaNorma, normaPorCodigo, estadoVigencia } from "@/modulos/certificaciones/normas";
-import Image from "next/image";
 import { BotonWhatsApp } from "@/components/ui/boton-whatsapp";
 import { RegistrarVisita } from "@/components/ui/registrar-visita";
 import type { Metadata } from "next";
@@ -101,71 +106,157 @@ async function fetchCertificaciones(
   return (data as CertFicha[]) ?? [];
 }
 
-// Sección pública "Certificaciones y normas". Contenido público de alto valor:
-// va FUERA del gate de login. accent = "blue" (empresas) | "amber" (prestadores).
-function SeccionCertificaciones({ certs, accent }: { certs: CertFicha[]; accent: "blue" | "amber" }) {
-  if (certs.length === 0) return null;
-  const iconColor = accent === "amber" ? "text-[#bf7035]" : "text-blue-600";
+/**
+ * Tarjeta blanca de la ficha. Una sola constante para que las secciones y el
+ * sidebar no se vayan cada una por su lado: antes convivían `rounded-md` con
+ * borde plano, `rounded-2xl` con `shadow-xl` y `border-[#191c1e]/8`, y la
+ * columna se leía como tres componentes de tres sistemas distintos.
+ */
+const TARJETA =
+  "bg-white rounded-xl border border-slate-200 shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
+
+/**
+ * Cabecera de sección: placa con el ícono, título y la barrita de acento.
+ * Reemplaza al `<h2>` de 11px en versalitas grises, que a fuerza de ser
+ * discreto hacía que todas las secciones pesaran lo mismo.
+ */
+function CabeceraSeccion({
+  icono: Icono,
+  titulo,
+  accent,
+  extra,
+}: {
+  icono: LucideIcon;
+  titulo: string;
+  accent: "blue" | "amber";
+  extra?: React.ReactNode;
+}) {
+  const esAmber = accent === "amber";
+  return (
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="flex items-center gap-3">
+        <span
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg border ${
+            esAmber ? "border-[#bf7035]/15 bg-[#bf7035]/8" : "border-blue-100 bg-blue-50"
+          }`}
+        >
+          <Icono className={`h-4 w-4 ${esAmber ? "text-[#bf7035]" : "text-blue-600"}`} />
+        </span>
+        <div>
+          <h2 className="font-manrope text-[17px] font-black tracking-tight text-[#00213f]">
+            {titulo}
+          </h2>
+          <span
+            className={`mt-1.5 block h-[3px] w-7 rounded-full ${
+              esAmber ? "bg-[#bf7035]" : "bg-blue-600"
+            }`}
+          />
+        </div>
+      </div>
+      {extra}
+    </div>
+  );
+}
+
+/**
+ * Panel "Certificaciones y verificaciones" del sidebar.
+ *
+ * Antes era una sección a ancho de la columna principal que sólo existía si la
+ * socia tenía normas cargadas — o sea: en 58 de las 59 fichas, la pregunta
+ * "¿esto está verificado por alguien?" no se contestaba en ninguna parte.
+ * Ahora el panel está siempre y arranca por lo único que la UIAB sí sostiene:
+ * que la ficha es de una socia registrada. Las normas, cuando las hay, se
+ * suman abajo con su respaldo descargable.
+ *
+ * Contenido público: va FUERA del gate de login.
+ */
+function PanelCertificaciones({ certs, accent }: { certs: CertFicha[]; accent: "blue" | "amber" }) {
+  const esAmber = accent === "amber";
+  const acentoTexto = esAmber ? "text-[#bf7035] hover:text-[#a0622c]" : "text-blue-700 hover:text-blue-900";
 
   return (
-    <section className="bg-white p-7 rounded-md border border-slate-200">
-      <div className="flex items-center gap-2.5 mb-5">
-        <Award className={`w-4 h-4 ${iconColor}`} />
-        <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
-          Certificaciones y normas
-        </h2>
+    <section className={`${TARJETA} overflow-hidden`}>
+      <div className="border-b border-slate-200 bg-slate-50/60 px-5 py-3.5">
+        <h3 className="font-manrope text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+          Certificaciones y verificaciones
+        </h3>
       </div>
-      <div className="space-y-4">
-        {certs.map((c, idx) => {
-          const etiqueta = etiquetaNorma(c.codigo_norma, c.nombre_libre);
-          const familia = familiaNorma(c.codigo_norma);
-          const n = normaPorCodigo(c.codigo_norma);
-          const estado = estadoVigencia(c.fecha_vencimiento);
-          return (
-            <div key={idx} className={idx > 0 ? "pt-4 border-t border-slate-100" : ""}>
-              <div className="flex flex-wrap items-center gap-2">
-                <ChipNorma etiqueta={etiqueta} familia={familia} size="md" />
-                {c.fecha_vencimiento && estado === "vencida" && (
-                  <span className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded">Vencida</span>
-                )}
-              </div>
-              {n && n.codigo !== "otra" && (
-                <p className="text-[14px] font-semibold text-slate-800 mt-2">{n.nombre}</p>
-              )}
-              {c.alcance && <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">{c.alcance}</p>}
-              {(c.organismo_certificador || c.numero_certificado) && (
-                <p className="text-[12px] text-slate-400 mt-1.5">
-                  {c.organismo_certificador && <>Certificada por {c.organismo_certificador}</>}
-                  {c.organismo_certificador && c.numero_certificado && " · "}
-                  {c.numero_certificado && <>Cert. N° {c.numero_certificado}</>}
-                </p>
-              )}
-              {/* El respaldo es lo que le da sentido al adjunto: la UIAB no
-                  audita, así que quien mira la ficha puede abrir el certificado
-                  y juzgar por su cuenta. */}
-              {c.ruta_archivo && (
-                <a
-                  href={`/api/certificaciones/${c.id}/archivo`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`inline-flex items-center gap-1.5 mt-2.5 text-[12px] font-semibold ${
-                    accent === "amber"
-                      ? "text-[#bf7035] hover:text-[#a0622c]"
-                      : "text-blue-700 hover:text-blue-900"
-                  } transition-colors`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  Ver certificado
-                </a>
-              )}
-            </div>
-          );
-        })}
+
+      <div className="p-5">
+        <div className="flex items-start gap-3">
+          <span
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
+              esAmber ? "bg-[#bf7035]/10" : "bg-blue-50"
+            }`}
+          >
+            <ShieldCheck className={`h-4.5 w-4.5 ${esAmber ? "text-[#bf7035]" : "text-blue-600"}`} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[14px] font-bold leading-snug text-[#00213f]">
+              {esAmber ? "Prestador verificado" : "Empresa verificada"}
+            </p>
+            <p className="text-[12.5px] text-slate-500">UIAB Conecta</p>
+          </div>
+        </div>
+
+        {certs.length > 0 && (
+          <ul className="mt-4 space-y-3.5 border-t border-slate-100 pt-4">
+            {certs.map((c) => {
+              const etiqueta = etiquetaNorma(c.codigo_norma, c.nombre_libre);
+              const familia = familiaNorma(c.codigo_norma);
+              const n = normaPorCodigo(c.codigo_norma);
+              const estado = estadoVigencia(c.fecha_vencimiento);
+              return (
+                <li key={c.id}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ChipNorma etiqueta={etiqueta} familia={familia} size="sm" />
+                    {c.fecha_vencimiento && estado === "vencida" && (
+                      <span className="rounded bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                        Vencida
+                      </span>
+                    )}
+                  </div>
+                  {n && n.codigo !== "otra" && (
+                    <p className="mt-1.5 text-[13px] font-semibold leading-snug text-slate-800">
+                      {n.nombre}
+                    </p>
+                  )}
+                  {c.alcance && (
+                    <p className="mt-1 text-[12.5px] leading-relaxed text-slate-500">{c.alcance}</p>
+                  )}
+                  {(c.organismo_certificador || c.numero_certificado) && (
+                    <p className="mt-1 text-[11.5px] text-slate-400">
+                      {c.organismo_certificador && <>Certificada por {c.organismo_certificador}</>}
+                      {c.organismo_certificador && c.numero_certificado && " · "}
+                      {c.numero_certificado && <>Cert. N° {c.numero_certificado}</>}
+                    </p>
+                  )}
+                  {/* El respaldo es lo que le da sentido al adjunto: la UIAB no
+                      audita, así que quien mira la ficha puede abrir el
+                      certificado y juzgar por su cuenta. */}
+                  {c.ruta_archivo && (
+                    <a
+                      href={`/api/certificaciones/${c.id}/archivo`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`mt-1.5 inline-flex items-center gap-1.5 text-[12px] font-semibold transition-colors ${acentoTexto}`}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Ver certificado
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        <p className="mt-4 border-t border-slate-100 pt-3.5 text-[11px] leading-relaxed text-slate-400">
+          {certs.length > 0
+            ? "Certificaciones publicadas por cada empresa bajo su responsabilidad. La UIAB no emite, verifica ni audita certificaciones."
+            : "La verificación acredita que la ficha pertenece a una socia registrada en la UIAB. No es una auditoría de sus procesos."}
+        </p>
       </div>
-      <p className="text-[11px] text-slate-400 mt-5 pt-4 border-t border-slate-100 leading-relaxed">
-        Certificaciones y certificados publicados por cada empresa bajo su responsabilidad. La UIAB
-        no emite, verifica ni audita certificaciones.
-      </p>
     </section>
   );
 }
@@ -489,6 +580,9 @@ export default async function EmpresaProfilePage({
   const empresaDb = empresasData?.find((emp: any) => crearSlug(emp.razon_social) === slug);
 
   if (!empresaDb) {
+    // `sitio_web` no se traía y el JSON-LD lo leía igual: `sameAs` salía siempre
+    // vacío en las fichas de prestador, que es justo la corroboración externa
+    // que le dice a Google de quién estamos hablando.
     const { data: provData } = await supabase
       .from('proveedores')
       .select(`
@@ -504,6 +598,7 @@ export default async function EmpresaProfilePage({
         localidad,
         provincia,
         descripcion,
+        sitio_web,
         fecha_inicio_experiencia,
         bucket_logo,
         ruta_logo,
@@ -761,8 +856,6 @@ async function EmpresaProfile({
    */
   const textoMostrado = tieneActividadReal ? normalizarMayusculas(textoEmpresa) : null;
 
-  const serviciosExtra = cats.slice(1);
-  const tieneServiciosReales = serviciosExtra.length > 0;
 
   // Tags de match (tabla tags via empresas_tags) — información pública que alimenta la búsqueda del directorio
   const tagsEmpresa: { nombre: string; tipo_tag: string | null }[] = Array.from(
@@ -819,7 +912,6 @@ async function EmpresaProfile({
     logo: empresaDb.razon_social.charAt(0).toUpperCase(),
     logoUrl,
     ubicacion: [empresaDb.localidad, empresaDb.direccion].filter(Boolean).join(", ") || null,
-    servicios: serviciosExtra,
     contacto: {
       email: empresaDb.email || "No disponible",
       emailCompras: empresaDb.email_compras || "",
@@ -830,6 +922,93 @@ async function EmpresaProfile({
       sitioWeb: empresaDb.sitio_web || ""
     }
   };
+
+  /**
+   * Resumen de la cabecera.
+   *
+   * Es `actividad` —el renglón que trajo el padrón— y NO la descripción larga:
+   * esa vive en "Sobre la empresa", y ponerla arriba también dejaría el mismo
+   * párrafo dos veces en la misma pantalla. Por eso sólo aparece cuando la
+   * socia escribió su propia descripción; si no la escribió, `actividad` YA es
+   * lo que se lee en "Sobre la empresa" y acá arriba sobra.
+   */
+  const resumenCabecera =
+    (empresaDb.descripcion || "").trim() && (empresaDb.actividad || "").trim()
+      ? normalizarMayusculas((empresaDb.actividad as string).trim())
+      : null;
+
+  const webNormalizada = normalizarSitioWeb(empresa.contacto.sitioWeb);
+  const webVisible = empresa.contacto.sitioWeb.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const emailReal = (empresaDb.email || "").trim();
+
+  /**
+   * Columna de datos duros de la cabecera. Es lo que llena el 60% derecho que
+   * antes estaba vacío, y cada fila sale de una columna de `empresas`: si el
+   * dato no está cargado, la fila no existe (no hay "—" ni placeholders).
+   */
+  const datosCabecera: DatoCabecera[] = ([
+    empresaDb.cantidad_empleados
+      ? {
+          icono: Users,
+          etiqueta: "Empleados",
+          valor: String(empresaDb.cantidad_empleados),
+        }
+      : null,
+    webNormalizada
+      ? { icono: Globe, etiqueta: "Sitio web", valor: webVisible, href: webNormalizada, externo: true }
+      : null,
+    emailReal
+      ? { icono: Mail, etiqueta: "Email", valor: emailReal, href: `mailto:${emailReal}` }
+      : null,
+    empresa.contacto.telefono
+      ? {
+          icono: Phone,
+          etiqueta: "Teléfono",
+          valor: empresa.contacto.telefono,
+          href: `tel:${empresa.contacto.telefono.replace(/[^0-9+]/g, "")}`,
+        }
+      : null,
+  ] as (DatoCabecera | null)[]).filter((d): d is DatoCabecera => d !== null);
+
+  /**
+   * Franja de métricas: contesta "¿esta ficha tiene algo adentro?" antes de
+   * scrollear. Todos los números son contadores de la base — ninguno se
+   * escribe a mano (ver src/tests/seo/sin-datos-inventados.test.ts).
+   */
+  const metricasCabecera: MetricaCabecera[] = ([
+    totalItems > 0
+      ? {
+          icono: PackageSearch,
+          valor: String(totalItems),
+          etiqueta: totalItems === 1 ? "Producto o servicio" : "Productos y servicios",
+        }
+      : null,
+    { icono: ShieldCheck, valor: "Verificada", etiqueta: "UIAB Conecta" },
+    cats.length > 0
+      ? {
+          icono: Layers,
+          valor: String(cats.length),
+          etiqueta: cats.length === 1 ? "Rubro" : "Rubros",
+        }
+      : null,
+    tagsEmpresa.length > 0
+      ? { icono: Tag, valor: String(tagsEmpresa.length), etiqueta: "Especialidades" }
+      : null,
+    certs.length > 0
+      ? {
+          icono: Award,
+          valor: String(certs.length),
+          etiqueta: certs.length === 1 ? "Certificación" : "Certificaciones",
+        }
+      : null,
+    promedioResenas !== null
+      ? {
+          icono: Star,
+          valor: promedioResenas.toFixed(1),
+          etiqueta: `${totalResenas} ${totalResenas === 1 ? "reseña" : "reseñas"}`,
+        }
+      : null,
+  ] as (MetricaCabecera | null)[]).filter((m): m is MetricaCabecera => m !== null);
 
   return (
     <div className="min-h-svh bg-slate-50 font-inter pb-20">
@@ -866,179 +1045,61 @@ async function EmpresaProfile({
         />
       )}
       <RegistrarVisita tipo="empresa" entidadId={empresaDb.id} />
-      {/* Hero — always visible for SEO. min-h en vez de h: con alto fijo + overflow-hidden un nombre
-          de 3 renglones recortaba los chips y el link "Directorio" por arriba */}
-      <div className="relative min-h-[320px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
-        <div className="absolute inset-0 z-0">
-          {/* `sizes` + `quality` bajos a propósito: es una franja de ~320px de alto
-              tapada por dos gradientes, y sin `sizes` next/image asume 100vw y
-              sirve ~282 KB de WebP. Es el candidato a LCP de las 59 fichas. */}
-          <Image src="/landing/hero-industrial.webp" alt="" fill sizes="(max-width: 768px) 100vw, 1200px" quality={60} className="object-cover object-center" priority />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#00213f] via-[#00213f]/60 to-transparent" />
-        </div>
 
-        <div className="relative z-10 w-full max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 pb-10">
-          {/*
-            La miga reemplaza al "← Directorio" suelto que había acá.
-            Mismo enlace, más jerarquía: agrega el rubro en el medio (otra vía
-            hacia /rubros) y emite el BreadcrumbList, que es el único rich
-            result que Google todavía muestra de forma consistente para un
-            directorio — en el resultado se ve `uiabconecta.com › Directorio ›
-            Química › Vaxler` en vez de la URL cruda.
-          */}
-          <Migas
-            tono="claro"
-            className="mb-6"
-            migas={[
-              { nombre: "Inicio", href: "/" },
-              { nombre: "Directorio", href: "/directorio" },
-              ...(rubrosConLanding[0]?.href
-                ? [{ nombre: rubrosConLanding[0].nombre, href: rubrosConLanding[0].href }]
-                : []),
-              { nombre: empresa.nombre },
-            ]}
-          />
+      <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 pt-6">
+        {/*
+          La miga reemplaza al "← Directorio" suelto que había en el hero.
+          Mismo enlace, más jerarquía: agrega el rubro en el medio (otra vía
+          hacia /rubros) y emite el BreadcrumbList, que es el único rich
+          result que Google todavía muestra de forma consistente para un
+          directorio — en el resultado se ve `uiabconecta.com › Directorio ›
+          Química › Vaxler` en vez de la URL cruda.
+        */}
+        <Migas
+          className="mb-4"
+          migas={[
+            { nombre: "Inicio", href: "/" },
+            { nombre: "Directorio", href: "/directorio" },
+            ...(rubrosConLanding[0]?.href
+              ? [{ nombre: rubrosConLanding[0].nombre, href: rubrosConLanding[0].href }]
+              : []),
+            { nombre: empresa.nombre },
+          ]}
+        />
 
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-sm bg-blue-500/15 border border-blue-400/30 text-blue-200 text-[10px] font-bold uppercase tracking-[0.15em]">
-              {empresa.categoria}
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-white/10 border border-white/20 text-white text-[10px] font-bold uppercase tracking-[0.15em]">
-              <CheckCircle2 className="w-3 h-3 text-blue-300" />
-              Verificado UIAB
-            </span>
-          </div>
+        {/* Cabecera: reemplaza a la franja azul de 320px + la barra blanca del
+            logo. Los rubros van como <Link> a su landing cuando la tienen: el
+            anchor text ya estaba escrito y se desperdiciaba en un <span>. */}
+        <CabeceraFicha
+          nombre={empresa.nombre}
+          rubroPrincipal={empresa.categoria}
+          rubroPrincipalHref={rubrosConLanding[0]?.href ?? null}
+          selloEstado={{ icono: CheckCircle2, texto: "Verificado UIAB" }}
+          logoUrl={empresa.logoUrl}
+          inicial={empresa.logo}
+          ubicacion={empresa.ubicacion}
+          resumen={resumenCabecera}
+          rubros={rubrosConLanding.slice(1)}
+          datos={datosCabecera}
+          metricas={metricasCabecera}
+          acento="blue"
+          cta={
+            <ModalContacto
+              nombre={empresa.nombre}
+              email={empresa.contacto.email}
+              telefono={empresa.contacto.telefono}
+              sitioWeb={empresa.contacto.sitioWeb}
+              ubicacion={empresa.ubicacion ?? undefined}
+              colorScheme="blue"
+              className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-white sm:w-auto px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-[#00213f] shadow-lg shadow-black/20 transition-colors hover:bg-blue-50"
+            >
+              <Mail className="h-4 w-4" />
+              Contactar empresa
+            </ModalContacto>
+          }
+        />
 
-          <h1 className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-white leading-[1.05] tracking-tight max-w-3xl">
-            {empresa.nombre}
-          </h1>
-
-          {/* La localidad sube al hero y con peso: en un directorio industrial
-              zonal, DÓNDE está es criterio de decisión, y abajo a la derecha de
-              la barra pasaba desapercibida. Por eso ya no se repite ahí. */}
-          {empresa.ubicacion && (
-            <p className="inline-flex items-center gap-2 text-blue-100/90 text-base md:text-lg font-semibold mt-3">
-              <MapPin className="w-4 h-4 text-blue-300 shrink-0" />
-              {empresa.ubicacion}
-            </p>
-          )}
-
-          {/* Los rubros reales estaban enterrados abajo de todo. Acá contestan
-              "¿a qué se dedica?" en el primer vistazo, que es lo que uno va a
-              buscar cuando abre una ficha del directorio. */}
-          {cats.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mt-5">
-              {cats.slice(0, 4).map((c: string) => (
-                <span
-                  key={c}
-                  className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-white/85 text-[12px] font-semibold backdrop-blur-sm"
-                >
-                  {c}
-                </span>
-              ))}
-              {cats.length > 4 && (
-                <span className="text-[12px] font-semibold text-blue-200/70">
-                  +{cats.length - 4} rubros
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Barra de identidad: logo · datos · normas · contacto.
-          El nombre vuelve al hero (probamos ponerlo acá debajo del logo y la
-          cabecera quedaba desbalanceada: el azul vacío y el logo flotando).
-          Lo que sí se conserva es el logo SUELTO: antes vivía en un cuadradito
-          de 80px con borde y se leía como ícono de sistema.
-          `mix-blend-multiply` funde el fondo blanco de los logos guardados como
-          JPG, que si no dejan un rectángulo sobre la barra.
-          Las normas se suman acá para que la primera vista conteste "¿esta
-          empresa está certificada?" sin tener que scrollear. */}
-      <div data-tour="ficha-identidad" className="border-b border-slate-200 bg-white">
-        <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 py-6 flex flex-wrap items-center gap-x-10 gap-y-5">
-          <div className="shrink-0">
-            {empresa.logoUrl ? (
-              <Image
-                src={empresa.logoUrl}
-                alt={empresa.nombre}
-                width={280}
-                height={100}
-                className="h-12 md:h-14 w-auto max-w-[200px] object-contain object-left mix-blend-multiply"
-              />
-            ) : (
-              <div className="h-12 md:h-14 w-12 md:w-14 rounded-lg bg-slate-100 flex items-center justify-center font-manrope font-black text-2xl text-[#00213f]">
-                {empresa.logo}
-              </div>
-            )}
-          </div>
-
-          {certs.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {certs.slice(0, 4).map((c, i) => (
-                <ChipNorma
-                  key={i}
-                  etiqueta={etiquetaNorma(c.codigo_norma, c.nombre_libre)}
-                  familia={familiaNorma(c.codigo_norma)}
-                  size="sm"
-                />
-              ))}
-              {certs.length > 4 && (
-                <span className="text-[11px] font-semibold text-slate-400">
-                  +{certs.length - 4}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Señales de qué tan viva está la ficha. La localidad ya no va acá:
-              subió al hero, donde se lee. */}
-          <div className="flex-1 min-w-[200px] flex flex-wrap gap-x-7 gap-y-3 items-center text-sm justify-end">
-            {promedioResenas !== null && (
-              <span className="inline-flex items-center gap-1.5 text-slate-700">
-                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                <span className="font-bold">{promedioResenas.toFixed(1)}</span>
-                <span className="text-slate-500">
-                  · {totalResenas} {totalResenas === 1 ? "reseña" : "reseñas"}
-                </span>
-              </span>
-            )}
-            {totalItems > 0 && (
-              <span className="inline-flex items-center gap-2 text-slate-600">
-                <PackageSearch className="w-4 h-4 text-slate-400" />
-                <span className="font-medium">
-                  {totalItems} {totalItems === 1 ? "producto" : "productos"}
-                </span>
-              </span>
-            )}
-            {empresa.contacto.sitioWeb && (
-              <a
-                href={normalizarSitioWeb(empresa.contacto.sitioWeb) ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 font-semibold transition-colors"
-              >
-                <Globe className="w-4 h-4" />
-                {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-              </a>
-            )}
-          </div>
-
-          <ModalContacto
-            nombre={empresa.nombre}
-            email={empresa.contacto.email}
-            telefono={empresa.contacto.telefono}
-            sitioWeb={empresa.contacto.sitioWeb}
-            ubicacion={empresa.ubicacion ?? undefined}
-            colorScheme="blue"
-            className="inline-flex items-center justify-center gap-2 bg-[#00213f] hover:bg-[#10375c] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-white rounded transition-colors tracking-wider uppercase shrink-0"
-          />
-        </div>
-      </div>
-
-      <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-10 mt-10 relative z-10">
-        <div className="flex flex-col tab:flex-row gap-6 tab:gap-8">
+        <div className="mt-6 flex flex-col tab:flex-row gap-6 tab:gap-8">
           <main className="w-full tab:w-[62%] lg:w-[72%] min-w-0 space-y-6">
             {/*
               "Sobre la empresa" siempre se renderiza, y fuera del gate: es el
@@ -1049,11 +1110,8 @@ async function EmpresaProfile({
               59 descripciones tienen menos de 120 caracteres, o sea que sin
               ella la ficha comparte 60-72% de su texto con las demás.
             */}
-            <section className="bg-white p-7 rounded-md border border-slate-200">
-              <div className="flex items-center gap-2.5 mb-4">
-                <Building2 className="w-4 h-4 text-blue-600" />
-                <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Sobre la empresa</h2>
-              </div>
+            <section className={`${TARJETA} p-5 sm:p-7`}>
+              <CabeceraSeccion icono={Building2} titulo="Sobre la empresa" accent="blue" />
               {empresa.actividad && (
                 <p className="text-slate-700 font-medium leading-relaxed text-[15px]">
                   {empresa.actividad}
@@ -1068,60 +1126,29 @@ async function EmpresaProfile({
               )}
             </section>
 
-            {(rubrosConLanding.length > 0 || tieneTags) && (
-              <section className="bg-white p-7 rounded-md border border-slate-200">
-                <div className="flex items-center gap-2.5 mb-5">
-                  <Wrench className="w-4 h-4 text-blue-600" />
-                  <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Rubros y especialidades</h2>
+            {/*
+              Los chips de rubro se fueron ARRIBA, a la cabecera, y con su
+              enlace a la landing puesto: acá abajo repetían literalmente los
+              mismos seis nombres que se acababan de leer en el hero. Lo que
+              queda es lo que la cabecera no muestra — las capacidades
+              declaradas, que son las que alimentan la búsqueda del directorio.
+            */}
+            {tieneTags && (
+              <section className={`${TARJETA} p-5 sm:p-7`}>
+                <CabeceraSeccion icono={Wrench} titulo="Especialidades y capacidades" accent="blue" />
+                <div className="flex flex-wrap gap-1.5">
+                  {tagsEmpresa.map((tag) => (
+                    <span
+                      key={tag.nombre}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-slate-300 bg-slate-50 px-2.5 py-1 text-[11.5px] font-medium text-slate-600"
+                    >
+                      <Tag className="h-3 w-3 text-slate-400" />
+                      {tag.nombre}
+                    </span>
+                  ))}
                 </div>
-                {/* Chips de rubro: los que tienen landing son <Link>; los que
-                    no (categorías por debajo del umbral de 3 socias) siguen
-                    siendo <span>, porque enlazar a una URL que no existe es
-                    peor que no enlazar. */}
-                {rubrosConLanding.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {rubrosConLanding.map((r, idx) =>
-                      r.href ? (
-                        <Link
-                          key={idx}
-                          href={r.href}
-                          className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-                        >
-                          {r.nombre}
-                        </Link>
-                      ) : (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded"
-                        >
-                          {r.nombre}
-                        </span>
-                      )
-                    )}
-                  </div>
-                )}
-                {tieneTags && (
-                  <div className={tieneServiciosReales ? "mt-6 pt-5 border-t border-slate-100" : ""}>
-                    <p className="font-manrope text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase mb-3">
-                      Especialidades y capacidades
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {tagsEmpresa.map((tag) => (
-                        <span
-                          key={tag.nombre}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-dashed border-slate-300 text-slate-600 text-[11px] font-medium rounded-full"
-                        >
-                          <Tag className="w-3 h-3 text-slate-400" />
-                          {tag.nombre}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </section>
             )}
-
-            <SeccionCertificaciones certs={certs} accent="blue" />
 
             {/* Gated content */}
             {isAuthenticated ? (
@@ -1131,24 +1158,25 @@ async function EmpresaProfile({
                 )}
 
                 {oportunidadesActivas.length > 0 && (
-                  <section className="bg-white rounded-md border border-slate-200 overflow-hidden">
-                    <div className="flex items-center justify-between px-7 py-5 border-b border-slate-200">
-                      <div className="flex items-center gap-2.5">
-                        <Briefcase className="w-4 h-4 text-blue-600" />
-                        <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
-                          Oportunidades publicadas · {oportunidadesActivas.length}
-                        </h2>
-                      </div>
-                      <Link href="/oportunidades" className="text-[11px] font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-[0.15em] flex items-center gap-1.5 group">
-                        Ver todas
-                        <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                      </Link>
+                  <section className={`${TARJETA} overflow-hidden`}>
+                    <div className="px-5 pt-5 sm:px-7 sm:pt-7">
+                      <CabeceraSeccion
+                        icono={Briefcase}
+                        titulo={`Oportunidades publicadas (${oportunidadesActivas.length})`}
+                        accent="blue"
+                        extra={
+                          <Link href="/oportunidades" className="group flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.15em] text-slate-400 transition-colors hover:text-blue-600">
+                            Ver todas
+                            <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                          </Link>
+                        }
+                      />
                     </div>
 
-                    <ul className="divide-y divide-slate-100">
+                    <ul className="divide-y divide-slate-100 border-t border-slate-100">
                       {oportunidadesActivas.map((op: any) => (
                         <li key={op.id}>
-                          <Link href={`/oportunidades/${op.id}`} className="group flex items-center justify-between gap-4 px-7 py-4 hover:bg-slate-50 transition-colors">
+                          <Link href={`/oportunidades/${op.id}`} className="group flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-slate-50 sm:px-7">
                             <div className="min-w-0 flex-1">
                               <h4 className="text-[#00213f] font-bold text-[15px] leading-snug group-hover:text-blue-700 transition-colors truncate">{op.titulo}</h4>
                               <p className="text-slate-500 text-[12px] font-medium mt-0.5">
@@ -1186,34 +1214,35 @@ async function EmpresaProfile({
                 `totalItems` y `totalResenas` ya se calculaban acá arriba: es un if.
               */
               (totalItems > 0 || totalResenas > 0) && (
-                <div className="bg-white p-7 rounded-md border border-slate-200">
-                  <div className="flex items-center gap-2.5 mb-5">
-                    <Briefcase className="w-4 h-4 text-blue-600" />
-                    <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
-                      {totalItems > 0 && totalResenas > 0
+                <div className={`${TARJETA} p-5 sm:p-7`}>
+                  <CabeceraSeccion
+                    icono={Briefcase}
+                    accent="blue"
+                    titulo={
+                      totalItems > 0 && totalResenas > 0
                         ? "Catálogo y reseñas"
                         : totalItems > 0
                           ? "Catálogo de productos y servicios"
-                          : "Reseñas de la red"}
-                    </h2>
-                  </div>
+                          : "Reseñas de la red"
+                    }
+                  />
                   <LoginGate currentPath={currentPath} />
                 </div>
               )
             )}
           </main>
 
-          <aside data-tour="ficha-sidebar-contacto" className="w-full tab:w-[38%] lg:w-[28%]">
+          <aside className="w-full tab:w-[38%] lg:w-[28%]">
             {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo */}
-            <div className="bg-white rounded-md border border-slate-200 sticky top-24 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
-                <h3 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
-                  Datos de contacto
-                </h3>
-              </div>
+            <div className="sticky top-24 space-y-6">
+              <div data-tour="ficha-sidebar-contacto" className={`${TARJETA} overflow-hidden`}>
+                <div className="border-b border-slate-200 bg-slate-50/60 px-5 py-3.5">
+                  <h3 className="font-manrope text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                    Información de contacto
+                  </h3>
+                </div>
 
-              <>
-                <ul className="p-6 space-y-5">
+                <ul className="space-y-5 p-5">
                   {empresa.ubicacion && (
                     <li className="flex items-start gap-3">
                       <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
@@ -1224,15 +1253,21 @@ async function EmpresaProfile({
                     </li>
                   )}
 
-                  <li className="flex items-start gap-3">
-                    <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo</p>
-                      <a href={`mailto:${empresa.contacto.email}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
-                        {empresa.contacto.email}
-                      </a>
-                    </div>
-                  </li>
+                  {/* Sin correo cargado no se renderiza la fila: antes salía
+                      "No disponible" apuntando a `mailto:No disponible`, un
+                      enlace roto que además era la única fila de la tarjeta en
+                      las fichas sin datos. */}
+                  {emailReal && (
+                    <li className="flex items-start gap-3">
+                      <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo</p>
+                        <a href={`mailto:${emailReal}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
+                          {emailReal}
+                        </a>
+                      </div>
+                    </li>
+                  )}
 
                   {empresa.contacto.emailCompras && (
                     <li className="flex items-start gap-3">
@@ -1289,15 +1324,27 @@ async function EmpresaProfile({
                   )}
                 </ul>
 
-                <div className="px-6 pb-6">
-                  <a
-                    href={`mailto:${empresa.contacto.email}`}
-                    className="flex items-center justify-center w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-3 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase"
-                  >
-                    Enviar Mensaje
-                  </a>
-                </div>
-              </>
+                {emailReal ? (
+                  <div className="px-5 pb-5">
+                    <a
+                      href={`mailto:${emailReal}`}
+                      className="flex w-full items-center justify-center rounded-lg bg-[#00213f] px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#10375c]"
+                    >
+                      Enviar mensaje
+                    </a>
+                  </div>
+                ) : (
+                  <p className="px-5 pb-5 text-[12.5px] leading-relaxed text-slate-500">
+                    Esta socia todavía no cargó datos de contacto públicos.{" "}
+                    <Link href="/contacto" className="font-semibold text-blue-700 hover:underline">
+                      Escribinos
+                    </Link>{" "}
+                    y te ponemos en contacto.
+                  </p>
+                )}
+              </div>
+
+              <PanelCertificaciones certs={certs} accent="blue" />
             </div>
           </aside>
         </div>
@@ -1425,8 +1472,77 @@ async function ProveedorProfile({
       emailCompras: provDb.email_compras || "",
       emailMantenimiento: provDb.email_mantenimiento || "",
       telefono: provDb.telefono || "",
+      sitioWeb: provDb.sitio_web || "",
     }
   };
+
+  const añosExperiencia =
+    provDb.fecha_inicio_experiencia != null
+      ? Math.floor(
+          (Date.now() - new Date(provDb.fecha_inicio_experiencia).getTime()) /
+            (365.25 * 24 * 3600 * 1000)
+        )
+      : null;
+
+  const webNormalizada = normalizarSitioWeb(proveedor.contacto.sitioWeb);
+  const webVisible = proveedor.contacto.sitioWeb.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const emailReal = (provDb.email || "").trim();
+
+  const datosCabecera: DatoCabecera[] = ([
+    añosExperiencia != null
+      ? {
+          icono: Clock,
+          etiqueta: "Experiencia",
+          valor: `${añosExperiencia} año${añosExperiencia !== 1 ? "s" : ""}`,
+        }
+      : null,
+    webNormalizada
+      ? { icono: Globe, etiqueta: "Sitio web", valor: webVisible, href: webNormalizada, externo: true }
+      : null,
+    emailReal
+      ? { icono: Mail, etiqueta: "Email", valor: emailReal, href: `mailto:${emailReal}` }
+      : null,
+    proveedor.contacto.telefono
+      ? {
+          icono: Phone,
+          etiqueta: "Teléfono",
+          valor: proveedor.contacto.telefono,
+          href: `tel:${proveedor.contacto.telefono.replace(/[^0-9+]/g, "")}`,
+        }
+      : null,
+  ] as (DatoCabecera | null)[]).filter((d): d is DatoCabecera => d !== null);
+
+  const metricasCabecera: MetricaCabecera[] = ([
+    totalItems > 0
+      ? {
+          icono: PackageSearch,
+          valor: String(totalItems),
+          etiqueta: totalItems === 1 ? "Producto o servicio" : "Productos y servicios",
+        }
+      : null,
+    { icono: ShieldCheck, valor: "Verificado", etiqueta: "UIAB Conecta" },
+    cats.length > 0
+      ? {
+          icono: Layers,
+          valor: String(cats.length),
+          etiqueta: cats.length === 1 ? "Rubro" : "Rubros",
+        }
+      : null,
+    certs.length > 0
+      ? {
+          icono: Award,
+          valor: String(certs.length),
+          etiqueta: certs.length === 1 ? "Certificación" : "Certificaciones",
+        }
+      : null,
+    promedioResenas !== null
+      ? {
+          icono: Star,
+          valor: promedioResenas.toFixed(1),
+          etiqueta: `${totalResenas} ${totalResenas === 1 ? "reseña" : "reseñas"}`,
+        }
+      : null,
+  ] as (MetricaCabecera | null)[]).filter((m): m is MetricaCabecera => m !== null);
 
   return (
     <div className="min-h-svh bg-[#f7f9fb] font-inter pb-24">
@@ -1449,140 +1565,71 @@ async function ProveedorProfile({
         }}
       />
       <RegistrarVisita tipo="proveedor" entidadId={provDb.id} />
-      {/* Hero */}
-      <div className="relative min-h-[320px] flex items-end overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24">
-        <div className="absolute inset-0 z-0">
-          <Image src="/landing/hero-industrial.webp" alt="" fill sizes="(max-width: 768px) 100vw, 1200px" quality={60} className="object-cover object-center" priority />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/60 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#00182e] via-[#00213f]/70 to-transparent" />
-        </div>
 
-        <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pb-10">
-          <Link href="/directorio" className="inline-flex items-center text-blue-200/70 hover:text-white mb-6 transition-colors text-[11px] font-bold tracking-[0.2em] uppercase">
-            <ArrowLeft className="w-3.5 h-3.5 mr-2" />
-            Directorio
-          </Link>
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-6">
+        <Migas
+          className="mb-4"
+          migas={[
+            { nombre: "Inicio", href: "/" },
+            { nombre: "Directorio", href: "/directorio" },
+            { nombre: proveedor.nombre },
+          ]}
+        />
 
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-sm bg-[#bf7035]/25 border border-[#d4894a]/30 text-[#f5c89a] text-[10px] font-bold uppercase tracking-[0.15em]">
-              {proveedor.categoria}
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-white/10 border border-white/20 text-white/80 text-[10px] font-bold uppercase tracking-[0.15em]">
-              <User className="w-3 h-3 text-[#d4894a]" />
-              Particular
-            </span>
-          </div>
+        {/* Misma cabecera que la ficha de empresa, con dos diferencias: el
+            acento ámbar del prestador y el retrato redondo — la imagen de un
+            particular es una foto, no un logotipo. */}
+        <CabeceraFicha
+          nombre={proveedor.nombre}
+          subtitulo={
+            proveedor.nombrePersonal && proveedor.nombrePersonal !== proveedor.nombre
+              ? proveedor.nombrePersonal
+              : null
+          }
+          rubroPrincipal={proveedor.categoria}
+          selloEstado={{ icono: User, texto: "Particular" }}
+          logoUrl={proveedor.logoUrl}
+          inicial={proveedor.logo}
+          logoRedondo
+          ubicacion={proveedor.ubicacion}
+          rubros={cats
+            .filter((c: string) => c !== proveedor.categoria)
+            .map((c: string) => ({ nombre: c, href: null }))}
+          datos={datosCabecera}
+          metricas={metricasCabecera}
+          acento="amber"
+          cta={
+            <ModalContacto
+              nombre={proveedor.nombre}
+              email={proveedor.contacto.email}
+              telefono={proveedor.contacto.telefono}
+              sitioWeb={proveedor.contacto.sitioWeb}
+              ubicacion={proveedor.ubicacion ?? undefined}
+              colorScheme="amber"
+              className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-white sm:w-auto px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-[#7a4419] shadow-lg shadow-black/20 transition-colors hover:bg-[#fdf3ea]"
+            >
+              <Mail className="h-4 w-4" />
+              Contactar
+            </ModalContacto>
+          }
+        />
 
-          <h1 className="font-manrope text-3xl md:text-4xl lg:text-5xl font-black text-white leading-[1.05] tracking-tight max-w-3xl">
-            {proveedor.nombre}
-          </h1>
-          {proveedor.nombrePersonal && proveedor.nombrePersonal !== proveedor.nombre && (
-            <p className="text-white/55 text-base font-medium mt-2">{proveedor.nombrePersonal}</p>
-          )}
-
-          {proveedor.ubicacion && (
-            <p className="inline-flex items-center gap-2 text-orange-100/90 text-base md:text-lg font-semibold mt-3">
-              <MapPin className="w-4 h-4 text-[#d4894a] shrink-0" />
-              {proveedor.ubicacion}
-            </p>
-          )}
-
-          {cats.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mt-5">
-              {cats.slice(0, 4).map((c: string) => (
-                <span
-                  key={c}
-                  className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-white/85 text-[12px] font-semibold backdrop-blur-sm"
-                >
-                  {c}
-                </span>
-              ))}
-              {cats.length > 4 && (
-                <span className="text-[12px] font-semibold text-orange-200/70">
-                  +{cats.length - 4} rubros
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Barra de identidad: avatar · normas · datos · contacto. Mismo criterio
-          que la ficha de empresa, pero acá el recuadro redondo SE CONSERVA: la
-          imagen de un particular es una foto, no un logotipo. */}
-      <div className="border-b border-slate-200 bg-white">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 flex flex-wrap items-center gap-x-10 gap-y-5">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-white border border-slate-200 flex items-center justify-center font-manrope font-black text-3xl text-[#10375c] shrink-0 overflow-hidden rounded-full shadow-sm">
-            {proveedor.logoUrl ? (
-              <Image src={proveedor.logoUrl} alt={proveedor.nombre} width={80} height={80} className="object-cover w-full h-full" />
-            ) : (
-              proveedor.logo
-            )}
-          </div>
-
-          {certs.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {certs.slice(0, 4).map((c, i) => (
-                <ChipNorma
-                  key={i}
-                  etiqueta={etiquetaNorma(c.codigo_norma, c.nombre_libre)}
-                  familia={familiaNorma(c.codigo_norma)}
-                  size="sm"
-                />
-              ))}
-              {certs.length > 4 && (
-                <span className="text-[11px] font-semibold text-slate-400">+{certs.length - 4}</span>
-              )}
-            </div>
-          )}
-
-          <div className="flex-1 min-w-[200px] flex flex-wrap gap-x-8 gap-y-3 items-center text-sm justify-end">
-            {proveedor.ubicacion && (
-              <span className="inline-flex items-center gap-2 text-slate-600">
-                <MapPin className="w-4 h-4 text-slate-400" />
-                <span className="font-medium">{proveedor.ubicacion}</span>
-              </span>
-            )}
-          </div>
-
-          <ModalContacto
-            nombre={proveedor.nombre}
-            email={proveedor.contacto.email}
-            telefono={proveedor.contacto.telefono}
-            ubicacion={proveedor.ubicacion ?? undefined}
-            colorScheme="amber"
-            className="inline-flex items-center justify-center gap-2 bg-[#bf7035] hover:bg-[#a0622c] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-white rounded-sm transition-colors tracking-wider uppercase shrink-0"
-          />
-        </div>
-      </div>
-
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-10 relative z-10">
-        <div className="flex flex-col tab:flex-row gap-6 tab:gap-8">
+        <div className="mt-6 flex flex-col tab:flex-row gap-6 tab:gap-8">
           <main className="w-full tab:w-[60%] lg:w-[65%] min-w-0 space-y-6">
             {/* Always visible for SEO */}
-            <section className="bg-white p-7 rounded-md border border-[#191c1e]/8">
-              <div className="flex items-center gap-2.5 mb-5">
-                <div className="w-8 h-8 rounded-sm bg-[#bf7035]/8 flex items-center justify-center">
-                  <Wrench className="w-4 h-4 text-[#bf7035]" />
-                </div>
-                <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Perfil Profesional</h2>
-              </div>
+            <section className={`${TARJETA} p-5 sm:p-7`}>
+              <CabeceraSeccion icono={Wrench} titulo="Perfil profesional" accent="amber" />
               <h3 className="font-manrope text-lg font-bold text-[#191c1e] mb-3 leading-snug">{proveedor.descripcionCorta}</h3>
               <p className="text-slate-500 font-medium leading-relaxed text-[15px]">{proveedor.descripcionLarga}</p>
             </section>
 
-            <section className="bg-white p-7 rounded-md border border-[#191c1e]/8">
-              <div className="flex items-center gap-2.5 mb-5">
-                <div className="w-8 h-8 rounded-sm bg-[#bf7035]/8 flex items-center justify-center">
-                  <Briefcase className="w-4 h-4 text-[#bf7035]" />
-                </div>
-                <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">Servicios y Especialidades</h2>
-              </div>
+            <section className={`${TARJETA} p-5 sm:p-7`}>
+              <CabeceraSeccion icono={Briefcase} titulo="Servicios y especialidades" accent="amber" />
               <div className="flex flex-wrap gap-2">
                 {proveedor.servicios.map((servicio: string, idx: number) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center px-3 py-1.5 bg-[#f2f4f6] border border-[#191c1e]/8 text-slate-700 text-[13px] font-semibold rounded-sm hover:border-[#bf7035]/30 hover:bg-[#bf7035]/5 hover:text-[#bf7035] transition-colors"
+                    className="inline-flex items-center rounded px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[13px] font-semibold transition-colors hover:border-[#bf7035]/30 hover:bg-[#bf7035]/5 hover:text-[#bf7035]"
                   >
                     {servicio}
                   </span>
@@ -1590,38 +1637,33 @@ async function ProveedorProfile({
               </div>
             </section>
 
-            <SeccionCertificaciones certs={certs} accent="amber" />
-
             {/* Gated content — los prestadores no reciben reseñas, solo catálogo */}
             {isAuthenticated ? (
               catalogoItems.length > 0 && (
-                <CatalogoPublico items={catalogoItems} colorScheme="blue" />
+                <CatalogoPublico items={catalogoItems} colorScheme="amber" />
               )
             ) : (
-              <div className="bg-white p-7 rounded-md border border-[#191c1e]/8">
-                <div className="flex items-center gap-2.5 mb-5">
-                  <Briefcase className="w-4 h-4 text-[#bf7035]" />
-                  <h2 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
-                    Catálogo
-                  </h2>
+              totalItems > 0 && (
+                <div className={`${TARJETA} p-5 sm:p-7`}>
+                  <CabeceraSeccion icono={Briefcase} titulo="Catálogo" accent="amber" />
+                  <LoginGate currentPath={currentPath} />
                 </div>
-                <LoginGate currentPath={currentPath} />
-              </div>
+              )
             )}
           </main>
 
           {/* Sidebar */}
           <aside className="w-full tab:w-[40%] lg:w-[35%]">
             {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo */}
-            <div className="bg-white rounded-md border border-[#191c1e]/8 sticky top-24 overflow-hidden">
-              <div className="px-6 py-4 border-b border-[#191c1e]/6 bg-[#f7f9fb]">
-                <h3 className="font-manrope text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase">
-                  Datos de Contacto
-                </h3>
-              </div>
+            <div className="sticky top-24 space-y-6">
+              <div className={`${TARJETA} overflow-hidden`}>
+                <div className="border-b border-slate-200 bg-slate-50/60 px-5 py-3.5">
+                  <h3 className="font-manrope text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                    Información de contacto
+                  </h3>
+                </div>
 
-              <>
-                <ul className="p-6 space-y-5">
+                <ul className="space-y-5 p-5">
                   <li className="flex items-start gap-3">
                     <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                     <div>
@@ -1630,28 +1672,27 @@ async function ProveedorProfile({
                     </div>
                   </li>
 
-                  {provDb.fecha_inicio_experiencia != null && (() => {
-                    const años = Math.floor((Date.now() - new Date(provDb.fecha_inicio_experiencia).getTime()) / (365.25 * 24 * 3600 * 1000));
-                    return (
-                      <li className="flex items-start gap-3">
-                        <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Experiencia</p>
-                          <p className="text-[#191c1e] font-semibold text-[14px]">{años} año{años !== 1 ? 's' : ''}</p>
-                        </div>
-                      </li>
-                    );
-                  })()}
+                  {añosExperiencia != null && (
+                    <li className="flex items-start gap-3">
+                      <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Experiencia</p>
+                        <p className="text-[#191c1e] font-semibold text-[14px]">{añosExperiencia} año{añosExperiencia !== 1 ? 's' : ''}</p>
+                      </div>
+                    </li>
+                  )}
 
-                  <li className="flex items-start gap-3">
-                    <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo Electrónico</p>
-                      <a href={`mailto:${proveedor.contacto.email}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
-                        {proveedor.contacto.email}
-                      </a>
-                    </div>
-                  </li>
+                  {emailReal && (
+                    <li className="flex items-start gap-3">
+                      <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo electrónico</p>
+                        <a href={`mailto:${emailReal}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
+                          {emailReal}
+                        </a>
+                      </div>
+                    </li>
+                  )}
 
                   {proveedor.contacto.emailCompras && (
                     <li className="flex items-start gap-3">
@@ -1694,17 +1735,33 @@ async function ProveedorProfile({
                       <BotonWhatsApp telefono={proveedor.contacto.telefono} nombre={proveedor.nombre} variant="compact" />
                     </li>
                   )}
+
+                  {webNormalizada && (
+                    <li className="flex items-start gap-3">
+                      <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
+                        <a href={webNormalizada} target="_blank" rel="noopener noreferrer" className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
+                          {webVisible}
+                        </a>
+                      </div>
+                    </li>
+                  )}
                 </ul>
 
-                <div className="px-6 pb-6">
-                  <a
-                    href={`mailto:${proveedor.contacto.email}`}
-                    className="flex items-center justify-center w-full bg-[#bf7035] hover:bg-[#a0622c] px-5 py-3 text-xs font-bold text-white rounded-sm transition-colors tracking-[0.15em] uppercase"
-                  >
-                    Contactar
-                  </a>
-                </div>
-              </>
+                {emailReal && (
+                  <div className="px-5 pb-5">
+                    <a
+                      href={`mailto:${emailReal}`}
+                      className="flex w-full items-center justify-center rounded-lg bg-[#bf7035] px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#a0622c]"
+                    >
+                      Contactar
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <PanelCertificaciones certs={certs} accent="amber" />
             </div>
           </aside>
         </div>
