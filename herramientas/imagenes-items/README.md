@@ -22,25 +22,38 @@ para no dejar archivos huérfanos en el bucket.
 
 ## Nombres esperados para los servicios de Vaxler
 
+Un ítem admite hasta 6 imágenes. Para cargar varias, numerá el archivo con un
+sufijo `-N`; ese número define el orden en la galería del modal:
+
 | Archivo | Servicio |
 |---|---|
-| `desarrollo-de-software-a-medida.png` | Desarrollo de software a medida |
-| `automatizacion-de-procesos-con-ia.png` | Automatización de procesos con IA |
-| `consultoria-it-y-transformacion-digital.png` | Consultoría IT y transformación digital |
-| `infraestructura-cloud-y-ciberseguridad.png` | Infraestructura cloud y ciberseguridad |
-| `mantenimiento-y-escalabilidad-de-software.png` | Mantenimiento y escalabilidad de software |
-| `capacitacion-y-herramientas-internas.png` | Capacitación y herramientas internas |
+| `desarrollo-de-software-a-medida-1.webp` … `-4.webp` | Desarrollo de software a medida |
+| `automatizacion-de-procesos-con-ia-1.webp` … `-3.webp` | Automatización de procesos con IA |
+| `consultoria-it-y-transformacion-digital-1.webp` … `-2.webp` | Consultoría IT y transformación digital |
+| `infraestructura-cloud-y-ciberseguridad-1.webp` | Infraestructura cloud y ciberseguridad |
+| `capacitacion-y-herramientas-internas-1.webp` | Capacitación y herramientas internas |
+| — | Mantenimiento y escalabilidad de software (sin material) |
 
-Sirve cualquier extensión de `.png`, `.jpg`, `.jpeg`, `.webp` o `.avif`. Si un
-ítem se queda sin archivo, el script imprime el nombre que estaba esperando.
+Sin sufijo también funciona (`desarrollo-de-software-a-medida.webp`) para una
+sola imagen. El sufijo se prueba **después** del nombre exacto, así que un ítem
+que termina en número (`Certificación ISO 9001`) sigue emparejando bien.
+
+La carpeta `vaxler/` de este mismo directorio trae el set ya armado:
+
+```bash
+node herramientas/imagenes-items/subir-imagenes.mjs herramientas/imagenes-items/vaxler --empresa "Vaxler" --dry
+```
 
 ## Qué imágenes van bien acá
 
 Las tarjetas del catálogo recortan a **4:3** con `object-cover`
-(`TarjetaItem.tsx`), así que conviene generarlas o pedirlas directamente en 4:3
-y sin nada importante contra los bordes. En el modal de detalle la misma imagen
-se muestra en un panel más alto, con lo cual una composición centrada aguanta
-los dos recortes.
+(`TarjetaItem.tsx`), así que conviene que nada importante quede contra los
+bordes. El modal, en cambio, usa `object-contain` sobre un panel 4:3: muestra la
+imagen entera sin recortar, porque acá se publican capturas de pantalla y
+perder los bordes es perder la mitad del contenido.
+
+Para capturas de UI, 1920×1158 en WebP anda muy bien: pesan 40–90 KB cada una y
+se ven nítidas en pantallas retina.
 
 Para que los seis servicios se lean como un set y no como seis imágenes
 sueltas: mismo estilo, misma paleta (el navy de la marca, `#00182e` / `#0a0f1a`,

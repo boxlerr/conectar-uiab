@@ -147,15 +147,37 @@ const archivos = readdirSync(resolve(carpeta))
 if (archivos.length === 0) throw new Error(`No hay imágenes usables en ${carpeta}`);
 
 // ─── Emparejar archivo ↔ ítem ────────────────────────────────────────────────
+// Un ítem admite hasta 6 imágenes (galería del modal), así que además del
+// nombre exacto se acepta un sufijo "-N" para ordenarlas:
+//
+//   desarrollo-de-software-a-medida-1.webp  → primera
+//   desarrollo-de-software-a-medida-2.webp  → segunda
+//
+// El sufijo se prueba SEGUNDO, no primero: hay ítems cuyo nombre termina en
+// número ("Certificación ISO 9001"), y recortarlo a ciegas los dejaría sin
+// emparejar.
 const porSlug = new Map(items.map((i) => [slug(i.nombre), i]));
 const plan = [];
 const huerfanos = [];
 
 for (const archivo of archivos) {
-  const item = porSlug.get(slug(basename(archivo, extname(archivo))));
+  const base = basename(archivo, extname(archivo));
+  let item = porSlug.get(slug(base));
+  let ordenArchivo = 0;
+
+  if (!item) {
+    const m = base.match(/^(.*?)[-_](\d+)$/);
+    if (m) {
+      const candidato = porSlug.get(slug(m[1]));
+      if (candidato) { item = candidato; ordenArchivo = parseInt(m[2], 10); }
+    }
+  }
+
   if (!item) { huerfanos.push(archivo); continue; }
-  plan.push({ archivo, item, yaTiene: (item.imagenes_item ?? []).length > 0 });
+  plan.push({ archivo, item, ordenArchivo, yaTiene: (item.imagenes_item ?? []).length > 0 });
 }
+
+plan.sort((a, b) => a.item.id.localeCompare(b.item.id) || a.ordenArchivo - b.ordenArchivo);
 
 console.log(`\nEmpresa: ${empresa.razon_social} (${empresa.id})`);
 console.log(`Ítems en el catálogo: ${items.length} · imágenes encontradas: ${archivos.length}\n`);
@@ -188,10 +210,16 @@ if (aSubir.length === 0) {
 console.log(`\nSubiendo ${aSubir.length}…\n`);
 let ok = 0;
 
+// El orden se lleva por ítem y va subiendo dentro de la misma corrida: si se
+// leyera sólo de imagenes_item, las varias imágenes de un mismo ítem
+// terminarían todas en orden 0 y la galería quedaría en un orden arbitrario.
+const siguienteOrden = new Map();
+
 for (const { archivo, item } of aSubir) {
   const ext = extname(archivo).toLowerCase();
   const bytes = readFileSync(join(resolve(carpeta), archivo));
-  const orden = (item.imagenes_item ?? []).length;
+  const orden = siguienteOrden.get(item.id) ?? (item.imagenes_item ?? []).length;
+  siguienteOrden.set(item.id, orden + 1);
   const ruta = `items/${item.id}/${Date.now()}-${orden}${ext}`;
 
   await subirBlob(ruta, bytes, MIMES[ext]);
