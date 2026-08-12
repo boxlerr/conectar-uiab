@@ -1,6 +1,7 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -94,6 +95,8 @@ export function CatalogoPublico({ items, colorScheme = "blue" }: CatalogoPublico
   const [filtro, setFiltro] = useState<"todos" | "producto" | "servicio">("todos");
   const [itemAbierto, setItemAbierto] = useState<CatalogoItem | null>(null);
 
+  const cerrarModal = useCallback(() => setItemAbierto(null), []);
+
   const itemsFiltrados = useMemo(() => {
     if (filtro === "todos") return items;
     return items.filter((i) => i.tipo_item === filtro);
@@ -179,13 +182,15 @@ export function CatalogoPublico({ items, colorScheme = "blue" }: CatalogoPublico
         ))}
       </div>
 
-      {/* ─── Modal detalle ─── */}
+      {/* ─── Modal detalle ───
+          El modal se portea al <body> desde adentro de CatalogoModal (no acá),
+          así AnimatePresence sigue montado y la animación de salida funciona. */}
       <AnimatePresence>
         {itemAbierto && (
           <CatalogoModal
             item={itemAbierto}
             color={c}
-            onClose={() => setItemAbierto(null)}
+            onClose={cerrarModal}
           />
         )}
       </AnimatePresence>
@@ -214,6 +219,30 @@ function CatalogoModal({
     setDetalleOverflow(el.scrollHeight > DETALLE_MAX_H + 4);
   }, [item?.descripcion_larga]);
 
+  // Con el modal abierto la ficha de atrás seguía scrolleando: se llegaba al pie
+  // de página y quedaba todo superpuesto. Frenamos el scroll del body y
+  // compensamos el ancho de la barra para que la página no pegue un salto.
+  useEffect(() => {
+    const { body, documentElement } = document;
+    const anchoBarra = window.innerWidth - documentElement.clientWidth;
+    const overflowPrevio = body.style.overflow;
+    const paddingPrevio = body.style.paddingRight;
+
+    body.style.overflow = "hidden";
+    if (anchoBarra > 0) body.style.paddingRight = `${anchoBarra}px`;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+
+    return () => {
+      body.style.overflow = overflowPrevio;
+      body.style.paddingRight = paddingPrevio;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
   const esServicio = item.tipo_item === "servicio";
   const TipoIcon = esServicio ? Wrench : Package;
 
@@ -226,15 +255,21 @@ function CatalogoModal({
           maximumFractionDigits: 0,
         }).format(item.precio);
 
-  return (
+  // Al <body>: dentro de la tarjeta del catálogo el overlay quedaba atrapado en
+  // el stacking context de la ficha y el pie de página se le montaba encima.
+  // Sólo se renderiza tras un click, así que acá `document` siempre existe.
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20 sm:pt-24 lg:pt-32 pb-8 bg-slate-900/60 backdrop-blur-[2px] overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-20 sm:pt-24 lg:pt-32 pb-8 bg-slate-900/60 backdrop-blur-[2px] overflow-y-auto"
       onClick={onClose}
       style={{ backgroundColor: "rgba(25, 28, 30, 0.45)" }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={item.nombre}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -467,6 +502,7 @@ function CatalogoModal({
           </div>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }
