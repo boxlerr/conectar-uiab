@@ -38,7 +38,9 @@ const inspeccionar = () => {
   };
 };
 
-const navegador = await chromium.launch();
+const navegador = await chromium.launch(
+  process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}
+);
 const ctx = await navegador.newContext({ viewport: { width: 1440, height: 810 }, locale: "es-AR" });
 const page = await ctx.newPage();
 

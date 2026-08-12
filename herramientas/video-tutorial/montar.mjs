@@ -15,6 +15,22 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { createRequire } from "node:module";
+
+// ffmpeg y ffprobe vienen como dependencias npm: así `npm install` deja todo
+// listo y no hay que instalar nada a mano en la máquina. Si alguien prefiere
+// los del sistema, FFMPEG=/ruta y FFPROBE=/ruta los pisan.
+const require_ = createRequire(import.meta.url);
+const binario = (paquete, fallback) => {
+  try {
+    const p = require_(paquete);
+    return typeof p === "string" ? p : p.path;
+  } catch {
+    return fallback;
+  }
+};
+const FFMPEG = process.env.FFMPEG || binario("ffmpeg-static", "ffmpeg");
+const FFPROBE = process.env.FFPROBE || binario("@ffprobe-installer/ffprobe", "ffprobe");
 
 const CRUDO = join(process.cwd(), "grabaciones");
 const TMP = join(process.cwd(), "tmp-montaje");
@@ -24,8 +40,15 @@ const SALIDA = join(process.cwd(), "tutorial-uiab-conecta.mp4");
 // Se bajan con `node traer-assets.mjs`. Si no están, la pieza se arma igual
 // sin ellos. Los recortes salen de mirar el clip: el dron arranca lento y
 // gana velocidad, así que la apertura entra tarde para cortar en lo mejor.
-const APERTURA = { archivo: "assets/apertura.mp4", desde: 0.8, dur: 3.0 };
-const CIERRE = { archivo: "assets/cierre.mp4", desde: 0.0, dur: 4.0 };
+// El recorte se ancla a un extremo del clip y se calcula con la duración REAL
+// medida, no con un `desde` fijo: los planos pueden venir de 4 s o de 5 s y un
+// número a mano deja de caer donde se quería en cuanto se regenera uno.
+//   apertura → los últimos N s: el dron acelera, así que el pico está al final
+//              y el corte a la placa cae en el momento de más envión.
+//   cierre   → los primeros N s: el retroceso abre el plano enseguida, y así
+//              se esquiva la cola, que es donde estos modelos se van de tema.
+const APERTURA = { archivo: "assets/apertura.mp4", dur: 3.0, anclaje: "final" };
+const CIERRE = { archivo: "assets/cierre.mp4", dur: 4.0, anclaje: "inicio" };
 
 // El logo de UIAB Conecta, rasterizado del SVG del sitio con `node logo.mjs`.
 // Por defecto cierra la pieza sobre el plano aéreo — es el lockup final.
@@ -50,12 +73,13 @@ const OBJETIVO = Number(opt("objetivo", "62"));
 const VELOCIDAD_FORZADA = args.includes("--velocidad") ? Number(opt("velocidad", "1")) : null;
 const MUSICA = opt("musica", existsSync("assets/musica.mp3") ? "assets/musica.mp3" : null);
 const SIN_BOOKENDS = bandera("sin-bookends");
+const LUFS = Number(opt("lufs", "-16"));
 const DONDE_LOGO = existsSync(LOGO) ? opt("logo", "cierre") : "no";
 if (!existsSync(LOGO) && !SIN_BOOKENDS) {
   console.log("  ⚠ falta assets/logo-blanco.png — corré `node logo.mjs` para el lockup.");
 }
 
-const ff = (a) => execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", ...a], { stdio: "inherit" });
+const ff = (a) => execFileSync(FFMPEG, ["-hide_banner", "-loglevel", "error", "-y", ...a], { stdio: "inherit" });
 
 /** Duración en segundos, o null. Los .webm de Playwright son VFR y a veces no
  *  traen duración en el contenedor: por eso el segundo intento por stream. */
@@ -63,7 +87,7 @@ const duracion = (f) => {
   for (const entrada of ["format=duration", "stream=duration"]) {
     try {
       const sel = entrada.startsWith("stream") ? ["-select_streams", "v:0"] : [];
-      const v = Number(execFileSync("ffprobe", [
+      const v = Number(execFileSync(FFPROBE, [
         "-v", "error", ...sel, "-show_entries", entrada,
         "-of", "default=nw=1:nk=1", f,
       ]).toString().trim().split("\n")[0]);
@@ -87,7 +111,27 @@ console.log(`▸ ${partes.length} partes`);
 // archivo inexistente.
 const hayApertura = !SIN_BOOKENDS && existsSync(APERTURA.archivo);
 const hayCierre = !SIN_BOOKENDS && existsSync(CIERRE.archivo);
-const segBookends = (hayApertura ? APERTURA.dur : 0) + (hayCierre ? CIERRE.dur : 0);
+
+APERTURA.dur = Number(opt("apertura", String(APERTURA.dur)));
+CIERRE.dur = Number(opt("cierre", String(CIERRE.dur)));
+
+/** Traduce {dur, anclaje} a un {desde, dur} exacto midiendo el clip. */
+const recorteDe = (plano) => {
+  const total = duracion(plano.archivo);
+  if (!total) {
+    console.log(`  ⚠ no pude medir ${plano.archivo}: lo tomo desde el principio.`);
+    return { desde: 0, dur: plano.dur };
+  }
+  const dur = Math.min(plano.dur, total);
+  if (dur < plano.dur) {
+    console.log(`  ⚠ ${plano.archivo} dura ${total.toFixed(1)}s: uso eso en vez de ${plano.dur}s.`);
+  }
+  return { desde: plano.anclaje === "final" ? Number((total - dur).toFixed(3)) : 0, dur };
+};
+
+const recorteApertura = hayApertura ? recorteDe(APERTURA) : null;
+const recorteCierre = hayCierre ? recorteDe(CIERRE) : null;
+const segBookends = (recorteApertura?.dur ?? 0) + (recorteCierre?.dur ?? 0);
 // Los cruces se comen tiempo: cada uno solapa dos segmentos.
 const segCruces = (partes.length - 1) * CRUCE.capitulo
   + (hayApertura ? CRUCE.entrada : 0)
@@ -139,8 +183,9 @@ const normalizar = (src, dst, { setpts = null, desde = null, dur = null, logo = 
     // cualquier logotipo. Sale del SVG del sitio vía logo.mjs, así que es
     // exactamente el mismo que usa la app.
     // El oscurecido leve es para que el blanco despegue del cielo del plano.
+    // Ojo con los números: ffmpeg NO parsea ".45" como duración, quiere "0.45".
     const salida = logo.sale !== null
-      ? `,fade=t=out:st=${logo.sale}:d=.45:alpha=1`
+      ? `,fade=t=out:st=${logo.sale}:d=0.45:alpha=1`
       : "";
     ff([
       ...recorte, "-i", src,
@@ -148,7 +193,7 @@ const normalizar = (src, dst, { setpts = null, desde = null, dur = null, logo = 
       "-filter_complex",
       `[0:v]${base},eq=brightness=-0.05:saturation=1.05[v];`
       + `[1:v]scale=${logo.ancho}:-1,format=rgba,`
-      + `fade=t=in:st=${logo.entra}:d=.45:alpha=1${salida}[l];`
+      + `fade=t=in:st=${logo.entra}:d=0.45:alpha=1${salida}[l];`
       + `[v][l]overlay=(W-w)/2:(H-h)/2:shortest=1,format=yuv420p[o]`,
       "-map", "[o]", "-an", ...X264, dst,
     ]);
@@ -160,11 +205,11 @@ const segmentos = [];
 
 if (hayApertura) {
   const n = normalizar(APERTURA.archivo, join(TMP, "b-apertura.mp4"), {
-    desde: APERTURA.desde, dur: APERTURA.dur,
+    ...recorteApertura,
     // En la apertura el logo se va antes del corte: enseguida entra la placa,
     // que ya lo trae. Dejarlo puesto sería mostrarlo dos veces seguidas.
     logo: ["apertura", "ambos"].includes(DONDE_LOGO)
-      ? { ancho: LOGO_ANCHO, entra: 0.9, sale: APERTURA.dur - 0.6 }
+      ? { ancho: LOGO_ANCHO, entra: 0.9, sale: recorteApertura.dur - 0.6 }
       : null,
   });
   segmentos.push({ ...n, cruce: null, nombre: "apertura (dron)" });
@@ -185,7 +230,7 @@ partes.forEach((p, i) => {
 
 if (hayCierre) {
   const n = normalizar(CIERRE.archivo, join(TMP, "b-cierre.mp4"), {
-    desde: CIERRE.desde, dur: CIERRE.dur,
+    ...recorteCierre,
     // Acá el logo entra y se queda: es el último fotograma de la pieza.
     logo: ["cierre", "ambos"].includes(DONDE_LOGO)
       ? { ancho: LOGO_ANCHO, entra: 0.8, sale: null }
@@ -229,14 +274,20 @@ const comunes = [
 
 if (MUSICA && existsSync(MUSICA)) {
   const salidaFade = Math.max(0, total - 2.5);
+  // loudnorm en vez de un volumen fijo. Con `volume=0.2` el resultado dependía
+  // de cómo venía masterizada la pista: una quedaba tapando el video y la
+  // siguiente no se escuchaba. Esto la lleva SIEMPRE al mismo loudness
+  // percibido (-16 LUFS, el estándar de video web) con el pico bajo control,
+  // así que cualquier MP3 que se le tire queda parejo y profesional.
   ff([
     "-i", video, "-stream_loop", "-1", "-i", MUSICA,
     "-filter_complex",
-    `[1:a]volume=0.2,afade=t=in:st=0:d=1.2,afade=t=out:st=${salidaFade.toFixed(2)}:d=2.5[a]`,
+    `[1:a]loudnorm=I=${LUFS}:TP=-1.5:LRA=11,aresample=48000,`
+    + `afade=t=in:st=0:d=1.2,afade=t=out:st=${salidaFade.toFixed(2)}:d=2.5[a]`,
     "-map", "0:v", "-map", "[a]", "-shortest",
-    ...comunes, "-c:a", "aac", "-b:a", "160k", SALIDA,
+    ...comunes, "-c:a", "aac", "-b:a", "192k", "-ar", "48000", SALIDA,
   ]);
-  console.log(`▸ Música mezclada desde ${MUSICA}`);
+  console.log(`▸ Música: ${MUSICA} · normalizada a ${LUFS} LUFS`);
 } else {
   ff(["-i", video, "-an", ...comunes, SALIDA]);
   console.log("▸ Sin música (dejá un MP3 en assets/musica.mp3 y volvé a correr esto)");

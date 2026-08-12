@@ -120,6 +120,9 @@ async function main() {
 
   console.log(`▸ Grabando contra ${BASE}`);
   const navegador = await chromium.launch({
+    // CHROMIUM=/ruta/al/chrome usa ese binario en vez del que bajó Playwright.
+    // Sirve cuando el entorno ya trae Chromium y no se puede descargar otro.
+    ...(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}),
     args: [
       "--hide-scrollbars",          // el scrollbar de Chrome ensucia el encuadre
       "--disable-lcd-text",         // sin subpixel AA: nada de franjas de color al comprimir

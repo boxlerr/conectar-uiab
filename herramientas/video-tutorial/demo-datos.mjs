@@ -12,14 +12,38 @@
  * no son visibles para el público anónimo.
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const env = Object.fromEntries(
-  readFileSync("/Users/julianboxler/Documents/GitHub/conectar-uiab/.env", "utf8")
-    .split("\n").filter((l) => l.includes("=") && !l.trim().startsWith("#"))
-    .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; })
-);
-const U = env.NEXT_PUBLIC_SUPABASE_URL;
-const K = env.SUPABASE_SERVICE_ROLE_KEY;
+const AQUI = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Busca el .env en la raíz del repo, relativo a este archivo. Antes era una
+ * ruta absoluta a un Documents/GitHub concreto, así que esto sólo corría en
+ * una máquina. Las variables de entorno, si están, le ganan al archivo.
+ */
+const leerEnv = () => {
+  for (const nombre of [".env.local", ".env"]) {
+    const ruta = resolve(AQUI, "../..", nombre);
+    if (!existsSync(ruta)) continue;
+    return Object.fromEntries(
+      readFileSync(ruta, "utf8")
+        .split("\n").filter((l) => l.includes("=") && !l.trim().startsWith("#"))
+        .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; })
+    );
+  }
+  return {};
+};
+
+const env = leerEnv();
+const U = process.env.NEXT_PUBLIC_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
+const K = process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+if (!U || !K) {
+  throw new Error(
+    "Faltan NEXT_PUBLIC_SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY.\n"
+    + "Ponelas en el .env de la raíz del repo o pasalas como variables de entorno."
+  );
+}
 const REGISTRO = "demo-ids.json";
 
 const api = async (ruta, opciones = {}) => {
