@@ -465,7 +465,12 @@ if (MUSICA && existsSync(MUSICA)) {
   ff([
     "-i", encadenado, "-stream_loop", "-1", "-i", MUSICA,
     "-filter_complex",
-    `[1:a]loudnorm=I=${LUFS}:TP=-1.5:LRA=11,aresample=48000,`
+    // `aformat` y no `aresample=48000`: con ffmpeg 7 el aresample pelado no
+    // logra negociar el layout de canales con el encoder y la corrida muere
+    // con "Cannot select channel layout ... Failed to inject frame into filter
+    // network". Acá se le dicen los tres parámetros de una.
+    `[1:a]loudnorm=I=${LUFS}:TP=-1.5:LRA=11,`
+    + `aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,`
     + `afade=t=in:st=0:d=1.2,afade=t=out:st=${salidaFade.toFixed(2)}:d=2.5[a]`,
     "-map", "0:v", "-map", "[a]", "-shortest",
     ...comunes, "-c:a", "aac", "-b:a", "192k", "-ar", "48000", SALIDA,
