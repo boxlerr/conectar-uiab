@@ -1,13 +1,43 @@
 # Video tutorial de UIAB Conecta
 
-Screencast **real** del sitio, generado por script: Playwright maneja un Chromium
-de verdad (cursor visible, scroll con easing, tipeo con ritmo humano) mientras
-una capa inyectada dibuja los subtítulos y las placas con la identidad de la
-marca. Los planos aéreos de apertura y cierre salen de Higgsfield, partiendo de
-la **foto real del parque** que usa el home. Después ffmpeg encadena todo,
-compone el logo, normaliza la música y arma el MP4.
+Pieza dirigida sobre imágenes **reales** del sitio, generada por script.
+Playwright maneja un Chromium de verdad (cursor visible, scroll con easing,
+tipeo con ritmo humano) y entrega **material crudo y limpio**. Toda la
+dirección —encuadre, acercamientos, ritmo, tipografía, marco— la pone ffmpeg
+después. Los planos aéreos de apertura y cierre salen de Higgsfield, partiendo
+de la **foto real del parque** que usa el home.
 
-Resultado: `tutorial-uiab-conecta.mp4` — 1920x1080, 30 fps, ~62 s.
+Resultado: `tutorial-uiab-conecta.mp4` — 1920x1080, 30 fps.
+
+---
+
+## Cómo está pensada
+
+La primera versión filmaba la pantalla entera a velocidad real y dibujaba los
+carteles **dentro** de la página. Eso da un screencast: recorrido lento, letra
+chica, tramos donde no pasa nada y globitos pegados encima.
+
+Ahora la cámara no es el navegador, es el montaje:
+
+| | Antes | Ahora |
+| --- | --- | --- |
+| Encuadre | El viewport entero, siempre | Punch-in sobre el elemento del que se habla |
+| Texto | Dibujado en la página, chico | PNG pre-renderizado, entra sincronizado con el zoom |
+| Resaltado | Recuadro naranja sobre el elemento | El encuadre **es** el resaltado |
+| Ritmo | Tiempo real, con esperas incluidas | Sólo los planos; navegar y scrollear no entran |
+| Presentación | Pantalla a sangre | Marco de marca con sombra y los dos logos |
+
+El guion (`escenas/*.mjs`) declara **planos**: qué se hace, a quién se encuadra
+y qué texto lo acompaña. Cada plano anota entre qué milisegundos ocurre. Lo que
+queda entre plano y plano —navegar, esperar a que Next compile una ruta,
+scrollear treinta tarjetas— se tira. Por eso el material crudo son ~20 s por
+capítulo y la pieza usa ~12.
+
+Para que los planos caigan clavados sobre el `.webm`, la grabación arranca con
+una **claqueta**: un destello verde a pantalla completa. El montaje busca el
+primer fotograma verde y con eso ata el reloj del guion al video. Sin eso los
+textos entran corridos, porque entre que Playwright crea la página y sale el
+primer fotograma hay una demora que cambia en cada corrida.
 
 ---
 
@@ -113,17 +143,31 @@ siguiente no se escuche. Para subirla o bajarla: `--lufs -14` (más fuerte),
 
 | Flag | Para qué |
 | --- | --- |
-| `--objetivo 62` | Duración buscada en segundos. Calcula solo cuánto acelerar. |
-| `--velocidad 1.2` | Fuerza el factor a mano; le gana a `--objetivo`. |
-| `--logo cierre` | Dónde va el logo: `apertura`, `cierre`, `ambos` o `no`. |
-| `--apertura 3` / `--cierre 4` | Segundos de cada plano aéreo. |
+| `--objetivo 40` | Duración buscada en segundos. Calcula solo cuánto acelerar. |
+| `--logo ambos` | Dónde va el logo del plano aéreo: `apertura`, `cierre`, `ambos` o `no`. |
 | `--lufs -16` | Volumen percibido de la música. |
-| `--sin-bookends` | Sin planos aéreos: sólo el screencast. |
+| `--sin-bookends` | Sin planos aéreos: sólo la pieza. |
 | `--musica ruta.mp3` | Otra pista, sin tocar `assets/`. |
+| `--solo buscar` | Monta **un solo plano**, por su `id`. Para ajustar un encuadre sin esperar el render entero. |
 
-`--objetivo` es lo que se toca normalmente. Topea en 1.6× — más rápido que eso
-el tipeo parece adelantado, así que si pide más, el aviso te dice que hay que
-**sacar pasos** en `escenas/`.
+`--objetivo` topea en 1.6×: más rápido que eso el tipeo parece adelantado. Si
+la pieza sigue quedando larga, hay que **sacar planos** en `escenas/`, no
+acelerar más.
+
+### Ajustar un encuadre sin volver a filmar
+
+El encuadre se calcula en el montaje a partir de la caja que anotó la
+grabación, así que se puede reajustar mirando el render y volviendo a montar
+—que tarda segundos— sin regrabar nada:
+
+```bash
+node montar.mjs --solo contacto
+```
+
+En `escenas/*.mjs`, cada plano acepta `escala` (un número fuerza el
+acercamiento; `"auto"` lo calcula), `velocidad` (acelera ese plano),
+`congelar` (le prohíbe a la app scrollear durante el plano) y `medirEn`
+(`"despues"` por defecto: sigue al elemento si la pantalla se movió).
 
 ---
 
@@ -133,15 +177,30 @@ el tipeo parece adelantado, así que si pide más, el aviso te dice que hay que
 | --- | --- |
 | `video.mjs` | El de arriba: encadena todo y revisa que estén las condiciones. |
 | `grabar.mjs` | Arnés: inicia sesión fuera de cámara y graba dos pasadas, una por capítulo. |
-| `escenas/*.mjs` | El guion de cada capítulo — acá se edita qué se muestra y qué dice. |
-| `piloto.mjs` | Conducción "humana": trayectorias con curva, tipeo irregular, encuadres. |
-| `capa-visual.js` | Se inyecta en la página: cursor, subtítulos, placas, sellos, resaltados. |
-| `montar.mjs` | ffmpeg: normaliza, pega los planos, compone el logo, mezcla música, exporta. |
+| `escenas/*.mjs` | El guion de cada capítulo, escrito como lista de **planos**. |
+| `piloto.mjs` | Conducción "humana" (curvas, tipeo irregular) y la dirección: `plano()`. |
+| `capa-visual.js` | Se inyecta en la página. Sólo cursor, onda del click y claqueta. |
+| `montar.mjs` | ffmpeg: corta los planos, hace los acercamientos, compone y exporta. |
+| `marco.mjs` | Dibuja `assets/marco.png`: fondo, pantalla con sombra y los dos logos. |
+| `tipografia.mjs` | Rasteriza los carteles y las placas de capítulo. |
 | `traer-assets.mjs` | Baja los planos aéreos a `assets/`. |
 | `logo.mjs` | Rasteriza el logo del sitio a PNG transparente (ffmpeg no lee SVG). |
-| `prueba-capa.mjs` | Prueba de humo de la capa visual (`npm run prueba`). |
 | `demo-datos.mjs` | Siembra y borra las oportunidades de ejemplo. |
 | `sonda.mjs` | Diagnóstico: lista lo que realmente renderiza cada ruta. |
+
+`assets/fuentes/` son las mismas Poppins que sirve el sitio (next/font las
+self-hostea en `.next/static/media`). Van versionadas porque no se bajan de
+ningún lado, y sin ellas los textos salen con la fuente del sistema.
+
+### Iterar sin credenciales
+
+```bash
+BASE_URL=http://localhost:3005 node grabar.mjs --sin-sesion
+```
+
+Filma sólo el Directorio público. **No sirve para la pieza final** —sin sesión
+la ficha tapa catálogo y contacto con "Contenido exclusivo para miembros"— pero
+alcanza para ajustar encuadres, tipografía y ritmo.
 
 Los scripts que abren un navegador aceptan `CHROMIUM=/ruta/al/chrome` para usar
 un binario ya instalado en vez del que baja Playwright.

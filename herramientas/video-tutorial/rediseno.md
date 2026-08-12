@@ -1,7 +1,7 @@
-# Rediseño de la pieza — pendiente
+# Rediseño de la pieza
 
-Estado: **el video actual fue rechazado**. Este documento es el encargo, para
-que no se pierda al cambiar de sesión.
+Estado: **la arquitectura nueva está hecha y funcionando**. Queda pendiente
+grabar la pieza definitiva (hace falta una cuenta que entre) y elegir música.
 
 ## Qué dijo el cliente, textual
 
@@ -18,46 +18,49 @@ que no se pierda al cambiar de sesión.
 
 ## El diagnóstico
 
-El problema no son los detalles: es la arquitectura. Hoy **la cámara es el
-navegador**. Todo pasa a velocidad real, el encuadre es el viewport completo y
-los carteles los dibuja una capa inyectada en la página. Eso da un screencast,
-y lo que se pide es una pieza dirigida.
+El problema no eran los detalles: era la arquitectura. **La cámara era el
+navegador.** Todo pasaba a velocidad real, el encuadre era el viewport completo
+y los carteles los dibujaba una capa inyectada en la página. Eso da un
+screencast, y lo que se pide es una pieza dirigida.
 
-La vuelta de rosca es mover la dirección al montaje: que Playwright entregue
-**material crudo y limpio**, y que el encuadre, el zoom, el ritmo y el texto los
-ponga ffmpeg en post.
+La vuelta de rosca fue mover la dirección al montaje: Playwright entrega
+**material crudo y limpio**, y el encuadre, el zoom, el ritmo y el texto los
+pone ffmpeg en post.
 
-## Lo que ya está resuelto
+## Lo resuelto
 
-- **La ficha vacía.** El guion entraba a la primera tarjeta que apareciera y
-  caía en `korund-sa`, que no tiene nada cargado. Ahora busca la de **Vaxler**,
-  que es objetivamente la más completa de la base: 6 servicios **con 6 fotos**
-  (la única con fotos), 10 etiquetas, 686 caracteres de descripción, logo y web.
-  Si no la encuentra, cae en la primera.
-
-## Lo que hay que hacer
-
-| Pedido | Cómo se resuelve |
+| Pedido | Cómo quedó |
 | --- | --- |
-| Zooms sobre los elementos | Punch-in en post con ffmpeg (`scale`+`crop` con expresiones de tiempo), no scroll en vivo. |
-| Texto sincronizado con el zoom | Los textos dejan de dibujarse en la página: se pre-renderizan como PNG con Chromium y se componen con `overlay` en el milisegundo exacto. |
-| Sacar la "marca horrible" | Fuera el recuadro naranja de foco. El elemento se destaca **con el encuadre**, no con un borde. |
-| Marco profesional de la pantalla | Mockup con esquinas redondeadas y sombra sobre fondo de marca, pre-renderizado como PNG y compuesto. |
-| Logos de UIAB y Vaxler en las esquinas | Overlay de PNG (`logo.mjs` ya rasteriza el de UIAB; el de Vaxler está en `public/logo-vaxler.png`). |
-| Logo en la animación de apertura | `--logo ambos` deja de ser opcional: va también en el plano aéreo inicial. |
-| "Se queda sin pasar nada" / "se va rapidísimo" | Ritmo dirigido: cada plano dura lo que tiene que durar, con speed ramp sobre lo aburrido (scroll, tipeo). |
-| Música | Bajarla (Pixabay, uso comercial sin atribución) y dejarla en `assets/musica.mp3`. El montaje ya la normaliza a −16 LUFS. |
+| Zooms sobre los elementos | El guion declara planos con su sujeto; el montaje hace punch-in de 0.34 s sobre esa caja (`zoompan`). Acercamientos reales de 1.4× a 1.75×. |
+| Texto sincronizado con el zoom | Los textos se pre-renderizan como PNG con Chromium y entran con el acercamiento. Una **claqueta** verde al inicio de la grabación ata el reloj del guion al fotograma exacto del `.webm`. |
+| Sacar la "marca horrible" | Fuera el recuadro naranja. El elemento se destaca con el encuadre. |
+| Marco profesional | `marco.mjs`: fondo de marca, pantalla con esquinas redondeadas, filo y sombra. |
+| Logos de UIAB y Vaxler | En la banda superior, alineados a los bordes de la pantalla. |
+| Logo en la animación de apertura | `--logo ambos` es el default: va en el plano aéreo inicial y en el final. |
+| "Se queda sin pasar nada" | Sólo entran los planos. Navegar, esperar compilaciones y scrollear quedan afuera: ~20 s crudos por capítulo → ~12 s en la pieza. |
+| Entra a un perfil vacío | Entra a Vaxler, que es la ficha más completa de la base (6 servicios con foto, 10 etiquetas, descripción, logo y web). |
+| Flash blanco al entrar al sitio | Los planos aéreos funden contra el navy del marco, no contra la página. |
 
-## Restricciones técnicas
+## Lo que falta
 
-- La post-producción es **sólo ffmpeg 7.x** desde Node. No hay After Effects.
-- Sí se pueden pre-renderizar PNGs con Chromium/Playwright, que ya es
-  dependencia (`logo.mjs` lo hace).
-- Grabar exige llegar a la base de producción: **desde un entorno de nube con
-  egress restringido no se puede**. Este trabajo se termina en local.
+1. **Grabar la pieza definitiva.** Necesita `UIAB_EMAIL` / `UIAB_PASSWORD` en
+   el `.env` de la raíz, de una cuenta de empresa socia que **no** sea la de la
+   UIAB. Sin sesión, la ficha tapa catálogo y contacto con "Contenido exclusivo
+   para miembros" y el capítulo 2 (Oportunidades) no existe.
+   Verificado contra Supabase: `julianboxler@vaxler.com.ar` existe y está
+   confirmada, pero la contraseña que hay en el `.env` no entra.
+2. **Música.** No viene ninguna; hay que bajar un MP3 y dejarlo en
+   `assets/musica.mp3`. El montaje lo normaliza a −16 LUFS. Ver el README.
 
-## Cómo se filma
+## Restricciones técnicas (medidas, no supuestas)
 
-`npm run video` levanta la app solo, graba y monta. Necesita en el `.env` de la
-raíz `UIAB_EMAIL` y `UIAB_PASSWORD` de una cuenta de empresa socia que no sea la
-de la UIAB. Ver el README.
+- **Playwright graba al tamaño CSS del viewport.** Pedirle a `recordVideo` un
+  tamaño mayor no amplía: mete el contenido 1:1 en una esquina y rellena el
+  resto. Por eso se filma con viewport de 1920x1080 y no de 1600x900 — la
+  resolución para los planos cerrados se gana agrandando el viewport.
+- **El ffmpeg del sistema de esta Mac no trae `drawtext`.** Todo el texto va
+  pre-renderizado como PNG. (El `ffmpeg-static` de `node_modules` sí lo trae,
+  pero depender de eso es frágil.)
+- La post-producción es **sólo ffmpeg** desde Node. No hay After Effects.
+- Grabar exige llegar a la base de producción: desde un entorno de nube con
+  egress restringido **no se puede**. Este trabajo se termina en local.

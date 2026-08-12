@@ -4,10 +4,15 @@ grabaciones/
 # Va por Drive/YouTube, no acá. Se regenera con `node montar.mjs`.
 *.mp4
 # Todo lo de assets/ se baja o se genera: los planos con traer-assets.mjs
-# (las URLs viven en assets.json) y el logo con logo.mjs.
-assets/
+# (las URLs viven en assets.json), el logo con logo.mjs y el marco con
+# marco.mjs. Las fuentes son la excepción: no se bajan de ningún lado, salen
+# de las que el propio sitio self-hostea, así que van versionadas.
+assets/*
+!assets/fuentes/
 tmp-montaje/
+tmp-texto/
 sesion.json
 demo-ids.json
 sonda.txt
 tmp-prueba/
+prueba-look.png

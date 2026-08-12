@@ -36,7 +36,8 @@ const correr = (script, extra = []) => {
   if (r.status !== 0) throw new Error(`${script} terminó con código ${r.status}`);
 };
 
-const titulo = (n, texto) => console.log(`\n\x1b[1m${n}/4 · ${texto}\x1b[0m`);
+const PASOS = 5;
+const titulo = (n, texto) => console.log(`\n\x1b[1m${n}/${PASOS} · ${texto}\x1b[0m`);
 
 // "contesta" ≠ "contesta bien": si el puerto responde pero con 500, la app
 // arrancó y el problema es de configuración, no del arranque. Distinguirlo
@@ -151,7 +152,13 @@ if (existsSync(join(AQUI, "assets/logo-blanco.png"))) {
   correr("logo.mjs");
 }
 
-titulo(3, "Grabar el screencast");
+// El marco se redibuja SIEMPRE: es barato (un screenshot) y es lo que más se
+// toca al ajustar el look. Cachearlo sólo sirve para que un cambio en
+// marco.mjs no se vea y uno se vuelva loco buscando por qué.
+titulo(3, "Marco de la pieza");
+correr("marco.mjs");
+
+titulo(4, "Grabar el screencast");
 // El sembrado escribe en la base de PRODUCCIÓN. El try/finally está para que
 // el borrado corra igual si la grabación se cae a la mitad: si no, quedan
 // oportunidades inventadas a la vista de las socias.
@@ -177,7 +184,7 @@ try {
 // tarda ffmpeg.
 bajarApp();
 
-titulo(4, "Montar");
+titulo(5, "Montar");
 correr("montar.mjs", paraMontar);
 
 console.log(`\n\x1b[1m✓ Listo:\x1b[0m ${join(AQUI, "tutorial-uiab-conecta.mp4")}`);

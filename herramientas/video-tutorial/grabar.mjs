@@ -15,7 +15,7 @@ import { chromium } from "playwright";
 import { mkdirSync, rmSync, renameSync, existsSync, writeFileSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CAPA_VISUAL, dormir } from "./piloto.mjs";
+import { CAPA_VISUAL, dormir, guion, claqueta } from "./piloto.mjs";
 
 import { escenaDirectorio } from "./escenas/directorio.mjs";
 import { escenaOportunidades } from "./escenas/oportunidades.mjs";
@@ -27,14 +27,18 @@ const BASE = process.env.BASE_URL || "http://localhost:3000";
 const SALIDA = join(process.cwd(), "grabaciones");
 const ESTADO = join(process.cwd(), "sesion.json");
 
-// Playwright NO amplía: si recordVideo.size es mayor que el viewport, mete
-// relleno gris alrededor. Por eso el video se graba EXACTAMENTE del tamaño del
-// viewport y el escalado a 1080p lo hace ffmpeg en el montaje.
-// 1600x900 y no 1920x1080 a propósito: el sitio renderiza más chico, así que
-// al ampliar a 1080p el texto se lee bien en un celular.
-const VIEWPORT = { width: 1600, height: 900 };
-const ESCALA = 2; // captura a 3200x1800 y baja a 1600x900: texto nítido
-const VIDEO = { width: 1600, height: 900 };
+// Playwright graba SIEMPRE al tamaño CSS del viewport: pedirle a recordVideo
+// un tamaño mayor no amplía nada, mete el contenido 1:1 en una esquina y
+// rellena el resto (medido). Así que la resolución para los planos cerrados
+// hay que ganarla agrandando el viewport, no la grabación.
+//
+// 1920x1080 y no 1600x900: la pantalla del marco mide 1600 de ancho, así que
+// filmando a 1920 un plano cerrado de 1.2× todavía sale de píxeles reales, y
+// el tope de 1.75× (piloto.mjs) queda en un upscale suave. Con 1600 cualquier
+// acercamiento era upscale desde el primer píxel.
+const VIEWPORT = { width: 1920, height: 1080 };
+const ESCALA = 2; // rasteriza a 3840x2160 y baja a 1920x1080: texto nítido
+const VIDEO = { width: 1920, height: 1080 };
 
 /**
  * Con qué cuenta se filma. Sale del .env de la raíz del repo o del entorno.
@@ -69,7 +73,12 @@ const CREDENCIALES = {
   password: process.env.UIAB_PASSWORD || env.UIAB_PASSWORD,
 };
 
-if (!CREDENCIALES.email || !CREDENCIALES.password) {
+// `--sin-sesion` filma sólo el Directorio público, sin entrar. No sirve para
+// la pieza final —la ficha queda tapada por "Contenido exclusivo para
+// miembros"— pero permite iterar el montaje cuando no hay credenciales a mano.
+const SIN_SESION = process.argv.includes("--sin-sesion");
+
+if (!SIN_SESION && (!CREDENCIALES.email || !CREDENCIALES.password)) {
   console.error("\n✗ Falta con qué cuenta filmar.\n");
   console.error("  Agregá al .env de la raíz del repo estas dos líneas, con una");
   console.error("  cuenta de empresa socia (NO la de la UIAB):\n");
@@ -149,7 +158,7 @@ async function iniciarSesion(navegador) {
   console.log("  ✓ sesión iniciada y guardada");
 }
 
-async function pasada({ navegador, nombre, guion, logueado, indice }) {
+async function pasada({ navegador, nombre, libreto, logueado, indice }) {
   const ctx = await navegador.newContext({
     ...opcionesContexto(true),
     ...(logueado ? { storageState: ESTADO } : {}),
@@ -169,10 +178,16 @@ async function pasada({ navegador, nombre, guion, logueado, indice }) {
   const page = await ctx.newPage();
   page.on("pageerror", (e) => console.log(`    · error de página: ${e.message.slice(0, 120)}`));
 
+  // Claqueta ANTES de todo: marca en el .webm el instante en que arranca el
+  // reloj del guion. Sin esto los planos caen corridos, porque entre que se
+  // crea la página y sale el primer fotograma hay una demora variable.
+  guion.reiniciar();
+  await claqueta(page);
+
   const t0 = Date.now();
   let fallo = null;
   try {
-    await guion({ page, BASE, indice });
+    await libreto({ page, BASE, indice });
   } catch (e) {
     // Un `return` dentro de finally se come la excepción: la guardamos
     // aparte para no quedarnos con una toma corta y sin explicación.
@@ -185,14 +200,18 @@ async function pasada({ navegador, nombre, guion, logueado, indice }) {
     await ctx.close();
     const origen = await page.video()?.path();
     const destino = join(SALIDA, `${nombre}.webm`);
+    // Los planos se llevan aunque la pasada se haya cortado: lo filmado hasta
+    // ahí sirve, y perder el listado obliga a regrabar todo el capítulo.
+    const planos = guion.marcas.slice();
+    const util = planos.reduce((a, p) => a + (p.tOut - p.tIn), 0) / 1000;
     if (origen && existsSync(origen)) {
       if (existsSync(destino)) rmSync(destino);
       renameSync(origen, destino);
-      console.log(`  ✓ ${nombre}.webm — ${dur}s`);
-      return { nombre, archivo: destino, duracion: Number(dur) };
+      console.log(`  ✓ ${nombre}.webm — ${dur}s crudos · ${planos.length} planos · ${util.toFixed(1)}s útiles`);
+      return { nombre, archivo: destino, duracion: Number(dur), claqueta: guion.claqueta, planos };
     }
     console.log(`  ✗ ${nombre}: no se generó el video`);
-    return { nombre, archivo: null, duracion: Number(dur) };
+    return { nombre, archivo: null, duracion: Number(dur), claqueta: guion.claqueta, planos };
   }
 }
 
@@ -215,8 +234,14 @@ async function main() {
   });
 
   try {
-    console.log("▸ Iniciando sesión…");
-    await iniciarSesion(navegador);
+    if (SIN_SESION) {
+      console.log("▸ Modo sin sesión: sólo el Directorio público.");
+      console.log("  Sirve para iterar el montaje sin credenciales; NO es la pieza final:");
+      console.log("  sin sesión la ficha tapa catálogo y contacto con \"Contenido exclusivo\".");
+    } else {
+      console.log("▸ Iniciando sesión…");
+      await iniciarSesion(navegador);
+    }
 
     const partes = [];
     // Las dos pasadas van CON sesión: el público del video son las socias, y
@@ -224,19 +249,25 @@ async function main() {
     // "Contenido exclusivo para miembros".
     console.log("▸ Pasada 1/2 — Directorio");
     partes.push(await pasada({
-      navegador, nombre: "01-directorio", guion: escenaDirectorio,
-      logueado: true, indice: 1,
+      navegador, nombre: "01-directorio", libreto: escenaDirectorio,
+      logueado: !SIN_SESION, indice: 1,
     }));
 
-    console.log("▸ Pasada 2/2 — Oportunidades");
-    partes.push(await pasada({
-      navegador, nombre: "02-oportunidades", guion: escenaOportunidades,
-      logueado: true, indice: 2,
-    }));
+    if (!SIN_SESION) {
+      console.log("▸ Pasada 2/2 — Oportunidades");
+      partes.push(await pasada({
+        navegador, nombre: "02-oportunidades", libreto: escenaOportunidades,
+        logueado: true, indice: 2,
+      }));
+    }
 
     writeFileSync(join(SALIDA, "partes.json"), JSON.stringify(partes, null, 2));
     const total = partes.reduce((a, p) => a + p.duracion, 0);
-    console.log(`\n▸ Listo. Material bruto: ${total.toFixed(1)}s en ${partes.length} partes.`);
+    const planos = partes.reduce((a, p) => a + (p.planos?.length ?? 0), 0);
+    const util = partes.reduce(
+      (a, p) => a + (p.planos ?? []).reduce((b, x) => b + (x.tOut - x.tIn), 0), 0) / 1000;
+    console.log(`\n▸ Listo. ${total.toFixed(1)}s crudos → ${planos} planos, ${util.toFixed(1)}s útiles.`);
+    console.log("  (lo que quedó entre planos —navegar, scrollear, esperar— no entra en la pieza)");
   } finally {
     await navegador.close();
   }

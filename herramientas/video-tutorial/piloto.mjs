@@ -1,10 +1,19 @@
 /**
- * Piloto: capa de conducción "humana" sobre Playwright.
+ * Piloto: capa de conducción "humana" sobre Playwright + dirección de planos.
  *
- * Playwright mueve el mouse en línea recta y tipea a velocidad constante, que
- * en video se nota robótico. Acá va todo lo que hace que el screencast parezca
- * grabado por una persona: trayectorias con curva y easing, tipeo con ritmo
- * irregular, pausas de lectura.
+ * Dos responsabilidades:
+ *
+ * 1. Que el navegador se maneje como una persona y no como un robot:
+ *    trayectorias con curva y easing, tipeo con ritmo irregular, scroll suave.
+ *
+ * 2. La DIRECCIÓN. El guion ya no dibuja carteles adentro de la página: declara
+ *    planos con `plano()`. Cada plano anota en qué milisegundo empieza y
+ *    termina, qué elemento es el sujeto y qué texto lo acompaña. El montaje
+ *    lee esa lista y arma la pieza: encuadra, hace el punch-in, pone la
+ *    tipografía y —clave— TIRA todo lo que quedó entre plano y plano.
+ *
+ *    Por eso navegar, esperar a que compile una ruta o scrollear treinta
+ *    tarjetas ya no cuesta segundos de video: pasa fuera de plano.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -31,8 +40,6 @@ export async function moverA(page, x, y, ms = 460) {
   const dist = Math.hypot(x - desde.x, y - desde.y);
   if (dist < 1.5) { posiciones.set(page, { x, y }); return; }
 
-  // Antes: 180 + dist*1.05, tope 700. Un viaje de punta a punta se comía casi
-  // un segundo. La curva y el easing siguen ahí — lo que baja es el reloj.
   const duracion = Math.max(150, Math.min(ms, 120 + dist * 0.62));
   const pasos = Math.max(12, Math.round(duracion / 16));
 
@@ -66,8 +73,13 @@ export async function caja(page, selector, idx = 0) {
   return page.evaluate(([s, i]) => window.__cast?.caja(s, i) ?? null, [selector, idx]);
 }
 
-// El header del sitio es fixed y mide 97px; abajo dejamos aire para el
-// subtítulo. Fuera de esta banda, un click por coordenadas no llega al elemento.
+/** Caja que abarca varios selectores, para encuadrar un conjunto. */
+export async function cajaDe(page, selectores) {
+  return page.evaluate((ss) => window.__cast?.cajaDe(ss) ?? null, selectores);
+}
+
+// El header del sitio es fixed y mide 97px; abajo dejamos aire.
+// Fuera de esta banda, un click por coordenadas no llega al elemento.
 const BANDA_SEGURA = { arriba: 140, abajo: 90 };
 
 export async function moverAlSelector(page, selector, { ms = 460, dx = 0, dy = 0, idx = 0 } = {}) {
@@ -76,8 +88,7 @@ export async function moverAlSelector(page, selector, { ms = 460, dx = 0, dy = 0
   if (!c) return null;
 
   // A diferencia de locator.click(), mover el mouse a mano NO scrollea solo:
-  // si el elemento está fuera de pantalla el click se pierde en el vacío
-  // (así se perdía el tipeo de la descripción, que arranca en y≈967).
+  // si el elemento está fuera de pantalla el click se pierde en el vacío.
   const arribaDeTodo = c.y < BANDA_SEGURA.arriba;
   const abajoDeTodo = c.y + Math.min(c.h, 300) > alto - BANDA_SEGURA.abajo;
   if (arribaDeTodo || abajoDeTodo) {
@@ -90,8 +101,6 @@ export async function moverAlSelector(page, selector, { ms = 460, dx = 0, dy = 0
   // Un poquito descentrado: nadie clickea el centro matemático.
   const x = c.x + c.w / 2 + dx + (Math.random() - 0.5) * Math.min(14, c.w * 0.18);
   const crudoY = c.y + c.h / 2 + dy + (Math.random() - 0.5) * Math.min(10, c.h * 0.18);
-  // Red de seguridad para elementos más altos que la pantalla: el centro puede
-  // seguir cayendo afuera aunque el borde superior ya esté visible.
   const y = Math.max(BANDA_SEGURA.arriba, Math.min(alto - BANDA_SEGURA.abajo, crudoY));
   await moverA(page, x, y, ms);
   return { x, y, ...c };
@@ -109,8 +118,6 @@ export async function clickEn(page, selector, { ms = 460, pausa = 150, dx = 0, d
 
 /**
  * Tipeo con ritmo irregular y micro-pausas después de los espacios.
- * El jitter se achicó (era 0.55–1.5×): a esta velocidad la cola larga se
- * notaba como trabas, no como una persona escribiendo.
  */
 export async function tipear(page, selector, texto, { porChar = 34, clickPrimero = true, idx = 0 } = {}) {
   if (clickPrimero) await clickEn(page, selector, { pausa: 120, idx });
@@ -124,44 +131,11 @@ export async function tipear(page, selector, texto, { porChar = 34, clickPrimero
 
 // ── Atajos hacia la capa visual ────────────────────────────────────────
 export const cast = (page, metodo, ...args) =>
-  page.evaluate(
-    ([m, a]) => window.__cast[m](...a),
-    [metodo, args]
-  );
+  page.evaluate(([m, a]) => window.__cast[m](...a), [metodo, args]);
 
-export const sub = (page, rotulo, cuerpo) => cast(page, "sub", rotulo, cuerpo);
-export const subOff = (page) => cast(page, "subOff");
-export const chip = (page, texto) => cast(page, "chip", texto);
-export const progreso = (page, pct) => cast(page, "progreso", pct);
-export const foco = (page, sel, opts = {}) => cast(page, "foco", sel, opts);
-export const focoOff = (page) => cast(page, "focoOff");
-export const placa = (page, opts) => cast(page, "placa", opts);
-export const placaOff = (page) => cast(page, "placaOff");
-export const sello = (page, texto, opts = {}) => cast(page, "sello", texto, opts);
 export const scrollSuave = (page, y, ms) => cast(page, "scrollSuave", y, ms);
 export const scrollA = (page, sel, opts = {}) => cast(page, "scrollAlSelector", sel, opts);
-
-/**
- * Resalta un elemento y muestra el subtítulo a la vez: es el gesto base del
- * tutorial (señalo algo + lo explico).
- */
-export async function señalar(page, selector, rotulo, texto, { leer = 900, mover = true, atenuar = false, idx = 0 } = {}) {
-  if (!selector) {
-    await sub(page, rotulo, texto);
-    await dormir(leer);
-    return;
-  }
-  await scrollA(page, selector, { offset: 190, ms: 560, idx });
-  await dormir(90);
-  if (mover) await moverAlSelector(page, selector, { ms: 420, idx });
-  // El recuadro y el cartel entran JUNTOS. Encadenados, el resaltado nuevo
-  // quedaba medio segundo emparejado con el texto del paso anterior.
-  await Promise.all([
-    foco(page, selector, { atenuar, idx }),
-    sub(page, rotulo, texto),
-  ]);
-  await dormir(leer);
-}
+export const posicionarCursor = (page, x, y) => cast(page, "posicionarCursor", x, y);
 
 /**
  * El tour de react-joyride se abre solo para quien no lo vio (el gate real es
@@ -213,6 +187,14 @@ export async function clickPorTexto(page, selector, patron, opts = {}) {
   return clickEn(page, selector, { ...opts, idx: i });
 }
 
+/** Índice del elemento cuyo texto matchea (para elegir a quién encuadrar). */
+export async function indicePorTexto(page, selector, patron) {
+  return page.evaluate(([s, p]) => {
+    const re = new RegExp(p, "i");
+    return [...document.querySelectorAll(s)].findIndex((e) => re.test(e.textContent || ""));
+  }, [selector, patron.source ?? patron]);
+}
+
 /** Trae un elemento al viewport dentro de su propio contenedor scrolleable. */
 export async function asegurarVisible(page, selector, idx = 0) {
   const ok = await page.evaluate(([s, i]) => {
@@ -231,4 +213,133 @@ export async function asentar(page, ms = 520) {
   await saltarTutorial(page);
   await page.evaluate(() => window.__cast?.listo());
   await dormir(ms);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  DIRECCIÓN
+// ══════════════════════════════════════════════════════════════════════
+
+/** Cuánto puede acercarse la cámara. Más que esto y el upscale se nota:
+ *  el .webm sale a 1920 de ancho y la pantalla del marco mide 1600. */
+const TOPE_ESCALA = 1.75;
+
+/** Estado de la pasada que se está filmando. */
+export const guion = {
+  marcas: [],
+  claqueta: null,
+  reiniciar() { this.marcas = []; this.claqueta = null; },
+};
+
+/**
+ * Claqueta de sincronía: destello verde a pantalla completa.
+ *
+ * Playwright empieza a grabar cuando se crea la página, pero entre ese
+ * instante y el primer fotograma real hay una demora que cambia en cada
+ * corrida. Sin un punto en común, los planos anotados por reloj de pared caen
+ * corridos medio segundo y los textos entran fuera de tiempo.
+ */
+export async function claqueta(page, ms = 260) {
+  guion.claqueta = await page.evaluate(
+    (n) => window.__cast.claqueta(n), ms);
+  return guion.claqueta;
+}
+
+/**
+ * Escala automática: cuánto hay que acercarse para que el sujeto llene el
+ * cuadro sin quedar apretado contra los bordes.
+ */
+function escalaAuto(rect) {
+  if (!rect) return 1;
+  const porAncho = 1920 / Math.max(120, rect.w * 1.34);
+  const porAlto = 1080 / Math.max(90, rect.h * 1.45);
+  return Math.max(1, Math.min(TOPE_ESCALA, Math.min(porAncho, porAlto)));
+}
+
+/**
+ * Un plano.
+ *
+ *   await plano(page, {
+ *     id: "buscador",
+ *     encuadre: '[data-tour="directorio-toolbar"]',   // sujeto (o [selectores])
+ *     escala: "auto",                                  // o un número
+ *     rotulo: "Buscá",
+ *     texto: "Un rubro, una especialidad o el nombre de una empresa.",
+ *   }, async () => { ...la acción... });
+ *
+ * Todo lo que hagas FUERA de la acción (navegar, scrollear, esperar) no entra
+ * en la pieza: el montaje sólo se queda con [tIn, tOut].
+ */
+export async function plano(page, opts, accion) {
+  const {
+    id,
+    encuadre = null,
+    escala = "auto",
+    rotulo = null,
+    texto = null,
+    sello = null,        // golpe corto tipo "Al instante" / "Match"
+    colaMs = 220,        // aire al final, para que el corte no pise la acción
+    velocidad = 1,       // >1 acelera este plano en el montaje (tipeo, scroll)
+    idx = 0,
+    // Cuándo medir al sujeto. "despues" (por defecto) sigue al elemento si la
+    // pantalla se movió durante la acción; "antes" es para los planos cuya
+    // acción DISPARA un scroll —tipear en el buscador lo hace— y donde la
+    // caja de después ya es la del estado siguiente.
+    medirEn = "despues",
+    // Congela el scroll de la APP durante el plano (el guion sigue pudiendo
+    // scrollear). Para las pantallas que se mueven solas al interactuar.
+    congelar = false,
+  } = opts;
+
+  const medir = async () => {
+    if (Array.isArray(encuadre)) return cajaDe(page, encuadre);
+    if (typeof encuadre === "string") return caja(page, encuadre, idx);
+    if (encuadre && typeof encuadre === "object") return encuadre;
+    return null;
+  };
+
+  // Se mide DOS veces, y manda la de después.
+  //
+  // Medir sólo antes daba encuadres viejos: el buscador, al pasar de vacío a
+  // con-texto, scrollea la página solo, así que la caja anotada al empezar
+  // apuntaba a donde el elemento YA no estaba y el plano encuadraba el vacío.
+  // Y medir sólo después falla en los planos que terminan navegando, porque
+  // la caja pasa a ser de otra pantalla. Por eso: la de después si la acción
+  // se quedó en la misma URL, y si no, la de antes.
+  const urlAntes = page.url();
+  const rectAntes = await medir();
+
+  if (congelar) await cast(page, "congelarScroll", true);
+  const tIn = Date.now();
+  try {
+    if (accion) await accion();
+    if (colaMs) await dormir(colaMs);
+  } finally {
+    // Sin el finally, un paso que falla deja la página congelada y se lleva
+    // puestos todos los planos que vienen después.
+    if (congelar) await cast(page, "congelarScroll", false).catch(() => {});
+  }
+  const tOut = Date.now();
+
+  const mismaPantalla = page.url() === urlAntes;
+  const rectDespues = (medirEn === "despues" && mismaPantalla)
+    ? await medir().catch(() => null)
+    : null;
+  const rect = rectDespues ?? rectAntes;
+
+  if (encuadre && !rect) {
+    console.log(`    · plano "${id}": no encontré ${JSON.stringify(encuadre)}, va en plano general`);
+  }
+
+  guion.marcas.push({
+    id,
+    tIn, tOut,
+    rect,
+    // Las dos: la calculada acá sirve para el log, y la PEDIDA es la que
+    // manda en el montaje. Así el encuadre se puede reajustar mirando el
+    // render, sin volver a filmar.
+    escala: escala === "auto" ? escalaAuto(rect) : Math.min(TOPE_ESCALA, escala),
+    escalaPedida: escala,
+    rotulo, texto, sello, velocidad,
+  });
+  return guion.marcas.at(-1);
 }
