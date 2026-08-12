@@ -12,8 +12,9 @@
  * 90 segundos de video no le sobran 10 para un formulario de acceso.
  */
 import { chromium } from "playwright";
-import { mkdirSync, rmSync, renameSync, existsSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, rmSync, renameSync, existsSync, writeFileSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { CAPA_VISUAL, dormir } from "./piloto.mjs";
 
 import { escenaDirectorio } from "./escenas/directorio.mjs";
@@ -35,10 +36,50 @@ const VIEWPORT = { width: 1600, height: 900 };
 const ESCALA = 2; // captura a 3200x1800 y baja a 1600x900: texto nítido
 const VIDEO = { width: 1600, height: 900 };
 
-const CREDENCIALES = {
-  email: process.env.UIAB_EMAIL || "boxlerjulian+empresatest@hotmail.com",
-  password: process.env.UIAB_PASSWORD || "UiabPrueba.2026!",
+/**
+ * Con qué cuenta se filma. Sale del .env de la raíz del repo o del entorno.
+ *
+ * Antes venía un usuario y una contraseña escritos acá con un `||` de
+ * respaldo. Dos problemas: son credenciales en el repositorio, y cuando esa
+ * cuenta dejó de existir el síntoma fue "El login no redirigió", que hace
+ * pensar en el formulario y no en que el usuario no está.
+ *
+ * Que NO sea la cuenta de la UIAB: las oportunidades de demo se crean a
+ * nombre de la UIAB y el botón "Postularse" no se le muestra a quien publicó,
+ * así que esa parte del video no se podría filmar.
+ */
+const AQUI = dirname(fileURLToPath(import.meta.url));
+
+const leerEnv = () => {
+  for (const nombre of [".env.local", ".env"]) {
+    const ruta = resolve(AQUI, "../..", nombre);
+    if (!existsSync(ruta)) continue;
+    return Object.fromEntries(
+      readFileSync(ruta, "utf8")
+        .split("\n").filter((l) => l.includes("=") && !l.trim().startsWith("#"))
+        .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; })
+    );
+  }
+  return {};
 };
+
+const env = leerEnv();
+const CREDENCIALES = {
+  email: process.env.UIAB_EMAIL || env.UIAB_EMAIL,
+  password: process.env.UIAB_PASSWORD || env.UIAB_PASSWORD,
+};
+
+if (!CREDENCIALES.email || !CREDENCIALES.password) {
+  console.error("\n✗ Falta con qué cuenta filmar.\n");
+  console.error("  Agregá al .env de la raíz del repo estas dos líneas, con una");
+  console.error("  cuenta de empresa socia (NO la de la UIAB):\n");
+  console.error("      UIAB_EMAIL=alguien@suempresa.com");
+  console.error("      UIAB_PASSWORD=la-contraseña\n");
+  console.error("  El video se graba con sesión iniciada: sin eso, la ficha de");
+  console.error("  empresa muestra \"Contenido exclusivo para miembros\" y las");
+  console.error("  Oportunidades directamente no se ven.");
+  process.exit(1);
+}
 
 const opcionesContexto = (grabar) => ({
   viewport: VIEWPORT,
@@ -61,8 +102,22 @@ async function iniciarSesion(navegador) {
   await page.locator('input[type="password"]').first().fill(CREDENCIALES.password);
   await page.locator('button[type="submit"]').first().click();
 
+  // Si no redirige, la pantalla casi siempre dice por qué. Leerlo evita
+  // adivinar entre "contraseña mal", "usuario inexistente" y "se colgó".
   await page.waitForURL((u) => !u.pathname.includes("/login"), { timeout: 25_000 })
-    .catch(() => { throw new Error("El login no redirigió — revisá las credenciales."); });
+    .catch(async () => {
+      const enPantalla = await page.evaluate(() => {
+        const textos = [...document.querySelectorAll('[role="alert"], .text-red-500, .text-red-600, .text-destructive')]
+          .map((e) => e.textContent?.trim())
+          .filter((t) => t && t.length > 3);
+        return [...new Set(textos)].join(" · ");
+      }).catch(() => "");
+      throw new Error(
+        `El login no redirigió con ${CREDENCIALES.email}.`
+        + (enPantalla ? `\n  La pantalla dice: "${enPantalla}"` : "")
+        + "\n  Revisá UIAB_EMAIL y UIAB_PASSWORD en el .env de la raíz del repo."
+      );
+    });
   await page.waitForLoadState("networkidle").catch(() => {});
 
   await ctx.storageState({ path: ESTADO });

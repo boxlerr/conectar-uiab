@@ -49,9 +49,23 @@ BASE_URL=http://localhost:3005 npm run video
 Si el puerto que elegiste también está ocupado, te lo dice enseguida en vez de
 quedarse esperando.
 
-Para que la grabación funcione, el `.env` de la raíz del repo tiene que tener
-las claves de Supabase — son las mismas con las que corrés la app todos los
-días, no hay que configurar nada aparte.
+### Lo único que hay que configurar
+
+El video se graba **con sesión iniciada** (sin ella la ficha de empresa muestra
+"Contenido exclusivo para miembros" y las Oportunidades ni se ven), así que el
+`.env` de la raíz del repo necesita con qué cuenta entrar:
+
+```
+UIAB_EMAIL=alguien@suempresa.com
+UIAB_PASSWORD=la-contraseña
+```
+
+Que **no sea la cuenta de la UIAB**: las oportunidades de demo se crean a
+nombre de la UIAB y el botón "Postularse" no se le muestra a quien publicó, así
+que esa parte del video no se podría filmar.
+
+Las claves de Supabase del mismo `.env` son las de siempre, no hay que tocar
+nada más.
 
 ### Variantes
 
