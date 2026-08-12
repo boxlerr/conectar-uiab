@@ -99,11 +99,17 @@ async function borrarBlob(ruta) {
   }).catch(() => {});
 }
 
-// Mismo criterio que crearSlug() en src/lib/utilidades.ts, para que el nombre
-// del archivo se pueda derivar del nombre del ítem sin sorpresas con acentos.
+// Ojo: NO es crearSlug() de src/lib/utilidades.ts. Aquél borra todo lo que no
+// sea letra, número o espacio, así que aplicado a un nombre de archivo que YA
+// viene slugueado se come los guiones ("desarrollo-de-software-a-medida" ->
+// "desarrollodesoftwareamedida") y no matchea nunca contra el nombre del ítem.
+// Acá cualquier corrida de separadores colapsa a un guión, así el nombre del
+// ítem y el del archivo aterrizan en la misma forma.
 const slug = (t) =>
   t.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase().trim().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, "-");
+    .toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
