@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ = resolve(AQUI, "../..");
 const BASE = process.env.BASE_URL || "http://localhost:3000";
+const PUERTO = new URL(BASE).port || "3000";
 
 const args = process.argv.slice(2);
 const CON_DEMO = args.includes("--con-demo");
@@ -65,12 +66,16 @@ async function asegurarApp() {
     return;
   }
 
-  console.log(`· levantando la app (npm run dev en ${RAIZ})`);
+  console.log(`· levantando la app (npm run dev en ${RAIZ}, puerto ${PUERTO})`);
   dev = spawn("npm", ["run", "dev"], {
     cwd: RAIZ,
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
     shell: process.platform === "win32",
+    // PORT, si no `next dev` agarra el 3000 pase lo que pase y BASE_URL con
+    // otro puerto no serviría de nada: levantaríamos en un lado y filmaríamos
+    // en otro. Hace falta para convivir con otra sesión ya parada en el 3000.
+    env: { ...process.env, PORT: PUERTO },
   });
 
   let salida = "";
@@ -87,7 +92,22 @@ async function asegurarApp() {
     await new Promise((r) => setTimeout(r, 1000));
   }
 
+  // El proceso puede haber muerto un instante antes de que lleguen sus
+  // últimos 'data': sin esta pausa, `salida` queda sin el motivo del fallo.
+  await new Promise((r) => setTimeout(r, 300));
   bajarApp();
+
+  // Puerto ocupado. Con PORT explícito Next NO se muda al siguiente libre
+  // como hace por defecto: falla con EADDRINUSE. Miramos las dos formas.
+  const ocupado = /EADDRINUSE/.test(salida) || /using available port/.test(salida);
+  if (ocupado) {
+    console.error(`\n✗ El puerto ${PUERTO} ya está ocupado por otro proceso.`);
+    console.error("  Suele ser otra sesión de la app corriendo en paralelo.");
+    console.error("  Elegí un puerto libre y repetí, por ejemplo:\n");
+    console.error("      BASE_URL=http://localhost:3005 npm run video\n");
+    process.exit(1);
+  }
+
   if (contestoAlgunaVez) {
     console.error(`\n✗ La app levantó en ${BASE} pero devuelve error.`);
     console.error("  Casi siempre es el .env de la raíz del repo: revisá que estén");

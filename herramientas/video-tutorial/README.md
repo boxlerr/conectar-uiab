@@ -36,8 +36,18 @@ Listo. Cuando termina, el archivo queda en
 baja al terminar), baja los planos aéreos, genera el logo, graba y monta. Si
 falta algo, te dice qué en castellano.
 
-> Si ya tenías la app corriendo en otra terminal, la usa y no la toca. Si la
-> levantaste en otro puerto: `BASE_URL=http://localhost:3001 npm run video`.
+> Si ya tenías la app corriendo en otra terminal, la usa y no la toca.
+
+**Si tenés otra sesión del proyecto abierta** (otra ventana, otro agente, otro
+worktree), lo más probable es que el 3000 ya esté tomado. Pedile un puerto
+propio y listo — lo usa tanto para levantar la app como para filmar:
+
+```bash
+BASE_URL=http://localhost:3005 npm run video
+```
+
+Si el puerto que elegiste también está ocupado, te lo dice enseguida en vez de
+quedarse esperando.
 
 Para que la grabación funcione, el `.env` de la raíz del repo tiene que tener
 las claves de Supabase — son las mismas con las que corrés la app todos los
