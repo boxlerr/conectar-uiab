@@ -58,15 +58,17 @@ falta regrabar): se mezcla al 20 % con fundido de entrada y salida.
 
 ## Los planos aéreos
 
-`assets.json` guarda, por cada plano, la URL y **el prompt con el que se
-generó**. Los MP4 no se versionan (pesan y git se los queda para siempre):
-`traer-assets.mjs` los baja. Si una URL caduca, se regenera el plano en
-Higgsfield con ese mismo prompt y se actualiza el link.
+`assets.json` guarda, por cada plano, la URL, **el prompt con el que se generó**
+y las referencias que se le pasaron. Los MP4 no se versionan (pesan y git se los
+queda para siempre): `traer-assets.mjs` los baja. Si una URL caduca, se regenera
+el plano en Higgsfield con esos mismos datos y se actualiza el link.
 
 Los dos planos arrancan del primer fotograma de
 `public/landing/hero-industrial-aereo.webp` — la foto aérea real del parque de
 Almirante Brown que ya usa el home— así que lo que se ve es el lugar de verdad,
-no un polígono industrial genérico.
+no un polígono industrial genérico. Encima de esa base van dos clips de
+referencia (los de `referencias` en `assets.json`): uno aporta el movimiento de
+cámara y el otro el color y la atmósfera.
 
 El logo **no** se lo pedimos al modelo: la IA deforma cualquier logotipo. Se
 compone con ffmpeg desde `logo-uiab-conecta.svg`, el mismo archivo que usa la
