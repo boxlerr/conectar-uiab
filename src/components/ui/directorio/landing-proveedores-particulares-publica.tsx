@@ -330,7 +330,7 @@ export function PublicProveedoresParticularesLanding({
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-gradient-to-tr from-[#00213f] to-blue-600 text-white">
                   <BadgeCheck className="w-3.5 h-3.5" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Empresas socias</span>
+                  <span className="text-[11px] sm:text-[10px] font-black uppercase tracking-widest">Empresas socias</span>
                 </div>
               </div>
 
@@ -378,7 +378,7 @@ export function PublicProveedoresParticularesLanding({
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-gradient-to-r from-amber-500 to-orange-500 text-white">
                   <User className="w-3.5 h-3.5" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Proveedores de servicios</span>
+                  <span className="text-[11px] sm:text-[10px] font-black uppercase tracking-widest">Proveedores de servicios</span>
                 </div>
               </div>
 
@@ -480,7 +480,7 @@ export function PublicProveedoresParticularesLanding({
                   >
                     <Icon className="w-6 h-6 text-[#191c1e]/30 group-hover:text-[#00213f] transition-colors mb-3" />
                     <p className="text-[13px] font-bold text-[#191c1e] mb-0.5 leading-tight">{r.nombre}</p>
-                    <p className="text-[10px] text-[#191c1e]/50 font-medium group-hover:text-[#00213f]/60">{r.desc}</p>
+                    <p className="text-[11px] sm:text-[10px] text-[#191c1e]/50 font-medium group-hover:text-[#00213f]/60">{r.desc}</p>
                   </motion.div>
                 );
               })}
@@ -527,7 +527,7 @@ export function PublicProveedoresParticularesLanding({
                     <p className="text-[13px] font-bold text-[#191c1e] mb-0.5 leading-tight">
                       {oficio.nombre}
                     </p>
-                    <p className="text-[10px] text-amber-700/60 font-medium group-hover:text-amber-700">{oficio.desc}</p>
+                    <p className="text-[11px] sm:text-[10px] text-amber-700/60 font-medium group-hover:text-amber-700">{oficio.desc}</p>
                   </motion.div>
                 );
               })}

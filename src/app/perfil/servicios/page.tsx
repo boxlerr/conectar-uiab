@@ -237,7 +237,7 @@ export default function MiPerfilServiciosPage() {
                const children = childrenOf(parent.id);
                return (
                  <div key={parent.id} className="mb-1">
-                   <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50 rounded-md">
+                   <div className="px-2 py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50 rounded-md">
                      {parent.nombre}
                    </div>
                    <button
@@ -268,7 +268,7 @@ export default function MiPerfilServiciosPage() {
                            <span className="text-slate-300 text-xs ml-2">↳</span>
                            {child.nombre}
                            {!child.administrado_por_admin && (
-                             <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Propia</span>
+                             <span className="text-[11px] sm:text-[10px] font-semibold uppercase tracking-wide text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Propia</span>
                            )}
                          </span>
                          {isSelected ? (
@@ -294,7 +294,7 @@ export default function MiPerfilServiciosPage() {
                    <span className="text-sm font-medium flex items-center gap-2">
                      {cat.nombre}
                      {!cat.administrado_por_admin && (
-                       <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Propia</span>
+                       <span className="text-[11px] sm:text-[10px] font-semibold uppercase tracking-wide text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Propia</span>
                      )}
                    </span>
                    {isSelected ? (

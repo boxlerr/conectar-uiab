@@ -403,7 +403,7 @@ export default function InstitucionesEducativasPage() {
                         <Library className="w-5 h-5 text-violet-300" />
                       </div>
                       <div>
-                        <div className="text-[10px] font-black tracking-[0.25em] uppercase text-violet-400">
+                        <div className="text-[11px] sm:text-[10px] font-black tracking-[0.25em] uppercase text-violet-400">
                           Expediente Abierto
                         </div>
                         <div className="text-sm font-bold text-white">Red Académica UIAB</div>
@@ -411,14 +411,14 @@ export default function InstitucionesEducativasPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-emerald-400 animate-pulse" />
-                      <span className="text-[10px] font-bold text-emerald-400">ACTIVO</span>
+                      <span className="text-[11px] sm:text-[10px] font-bold text-emerald-400">ACTIVO</span>
                     </div>
                   </div>
 
                   {/* Data rows */}
                   <div className="p-6 space-y-6">
                     <div>
-                      <div className="text-[10px] font-black tracking-[0.2em] uppercase text-violet-400/60 mb-2">
+                      <div className="text-[11px] sm:text-[10px] font-black tracking-[0.2em] uppercase text-violet-400/60 mb-2">
                         Niveles cubiertos
                       </div>
                       <div className="text-base font-bold text-white">
@@ -429,7 +429,7 @@ export default function InstitucionesEducativasPage() {
                     <div className="h-px bg-gradient-to-r from-violet-500/25 via-white/10 to-transparent" />
 
                     <div>
-                      <div className="text-[10px] font-black tracking-[0.2em] uppercase text-violet-400/60 mb-2">
+                      <div className="text-[11px] sm:text-[10px] font-black tracking-[0.2em] uppercase text-violet-400/60 mb-2">
                         Formatos de vinculación
                       </div>
                       <div className="text-base font-bold text-white">
@@ -440,7 +440,7 @@ export default function InstitucionesEducativasPage() {
                     <div className="h-px bg-gradient-to-r from-violet-500/25 via-white/10 to-transparent" />
 
                     <div>
-                      <div className="text-[10px] font-black tracking-[0.2em] uppercase text-violet-400/60 mb-2">
+                      <div className="text-[11px] sm:text-[10px] font-black tracking-[0.2em] uppercase text-violet-400/60 mb-2">
                         Cobertura territorial
                       </div>
                       <div className="text-base font-bold text-white">
@@ -561,7 +561,7 @@ export default function InstitucionesEducativasPage() {
                 <div className="w-12 h-12 bg-violet-50 text-violet-700 flex items-center justify-center shrink-0 group-hover:bg-violet-100 transition-colors">
                   <p.icon className="w-6 h-6" />
                 </div>
-                <span className="text-[10px] font-black tracking-[0.25em] uppercase text-violet-600/80 mt-3">
+                <span className="text-[11px] sm:text-[10px] font-black tracking-[0.25em] uppercase text-violet-600/80 mt-3">
                   {p.eyebrow}
                 </span>
               </div>
@@ -596,7 +596,7 @@ export default function InstitucionesEducativasPage() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-violet-950/80 via-transparent to-transparent" />
             <div className="absolute bottom-0 left-0 p-6">
-              <span className="text-[10px] font-black tracking-[0.2em] uppercase text-violet-300 mb-2 block">
+              <span className="text-[11px] sm:text-[10px] font-black tracking-[0.2em] uppercase text-violet-300 mb-2 block">
                 Formación práctica
               </span>
               <h3 className="font-manrope text-xl font-bold text-white">
@@ -619,7 +619,7 @@ export default function InstitucionesEducativasPage() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-violet-950/80 via-transparent to-transparent" />
             <div className="absolute bottom-0 left-0 p-6">
-              <span className="text-[10px] font-black tracking-[0.2em] uppercase text-violet-300 mb-2 block">
+              <span className="text-[11px] sm:text-[10px] font-black tracking-[0.2em] uppercase text-violet-300 mb-2 block">
                 Innovación abierta
               </span>
               <h3 className="font-manrope text-xl font-bold text-white">
@@ -642,7 +642,7 @@ export default function InstitucionesEducativasPage() {
         >
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-[2px] bg-violet-600" />
-            <span className="text-[10px] font-black tracking-[0.25em] uppercase text-violet-600">
+            <span className="text-[11px] sm:text-[10px] font-black tracking-[0.25em] uppercase text-violet-600">
               Para empresas
             </span>
           </div>
@@ -815,7 +815,7 @@ export default function InstitucionesEducativasPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <span className="text-[11px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Vista
                   </span>
                   <div className="bg-slate-50 p-1 flex gap-1 border border-slate-200">
@@ -956,7 +956,7 @@ function StatCell({
         <Icon className="w-6 h-6" />
       </div>
       <div className="min-w-0">
-        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-2">
+        <div className="text-[11px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-2">
           {eyebrow}
         </div>
         <div className="font-manrope text-[32px] md:text-[42px] font-black text-slate-900 leading-none tracking-tight mb-2">
@@ -985,7 +985,7 @@ function AccesoBloqueadoCard() {
           <Lock className="w-7 h-7" />
         </div>
         <div className="max-w-xl">
-          <div className="text-[10px] font-black tracking-[0.25em] uppercase text-violet-700 mb-3">
+          <div className="text-[11px] sm:text-[10px] font-black tracking-[0.25em] uppercase text-violet-700 mb-3">
             Acceso restringido · Socios UIAB
           </div>
           <h3 className="font-manrope text-2xl md:text-3xl font-bold text-slate-900 leading-tight tracking-tight mb-3">

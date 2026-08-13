@@ -310,9 +310,9 @@ export default function MiPerfilDatosPage() {
                   </div>
                 </>
               ) : esFichaDeEmpresa(currentUser) ? (
-                <><Building className="w-8 h-8 mb-1" /><span className="text-[10px] font-semibold tracking-wider uppercase">Subir Logo</span></>
+                <><Building className="w-8 h-8 mb-1" /><span className="text-[11px] sm:text-[10px] font-semibold tracking-wider uppercase">Subir Logo</span></>
               ) : (
-                <><User className="w-8 h-8 mb-1" /><span className="text-[10px] font-semibold tracking-wider uppercase">Subir Logo</span></>
+                <><User className="w-8 h-8 mb-1" /><span className="text-[11px] sm:text-[10px] font-semibold tracking-wider uppercase">Subir Logo</span></>
               )}
             </div>
             <div>
@@ -487,7 +487,10 @@ export default function MiPerfilDatosPage() {
                   type="text"
                   value={formData.whatsapp || formData.telefono}
                   onChange={e => setFormData({ ...formData, whatsapp: e.target.value, telefono: e.target.value })}
-                  className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                  /* `min-w-0`: sin esto el `flex-1` no baja del ancho de su
+                     propio contenido y en 360px el chip de WhatsApp empujaba
+                     el documento entero 23px hacia la derecha. */
+                  className="flex-1 min-w-0 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
                   placeholder="+54 9 11 XXXX-XXXX"
                 />
                 {/* Badge visual WhatsApp — siempre activo, solo informativo */}

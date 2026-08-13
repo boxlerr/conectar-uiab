@@ -187,14 +187,14 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
           <div className="bg-white p-6 md:p-7 flex flex-col gap-5 md:overflow-y-auto">
             {/* Meta header */}
             <div className="flex items-center gap-3">
-              <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500">
+              <div className="inline-flex items-center gap-1.5 text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500">
                 <TipoIcon className="w-3.5 h-3.5" />
                 {esServicio ? "Servicio" : "Producto"}
               </div>
               {item.destacado && (
                 <>
                   <span className="w-1 h-1 rounded-full bg-slate-300" />
-                  <div className="inline-flex items-center gap-1 text-[10px] font-semibold tracking-[0.14em] uppercase text-amber-700">
+                  <div className="inline-flex items-center gap-1 text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-amber-700">
                     <Star className="w-3 h-3 fill-current" />
                     Destacado
                   </div>
@@ -203,7 +203,7 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
               {item.sku && (
                 <>
                   <span className="w-1 h-1 rounded-full bg-slate-300" />
-                  <span className="text-[10px] font-mono text-slate-500">{item.sku}</span>
+                  <span className="text-[11px] sm:text-[10px] font-mono text-slate-500">{item.sku}</span>
                 </>
               )}
             </div>
@@ -226,7 +226,7 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
             {/* Precio — anclaje de poder */}
             {precioTexto && (
               <div className="bg-slate-50 px-4 py-3 rounded-sm">
-                <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-0.5">
+                <div className="text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-0.5">
                   {item.precio_a_consultar ? "Condiciones" : "Precio de referencia"}
                 </div>
                 <div className="flex items-baseline gap-2">
@@ -237,7 +237,7 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
                     <span className="text-xs text-slate-500">/ {item.unidad}</span>
                   )}
                   {!item.precio_a_consultar && item.moneda && item.moneda !== "ARS" && (
-                    <span className="text-[10px] font-mono uppercase text-slate-400 ml-auto">
+                    <span className="text-[11px] sm:text-[10px] font-mono uppercase text-slate-400 ml-auto">
                       {item.moneda}
                     </span>
                   )}
@@ -248,7 +248,7 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
             {/* Descripción detallada con leer más: scroll interno al expandir */}
             {item.descripcion_larga && (
               <div>
-                <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
+                <div className="text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
                   Detalle
                 </div>
                 <div className="relative">
@@ -278,7 +278,7 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
                   <button
                     type="button"
                     onClick={() => setDetalleExpandido((v) => !v)}
-                    className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-700 hover:text-primary-900 transition-colors"
+                    className="mt-2 inline-flex items-center gap-1 text-[11px] sm:text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-700 hover:text-primary-900 transition-colors"
                   >
                     {detalleExpandido ? "Leer menos" : "Leer más"}
                     <span className="text-xs leading-none">
@@ -292,14 +292,14 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
             {/* Palabras clave como tags industriales */}
             {Array.isArray(item.palabras_clave) && item.palabras_clave.length > 0 && (
               <div>
-                <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
+                <div className="text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
                   Palabras clave
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {item.palabras_clave.map((t: string) => (
                     <span
                       key={t}
-                      className="inline-flex items-center text-[10px] font-medium bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-[2px] tracking-wide"
+                      className="inline-flex items-center text-[11px] sm:text-[10px] font-medium bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-[2px] tracking-wide"
                     >
                       {t}
                     </span>
@@ -311,7 +311,7 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
             {/* Enlaces */}
             {Array.isArray(item.enlaces) && item.enlaces.length > 0 && (
               <div>
-                <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
+                <div className="text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
                   Recursos externos
                 </div>
                 <ul className="flex flex-col">
@@ -330,7 +330,7 @@ export function DetalleItemModal({ item, onClose, onEdit }: Props) {
                             <Icon className="w-3.5 h-3.5 text-slate-700" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-[9px] font-semibold tracking-[0.14em] uppercase text-slate-500">
+                            <div className="text-[11px] sm:text-[9px] font-semibold tracking-[0.14em] uppercase text-slate-500">
                               {en.etiqueta || meta.label}
                             </div>
                             <div className="text-[12px] text-slate-800 truncate font-medium">

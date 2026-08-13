@@ -195,7 +195,7 @@ export function FilterSidebar({
       {/* ── Badge siempre visible ── */}
       <div className={`shrink-0 mx-4 mb-4 mt-2 flex gap-3 items-center p-3.5 rounded-lg border border-slate-100 ${badgeBg}`}>
         <ShieldCheck className={`w-7 h-7 flex-shrink-0 ${badgeIcon}`} />
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
+        <p className="text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
           Directorio verificado <br/>
           <span className={themeText}>Unión Industrial</span>
         </p>

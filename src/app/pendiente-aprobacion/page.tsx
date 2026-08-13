@@ -219,7 +219,7 @@ function Stepper({ pasoActual }: { pasoActual: 1 | 2 | 3 }) {
                 {hecho ? <CheckCircle2 className="w-4 h-4" /> : paso.n}
               </div>
               <span
-                className={`text-[10px] font-black tracking-[0.15em] uppercase whitespace-nowrap
+                className={`text-[11px] sm:text-[10px] font-black tracking-[0.15em] uppercase whitespace-nowrap
                   ${hecho ? 'text-emerald-600' : actual ? 'text-[#00213f]' : 'text-slate-400'}`}
               >
                 {paso.label}
@@ -278,7 +278,7 @@ export default async function PendienteAprobacionPage({
           <div className="flex justify-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-200">
               <XCircle className="w-3.5 h-3.5 text-rose-500" />
-              <span className="text-[10px] font-black tracking-[0.25em] uppercase text-rose-600">
+              <span className="text-[11px] sm:text-[10px] font-black tracking-[0.25em] uppercase text-rose-600">
                 Cuenta rechazada
               </span>
             </div>
@@ -329,7 +329,7 @@ export default async function PendienteAprobacionPage({
         <div className="w-full max-w-lg mb-10 text-center">
           <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-emerald-50 border border-emerald-200">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="text-[10px] font-black tracking-[0.25em] uppercase text-emerald-600">
+            <span className="text-[11px] sm:text-[10px] font-black tracking-[0.25em] uppercase text-emerald-600">
               Registro exitoso
             </span>
           </div>
@@ -359,7 +359,7 @@ export default async function PendienteAprobacionPage({
                   <CreditCard className="w-7 h-7 text-[#00213f]" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-1">
+                  <p className="text-[11px] sm:text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-1">
                     Paso 2 de 3
                   </p>
                   <h2
@@ -422,7 +422,7 @@ export default async function PendienteAprobacionPage({
       <div className="w-full max-w-lg mb-10 text-center">
         <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-emerald-50 border border-emerald-200">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-          <span className="text-[10px] font-black tracking-[0.25em] uppercase text-emerald-600">
+          <span className="text-[11px] sm:text-[10px] font-black tracking-[0.25em] uppercase text-emerald-600">
             Pago confirmado
           </span>
         </div>
@@ -450,7 +450,7 @@ export default async function PendienteAprobacionPage({
                 <Clock className="w-7 h-7 text-amber-600" />
               </div>
               <div>
-                <p className="text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-1">
+                <p className="text-[11px] sm:text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-1">
                   Paso 3 de 3
                 </p>
                 <h2

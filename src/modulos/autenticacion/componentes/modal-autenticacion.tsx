@@ -141,7 +141,7 @@ export function AuthModal() {
               </div>
               <div>
                 <span 
-                  className="text-[10px] font-bold text-white/40 tracking-[0.14em] uppercase block"
+                  className="text-[11px] sm:text-[10px] font-bold text-white/40 tracking-[0.14em] uppercase block"
                   style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
                 >
                   UIAB Conecta
@@ -210,7 +210,7 @@ export function AuthModal() {
                   </label>
                   <a 
                     href="/recovery" 
-                    className="text-[10px] font-bold text-[#00213f]/60 hover:text-[#00213f] transition-colors uppercase tracking-wider"
+                    className="text-[11px] sm:text-[10px] font-bold text-[#00213f]/60 hover:text-[#00213f] transition-colors uppercase tracking-wider"
                     style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
                   >
                     ¿Olvidaste tu contraseña?

@@ -175,7 +175,7 @@ export default function OportunidadDetail({
       {/* TOP NAV STRIP */}
       <div className="bg-[#00213f] text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
-          <nav className="flex items-center gap-2.5 text-[10px] text-white/50 font-inter uppercase tracking-[0.22em] font-bold">
+          <nav className="flex items-center gap-2.5 text-[11px] sm:text-[10px] text-white/50 font-inter uppercase tracking-[0.22em] font-bold">
             <Link href="/" className="hover:text-white transition-colors">UIAB</Link>
             <span className="text-white/20">/</span>
             <Link href="/oportunidades" className="hover:text-white transition-colors">Oportunidades</Link>
@@ -184,7 +184,7 @@ export default function OportunidadDetail({
           </nav>
           <Link
             href="/oportunidades"
-            className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors group font-inter text-[10px] font-bold uppercase tracking-[0.22em]"
+            className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors group font-inter text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.22em]"
           >
             <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
             <span className="hidden sm:inline">Volver al listado</span>
@@ -207,7 +207,7 @@ export default function OportunidadDetail({
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 lg:py-16 relative">
           {/* Top meta line: folio · category · estado */}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-8 text-[10px] font-inter font-bold uppercase tracking-[0.22em]">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-8 text-[11px] sm:text-[10px] font-inter font-bold uppercase tracking-[0.22em]">
             <span className="text-white/40 tabular-nums">
               Folio · #{op.id.slice(0, 6).toUpperCase()}
             </span>
@@ -283,10 +283,10 @@ export default function OportunidadDetail({
             {/* Description block */}
             <section data-tour="op-detalle-descripcion">
               <div className="flex items-baseline gap-4 mb-5">
-                <span className="text-[10px] font-bold text-[#10375c] uppercase tracking-[0.22em] font-inter tabular-nums">
+                <span className="text-[11px] sm:text-[10px] font-bold text-[#10375c] uppercase tracking-[0.22em] font-inter tabular-nums">
                   01
                 </span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em] font-inter">
+                <span className="text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em] font-inter">
                   Descripción del requerimiento
                 </span>
                 <span className="flex-1 h-px bg-slate-200/60" />
@@ -304,7 +304,7 @@ export default function OportunidadDetail({
             {myMatch && !isOwner && (
               <section>
                 <div className="flex items-baseline gap-4 mb-6">
-                  <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-[0.22em] font-inter">
+                  <span className="text-[11px] sm:text-[10px] font-bold text-emerald-700 uppercase tracking-[0.22em] font-inter">
                     02 — Por qué te recomendamos
                   </span>
                   <span className="flex-1 h-px bg-emerald-100" />
@@ -343,7 +343,7 @@ export default function OportunidadDetail({
               {/* Action card */}
               {puedePostularse && (
                 <div data-tour="op-detalle-postular" className="hidden lg:block bg-white p-6 rounded-sm">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.22em] mb-4 font-inter">
+                  <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.22em] mb-4 font-inter">
                     Acción
                   </p>
                   <DialogoPostularse
@@ -359,7 +359,7 @@ export default function OportunidadDetail({
                       })
                     }
                   />
-                  <button className="mt-3 w-full h-11 inline-flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-[#00213f] transition-colors font-inter">
+                  <button className="mt-3 w-full h-11 inline-flex items-center justify-center gap-2 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-[#00213f] transition-colors font-inter">
                     <Share2 className="w-3.5 h-3.5" />
                     Compartir oportunidad
                   </button>
@@ -369,7 +369,7 @@ export default function OportunidadDetail({
               {/* Ledger panel — facts stacked, separated by surface shift */}
               <div data-tour="op-detalle-ficha" className="bg-white rounded-sm overflow-hidden">
                 <div className="bg-[#10375c] px-6 py-4">
-                  <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.22em] font-inter">
+                  <p className="text-[11px] sm:text-[10px] font-bold text-white/60 uppercase tracking-[0.22em] font-inter">
                     Ficha técnica
                   </p>
                 </div>
@@ -418,11 +418,11 @@ export default function OportunidadDetail({
         {isOwner && (
           <section className="mt-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex items-baseline gap-4 mb-10">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.22em] font-inter">
+              <span className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.22em] font-inter">
                 03 — Candidatos recomendados
               </span>
               <span className="flex-1 h-px bg-slate-200/60" />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em] tabular-nums">
+              <span className="text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em] tabular-nums">
                 {String(candidates.length).padStart(2, "0")} resultados
               </span>
             </div>
@@ -435,7 +435,7 @@ export default function OportunidadDetail({
                   más etiquetas tenga tu oportunidad, más coincidencias encontramos.
                 </p>
                 <Link href="/oportunidades/nueva" className="inline-block mt-6">
-                  <Button className="bg-[#00213f] hover:bg-[#10375c] text-white rounded-sm h-10 px-6 font-bold font-inter text-[10px] uppercase tracking-[0.2em]">
+                  <Button className="bg-[#00213f] hover:bg-[#10375c] text-white rounded-sm h-10 px-6 font-bold font-inter text-[11px] sm:text-[10px] uppercase tracking-[0.2em]">
                     Publicar otra necesidad
                   </Button>
                 </Link>
@@ -467,7 +467,7 @@ export default function OportunidadDetail({
           </section>
         )}
 
-        <footer className="mt-24 text-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.3em] pb-4 font-inter">
+        <footer className="mt-24 text-center text-slate-300 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.3em] pb-4 font-inter">
           © {new Date().getFullYear()} Conectar UIAB — Gestión de Oportunidades Industriales
         </footer>
       </div>
@@ -500,7 +500,7 @@ function MetaCell({
 
   return (
     <div className="bg-[#00213f] px-5 py-5">
-      <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.22em] font-inter text-white/40 mb-3">
+      <div className="flex items-center gap-2 text-[11px] sm:text-[9px] font-bold uppercase tracking-[0.22em] font-inter text-white/40 mb-3">
         <span className={`w-1 h-1 rounded-full ${dot}`} />
         <span>{label}</span>
       </div>
@@ -537,7 +537,7 @@ function LedgerRow({
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.18em] mb-1 font-inter">
+        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.18em] mb-1 font-inter">
           {label}
         </p>
         <p className="font-manrope font-bold text-[#00213f] text-base leading-tight break-words">
@@ -556,7 +556,7 @@ function LedgerRow({
 function ScoreCell({ label, value }: { label: string; value: number }) {
   return (
     <div className="bg-white p-4">
-      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] font-inter mb-1">
+      <p className="text-[11px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] font-inter mb-1">
         {label}
       </p>
       <p className="font-manrope font-bold text-[#00213f] text-2xl tabular-nums">
@@ -588,7 +588,7 @@ function CandidatosSection({
         <h3 className="text-base font-manrope font-bold text-[#00213f] tracking-tight">
           {titulo}
         </h3>
-        <span className="text-slate-400 text-[10px] font-inter font-bold uppercase tracking-[0.22em]">
+        <span className="text-slate-400 text-[11px] sm:text-[10px] font-inter font-bold uppercase tracking-[0.22em]">
           {items.length} resultado{items.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -677,7 +677,7 @@ function MatchCard({
             </div>
           )}
           <div className="text-right">
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.18em] mb-0.5">
+            <p className="text-[11px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-[0.18em] mb-0.5">
               Match
             </p>
             <p className="font-manrope font-bold text-[#00213f] text-xl tabular-nums leading-none">
@@ -689,7 +689,7 @@ function MatchCard({
         <h4 className="font-manrope font-bold text-lg text-[#00213f] mb-1.5 line-clamp-2 leading-tight">
           {nombre || "Sin nombre"}
         </h4>
-        <div className="flex items-center gap-1.5 text-[10px] font-inter text-slate-500 mb-2 font-bold uppercase tracking-[0.15em]">
+        <div className="flex items-center gap-1.5 text-[11px] sm:text-[10px] font-inter text-slate-500 mb-2 font-bold uppercase tracking-[0.15em]">
           <CheckCircle2 className="w-3 h-3 text-emerald-500" />
           {subtitulo}
         </div>
@@ -704,23 +704,23 @@ function MatchCard({
           {compartidasVisibles.map((tag) => (
             <span
               key={tag}
-              className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 px-2 py-1 rounded-sm flex items-center gap-1"
+              className="text-[11px] sm:text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 px-2 py-1 rounded-sm flex items-center gap-1"
             >
               <Tag className="w-2.5 h-2.5" /> {tag}
             </span>
           ))}
           {compartidas.length > 3 && (
-            <span className="text-[10px] font-bold text-slate-500 bg-[#f2f4f6] px-2 py-1 rounded-sm">
+            <span className="text-[11px] sm:text-[10px] font-bold text-slate-500 bg-[#f2f4f6] px-2 py-1 rounded-sm">
               +{compartidas.length - 3} en común
             </span>
           )}
           {match.detalle_puntaje.ubicacion > 0 && (
-            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-sm flex items-center gap-1">
+            <span className="text-[11px] sm:text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-sm flex items-center gap-1">
               <MapPin className="w-2.5 h-2.5" /> Misma zona
             </span>
           )}
           {compartidasVisibles.length === 0 && match.detalle_puntaje.categoria > 0 && (
-            <span className="text-[10px] font-bold text-slate-600 bg-[#f2f4f6] px-2 py-1 rounded-sm">
+            <span className="text-[11px] sm:text-[10px] font-bold text-slate-600 bg-[#f2f4f6] px-2 py-1 rounded-sm">
               Mismo rubro
             </span>
           )}
@@ -731,7 +731,7 @@ function MatchCard({
         </p>
 
         <Link href={perfilHref} className="mt-auto">
-          <Button className="w-full bg-[#f2f4f6] hover:bg-[#00213f] text-[#00213f] hover:text-white border-none rounded-sm h-10 font-bold font-inter text-[10px] uppercase tracking-[0.2em] transition-all">
+          <Button className="w-full bg-[#f2f4f6] hover:bg-[#00213f] text-[#00213f] hover:text-white border-none rounded-sm h-10 font-bold font-inter text-[11px] sm:text-[10px] uppercase tracking-[0.2em] transition-all">
             Ver perfil
           </Button>
         </Link>

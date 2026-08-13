@@ -297,18 +297,18 @@ function FilaUsuario({
                 {usuario.nombre || "Sin nombre"}
               </p>
               {usuario.esPrincipal && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-100">
+                <span className="inline-flex items-center gap-1 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-100">
                   <ShieldCheck className="w-3 h-3" />
                   Titular
                 </span>
               )}
               {usuario.esVos && (
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                <span className="text-[11px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
                   Vos
                 </span>
               )}
               {!usuario.activo && (
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-50 text-rose-700">
+                <span className="text-[11px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-50 text-rose-700">
                   Desactivado
                 </span>
               )}
@@ -326,7 +326,7 @@ function FilaUsuario({
         </div>
 
         <div className="text-xs text-slate-500 sm:text-right sm:w-40 shrink-0">
-          <p className="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">
+          <p className="font-semibold text-slate-400 uppercase tracking-wider text-[11px] sm:text-[10px]">
             Último ingreso
           </p>
           <p className="mt-0.5">
@@ -627,7 +627,7 @@ function ModalCredenciales({
               className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5"
             >
               <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   {f.label}
                 </p>
                 <p className="truncate text-sm font-semibold text-slate-800">{f.valor}</p>

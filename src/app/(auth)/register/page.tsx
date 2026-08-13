@@ -605,7 +605,7 @@ function RegisterContent() {
                     ))}
 
                     <motion.div variants={itemFade} initial="initial" animate="animate" transition={{ delay: 0.4 }} className="rounded-xl border border-white/10 bg-white/[0.07] px-4 py-3.5">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Membresía</p>
+                      <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-widest text-white/40">Membresía</p>
                       {/* Mostramos el mismo número que vio en la landing: si eligió
                           anual, el precio por mes ya viene con el descuento. */}
                       <p className="text-white font-black text-2xl tracking-tight mt-0.5">
@@ -688,7 +688,7 @@ function RegisterContent() {
                       {step === 1 && (
                         <div className="space-y-4 lg:space-y-5">
                           <div className="space-y-1">
-                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">Registro · Paso 1 de 7</Badge>
+                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[11px] sm:text-[10px] tracking-widest uppercase rounded-sm">Registro · Paso 1 de 7</Badge>
                             <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter leading-none" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>¿Quién se registra?</h2>
                             <p className="text-sm text-slate-500 font-inter pt-2 max-w-md">
                               Elegí la opción que describe a tu organización. El acceso y el precio son los
@@ -841,7 +841,7 @@ function RegisterContent() {
                           <div className="relative aspect-[16/10] sm:aspect-[2/1] lg:aspect-[2.3/1] rounded-xl lg:rounded-2xl overflow-hidden shadow-xl border border-slate-200 group">
                             <Image src={selectedRole === 'company' ? "/landing/platform-preview.png" : "/landing/register-provider.png"} alt="Contexto" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                             <div className="absolute inset-0 bg-gradient-to-t from-[#00213f]/80 via-transparent to-transparent flex items-end p-4 lg:p-5">
-                              <Badge className="bg-primary-600 border-none font-bold text-[10px] sm:text-xs shadow-lg tracking-widest uppercase">UIAB Conecta</Badge>
+                              <Badge className="bg-primary-600 border-none font-bold text-[11px] sm:text-xs shadow-lg tracking-widest uppercase">UIAB Conecta</Badge>
                             </div>
                           </div>
 
@@ -855,7 +855,7 @@ function RegisterContent() {
                       {step === 3 && (
                         <div className="space-y-6 lg:space-y-8">
                           <div className="space-y-1 lg:space-y-2">
-                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2.5 py-1 text-[10px] sm:text-xs tracking-widest uppercase rounded-sm">Datos Públicos</Badge>
+                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2.5 py-1 text-[11px] sm:text-xs tracking-widest uppercase rounded-sm">Datos Públicos</Badge>
                             <h2 className="text-3xl sm:text-5xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Identidad.</h2>
                           </div>
 
@@ -1021,7 +1021,7 @@ function RegisterContent() {
                       {step === 4 && (
                         <div className="space-y-4 lg:space-y-6">
                           <div className="space-y-1">
-                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">Logística</Badge>
+                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[11px] sm:text-[10px] tracking-widest uppercase rounded-sm">Logística</Badge>
                             <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Localización.</h2>
                             <p className="text-slate-500 font-inter text-xs sm:text-sm">Para conectar con las mejores industrias locales, necesitamos saber de dónde eres y qué haces.</p>
                           </div>
@@ -1104,7 +1104,7 @@ function RegisterContent() {
                       {step === 5 && (
                         <div className="space-y-4 lg:space-y-6">
                           <div className="space-y-1">
-                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">ESPECIALIDAD</Badge>
+                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[11px] sm:text-[10px] tracking-widest uppercase rounded-sm">ESPECIALIDAD</Badge>
                             <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Alcance.</h2>
                             <p className="text-slate-500 font-inter text-xs sm:text-sm">Selecciona tu macro-rubro y tu especialidad principal para que coincidan tus oportunidades.</p>
                           </div>
@@ -1148,7 +1148,7 @@ function RegisterContent() {
                                     </div>
                                   </FormControl>
                                   <FormMessage />
-                                  <p className="text-[10px] text-slate-400 font-inter mt-2 ml-1 leading-relaxed">
+                                  <p className="text-[11px] sm:text-[10px] text-slate-400 font-inter mt-2 ml-1 leading-relaxed">
                                     Tu tarifa se calcula por cantidad de empleados y la verás en el paso siguiente.
                                   </p>
                                 </FormItem>
@@ -1181,7 +1181,7 @@ function RegisterContent() {
                         <div className="space-y-4 lg:space-y-6">
                           <div className="flex items-start justify-between">
                             <div className="space-y-1">
-                              <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[10px] tracking-widest uppercase rounded-sm">Seguridad</Badge>
+                              <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[11px] sm:text-[10px] tracking-widest uppercase rounded-sm">Seguridad</Badge>
                               <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Acceso.</h2>
                               <p className="text-slate-500 font-inter text-xs sm:text-sm">Estas credenciales serán las maestras para gestionar el panel.</p>
                             </div>
@@ -1275,7 +1275,7 @@ function RegisterContent() {
                                           <div className={cn("h-4 w-4 rounded-full flex items-center justify-center transition-all shadow-sm", req.met ? "bg-primary-500 text-white" : "border border-slate-300 bg-white")}>
                                             {req.met && <Check className="h-2.5 w-2.5" />}
                                           </div>
-                                          <span className={cn("text-[10px] font-bold uppercase tracking-widest", req.met ? "text-primary-700" : "text-slate-400")}>{req.label}</span>
+                                          <span className={cn("text-[11px] sm:text-[10px] font-bold uppercase tracking-widest", req.met ? "text-primary-700" : "text-slate-400")}>{req.label}</span>
                                         </div>
                                       ))}
                                     </div>
@@ -1327,7 +1327,7 @@ function RegisterContent() {
                         return (
                           <div className="space-y-3">
                             <div className="space-y-0.5">
-                              <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-0.5 text-[10px] tracking-widest uppercase rounded-sm">Membresía Oficial</Badge>
+                              <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-0.5 text-[11px] sm:text-[10px] tracking-widest uppercase rounded-sm">Membresía Oficial</Badge>
                               <h2 className="text-2xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Tu suscripción.</h2>
                               <p className="text-slate-500 font-inter text-xs">
                                 Una sola membresía para acceder a toda la red UIAB Conecta, igual para empresas y particulares.
@@ -1343,7 +1343,7 @@ function RegisterContent() {
                                     <Rocket className="h-4 w-4 text-white" />
                                   </div>
                                   <div>
-                                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/50">Plan asignado</p>
+                                    <p className="text-[11px] sm:text-[9px] font-bold uppercase tracking-widest text-white/50">Plan asignado</p>
                                     <h3 className="text-base font-black text-white leading-tight">UIAB Conecta</h3>
                                   </div>
                                 </div>
@@ -1361,7 +1361,7 @@ function RegisterContent() {
 
                               {/* Beneficios — grid 2 cols */}
                               <div className="px-5 py-4 bg-[#f7f9fb]">
-                                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-3">Qué incluye</p>
+                                <p className="text-[11px] sm:text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-3">Qué incluye</p>
                                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                                   {beneficios.map((b, i) => (
                                     <li key={i} className="flex items-start gap-2">
@@ -1377,7 +1377,7 @@ function RegisterContent() {
                               {/* Footer total */}
                               <div className="px-5 py-3 bg-white border-t border-slate-100 flex items-center justify-between">
                                 <div>
-                                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                                  <p className="text-[11px] sm:text-[9px] font-bold uppercase tracking-widest text-slate-400">
                                     {cicloElegido === 'anual' ? 'Total anual' : 'Total mensual'}
                                   </p>
                                   <p className="text-lg font-black text-[#00213f] tracking-tighter">
@@ -1387,7 +1387,7 @@ function RegisterContent() {
                                     </span>
                                   </p>
                                 </div>
-                                <p className="text-[10px] font-semibold text-slate-400">
+                                <p className="text-[11px] sm:text-[10px] font-semibold text-slate-400">
                                   {cicloElegido === 'anual' ? 'Un pago al año · 2 meses bonificados' : 'Mes a mes · sin permanencia'}
                                 </p>
                               </div>
@@ -1434,7 +1434,7 @@ function RegisterContent() {
                                   Acceso gratis (solo para pruebas · dev)
                                 </Button>
                               )}
-                              <p className="text-center text-[10px] text-slate-400 font-medium max-w-md mx-auto leading-relaxed">
+                              <p className="text-center text-[11px] sm:text-[10px] text-slate-400 font-medium max-w-md mx-auto leading-relaxed">
                                 Al continuar, se crea tu cuenta. Recibirás un email para confirmar tu correo.
                               </p>
                             </div>
@@ -1680,7 +1680,7 @@ function BuscadorJerarquico({
               const hijas = hijasDe(raiz.id);
               return (
                 <div key={raiz.id} className="py-1">
-                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50">
+                  <div className="px-3 py-1 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50">
                     {raiz.nombre}
                   </div>
                   <button

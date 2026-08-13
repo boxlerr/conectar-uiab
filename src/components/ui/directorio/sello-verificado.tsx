@@ -41,7 +41,7 @@ export function SelloVerificado({
       />
       <span
         className={`relative font-black uppercase tracking-[0.1em] text-white whitespace-nowrap ${
-          esSm ? "text-[8.5px]" : "text-[9.5px]"
+          esSm ? "text-[8.5px]" : "text-[11px] sm:text-[9.5px]"
         }`}
       >
         {etiqueta}

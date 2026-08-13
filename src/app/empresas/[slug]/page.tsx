@@ -211,7 +211,7 @@ function PanelCertificaciones({ certs, accent }: { certs: CertFicha[]; accent: "
                   <div className="flex flex-wrap items-center gap-2">
                     <ChipNorma etiqueta={etiqueta} familia={familia} size="sm" />
                     {c.fecha_vencimiento && estado === "vencida" && (
-                      <span className="rounded bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                      <span className="rounded bg-rose-50 px-2 py-0.5 text-[11px] sm:text-[10px] font-bold text-rose-700">
                         Vencida
                       </span>
                     )}
@@ -1186,7 +1186,7 @@ async function EmpresaProfile({
                               </p>
                             </div>
                             <div className="flex items-center gap-3 shrink-0">
-                              <span className="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-sm border border-emerald-200">
+                              <span className="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider rounded-sm border border-emerald-200">
                                 Abierta
                               </span>
                               <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
@@ -1247,7 +1247,7 @@ async function EmpresaProfile({
                     <li className="flex items-start gap-3">
                       <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
                         <p className="text-slate-700 font-semibold text-[14px] leading-snug">{empresa.ubicacion}</p>
                       </div>
                     </li>
@@ -1261,7 +1261,7 @@ async function EmpresaProfile({
                     <li className="flex items-start gap-3">
                       <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo</p>
                         <a href={`mailto:${emailReal}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
                           {emailReal}
                         </a>
@@ -1273,7 +1273,7 @@ async function EmpresaProfile({
                     <li className="flex items-start gap-3">
                       <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de compras</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de compras</p>
                         <a href={`mailto:${empresa.contacto.emailCompras}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
                           {empresa.contacto.emailCompras}
                         </a>
@@ -1285,7 +1285,7 @@ async function EmpresaProfile({
                     <li className="flex items-start gap-3">
                       <Wrench className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de mantenimiento</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de mantenimiento</p>
                         <a href={`mailto:${empresa.contacto.emailMantenimiento}`} className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
                           {empresa.contacto.emailMantenimiento}
                         </a>
@@ -1297,7 +1297,7 @@ async function EmpresaProfile({
                     <li className="flex items-start gap-3">
                       <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
                         <a href={`tel:${empresa.contacto.telefono.replace(/[^0-9+]/g, '')}`} className="text-slate-700 font-semibold text-[14px] hover:text-blue-900 transition-colors">
                           {empresa.contacto.telefono}
                         </a>
@@ -1315,7 +1315,7 @@ async function EmpresaProfile({
                     <li className="flex items-start gap-3">
                       <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
                         <a href={normalizarSitioWeb(empresa.contacto.sitioWeb) ?? "#"} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
                           {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                         </a>
@@ -1667,7 +1667,7 @@ async function ProveedorProfile({
                   <li className="flex items-start gap-3">
                     <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
+                      <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Ubicación</p>
                       <p className="text-[#191c1e] font-semibold text-[14px]">{proveedor.ubicacion}</p>
                     </div>
                   </li>
@@ -1676,7 +1676,7 @@ async function ProveedorProfile({
                     <li className="flex items-start gap-3">
                       <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Experiencia</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Experiencia</p>
                         <p className="text-[#191c1e] font-semibold text-[14px]">{añosExperiencia} año{añosExperiencia !== 1 ? 's' : ''}</p>
                       </div>
                     </li>
@@ -1686,7 +1686,7 @@ async function ProveedorProfile({
                     <li className="flex items-start gap-3">
                       <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo electrónico</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo electrónico</p>
                         <a href={`mailto:${emailReal}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
                           {emailReal}
                         </a>
@@ -1698,7 +1698,7 @@ async function ProveedorProfile({
                     <li className="flex items-start gap-3">
                       <Mail className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de compras</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de compras</p>
                         <a href={`mailto:${proveedor.contacto.emailCompras}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
                           {proveedor.contacto.emailCompras}
                         </a>
@@ -1710,7 +1710,7 @@ async function ProveedorProfile({
                     <li className="flex items-start gap-3">
                       <Wrench className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de mantenimiento</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Correo de mantenimiento</p>
                         <a href={`mailto:${proveedor.contacto.emailMantenimiento}`} className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
                           {proveedor.contacto.emailMantenimiento}
                         </a>
@@ -1722,7 +1722,7 @@ async function ProveedorProfile({
                     <li className="flex items-start gap-3">
                       <Phone className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Teléfono</p>
                         <a href={`tel:${proveedor.contacto.telefono.replace(/[^0-9+]/g, '')}`} className="text-[#191c1e] font-semibold text-[14px] hover:text-[#10375c] transition-colors">
                           {proveedor.contacto.telefono}
                         </a>
@@ -1740,7 +1740,7 @@ async function ProveedorProfile({
                     <li className="flex items-start gap-3">
                       <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
                         <a href={webNormalizada} target="_blank" rel="noopener noreferrer" className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
                           {webVisible}
                         </a>

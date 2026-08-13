@@ -272,7 +272,7 @@ export function PublicEmpresasLanding({
                 className="bg-[#00213f]/70 rounded-xl px-5 py-5 border border-white/20 shadow-xl shadow-black/10 hover:bg-[#00213f]/85 transition-colors duration-300 group"
               >
                 <div className="text-xl lg:text-3xl font-bold text-white mb-0.5 tracking-tight group-hover:text-primary-200 transition-colors uppercase">{s.val}</div>
-                <div className="text-[10px] lg:text-[11px] text-white font-bold tracking-wider uppercase">{s.label}</div>
+                <div className="text-[11px] sm:text-[10px] lg:text-[11px] text-white font-bold tracking-wider uppercase">{s.label}</div>
               </motion.div>
             ))}
           </motion.div>
@@ -662,7 +662,7 @@ export function PublicEmpresasLanding({
                   />
                 </div>
                 <div className="h-[1px] w-6 bg-primary-600/30" />
-                <span className="text-[10px] font-bold text-primary-600 tracking-[0.25em] uppercase">
+                <span className="text-[11px] sm:text-[10px] font-bold text-primary-600 tracking-[0.25em] uppercase">
                   Membresía Corporativa
                 </span>
               </motion.div>
@@ -716,7 +716,7 @@ export function PublicEmpresasLanding({
                   />
                 </div>
 
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none text-center">
+                <span className="text-[11px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none text-center">
                   Sector <br /> Industrial
                 </span>
               </div>

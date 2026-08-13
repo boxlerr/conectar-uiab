@@ -145,7 +145,7 @@ export function FormularioResena({ targetType, targetId }: FormularioResenaProps
           value={comentario}
           onChange={(e) => setComentario(e.target.value)}
           placeholder="¿Qué servicio contrataste? ¿Cómo fue el cumplimiento de plazos y calidad del trabajo?"
-          className="w-full text-sm placeholder:text-slate-400 resize-none rounded-lg p-3 sm:p-4 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all h-28"
+          className="w-full text-base sm:text-sm placeholder:text-slate-400 resize-none rounded-lg p-3 sm:p-4 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all h-28"
         />
         <div className="text-[11px] text-right font-medium text-slate-400">
           {comentario.length}/500

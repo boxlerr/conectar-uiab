@@ -157,7 +157,7 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
             value={busqueda} 
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre o descripción..."
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all font-medium"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all font-medium"
           />
         </div>
       </Card>
@@ -182,16 +182,16 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
                     {servicio.nombre}
                   </h3>
                   {servicio.activa ? (
-                    <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="bg-emerald-100 text-emerald-700 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activo
                     </span>
                   ) : (
-                    <span className="bg-slate-200 text-slate-600 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
+                    <span className="bg-slate-200 text-slate-600 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
                       Inactivo
                     </span>
                   )}
                   {!servicio.administrado_por_admin && (
-                    <span className="bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
+                    <span className="bg-amber-100 text-amber-700 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
                       Propuesta de socio
                     </span>
                   )}
@@ -313,7 +313,7 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
                       value={nombre} 
                       onChange={e => setNombre(e.target.value)}
                       placeholder="Ej: Tornería CNC"
-                      className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all font-medium placeholder:font-normal placeholder:text-slate-400"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all font-medium placeholder:font-normal placeholder:text-slate-400"
                     />
                   </div>
                   <div>
@@ -322,7 +322,7 @@ export function PanelServicios({ servicios }: { servicios: Servicio[] }) {
                       value={descripcion} 
                       onChange={e => setDescripcion(e.target.value)}
                       placeholder="Una breve descripción opcional sobre qué incluye este servicio o especialidad..."
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm min-h-[100px] resize-y focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-base sm:text-sm min-h-[100px] resize-y focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                     />
                   </div>
                 </div>

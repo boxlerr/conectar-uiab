@@ -347,7 +347,7 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
                     <X className="w-4 h-4" />
                   </button>
                 ) : (
-                  <kbd className="hidden md:inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-400 shrink-0">
+                  <kbd className="hidden md:inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] sm:text-[10px] font-bold text-slate-400 shrink-0">
                     Enter
                   </kbd>
                 )}
@@ -429,20 +429,25 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
           {/* Main Grid */}
           <main className="w-full tab:flex-1 tab:min-w-0 lg:w-9/12 xl:w-3/4">
             {/* Toolbar */}
-            <div data-tour="directorio-toolbar" className="mb-6 scroll-mt-28 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
-              <div>
+            {/* `flex-wrap` en vez de `flex-col sm:flex-row`: a 768px el aside
+                del filtro ya se comió 208px, así que "Ordenar por" + "Vista"
+                no entraban al lado del título y empujaban el documento 38px
+                hacia la derecha — la página entera scrolleaba de costado en
+                tablet vertical. Envolviendo, se acomodan solos a cada ancho. */}
+            <div data-tour="directorio-toolbar" className="mb-6 scroll-mt-28 flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm">
+              <div className="min-w-0">
                 <h2 className="font-manrope text-lg font-bold text-slate-800">
                   {n} {rotuloResultados}
                 </h2>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-5">
                 {/* Ordenar por: el usuario elige; "Sugerido" respeta el orden
                     justo (shuffle diario) que trae el SSR. */}
                 <div className="flex items-center gap-2">
                   <label
                     htmlFor="orden-directorio"
-                    className="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"
+                    className="text-[11px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0"
                   >
                     Ordenar por:
                   </label>
@@ -457,7 +462,7 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
                 </div>
 
                 <div data-tour="directorio-vista" className="flex items-center gap-3">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <span className="text-[11px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Vista:
                   </span>
                   <div className="bg-slate-100 p-1 rounded-lg flex gap-1 border border-slate-200">
@@ -495,7 +500,7 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
                 scrollear y parece que faltan empresas. */}
             {hayFiltrosActivos && (
               <div className="mb-6 flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">
+                <span className="text-[11px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">
                   Filtros:
                 </span>
                 {metaTipo && (
@@ -667,7 +672,7 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
                   <div className="bg-white/[0.06] backdrop-blur-md border border-white/15 rounded-2xl p-6 shadow-xl shadow-[#00182e]/30 lg:-rotate-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Sparkles className="w-4 h-4 text-blue-300" />
-                      <span className="text-[10px] font-black text-blue-200/80 uppercase tracking-widest">
+                      <span className="text-[11px] sm:text-[10px] font-black text-blue-200/80 uppercase tracking-widest">
                         La red hoy
                       </span>
                     </div>

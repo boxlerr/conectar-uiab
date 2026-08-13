@@ -183,12 +183,12 @@ export function OportunidadesCliente({
                         : 'border border-slate-200/80 shadow-sm'
                     }`}>
                       {isRecommended && (
-                        <div className="absolute top-0 right-0 bg-[#00213f] text-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5 z-10">
+                        <div className="absolute top-0 right-0 bg-[#00213f] text-white px-2.5 py-1 text-[11px] sm:text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5 z-10">
                           <Sparkles className="w-2.5 h-2.5" /> Recomendado ({Math.round(match.puntaje)}%)
                         </div>
                       )}
                       <CardContent className="p-5">
-                        <div className="flex items-center gap-2 mb-1.5 text-primary-600 font-bold text-[10px] uppercase tracking-widest">
+                        <div className="flex items-center gap-2 mb-1.5 text-primary-600 font-bold text-[11px] sm:text-[10px] uppercase tracking-widest">
                           <span className={`flex h-2 w-2 rounded-full ${op.estado === 'abierta' ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
                           {op.estado}
                         </div>
@@ -205,7 +205,7 @@ export function OportunidadesCliente({
                         <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs font-inter text-slate-400">
                           <div className="flex items-center gap-4 flex-wrap">
                             {op.categoria && (
-                              <Badge className="bg-[#f2f4f6] text-[#10375c] hover:bg-slate-200 border-none px-2.5 py-0.5 rounded-sm font-bold text-[9px] uppercase tracking-wider">
+                              <Badge className="bg-[#f2f4f6] text-[#10375c] hover:bg-slate-200 border-none px-2.5 py-0.5 rounded-sm font-bold text-[11px] sm:text-[9px] uppercase tracking-wider">
                                 {op.categoria.nombre}
                               </Badge>
                             )}
@@ -274,7 +274,7 @@ export function OportunidadesCliente({
               </CardHeader>
               <CardContent className="p-0 flex flex-wrap gap-2">
                 {["Mantenimiento", "Metalurgia", "Logística", "Química", "Electricidad", "Sistemas"].map(cat => (
-                  <Badge key={cat} className="bg-white text-[#10375c] border-none shadow-sm px-4 py-2 rounded-sm font-bold text-[10px] uppercase tracking-widest hover:bg-white/80 transition-colors cursor-pointer">
+                  <Badge key={cat} className="bg-white text-[#10375c] border-none shadow-sm px-4 py-2 rounded-sm font-bold text-[11px] sm:text-[10px] uppercase tracking-widest hover:bg-white/80 transition-colors cursor-pointer">
                     {cat}
                   </Badge>
                 ))}

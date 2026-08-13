@@ -102,16 +102,16 @@ export function ActividadReciente({ items }: { items: ActividadItem[] }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    <span className="text-[11px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400">
                       {meta.label}
                     </span>
                     {item.esNuevo && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 uppercase tracking-widest">
+                      <span className="text-[11px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 uppercase tracking-widest">
                         Nuevo
                       </span>
                     )}
                     {item.estado && (
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase tracking-widest ${
+                      <span className={`text-[11px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded uppercase tracking-widest ${
                         item.estado === "abierta" || item.estado === "aprobada" || item.estado === "aprobado"
                           ? "bg-emerald-50 text-emerald-700"
                           : item.estado === "pendiente_revision" || item.estado === "pendiente"

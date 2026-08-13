@@ -93,7 +93,7 @@ export function ResenasPerfil({ resenasAprobadas, targetType, targetId }: Resena
                 >
                   <div className="flex justify-between items-start mb-3">
                     <Estrellas n={r.calificacion} />
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <span className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       {new Date(r.creada_en).toLocaleDateString("es-AR", { month: 'short', year: 'numeric' })}
                     </span>
                   </div>
@@ -106,9 +106,9 @@ export function ResenasPerfil({ resenasAprobadas, targetType, targetId }: Resena
                   <div className="pt-4 border-t border-slate-100 mt-auto flex items-center justify-between">
                     <div>
                       <p className="text-xs font-bold text-slate-900">{autorNombre}</p>
-                      <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">Socio Verificado</p>
+                      <p className="text-[11px] sm:text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">Socio Verificado</p>
                     </div>
-                    <span className="text-[10px] font-bold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Leer más &rarr;</span>
+                    <span className="text-[11px] sm:text-[10px] font-bold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Leer más &rarr;</span>
                   </div>
                 </div>
               );

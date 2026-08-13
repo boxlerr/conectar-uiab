@@ -145,7 +145,7 @@ export function FormDefinirPassword({
           <p className="font-extrabold tracking-tight text-lg">
             Conectar <span className="font-semibold opacity-75">UIAB</span>
           </p>
-          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/65">
+          <p className="mt-0.5 text-[11px] sm:text-[10px] font-semibold uppercase tracking-[0.08em] text-white/65">
             Activá tu cuenta
           </p>
         </div>

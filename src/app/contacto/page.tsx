@@ -20,7 +20,7 @@ export default function ContactoPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
             <div className="lg:col-span-8">
               <span
-                className="text-primary/60 font-semibold tracking-[0.2em] uppercase text-[10px] mb-3 block"
+                className="text-primary/60 font-semibold tracking-[0.2em] uppercase text-[11px] sm:text-[10px] mb-3 block"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
               >
                 Conecta con nosotros
@@ -78,7 +78,7 @@ export default function ContactoPage() {
                     <MapPin className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold mb-1">Ubicación</p>
+                    <p className="text-white/40 text-[11px] sm:text-[10px] uppercase tracking-widest font-bold mb-1">Ubicación</p>
                     <p className="text-white/90 text-sm leading-relaxed font-medium">
                       Luis María Drago 1951<br />
                       Piso 2 Of. 14 y 15<br />
@@ -92,7 +92,7 @@ export default function ContactoPage() {
                     <Phone className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold mb-1">Teléfono</p>
+                    <p className="text-white/40 text-[11px] sm:text-[10px] uppercase tracking-widest font-bold mb-1">Teléfono</p>
                     <p className="text-white/90 text-sm font-medium">+54 11 3062-2001</p>
                   </div>
                 </div>
@@ -102,7 +102,7 @@ export default function ContactoPage() {
                     <Mail className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold mb-1">Email</p>
+                    <p className="text-white/40 text-[11px] sm:text-[10px] uppercase tracking-widest font-bold mb-1">Email</p>
                     <p className="text-white/90 text-sm font-medium">gerencia.ejecutiva@uiab.org</p>
                   </div>
                 </div>
@@ -110,7 +110,7 @@ export default function ContactoPage() {
             </div>
 
             <div className="relative z-10 pt-12 border-t border-white/10 mt-12 lg:mt-0">
-              <p className="text-white/30 text-[10px] font-mono leading-relaxed">
+              <p className="text-white/30 text-[11px] sm:text-[10px] font-mono leading-relaxed">
                 UIAB CONECTA | {new Date().getFullYear()}<br />
                 SISTEMA DE GESTIÓN INDUSTRIAL
               </p>
@@ -134,7 +134,7 @@ export default function ContactoPage() {
         <div className="mt-24 space-y-6">
           <div className="flex items-center gap-4 mb-2">
             <div className="h-px bg-primary/10 flex-grow" />
-            <h4 className="text-[10px] uppercase tracking-[0.3em] font-black text-primary/40">Geolocalización Industrial</h4>
+            <h4 className="text-[11px] sm:text-[10px] uppercase tracking-[0.3em] font-black text-primary/40">Geolocalización Industrial</h4>
             <div className="h-px bg-primary/10 flex-grow" />
           </div>
 

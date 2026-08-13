@@ -173,7 +173,7 @@ function TarjetaCompacta({
         >
           {item.nombre}
         </span>
-        <span className="mt-1 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-400">
+        <span className="mt-1 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
           <Icono className="h-3 w-3 shrink-0" />
           {item.tipo_item}
           {precio && (
@@ -423,14 +423,14 @@ function CatalogoModal({
           <div className="bg-white p-6 md:p-7 flex flex-col gap-5">
             {/* Meta header */}
             <div className="flex items-center gap-3">
-              <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500">
+              <div className="inline-flex items-center gap-1.5 text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500">
                 <TipoIcon className="w-3.5 h-3.5" />
                 {item.tipo_item}
               </div>
               {item.destacado && (
                 <>
                   <span className="w-1 h-1 rounded-full bg-slate-300" />
-                  <div className="inline-flex items-center gap-1 text-[10px] font-semibold tracking-[0.14em] uppercase text-amber-700">
+                  <div className="inline-flex items-center gap-1 text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-amber-700">
                     <Star className="w-3 h-3 fill-current" />
                     Destacado
                   </div>
@@ -439,7 +439,7 @@ function CatalogoModal({
               {item.sku && (
                 <>
                   <span className="w-1 h-1 rounded-full bg-slate-300" />
-                  <span className="text-[10px] font-mono text-slate-500">{item.sku}</span>
+                  <span className="text-[11px] sm:text-[10px] font-mono text-slate-500">{item.sku}</span>
                 </>
               )}
             </div>
@@ -458,7 +458,7 @@ function CatalogoModal({
 
             {/* Precio */}
             <div className={`${color.accentBg} px-4 py-3 rounded-sm border ${color.accentBorder}`}>
-              <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-0.5">
+              <div className="text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-0.5">
                 {item.precio_a_consultar ? "Condiciones" : "Precio de referencia"}
               </div>
               <div className="flex items-baseline gap-2">
@@ -469,7 +469,7 @@ function CatalogoModal({
                   <span className="text-xs text-slate-500">/ {item.unidad}</span>
                 )}
                 {!item.precio_a_consultar && item.moneda && item.moneda !== "ARS" && (
-                  <span className="text-[10px] font-mono uppercase text-slate-400 ml-auto">
+                  <span className="text-[11px] sm:text-[10px] font-mono uppercase text-slate-400 ml-auto">
                     {item.moneda}
                   </span>
                 )}
@@ -479,7 +479,7 @@ function CatalogoModal({
             {/* Descripción detallada */}
             {item.descripcion_larga && (
               <div>
-                <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
+                <div className="text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
                   Detalle
                 </div>
                 <div className="relative">
@@ -506,7 +506,7 @@ function CatalogoModal({
                   <button
                     type="button"
                     onClick={() => setDetalleExpandido((v) => !v)}
-                    className={`mt-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors ${color.accent.replace("text-", "text-")} hover:opacity-80`}
+                    className={`mt-2 inline-flex items-center gap-1 text-[11px] sm:text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors ${color.accent.replace("text-", "text-")} hover:opacity-80`}
                   >
                     {detalleExpandido ? "Leer menos" : "Leer más"}
                     <span className="text-xs leading-none">
@@ -520,14 +520,14 @@ function CatalogoModal({
             {/* Palabras clave */}
             {Array.isArray(item.palabras_clave) && item.palabras_clave.length > 0 && (
               <div>
-                <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
+                <div className="text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
                   Palabras clave
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {item.palabras_clave.map((t) => (
                     <span
                       key={t}
-                      className="inline-flex items-center text-[10px] font-medium bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-[2px] tracking-wide"
+                      className="inline-flex items-center text-[11px] sm:text-[10px] font-medium bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-[2px] tracking-wide"
                     >
                       {t}
                     </span>
@@ -539,7 +539,7 @@ function CatalogoModal({
             {/* Enlaces */}
             {item.enlaces.length > 0 && (
               <div className="mt-auto">
-                <div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
+                <div className="text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
                   Recursos externos
                 </div>
                 <ul className="flex flex-col">
@@ -557,7 +557,7 @@ function CatalogoModal({
                             <Icon className={`w-4 h-4 text-slate-700 group-hover:${color.accent}`} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-[9px] font-semibold tracking-[0.14em] uppercase text-slate-500">
+                            <div className="text-[11px] sm:text-[9px] font-semibold tracking-[0.14em] uppercase text-slate-500">
                               {en.etiqueta || en.tipo}
                             </div>
                             <div className="text-[12px] text-slate-800 truncate font-medium">

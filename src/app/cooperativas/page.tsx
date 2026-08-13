@@ -402,7 +402,7 @@ export default function CooperativasPage() {
                       <Network className="w-5 h-5 text-amber-400" />
                     </div>
                     <div>
-                      <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-amber-400">
+                      <div className="text-[11px] sm:text-[10px] font-bold tracking-[0.2em] uppercase text-amber-400">
                         Red UIAB
                       </div>
                       <div className="text-white font-bold text-lg">
@@ -429,7 +429,7 @@ export default function CooperativasPage() {
                       <div className="font-manrope text-2xl md:text-3xl font-black text-white mb-1">
                         {stat.valor}
                       </div>
-                      <div className="text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                      <div className="text-amber-400 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider">
                         {stat.label}
                       </div>
                     </motion.div>
@@ -438,7 +438,7 @@ export default function CooperativasPage() {
 
                 {/* Rubros list */}
                 <div>
-                  <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-500 mb-3">
+                  <div className="text-[11px] sm:text-[10px] font-bold tracking-[0.2em] uppercase text-slate-500 mb-3">
                     Rubros cooperativos
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -869,7 +869,7 @@ export default function CooperativasPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <span className="text-[11px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                       Vista
                     </span>
                     <div className="bg-slate-100 p-1 flex gap-1 border border-slate-200">

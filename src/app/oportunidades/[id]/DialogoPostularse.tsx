@@ -48,7 +48,7 @@ export default function DialogoPostularse({
       <div className="w-full sm:w-80 h-14 flex items-center gap-3 px-6 bg-emerald-50 border border-emerald-200 rounded-sm">
         <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">
+          <p className="text-[11px] sm:text-[10px] font-bold text-emerald-700 uppercase tracking-widest">
             Postulación
           </p>
           <p className="text-sm font-manrope font-bold text-[#00213f] truncate">
@@ -110,7 +110,7 @@ export default function DialogoPostularse({
             {/* Header */}
             <div className="p-8 border-b border-slate-100 flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
+                <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">
                   Postularse
                 </p>
                 <h3 className="text-2xl font-manrope font-bold text-[#00213f] tracking-tight leading-tight">
@@ -130,7 +130,7 @@ export default function DialogoPostularse({
             {/* Body */}
             <div className="p-8 space-y-6">
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+                <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
                   Mensaje al solicitante *
                 </label>
                 <textarea
@@ -138,7 +138,7 @@ export default function DialogoPostularse({
                   onChange={(e) => setMensaje(e.target.value)}
                   rows={5}
                   placeholder="Ej.: Tenemos 15 años de experiencia en el rubro y podemos cumplir con la fecha solicitada. Disponemos de..."
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm font-inter focus:outline-none focus:border-primary-500 focus:bg-white transition-all resize-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-base sm:text-sm font-inter focus:outline-none focus:border-primary-500 focus:bg-white transition-all resize-none"
                 />
                 <p className="text-xs text-slate-400 mt-2 font-inter">
                   Presentate en pocas líneas. Este texto llega al solicitante junto con tus datos.
@@ -147,7 +147,7 @@ export default function DialogoPostularse({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+                  <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
                     Cantidad (opcional)
                   </label>
                   <input
@@ -156,11 +156,11 @@ export default function DialogoPostularse({
                     step="any"
                     value={cantidad}
                     onChange={(e) => setCantidad(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm font-inter focus:outline-none focus:border-primary-500 focus:bg-white transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-base sm:text-sm font-inter focus:outline-none focus:border-primary-500 focus:bg-white transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+                  <label className="block text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
                     Unidad (opcional)
                   </label>
                   <input
@@ -168,7 +168,7 @@ export default function DialogoPostularse({
                     value={unidad}
                     onChange={(e) => setUnidad(e.target.value)}
                     placeholder="kg, unidades, hs..."
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm font-inter focus:outline-none focus:border-primary-500 focus:bg-white transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-base sm:text-sm font-inter focus:outline-none focus:border-primary-500 focus:bg-white transition-all"
                   />
                 </div>
               </div>

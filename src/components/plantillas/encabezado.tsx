@@ -495,7 +495,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                                           <div>
                                             <p className="text-xs font-bold text-slate-900 leading-tight">{group.name}</p>
                                             {group.description && (
-                                              <p className="text-[10px] text-slate-500 leading-tight">{group.description}</p>
+                                              <p className="text-[11px] sm:text-[10px] text-slate-500 leading-tight">{group.description}</p>
                                             )}
                                           </div>
                                         </div>

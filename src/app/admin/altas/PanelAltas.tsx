@@ -158,11 +158,11 @@ function DiferenciasPadronCard({ alta }: { alta: Alta }) {
                   {c.etiqueta}
                 </span>
                 {c.resuelto ? (
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-px uppercase tracking-wider">
+                  <span className="text-[11px] sm:text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-px uppercase tracking-wider">
                     Confirmado
                   </span>
                 ) : (
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-px uppercase tracking-wider">
+                  <span className="text-[11px] sm:text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-px uppercase tracking-wider">
                     Sin confirmar
                   </span>
                 )}
@@ -253,7 +253,7 @@ function EstadoCuentaCard({ estado }: { estado?: EstadoCuenta }) {
           <div key={f.label} className="flex items-start gap-3">
             <Icon className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
             <div className="min-w-0">
-              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+              <span className="block text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wide">
                 {f.label}
               </span>
               <span className={`font-medium ${TONO_ESTADO[f.tono]}`}>{f.valor}</span>
@@ -521,7 +521,7 @@ export function PanelAltas({
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por empresa, email, referente o localidad..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
         <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200 w-full sm:w-auto flex-wrap">
@@ -589,7 +589,7 @@ export function PanelAltas({
                       <td className="px-6 py-4">
                         <span className="text-xs text-slate-600">{CATEGORIA_ALTA_LABEL[a.categoria] ?? a.categoria}</span>
                         {a.ya_es_socio && (
-                          <span className="block text-[10px] font-bold text-emerald-600 uppercase tracking-wide mt-0.5">Ya es socio</span>
+                          <span className="block text-[11px] sm:text-[10px] font-bold text-emerald-600 uppercase tracking-wide mt-0.5">Ya es socio</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -602,7 +602,7 @@ export function PanelAltas({
                           if (!ec) return null;
                           const activo = Boolean(ec.invitacion_usada);
                           return (
-                            <span className={`block text-[10px] mt-1 ${activo ? "text-emerald-600" : "text-slate-400"}`}>
+                            <span className={`block text-[11px] sm:text-[10px] mt-1 ${activo ? "text-emerald-600" : "text-slate-400"}`}>
                               {activo ? "✓ activó su cuenta" : "sin activar aún"}
                             </span>
                           );
@@ -714,7 +714,7 @@ export function PanelAltas({
                 {seleccionada.empresa_id ? (
                   <div className="flex items-start justify-between gap-3 bg-emerald-50/60 border border-emerald-100 rounded-lg p-3">
                     <div className="min-w-0">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full mb-1.5">
+                      <span className="inline-flex items-center gap-1 text-[11px] sm:text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full mb-1.5">
                         <CheckCircle2 className="w-3 h-3" /> Vinculada al padrón
                       </span>
                       <p className="text-sm font-medium text-slate-900 truncate">
@@ -767,7 +767,7 @@ export function PanelAltas({
                           setEmpresaElegida("");
                         }}
                         placeholder="Filtrar por razón social, nombre o CUIT..."
-                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                       />
                     </div>
                     <div className="flex gap-2">

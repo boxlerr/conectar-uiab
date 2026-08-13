@@ -421,7 +421,7 @@ export default function InstitucionesBancariasPage() {
                       <Network className="w-5 h-5 text-emerald-400" />
                     </div>
                     <div>
-                      <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-400">
+                      <div className="text-[11px] sm:text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-400">
                         Red UIAB
                       </div>
                       <div className="text-white font-bold text-lg">
@@ -448,7 +448,7 @@ export default function InstitucionesBancariasPage() {
                       <div className="font-manrope text-2xl md:text-3xl font-black text-white mb-1">
                         {stat.valor}
                       </div>
-                      <div className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                      <div className="text-emerald-400 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider">
                         {stat.label}
                       </div>
                     </motion.div>
@@ -457,7 +457,7 @@ export default function InstitucionesBancariasPage() {
 
                 {/* Services list */}
                 <div>
-                  <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-500 mb-3">
+                  <div className="text-[11px] sm:text-[10px] font-bold tracking-[0.2em] uppercase text-slate-500 mb-3">
                     Servicios mas buscados
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -888,7 +888,7 @@ export default function InstitucionesBancariasPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <span className="text-[11px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                       Vista
                     </span>
                     <div className="bg-slate-100 p-1 flex gap-1 border border-slate-200">
@@ -1023,7 +1023,7 @@ function AccesoBloqueadoCard() {
           <Lock className="w-7 h-7" />
         </div>
         <div className="max-w-xl">
-          <div className="text-[10px] font-black tracking-[0.28em] uppercase text-emerald-700 mb-3">
+          <div className="text-[11px] sm:text-[10px] font-black tracking-[0.28em] uppercase text-emerald-700 mb-3">
             Acceso restringido
           </div>
           <h3 className="font-manrope text-2xl md:text-3xl font-bold text-slate-900 leading-tight tracking-tight mb-3">

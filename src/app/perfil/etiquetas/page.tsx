@@ -252,7 +252,7 @@ export default function MiPerfilEtiquetasPage() {
                 }
               }}
               disabled={sinEntidad && catalogo.length === 0}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:border-primary-500 transition-all"
             />
           </div>
           <p className="text-[11px] text-slate-400 mb-4">
@@ -292,7 +292,7 @@ export default function MiPerfilEtiquetasPage() {
             ) : (
               tagsPorTipo.map(({ tipo, label, items }) => (
                 <div key={tipo} className="mb-2">
-                  <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50 rounded-md">
+                  <div className="px-2 py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50 rounded-md">
                     {label}
                   </div>
                   {items.map((tag) => {
@@ -317,7 +317,7 @@ export default function MiPerfilEtiquetasPage() {
                         <span className="text-sm flex items-center gap-2 min-w-0">
                           <span className="line-clamp-1">{tag.nombre}</span>
                           {propia && (
-                            <span className="text-[10px] uppercase tracking-wider text-amber-700 border border-amber-300 rounded px-1.5 py-0.5 shrink-0">
+                            <span className="text-[11px] sm:text-[10px] uppercase tracking-wider text-amber-700 border border-amber-300 rounded px-1.5 py-0.5 shrink-0">
                               propia
                             </span>
                           )}
@@ -375,7 +375,7 @@ export default function MiPerfilEtiquetasPage() {
                       )}
                       <span className="font-medium text-slate-200 line-clamp-1">{t.nombre}</span>
                       {propia && (
-                        <span className="text-[10px] uppercase tracking-wider text-amber-300 border border-amber-400/40 rounded px-1.5 py-0.5 shrink-0">
+                        <span className="text-[11px] sm:text-[10px] uppercase tracking-wider text-amber-300 border border-amber-400/40 rounded px-1.5 py-0.5 shrink-0">
                           propia
                         </span>
                       )}

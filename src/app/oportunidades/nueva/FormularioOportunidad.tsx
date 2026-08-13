@@ -41,7 +41,7 @@ const inputCls =
   "disabled:bg-slate-50 disabled:text-slate-400";
 
 const labelCls =
-  "block mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500";
+  "block mb-2 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500";
 
 /** Qué necesita quien publica. Los `valor` coinciden con el CHECK de
  *  `oportunidades.tipo_requerimiento` (text[]) en la base. */
@@ -63,7 +63,7 @@ function EncabezadoSeccion({
 }) {
   return (
     <div className="flex items-center gap-3 mb-6">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-[#00213f] text-white text-[10px] font-black tabular-nums">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-[#00213f] text-white text-[11px] sm:text-[10px] font-black tabular-nums">
         {numero}
       </span>
       <h2
@@ -74,7 +74,7 @@ function EncabezadoSeccion({
       </h2>
       <span className="flex-1 h-px bg-slate-200/60" />
       {badge && (
-        <span className="shrink-0 rounded-sm bg-[#f2f4f6] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+        <span className="shrink-0 rounded-sm bg-[#f2f4f6] px-2 py-0.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
           {badge}
         </span>
       )}
@@ -519,7 +519,7 @@ export function FormularioOportunidad({
 
           {/* Footer de acciones: sticky dentro de la tarjeta */}
           <div className="sticky bottom-0 z-20 rounded-b-xl border-t border-slate-200/70 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 shadow-[0_-8px_24px_-18px_rgba(15,23,42,0.25)]">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+            <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
               Visible sólo para la red UIAB · {totalEtiquetas} etiqueta
               {totalEtiquetas === 1 ? "" : "s"}
             </p>
@@ -562,7 +562,7 @@ export function FormularioOportunidad({
       {/* Columna lateral */}
       <aside className="lg:col-span-4 space-y-4 lg:sticky lg:top-24">
         <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm p-6">
-          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400 mb-4">
+          <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400 mb-4">
             Cómo funciona el match
           </p>
           <ul className="space-y-3.5 text-sm text-slate-600 leading-relaxed">
@@ -595,7 +595,7 @@ export function FormularioOportunidad({
         </div>
 
         <div className="bg-[#f2f4f6] rounded-xl p-6">
-          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 mb-4">
+          <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 mb-4">
             Antes de publicar
           </p>
           <ul className="space-y-3 text-sm text-slate-600 leading-relaxed">

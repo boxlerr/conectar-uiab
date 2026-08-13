@@ -120,7 +120,7 @@ export function AccesoRequerido({ estado = "sin_suscripcion", className = "" }: 
         {/* Eyebrow badge */}
         <div className="inline-flex items-center gap-2.5 mb-8 px-4 py-2 bg-white/[0.07] border border-white/[0.12]">
           <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-          <span className="text-[10px] font-black tracking-[0.3em] uppercase text-white/50">
+          <span className="text-[11px] sm:text-[10px] font-black tracking-[0.3em] uppercase text-white/50">
             {cfg.eyebrow}
           </span>
         </div>

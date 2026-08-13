@@ -493,7 +493,7 @@ export function EmpresasCliente({
               </div>
 
               <div data-tour="directorio-vista" className="flex items-center gap-3">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vista:</span>
+                <span className="text-[11px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Vista:</span>
                 <div className="bg-slate-100 p-1 rounded-lg flex gap-1 border border-slate-200">
                   <button 
                     onClick={() => setViewMode('grid')}

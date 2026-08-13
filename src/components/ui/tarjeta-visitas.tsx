@@ -37,7 +37,7 @@ export function TarjetaVisitas() {
           <Eye className="w-5 h-5" />
         </div>
         {data.ultimos30 > 0 && (
-          <span className="text-[10px] font-bold px-2 py-1 rounded bg-violet-50 text-violet-700 uppercase tracking-widest flex items-center gap-1">
+          <span className="text-[11px] sm:text-[10px] font-bold px-2 py-1 rounded bg-violet-50 text-violet-700 uppercase tracking-widest flex items-center gap-1">
             <TrendingUp className="w-3 h-3" />
             {data.ultimos30} en 30d
           </span>

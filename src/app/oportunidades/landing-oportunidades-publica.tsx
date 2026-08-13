@@ -169,7 +169,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                        <Briefcase className="w-6 h-6 text-emerald-400" />
                     </div>
                     <div>
-                       <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-0.5">Nueva Solicitud</p>
+                       <p className="text-[11px] sm:text-[10px] font-bold text-white/40 uppercase tracking-widest mb-0.5">Nueva Solicitud</p>
                        <p className="text-sm font-black text-white">Aserradero Los Robles S.A.</p>
                     </div>
                   </motion.div>
@@ -300,7 +300,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                       <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center">
                          <Building2 className="w-5 h-5 text-primary-600" />
                       </div>
-                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 font-bold text-[10px] uppercase">Aprobada</Badge>
+                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] sm:text-[10px] uppercase">Aprobada</Badge>
                    </div>
                    <p className="font-bold text-[#00213f] text-sm leading-tight mb-2">Presupuesto aceptado</p>
                    <p className="text-xs text-slate-500 leading-relaxed">Empezá a trabajar directamente con tu nuevo cliente.</p>
@@ -373,7 +373,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           
           <div className="text-center mb-12">
-            <Badge className="bg-emerald-100 text-emerald-800 border-none px-4 py-1.5 font-bold mb-4 uppercase tracking-widest text-[10px]">Licitaciones Abiertas</Badge>
+            <Badge className="bg-emerald-100 text-emerald-800 border-none px-4 py-1.5 font-bold mb-4 uppercase tracking-widest text-[11px] sm:text-[10px]">Licitaciones Abiertas</Badge>
             <h2 
               className="text-3xl lg:text-4xl font-black tracking-tight text-[#00213f]"
               style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
@@ -407,7 +407,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                       <CardContent className="p-8 sm:p-10">
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5">
                           <div>
-                            <div className="flex items-center gap-2 mb-3 font-bold text-[10px] uppercase tracking-widest text-primary-600">
+                            <div className="flex items-center gap-2 mb-3 font-bold text-[11px] sm:text-[10px] uppercase tracking-widest text-primary-600">
                               <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                               {op.categoria?.nombre || "General"}
                             </div>

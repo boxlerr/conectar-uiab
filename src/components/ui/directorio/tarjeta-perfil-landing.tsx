@@ -16,7 +16,7 @@ export function LandingProfileCard({ entidad, basePath }: LandingProfileCardProp
           {entidad.logo}
         </div>
         <div className="bg-primary-50 px-3 py-1 rounded-full">
-          <span className="text-[10px] font-bold text-primary-600 uppercase tracking-widest">{entidad.categoria}</span>
+          <span className="text-[11px] sm:text-[10px] font-bold text-primary-600 uppercase tracking-widest">{entidad.categoria}</span>
         </div>
       </div>
 

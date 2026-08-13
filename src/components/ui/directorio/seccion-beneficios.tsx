@@ -49,7 +49,7 @@ export function SeccionBeneficios() {
                 />
               </div>
               <div className="h-[1px] w-8 bg-primary-600/30" />
-              <span className="text-[10px] font-bold text-primary-600 tracking-[0.25em] uppercase">
+              <span className="text-[11px] sm:text-[10px] font-bold text-primary-600 tracking-[0.25em] uppercase">
                 Membresía Corporativa
               </span>
             </motion.div>
@@ -105,7 +105,7 @@ export function SeccionBeneficios() {
                 className="w-3/4 h-auto mx-auto opacity-65 hover:opacity-100 transition-opacity duration-500"
               />
 
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none text-center">
+              <span className="text-[11px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none text-center">
                 Sector Industrial
               </span>
             </div>

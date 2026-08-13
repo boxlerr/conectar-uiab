@@ -69,7 +69,7 @@ export default function CookiesPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
             <div className="lg:col-span-8">
               <span
-                className="text-primary/60 font-semibold tracking-[0.2em] uppercase text-[10px] mb-3 block"
+                className="text-primary/60 font-semibold tracking-[0.2em] uppercase text-[11px] sm:text-[10px] mb-3 block"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
               >
                 Transparencia · Ley 25.326
@@ -118,7 +118,7 @@ export default function CookiesPage() {
                         href={`#${s.id}`}
                         className="group flex items-start gap-2 text-[13px] text-slate-600 hover:text-primary transition-colors py-1"
                       >
-                        <span className="text-[10px] text-slate-400 font-mono mt-1 w-4 flex-shrink-0">
+                        <span className="text-[11px] sm:text-[10px] text-slate-400 font-mono mt-1 w-4 flex-shrink-0">
                           {String(i + 1).padStart(2, "0")}
                         </span>
                         <span className="leading-snug">{s.label}</span>

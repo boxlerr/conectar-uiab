@@ -329,7 +329,7 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                     </div>
                     <div>
                       <p className="text-[13px] font-bold text-white">Productos y servicios</p>
-                      <p className="text-[10px] text-white/40">Verificados UIAB</p>
+                      <p className="text-[11px] sm:text-[10px] text-white/40">Verificados UIAB</p>
                     </div>
                   </div>
                 </motion.div>
@@ -353,7 +353,7 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                        />
                     </div>
                     <div>
-                       <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-0.5">Aval Institucional</p>
+                       <p className="text-[11px] sm:text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-0.5">Aval Institucional</p>
                        <p className="text-[14px] font-black text-white leading-tight">Red Privada<br/>UIAB Conecta</p>
                     </div>
                   </div>
@@ -380,7 +380,7 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                 >
                   <div className="flex items-center justify-between mb-3">
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span className="text-[9px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    <span className="text-[11px] sm:text-[9px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
                       Padrón UIAB
                     </span>
                   </div>
@@ -394,7 +394,7 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-white">Sin intermediarios</p>
-                      <p className="text-[9px] text-white/50 uppercase tracking-wider font-bold">
+                      <p className="text-[11px] sm:text-[9px] text-white/50 uppercase tracking-wider font-bold">
                         Contacto directo con la empresa
                       </p>
                     </div>
@@ -639,7 +639,7 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                         <item.icon className="w-[18px] h-[18px] text-primary-600" />
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-[10.5px] font-black uppercase tracking-[0.16em] text-primary-600 mb-1">
+                        <span className="block text-[11px] sm:text-[10.5px] font-black uppercase tracking-[0.16em] text-primary-600 mb-1">
                           {item.seccion}
                         </span>
                         <span className="block text-[16px] font-bold text-[#00213f] leading-snug">
@@ -745,7 +745,7 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                     }`}
                   >
                     Anual
-                    <span className="rounded-full bg-amber-400 text-[#00213f] text-[9px] sm:text-[10px] font-black uppercase tracking-wide px-1.5 sm:px-2 py-0.5">
+                    <span className="rounded-full bg-amber-400 text-[#00213f] text-[11px] sm:text-[10px] font-black uppercase tracking-wide px-1.5 sm:px-2 py-0.5">
                       {MESES_GRATIS} meses gratis
                     </span>
                   </button>

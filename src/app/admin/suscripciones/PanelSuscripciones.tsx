@@ -388,7 +388,7 @@ export function PanelSuscripciones({
               >
                 <div className="flex items-center justify-between mb-3">
                   <span
-                    className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${TARIFA_CHIP[nivel]}`}
+                    className={`text-[11px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${TARIFA_CHIP[nivel]}`}
                   >
                     {TARIFA_LABEL[nivel]}
                   </span>
@@ -461,13 +461,13 @@ export function PanelSuscripciones({
 
                 <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-0.5">
+                    <p className="text-[11px] sm:text-[10px] uppercase tracking-wider text-slate-400 mb-0.5">
                       Socios
                     </p>
                     <p className="font-semibold text-slate-700 tabular-nums">{count}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-0.5">
+                    <p className="text-[11px] sm:text-[10px] uppercase tracking-wider text-slate-400 mb-0.5">
                       Subtotal/mes
                     </p>
                     <p
@@ -480,7 +480,7 @@ export function PanelSuscripciones({
                 </div>
 
                 {info?.vigente_hasta ? (
-                  <p className="text-[10px] text-slate-400 mt-3">
+                  <p className="text-[11px] sm:text-[10px] text-slate-400 mt-3">
                     Vigente hasta{" "}
                     {new Date(info.vigente_hasta).toLocaleDateString("es-AR", {
                       day: "2-digit",
@@ -520,7 +520,7 @@ export function PanelSuscripciones({
               })}
             />
             <div className="text-right">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 Total recaudado
               </p>
               <p className="text-lg font-bold text-emerald-600 tabular-nums">
@@ -535,16 +535,16 @@ export function PanelSuscripciones({
           <table className="w-full min-w-[720px]">
             <thead>
               <tr className="bg-slate-50/80">
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <th className="px-4 py-3 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   Fecha
                 </th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <th className="px-4 py-3 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   Socio / Particular
                 </th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <th className="px-4 py-3 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   Monto
                 </th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <th className="px-4 py-3 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   Estado
                 </th>
               </tr>
@@ -583,7 +583,7 @@ export function PanelSuscripciones({
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span
-                          className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${
+                          className={`text-[11px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${
                             p.estado === "aprobado" || p.estado === "aprobada"
                               ? "bg-emerald-50 text-emerald-700"
                               : "bg-amber-50 text-amber-700"
@@ -609,7 +609,7 @@ export function PanelSuscripciones({
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre o email..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 rounded-md text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-md w-full sm:w-auto overflow-x-auto">
@@ -638,22 +638,22 @@ export function PanelSuscripciones({
             <table className="w-full min-w-[720px]">
               <thead>
                 <tr className="bg-slate-50/80">
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Empresa
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Empleados
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Tarifa
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Mensual
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Miembro desde
                   </th>
-                  <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-right text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Cambiar tarifa
                   </th>
                 </tr>
@@ -751,14 +751,14 @@ export function PanelSuscripciones({
                           {e.tarifa ? (
                             <div className="flex flex-col gap-0.5">
                               <span
-                                className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest w-fit ${
+                                className={`text-[11px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest w-fit ${
                                   TARIFA_CHIP[e.tarifa]
                                 }`}
                               >
                                 {TARIFA_LABEL[e.tarifa]}
                               </span>
                               {sugerida && sugerida !== e.tarifa && (
-                                <span className="text-[10px] text-amber-600 font-medium">
+                                <span className="text-[11px] sm:text-[10px] text-amber-600 font-medium">
                                   Sugerida por empleados: T{sugerida}
                                 </span>
                               )}
@@ -816,19 +816,19 @@ export function PanelSuscripciones({
             <table className="w-full min-w-[720px]">
               <thead>
                 <tr className="bg-slate-50/80">
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Particular
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Monto mensual
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Estado
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Registrado
                   </th>
-                  <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-right text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     Acciones
                   </th>
                 </tr>
@@ -921,7 +921,7 @@ export function PanelSuscripciones({
                             />
                           ) : estadoActual ? (
                             <span
-                              className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${
+                              className={`text-[11px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${
                                 estadoChip[estadoActual] ?? "bg-slate-100 text-slate-500"
                               }`}
                             >

@@ -154,29 +154,28 @@ export function CabeceraFicha({
       </div>
 
       <div className="p-5 sm:p-7 lg:p-9">
-        {/* ── 1. Sellos + CTA ────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {rubroPrincipalHref ? (
-              <Link
-                href={rubroPrincipalHref}
-                className={`inline-flex items-center rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors hover:brightness-125 ${c.selloRubro}`}
-              >
-                {rubroPrincipal}
-              </Link>
-            ) : (
-              <span
-                className={`inline-flex items-center rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] ${c.selloRubro}`}
-              >
-                {rubroPrincipal}
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white">
-              <SelloIcono className={`h-3 w-3 ${c.icono}`} />
-              {selloEstado.texto}
+        {/* ── 1. Sellos ──────────────────────────────────────────────────
+            `sm:pr-56` reserva el hueco del CTA, que a partir de sm se ancla
+            arriba a la derecha en vez de compartir esta fila. */}
+        <div className="flex flex-wrap items-center gap-2 sm:pr-56">
+          {rubroPrincipalHref ? (
+            <Link
+              href={rubroPrincipalHref}
+              className={`inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.15em] transition-colors hover:brightness-125 sm:text-[10px] ${c.selloRubro}`}
+            >
+              {rubroPrincipal}
+            </Link>
+          ) : (
+            <span
+              className={`inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.15em] sm:text-[10px] ${c.selloRubro}`}
+            >
+              {rubroPrincipal}
             </span>
-          </div>
-          {cta}
+          )}
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.15em] text-white sm:text-[10px]">
+            <SelloIcono className={`h-3 w-3 ${c.icono}`} />
+            {selloEstado.texto}
+          </span>
         </div>
 
         {/* ── 2. Identidad + datos duros ─────────────────────────────────── */}
@@ -264,9 +263,12 @@ export function CabeceraFicha({
           </div>
 
           {/* Columna de datos duros: es la que llena el vacío de la derecha.
-              Sólo se renderiza si hay algo real que poner. */}
+              Sólo se renderiza si hay algo real que poner.
+              `sm:max-w-md`: entre 640 y 1024 la columna todavía no está al
+              costado, y a lo ancho de la tarjeta la etiqueta y el valor
+              quedaban en puntas opuestas con medio metro de vacío al medio. */}
           {datos.length > 0 && (
-            <dl className="shrink-0 border-t border-white/12 pt-5 lg:w-[19rem] lg:border-l lg:border-t-0 lg:pl-9 lg:pt-1">
+            <dl className="w-full shrink-0 border-t border-white/12 pt-5 sm:max-w-md lg:w-[19rem] lg:max-w-none lg:border-l lg:border-t-0 lg:pl-9 lg:pt-1">
               {datos.map((d) => {
                 const Icono = d.icono;
                 const contenido = d.href ? (
@@ -298,35 +300,51 @@ export function CabeceraFicha({
           )}
         </div>
 
+        {/* ── CTA ────────────────────────────────────────────────────────
+            En mobile va acá, a lo ancho y DESPUÉS de los datos: arriba del
+            todo quedaba un botón gigante antes de que la pantalla dijera de
+            qué empresa se trata. En sm+ se ancla arriba a la derecha, que es
+            donde lo pide el diseño. Un solo nodo, no dos: el modal de contacto
+            es un client component y duplicarlo duplicaba el portal. */}
+        {cta && (
+          <div className="mt-6 sm:absolute sm:right-7 sm:top-7 sm:mt-0 lg:right-9 lg:top-9">
+            {cta}
+          </div>
+        )}
+
         {/* ── 3. Franja de métricas ──────────────────────────────────────── */}
+        {/* Flex y no grid: con `auto-fit` una fila incompleta —4 métricas en 3
+            columnas— dejaba media franja vacía y más clara que el resto. Con
+            `flex-1` las que sobran estiran y no queda hueco. El truco del
+            `-ml-px -mt-px` deja los divisores entre celdas y recorta los del
+            borde contra el `overflow-hidden` del contenedor. */}
         {metricas.length > 0 && (
-          <div
-            className="mt-7 grid gap-px overflow-hidden rounded-xl border border-white/12 bg-white/12"
-            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(9.5rem, 1fr))" }}
-          >
-            {metricas.map((m) => {
-              const Icono = m.icono;
-              return (
-                <div
-                  key={m.etiqueta}
-                  className="flex items-center gap-3 bg-[#00182e]/70 px-3.5 py-3.5 backdrop-blur-sm sm:px-4"
-                >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/10">
-                    <Icono className={`h-4 w-4 ${c.icono}`} />
-                  </span>
-                  {/* Sin `truncate`: en 390px "Productos y servicios" salía
-                      "Productos y …", que no dice nada. Que envuelva. */}
-                  <span className="min-w-0">
-                    <span className="block font-manrope text-[15px] font-bold leading-tight text-white">
-                      {m.valor}
+          <div className="mt-7 overflow-hidden rounded-xl border border-white/12 bg-[#00182e]/70 backdrop-blur-sm">
+            <div className="-ml-px -mt-px flex flex-wrap">
+              {metricas.map((m) => {
+                const Icono = m.icono;
+                return (
+                  <div
+                    key={m.etiqueta}
+                    className="flex min-w-[9.5rem] flex-1 items-center gap-3 border-l border-t border-white/10 px-3.5 py-3.5 sm:px-4"
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/10">
+                      <Icono className={`h-4 w-4 ${c.icono}`} />
                     </span>
-                    <span className="mt-0.5 block text-[11.5px] leading-tight text-white/55">
-                      {m.etiqueta}
+                    {/* Sin `truncate`: en 390px "Productos y servicios" salía
+                        "Productos y …", que no dice nada. Que envuelva. */}
+                    <span className="min-w-0">
+                      <span className="block font-manrope text-[15px] font-bold leading-tight text-white">
+                        {m.valor}
+                      </span>
+                      <span className="mt-0.5 block text-[11.5px] leading-tight text-white/55">
+                        {m.etiqueta}
+                      </span>
                     </span>
-                  </span>
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

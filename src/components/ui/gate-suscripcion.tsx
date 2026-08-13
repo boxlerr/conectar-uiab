@@ -114,7 +114,7 @@ export function GateSuscripcion({ estado, children }: Props) {
               {/* Eyebrow */}
               <div className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 bg-slate-50 border border-slate-200">
                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                <span className="text-[10px] font-black tracking-[0.25em] uppercase text-slate-500">
+                <span className="text-[11px] sm:text-[10px] font-black tracking-[0.25em] uppercase text-slate-500">
                   {cfg.eyebrow}
                 </span>
               </div>
