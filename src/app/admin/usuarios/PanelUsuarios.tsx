@@ -197,7 +197,7 @@ export function PanelUsuarios({
     { key: "pendientes", label: `Pendientes de habilitar (${counts.pendientes})`, alerta: counts.pendientes > 0 },
     { key: "admin",      label: `Admin (${counts.admin})` },
     { key: "company",    label: `Empresas (${counts.company})` },
-    { key: "provider",   label: `Proveedores de servicios (${counts.provider})` },
+    { key: "provider",   label: `Particulares (${counts.provider})` },
   ];
 
   return (

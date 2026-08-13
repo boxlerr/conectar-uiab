@@ -490,7 +490,7 @@ export default async function AdminDashboardPage() {
       href: "/admin/usuarios",
     },
     {
-      nombre: "Prestadores de servicios",
+      nombre: "Particulares",
       valor: data.totalProveedores,
       pie: data.totalProveedores === 0 ? "Todavía ninguno" : "En el directorio",
       icon: Wrench,
@@ -511,7 +511,7 @@ export default async function AdminDashboardPage() {
     { label: "Altas de socios", href: "/admin/altas", icon: UserPlus },
     { label: "Suscripciones", href: "/admin/suscripciones", icon: DollarSign },
     { label: "Empresas", href: "/admin/empresas", icon: Building },
-    { label: "Proveedores de servicios", href: "/admin/proveedores", icon: Wrench },
+    { label: "Particulares", href: "/admin/proveedores", icon: Wrench },
     { label: "Oportunidades", href: "/admin/oportunidades", icon: Briefcase },
     { label: "Reseñas", href: "/admin/resenas", icon: Star },
     { label: "Usuarios", href: "/admin/usuarios", icon: Users },

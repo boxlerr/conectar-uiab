@@ -370,6 +370,8 @@ export function PanelAltas({
   const [filtro, setFiltro] = useState<Filtro>("padron");
   const [busqueda, setBusqueda] = useState("");
   const [seleccionada, setSeleccionada] = useState<Alta | null>(null);
+  /** Ficha del padrón que todavía no tiene solicitud: se abre en su propio modal. */
+  const [fichaVista, setFichaVista] = useState<FilaPadron | null>(null);
   const [creando, setCreando] = useState(false);
   const [reenviando, setReenviando] = useState(false);
   const [filtroPadron, setFiltroPadron] = useState("");
@@ -716,6 +718,34 @@ export function PanelAltas({
         </div>
       </Card>
 
+      {/* Resumen del embudo. Son las tres preguntas que se hace la UIAB, y de paso
+          funcionan como filtro: antes había que leer una fila de pestañas
+          apretadas para enterarse de lo mismo. */}
+      {esVistaPadron && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {([
+            { k: "adentro", n: cuentaPadron.adentro, titulo: "Ya entraron", pie: "tienen a alguien adentro", clase: "text-emerald-700" },
+            { k: "esperando", n: cuentaPadron.esperando, titulo: "Esperando acceso", pie: "cargaron datos y falta dárselo", clase: "text-amber-700" },
+            { k: "sin_novedades", n: cuentaPadron.sin_novedades, titulo: "Sin novedades", pie: "hay que salir a buscarlas", clase: "text-slate-700" },
+          ] as const).map((c) => (
+            <button
+              key={c.k}
+              onClick={() => setFiltro(filtro === c.k ? "padron" : c.k)}
+              className={`text-left bg-white rounded-lg p-5 ring-1 transition-all ${
+                filtro === c.k ? "ring-primary-400 bg-primary-50/40" : "ring-slate-100 hover:ring-slate-300"
+              }`}
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{c.titulo}</p>
+              <p className={`text-3xl font-bold tabular-nums leading-none mt-1 ${c.clase}`}>
+                {c.n}
+                <span className="text-base font-semibold text-slate-300"> / {cuentaPadron.padron}</span>
+              </p>
+              <p className="text-xs text-slate-400 mt-2">{c.pie}</p>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── El padrón: TODAS las socias, no sólo las que completaron el formulario.
              Las que están "sin novedades" no viven en `altas_socios`, así que sin
              esta vista no aparecían en ninguna pantalla del panel. ── */}
@@ -755,17 +785,38 @@ export function PanelAltas({
                         </td>
                         <td className="px-6 py-4">
                           {f.email ? (
+                            <div className="flex items-center gap-1.5">
+                              <a
+                                href={`mailto:${f.email}`}
+                                className="text-sm text-primary-700 hover:underline break-words"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {f.email}
+                              </a>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); copiar(f.email!, "Correo"); }}
+                                title="Copiar el correo"
+                                className="shrink-0 p-1 rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-rose-500">Sin correo cargado</span>
+                          )}
+                          {f.telefono ? (
                             <a
-                              href={`mailto:${f.email}`}
-                              className="text-sm text-primary-700 hover:underline break-words"
+                              href={`https://wa.me/${soloDigitos(f.telefono).replace(/^0/, "").replace(/^15/, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
+                              className="text-xs text-emerald-700 hover:underline inline-flex items-center gap-1 mt-0.5"
                             >
-                              {f.email}
+                              <PhoneCall className="w-3 h-3" /> {f.telefono}
                             </a>
                           ) : (
-                            <span className="text-xs text-slate-300">Sin correo cargado</span>
+                            !f.email && <div className="text-xs text-rose-500">ni teléfono</div>
                           )}
-                          {f.telefono && <div className="text-xs text-slate-500">{f.telefono}</div>}
                         </td>
                         <td className="px-6 py-4">
                           <span
@@ -782,22 +833,17 @@ export function PanelAltas({
                           {f.usuarios > 0 ? f.usuarios : <span className="text-slate-300">—</span>}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          {alta ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => abrirDetalle(alta)}
-                              className="text-xs"
-                            >
-                              Ver solicitud
-                            </Button>
-                          ) : f.empresaId ? (
-                            <a href={`/admin/empresas`} onClick={(e) => e.stopPropagation()}>
-                              <Button size="sm" variant="outline" className="text-xs">
-                                Ver ficha
-                              </Button>
-                            </a>
-                          ) : null}
+                          {/* Antes "Ver ficha" mandaba a /admin/empresas, que abre en el
+                              filtro "Pendientes" y muestra la lista vacía: el click no
+                              llevaba a ninguna parte. Ahora abre el detalle acá. */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => (alta ? abrirDetalle(alta) : setFichaVista(f))}
+                            className="text-xs"
+                          >
+                            {alta ? "Ver solicitud" : "Ver ficha"}
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -891,6 +937,113 @@ export function PanelAltas({
       )}
 
       {/* Slide-over detalle */}
+
+      {/* Ficha del padrón que todavía no pidió el acceso. Antes acá no había nada
+          que mostrar y el botón te sacaba de la pantalla. */}
+      {fichaVista && (() => {
+        const ficha = fichaVista.empresaId
+          ? empresas.find((e) => e.id === fichaVista.empresaId) ?? null
+          : null;
+        const cargados = ficha
+          ? CAMPOS_FICHA.filter((c) => tieneValor(ficha[c.clave]) || (c.clave2 ? tieneValor(ficha[c.clave2]) : false))
+          : [];
+        const vacios = ficha ? CAMPOS_FICHA.filter((c) => !cargados.includes(c)) : [];
+        const pct = ficha ? Math.round((cargados.length / CAMPOS_FICHA.length) * 100) : 0;
+        const sit = SITUACION_CONFIG[fichaVista.situacion];
+        return (
+          <>
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onClick={() => setFichaVista(null)} />
+            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-0 sm:p-6 pointer-events-none">
+              <div className="pointer-events-auto w-full sm:max-w-3xl max-h-full sm:max-h-[90vh] bg-white sm:rounded-lg shadow-2xl overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-slate-100 p-5 flex items-center justify-between z-10">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold uppercase">
+                      {fichaVista.nombre.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="font-bold text-slate-900 truncate">{fichaVista.nombre}</h2>
+                      <p className="text-xs text-slate-500">
+                        {[fichaVista.localidad, fichaVista.cuit].filter(Boolean).join(" · ") || "Sin datos de ubicación"}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setFichaVista(null)} className="h-8 w-8 rounded-full bg-slate-100 hover:bg-rose-50 hover:text-rose-600 shrink-0">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  <div className={`rounded-lg p-4 ${sit.bg}`}>
+                    <p className={`text-sm font-bold ${sit.text}`}>{sit.label}</p>
+                    <p className="text-xs text-slate-600 mt-1">{sit.ayuda}</p>
+                  </div>
+
+                  <section>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">
+                      Cómo contactarla
+                    </p>
+                    {fichaVista.email || fichaVista.telefono ? (
+                      <dl className="space-y-3 text-sm">
+                        {fichaVista.email && (
+                          <DetalleFila icon={Mail} valor={fichaVista.email} onCopy={() => copiar(fichaVista.email!, "Correo")} />
+                        )}
+                        {fichaVista.telefono && (
+                          <DetalleFila icon={Phone} valor={fichaVista.telefono} onCopy={() => copiar(fichaVista.telefono!, "Teléfono")} />
+                        )}
+                      </dl>
+                    ) : (
+                      <p className="text-sm text-rose-600">
+                        No hay ni correo ni teléfono cargados. No hay por dónde escribirle: habría
+                        que conseguir el contacto por afuera y cargarlo en la ficha.
+                      </p>
+                    )}
+                  </section>
+
+                  {ficha && (
+                    <section>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">
+                        Su ficha: {cargados.length} de {CAMPOS_FICHA.length} campos cargados ({pct}%)
+                      </p>
+                      <div className="h-1.5 w-full rounded-sm bg-slate-100 overflow-hidden mb-4">
+                        <div
+                          className={`h-full rounded-sm ${pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-rose-500"}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1.5">
+                        {[...vacios, ...cargados].map((c) => {
+                          const ok = cargados.includes(c);
+                          return (
+                            <div key={String(c.clave)} className="flex items-center gap-2 text-[13px]">
+                              {ok ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                  : <X className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
+                              <span className={ok ? "text-slate-500" : "text-slate-900 font-semibold"}>{c.etiqueta}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Button onClick={copiarLinkFormulario} className="bg-primary-600 hover:bg-primary-700 text-white">
+                      <Link2 className="w-4 h-4 mr-2" /> Copiar el link de Sumate
+                    </Button>
+                    {fichaVista.empresaId && (
+                      <a href="/admin/empresas?filtro=todas" target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline">
+                          <ExternalLink className="w-4 h-4 mr-2" /> Abrir en Empresas
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
       {seleccionada && (
         <>
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onClick={() => setSeleccionada(null)} />

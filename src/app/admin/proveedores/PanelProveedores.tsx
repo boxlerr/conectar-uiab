@@ -23,15 +23,19 @@ type Particular = {
   estado: string;
   motivo_rechazo: string | null;
   creado_en: string;
+  /** Se registró como particular pero nunca se le creó la ficha. */
+  sin_ficha?: boolean;
+  perfil_activo?: boolean;
 };
 
-type Filtro = "all" | "pendiente_revision" | "aprobado" | "rechazado";
+type Filtro = "all" | "pendiente_revision" | "aprobado" | "rechazado" | "sin_ficha";
 
 const BADGE: Record<string, { label: string; className: string }> = {
   aprobado:            { label: "Aprobado", className: "bg-emerald-100 text-emerald-700" },
   pendiente_revision:  { label: "Pendiente", className: "bg-amber-100 text-amber-700" },
   rechazado:           { label: "Rechazado", className: "bg-rose-100 text-rose-700" },
   borrador:            { label: "Borrador", className: "bg-slate-100 text-slate-600" },
+  sin_ficha:           { label: "Sin ficha", className: "bg-orange-100 text-orange-700" },
   pausado:             { label: "Pausado", className: "bg-orange-100 text-orange-700" },
   oculto:              { label: "Oculto", className: "bg-slate-100 text-slate-500" },
 };
@@ -39,7 +43,7 @@ const BADGE: Record<string, { label: string; className: string }> = {
 export function PanelProveedores({ proveedores: particulares }: { proveedores: Particular[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [filtro, setFiltro] = useState<Filtro>("pendiente_revision");
+  const [filtro, setFiltro] = useState<Filtro>("all");
   const [busqueda, setBusqueda] = useState("");
   const [seleccionado, setSeleccionado] = useState<Particular | null>(null);
   const [modalRechazo, setModalRechazo] = useState<{ id: string; nombre: string } | null>(null);
@@ -64,6 +68,7 @@ export function PanelProveedores({ proveedores: particulares }: { proveedores: P
     pendiente_revision: particulares.filter((p) => p.estado === "pendiente_revision").length,
     aprobado: particulares.filter((p) => p.estado === "aprobado").length,
     rechazado: particulares.filter((p) => p.estado === "rechazado").length,
+    sin_ficha: particulares.filter((p) => p.estado === "sin_ficha").length,
   };
 
   function refresh() { startTransition(() => router.refresh()); }
@@ -85,6 +90,9 @@ export function PanelProveedores({ proveedores: particulares }: { proveedores: P
   }
 
   const TABS: { key: Filtro; label: string }[] = [
+    // Primero los que se registraron y quedaron sin ficha: es lo único que hoy
+    // requiere una decisión, y era justo lo que no se veía.
+    { key: "sin_ficha", label: `Sin ficha (${counts.sin_ficha})` },
     { key: "pendiente_revision", label: `Pendientes (${counts.pendiente_revision})` },
     { key: "aprobado", label: `Aprobados (${counts.aprobado})` },
     { key: "rechazado", label: `Rechazados (${counts.rechazado})` },
@@ -96,9 +104,9 @@ export function PanelProveedores({ proveedores: particulares }: { proveedores: P
       <div>
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
           <Wrench className="w-8 h-8 text-emerald-600" />
-          Gestión de Proveedores de servicios
+          Particulares y profesionales
         </h1>
-        <p className="text-slate-500 mt-1">Aprobá o rechazá los perfiles de proveedores de servicios.</p>
+        <p className="text-slate-500 mt-1">Profesionales, monotributistas y empresas de servicios que se registraron por su cuenta.</p>
       </div>
 
       <Card className="p-4 flex flex-col sm:flex-row gap-3 items-center shadow-sm border-slate-100">
@@ -125,7 +133,7 @@ export function PanelProveedores({ proveedores: particulares }: { proveedores: P
         {filtrados.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
             <Wrench className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No hay proveedores de servicios con este filtro.</p>
+            <p className="text-slate-500 font-medium">No hay particulares con este filtro.</p>
           </div>
         ) : filtrados.map((prov) => {
           const badge = BADGE[prov.estado] ?? { label: prov.estado, className: "bg-slate-100 text-slate-600" };

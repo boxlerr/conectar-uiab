@@ -13,7 +13,7 @@ const adminNav = [
   // —quién de las socias de siempre ya está adentro y quién no— vive en Altas.
   { name: "Altas de socios", href: "/admin/altas", icon: UserPlus },
   { name: "Empresas", href: "/admin/empresas", icon: Building },
-  { name: "Proveedores de servicios", href: "/admin/proveedores", icon: Wrench },
+  { name: "Particulares", href: "/admin/proveedores", icon: Wrench },
   { name: "Servicios", href: "/admin/servicios", icon: Tags },
   { name: "Etiquetas", href: "/admin/etiquetas", icon: Tag },
   { name: "Certificaciones", href: "/admin/certificaciones", icon: Award },

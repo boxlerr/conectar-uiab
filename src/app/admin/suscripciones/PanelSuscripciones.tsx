@@ -234,7 +234,7 @@ export function PanelSuscripciones({
       isCount: true,
     },
     {
-      label: "Proveedores de servicios Activos",
+      label: "Particulares activos",
       valor: proveedores.length,
       sub: "Aprobados en la plataforma",
       icon: Wrench,
@@ -625,7 +625,7 @@ export function PanelSuscripciones({
             >
               {tipo === "company"
                 ? `Socios (${empresas.length})`
-                : `Proveedores de servicios (${proveedores.length})`}
+                : `Particulares (${proveedores.length})`}
             </button>
           ))}
         </div>
@@ -837,7 +837,7 @@ export function PanelSuscripciones({
                 {proveedoresFiltrados.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                      No se encontraron proveedores de servicios.
+                      No se encontraron particulares.
                     </td>
                   </tr>
                 ) : (
