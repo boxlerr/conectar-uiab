@@ -54,11 +54,50 @@ export async function POST(req: NextRequest) {
       // El criterio es `es_socia_uiab`, NO `n_socio`: ese número es opcional en
       // el alta y 9 socias reales lo tenían vacío, así que el checkout les
       // cobraba igual (ver migración 20260804_es_socia_uiab).
+      //
+      // Antes esto cortaba con un 400 y ahí terminaba todo. Pero si la cortesía
+      // se cayó por lo que sea —la cancelaron, quedó suspendida, alguien la tocó
+      // a mano— la socia queda encerrada: el gate no la deja entrar, y el único
+      // botón que le ofrecemos ("Activar suscripción") la manda justo acá, que le
+      // contesta que no necesita ninguna. Sin salida y sin nadie a quien pedirle.
+      //
+      // Ahora se le restituye la cortesía en el momento. Es lo que un admin
+      // haría a mano, y no hay nada que decidir: si es socia, no paga.
       if (emp?.es_socia_uiab) {
-        return NextResponse.json(
-          { error: "Sos socia de la UIAB: tu acceso es sin cargo, no necesitás suscripción." },
-          { status: 400 }
-        );
+        const { data: yaTiene } = await admin
+          .from("suscripciones")
+          .select("id, estado")
+          .eq("empresa_id", empresa_id)
+          .order("creado_en", { ascending: false })
+          .limit(1);
+
+        const vigente = (yaTiene as { id: string; estado: string }[] | null)?.[0];
+        const cortesia = {
+          estado: "activa",
+          monto: 0,
+          moneda: "ARS",
+          nombre_plan: "Socia UIAB (sin cargo)",
+          metodo_pago: "cortesia",
+          ciclo: "mensual",
+          cancelada_en: null,
+          gracia_hasta: null,
+          actualizado_en: new Date().toISOString(),
+          notas_admin: "Cortesía restituida automáticamente: la empresa es socia de la UIAB.",
+        };
+
+        if (vigente && vigente.estado !== "activa") {
+          await admin.from("suscripciones").update(cortesia).eq("id", vigente.id);
+        } else if (!vigente) {
+          await admin.from("suscripciones").insert({ empresa_id, ...cortesia });
+        }
+
+        return NextResponse.json({
+          cortesia: true,
+          mensaje:
+            vigente?.estado === "activa"
+              ? "Sos socia de la UIAB: tu acceso ya está activo y sin cargo."
+              : "Sos socia de la UIAB: te reactivamos el acceso sin cargo.",
+        });
       }
     }
   } else if (perfil.rol_sistema === "provider") {

@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { tieneAcceso } from '@/lib/mercadopago/suscripciones'
+import { rutaExigeSuscripcion, tieneAcceso } from '@/lib/mercadopago/suscripciones'
 import { fetchConTimeoutServidor } from './fetch-con-timeout'
 
 export async function updateSession(request: NextRequest) {
@@ -135,6 +135,28 @@ export async function updateSession(request: NextRequest) {
 
     const rol = perfil?.rol_sistema;
 
+    // 2.b Corte de /admin por ROL, del lado del servidor.
+    //
+    // `admin/layout.tsx` es un client component: cuando el rol no es admin pinta
+    // "Acceso Restringido" y listo. Pero las páginas de adentro son Server
+    // Components que consultan con `service_role`, así que para cuando ese cartel
+    // se dibuja el servidor YA renderizó y mandó los datos. Medido el 2026-08-13
+    // con una socia común: `GET /admin/usuarios` le devolvió 182 KB con el correo
+    // de todos los usuarios de la plataforma, su último ingreso y su estado de
+    // Auth. El cartel tapaba, en el browser, algo que ya había viajado.
+    //
+    // El middleware es el único lugar que corta ANTES de renderizar, y cubre de
+    // una todas las rutas y sus payloads RSC.
+    if (pathname.startsWith('/admin') && rol !== 'admin') {
+      if (isApiRoute) {
+        return responderJson({ error: 'Solo para administradores' }, { status: 403 });
+      }
+      const url = request.nextUrl.clone();
+      url.pathname = '/403';
+      url.search = '';
+      return redirigir(url);
+    }
+
     // Sin filtrar por `es_principal`: el estado es de la EMPRESA, no del
     // miembro. Ahora que una socia puede darle acceso a su gente, filtrar por
     // titular dejaba a esos usuarios sin membresía visible y el gate los
@@ -187,22 +209,28 @@ export async function updateSession(request: NextRequest) {
     return redirigir(url)
   }
 
-  // 3. Subscription gate: bloquea rutas pagantes si la suscripción no está activa.
-  // Dashboard y /perfil son accesibles (el dashboard muestra un banner con blur).
+  // 3. Subscription gate: bloquea las rutas pagantes si la suscripción no está
+  // activa.
+  //
+  // Hasta el 2026-08-13 el dashboard y /perfil quedaban afuera del gate: la idea
+  // era mostrarlos con un banner y el contenido difuminado. Nunca funcionó —
+  // `DashboardBlurGate` es un `return <>{children}</>` y /perfil no mira la
+  // suscripción en ninguna línea. O sea que quien se registraba y no pagaba
+  // entraba igual: editaba su ficha pública, cargaba catálogo, contestaba la
+  // bandeja de entrada, daba de alta usuarios y hasta le arrancaba el tutorial de
+  // onboarding. Es lo que pasó con Transporte Gav, que además ni siquiera tenía
+  // que estar pagando. Se tapa entero hasta que haya pasarela de pago de verdad.
+  //
+  // Excepciones a propósito:
+  //  - /perfil/suscripcion y todo /suscripcion: es DONDE se paga. Bloquearlas
+  //    dejaría a la gente encerrada sin forma de salir del bloqueo.
+  //  - /pendiente-aprobacion: quien todavía no fue aprobado tiene que poder leer
+  //    en qué estado está.
+  //
   // El directorio público (/directorio, /empresas, /proveedores) NO se bloquea:
   // se ve sin cuenta y también para socios sin suscripción — pagás para aparecer,
-  // no para mirar. Siguen bloqueados: oportunidades y las vistas internas de
-  // empresa/proveedor dentro del dashboard.
-  const gatedRoute =
-    user && !userError &&
-    !isApiRoute &&
-    !pathname.startsWith('/suscripcion') &&
-    !pathname.startsWith('/admin') &&
-    (
-      pathname.startsWith('/oportunidades') ||
-      pathname.startsWith('/empresa/') ||
-      pathname.startsWith('/proveedor/')
-    );
+  // no para mirar.
+  const gatedRoute = Boolean(user) && !userError && rutaExigeSuscripcion(pathname);
 
   if (gatedRoute) {
     // Obtener rol + entityId

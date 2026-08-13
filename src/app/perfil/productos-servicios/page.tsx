@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/cliente";
 import { TarjetaItem } from "@/components/ui/catalogo/TarjetaItem";
-import { llamarAccion } from "@/lib/accion-segura";
+import { fallo, llamarAccion } from "@/lib/accion-segura";
 
 export default function PerfilCatalogoPage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -68,7 +68,7 @@ export default function PerfilCatalogoPage() {
   const handleDelete = async (id: string, nombre: string) => {
     if (!window.confirm(`¿Eliminar "${nombre}"? Esta acción no se puede deshacer.`)) return;
     const res = await llamarAccion(() => deleteItem(id));
-    if (res?.error) {
+    if (fallo(res)) {
       toast.error("Error al eliminar", { description: res.error });
     } else {
       toast.success("Ítem eliminado");

@@ -19,6 +19,7 @@ import { marcarTourVisto, resetearTour } from "./acciones";
 import { proximoPasoMostrable } from "./salteo-pasos";
 import type { TourId } from "./tipos";
 import { createClient } from "@/lib/supabase/cliente";
+import { ESTADOS_CON_ACCESO } from "@/lib/mercadopago/suscripciones";
 import { crearSlug } from "@/lib/utilidades";
 import { toast } from "sonner";
 
@@ -495,7 +496,11 @@ export function TourProvider({ children }: TourProviderProps) {
   const autoTriggerRef = useRef<string | null>(null);
   useEffect(() => {
     if (!currentUser || tourActivo) return;
-    const bucket = decidirTourPorRuta(pathname, currentUser.role);
+    const bucket = decidirTourPorRuta(
+      pathname,
+      currentUser.role,
+      currentUser.subscriptionEstado
+    );
     if (!bucket) return;
     if (tourVisto(bucket)) return;
     if (autoTriggerRef.current === bucket) return;
@@ -629,8 +634,19 @@ export function TourProvider({ children }: TourProviderProps) {
   );
 }
 
-function decidirTourPorRuta(pathname: string, role: string): TourId | null {
+function decidirTourPorRuta(
+  pathname: string,
+  role: string,
+  subscriptionEstado: string | null
+): TourId | null {
   if (role === "admin") return null;
+  // Sin suscripción no hay tutorial. El tour explica cómo usar una plataforma a
+  // la que la persona todavía no puede entrar: /perfil y /panel-de-control los
+  // corta el middleware, y en /empresas el tour arrancaba igual arriba de la
+  // pantalla de "acceso requerido", señalando cosas que no están. Es parte de lo
+  // que vio Transporte Gav el 2026-08-13, guiada por un tutorial sin haber pagado
+  // (y sin tener que pagar).
+  if (!ESTADOS_CON_ACCESO.includes(subscriptionEstado as never)) return null;
   // Solo auto-disparamos los tours en las rutas raíz de cada sección, no en
   // sub-rutas — sino se relanzan cada vez que el propio tour navega adentro.
   if (pathname === "/perfil") return "perfil";

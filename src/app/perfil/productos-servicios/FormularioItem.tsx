@@ -42,7 +42,7 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { createClient } from "@/lib/supabase/cliente";
 import { TarjetaItem } from "@/components/ui/catalogo/TarjetaItem";
-import { llamarAccion, fallo } from "@/lib/accion-segura";
+import { fallo, llamarAccion } from "@/lib/accion-segura";
 
 interface FormularioItemProps {
   itemInit?: any;
@@ -211,7 +211,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
 
   async function eliminarRemota(id: string) {
     const res = await llamarAccion(() => eliminarImagenItem(id));
-    if (res?.error) {
+    if (fallo(res)) {
       toast.error("No se pudo eliminar la imagen", { description: res.error });
       return;
     }
@@ -318,7 +318,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
 
       if (itemId) {
         const res = await updateItem(itemId, payload);
-        if (res?.error) {
+        if (fallo(res)) {
           toast.error("Error al guardar", { description: res.error });
           return;
         }

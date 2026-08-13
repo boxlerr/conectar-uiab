@@ -38,10 +38,18 @@ const inputCls =
 const labelCls =
   "text-[11px] sm:text-[10px] font-bold text-primary/50 uppercase tracking-widest ml-1 mb-1.5 block";
 
-export function FormularioAlta() {
+export function FormularioAlta({
+  inicial,
+  desdeRegistro = false,
+}: {
+  /** Datos que ya cargó en otro lado, para no hacérselos escribir dos veces. */
+  inicial?: Partial<AltaSocioInput>;
+  /** Llegó rebotado desde /register porque su empresa ya está en el padrón. */
+  desdeRegistro?: boolean;
+} = {}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [form, setForm] = useState(ESTADO_INICIAL);
+  const [form, setForm] = useState({ ...ESTADO_INICIAL, ...inicial });
   const [enviado, setEnviado] = useState(false);
   const [consentimiento, setConsentimiento] = useState(false);
 
@@ -78,8 +86,24 @@ export function FormularioAlta() {
     });
   }
 
+  
+  const AvisoDesdeRegistro = () =>
+    !desdeRegistro ? null : (
+      <div className="rounded-lg bg-primary-50 p-4 sm:p-5 mb-6 flex gap-3">
+        <ShieldCheck className="w-5 h-5 text-primary-600 shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-bold text-[#00213f]">Tu empresa ya está en la UIAB</p>
+          <p className="text-slate-600 mt-1">
+            Por eso no te hacemos crear una cuenta nueva ni te cobramos nada: completá
+            estos datos y la UIAB te habilita el acceso a la ficha que ya está publicada.
+            Lo que habías cargado te lo dejamos puesto.
+          </p>
+        </div>
+      </div>
+    );
+
   if (enviado) {
-    return (
+  return (
       <div className="bg-white rounded-xl shadow-2xl shadow-primary/5 p-10 md:p-14 text-center">
         <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-6">
           <PartyPopper className="w-8 h-8 text-emerald-600" />
@@ -120,6 +144,7 @@ export function FormularioAlta() {
       onSubmit={handleSubmit}
       className="bg-white rounded-xl shadow-2xl shadow-primary/5 p-7 md:p-10 space-y-7"
     >
+      <AvisoDesdeRegistro />
       {/* Aviso: alta exclusiva para socias UIAB */}
       <div className="flex items-start gap-3 bg-[#00213f]/[0.04] border border-[#00213f]/10 rounded-lg px-4 py-3.5">
         <ShieldCheck className="w-5 h-5 text-[#00213f] shrink-0 mt-0.5" />

@@ -315,7 +315,15 @@ export interface DatosNotificacionAdmin {
    * a una ficha que ya estaba en el padrón. Cambia de raíz qué hay que decidir:
    * no es "aprobar una empresa" sino "dejar entrar a esta persona".
    */
-  vinculacionAFichaExistente?: { empresa: string };
+  vinculacionAFichaExistente?: {
+    empresa: string;
+    /**
+     * Motivo por el que el match no es una certeza (coincidencia por nombre
+     * parecido, o varias fichas empatadas). Va destacado arriba de todo: es lo
+     * único que el admin tiene que resolver antes de apretar el botón.
+     */
+    advertencia?: string;
+  };
 }
 
 /** Notificación al administrador de la UIAB: hay una nueva solicitud pendiente. */
@@ -346,8 +354,13 @@ export function plantillaNotificacionAdmin(d: DatosNotificacionAdmin): {
 
   const cuerpo = vinculada
     ? `
-    <p style="margin: 0 0 12px 0;"><strong>${escapeText(d.nombre)}</strong> se registró con el CUIT de <strong>${escapeText(vinculada.empresa)}</strong>, que <em>ya está en el directorio</em>. No se creó una ficha nueva: se pide entrar a la que ya existe.</p>
-    <p style="margin: 0 0 12px 0;">Su acceso está <strong>en espera</strong>: no puede ingresar hasta que lo habilites. Confirmá que la persona realmente trabaja ahí antes de darle acceso — el CUIT de una empresa es público.</p>
+    ${
+      vinculada.advertencia
+        ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 0 0 16px 0;"><tr><td style="background-color: #fff7ed; border-left: 4px solid #f59e0b; padding: 12px 16px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 20px; color: #7c2d12;"><strong>Revisá antes de habilitar:</strong> ${escapeText(vinculada.advertencia)}</td></tr></table>`
+        : ""
+    }
+    <p style="margin: 0 0 12px 0;"><strong>${escapeText(d.nombre)}</strong> se registró y el sistema la reconoció como <strong>${escapeText(vinculada.empresa)}</strong>, que <em>ya está en el directorio</em>. No se creó una ficha nueva ni se le cobró nada: quedó una solicitud de alta de socia.</p>
+    <p style="margin: 0 0 12px 0;">Su acceso está <strong>en espera</strong>: no puede ingresar hasta que lo habilites desde <em>Altas de socios</em>. Confirmá que la persona realmente trabaja ahí antes de darle acceso — el CUIT y el nombre de una empresa son públicos.</p>
     ${tarjetaDatos(filas)}
   `
     : `
@@ -379,6 +392,7 @@ export function plantillaNotificacionAdmin(d: DatosNotificacionAdmin): {
     texto: [
       asunto,
       "",
+      vinculada?.advertencia ? `REVISÁ ANTES DE HABILITAR: ${vinculada.advertencia}` : "",
       `Email: ${d.email}`,
       d.cuit ? `CUIT: ${d.cuit}` : "",
       d.telefono ? `Teléfono: ${d.telefono}` : "",
@@ -445,6 +459,85 @@ export function plantillaAprobacion(d: DatosAprobacion): {
       "- Capacitaciones y eventos",
       "",
       `Ingresá: ${d.urlBienvenida}`,
+    ].join("\n"),
+  };
+}
+
+export interface DatosAccesoHabilitado {
+  /** Nombre de la persona o razón social con la que se registró. */
+  nombre: string;
+  /** Ficha del directorio a la que ahora tiene acceso. */
+  empresa: string;
+  /** Correo con el que entra (es el usuario). */
+  email: string;
+  urlLogin: string;
+  urlRestablecer: string;
+}
+
+/**
+ * Correo a quien pidió entrar a una ficha que ya estaba en el directorio y
+ * quedó en espera: la UIAB confirmó que trabaja ahí y le habilitó el acceso.
+ *
+ * No es `plantillaAprobacion`: ahí se aprueba una EMPRESA nueva que entró al
+ * directorio. Acá la empresa ya estaba publicada — lo que se habilita es a la
+ * PERSONA, y lo que hay que decirle es con qué credenciales entra, porque entre
+ * que se registró y que la habilitamos pueden pasar días y ya no se acuerda.
+ */
+export function plantillaAccesoHabilitado(d: DatosAccesoHabilitado): {
+  asunto: string;
+  html: string;
+  texto: string;
+} {
+  const cuerpo = `
+    <p style="margin: 0 0 16px 0;">Hola <strong>${escapeText(
+      d.nombre
+    )}</strong>: confirmamos tu vínculo con <strong>${escapeText(
+      d.empresa
+    )}</strong> y tu acceso a <strong>UIAB Conecta</strong> ya está habilitado.</p>
+
+    <p style="margin: 0 0 8px 0;">La ficha de tu empresa ya estaba publicada en el directorio, así que no tenés que cargarla de nuevo: al entrar la vas a encontrar con sus datos y vas a poder completarla y mantenerla al día.</p>
+
+    ${tarjetaDatos([
+      { etiqueta: "Usuario", valor: d.email },
+      { etiqueta: "Contraseña", valor: "La que definiste al crear tu cuenta" },
+      { etiqueta: "Ficha", valor: d.empresa },
+    ])}
+
+    <p style="margin: 0 0 8px 0; font-weight: 700; color: ${BRAND.onSurface};">Qué podés hacer ahora</p>
+    <ul style="margin: 0 0 16px 0; padding-left: 20px; color: ${BRAND.onSurface};">
+      <li style="margin-bottom: 6px;">Completar la <strong>ficha de tu empresa</strong>: logo, descripción, rubros y datos de contacto.</li>
+      <li style="margin-bottom: 6px;">Ver el <strong>directorio industrial</strong> de socias y prestadores de la red.</li>
+      <li style="margin-bottom: 6px;">Publicar y responder <strong>oportunidades comerciales</strong>.</li>
+      <li style="margin-bottom: 6px;">Dar de alta a <strong>otras personas de tu empresa</strong> desde tu panel.</li>
+    </ul>
+
+    ${bloqueDestacado(
+      `¿No te acordás la contraseña? Generá una nueva desde <a href="${escapeAttr(
+        d.urlRestablecer
+      )}" style="color: ${BRAND.primary}; font-weight: 700;">restablecer contraseña</a> usando este mismo correo.`
+    )}
+  `;
+
+  return {
+    asunto: `Ya tenés acceso a UIAB Conecta — ${d.empresa}`,
+    html: renderEmailBase({
+      preheader: `Tu acceso a la ficha de ${d.empresa} ya está habilitado.`,
+      titulo: "Tu acceso ya está habilitado",
+      intro: "Confirmamos tu vínculo con la empresa. Ya podés ingresar.",
+      cuerpo,
+      cta: { etiqueta: "Ingresar a UIAB Conecta", href: d.urlLogin },
+      pie: "Recibís este correo porque pediste acceso a la ficha de tu empresa en UIAB Conecta. Si no fuiste vos, escribinos así lo revisamos.",
+    }),
+    texto: [
+      `Ya tenés acceso a UIAB Conecta — ${d.empresa}`,
+      "",
+      `Hola ${d.nombre}: confirmamos tu vínculo con ${d.empresa} y tu acceso ya está habilitado.`,
+      "",
+      `Usuario: ${d.email}`,
+      "Contraseña: la que definiste al crear tu cuenta.",
+      "",
+      `Ingresá: ${d.urlLogin}`,
+      `¿No te acordás la contraseña? ${d.urlRestablecer}`,
     ].join("\n"),
   };
 }

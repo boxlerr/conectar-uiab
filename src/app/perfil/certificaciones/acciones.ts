@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/servidor";
 import { CODIGO_OTRA } from "@/modulos/certificaciones/normas";
+import { exigirSuscripcion } from "@/lib/autenticacion/exigir-suscripcion";
 
 /**
  * Server actions de certificaciones del socio. Usan el cliente SSR (RLS real,
@@ -80,6 +81,9 @@ export async function guardarCertificacion(
   payload: CertificacionPayload,
   id?: string | null
 ): Promise<{ success: true; id: string } | { error: string }> {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   if (!entityId) return { error: "No encontramos tu empresa. Guardá primero tus datos en Datos y Contacto." };
   if (!payload.codigo_norma) return { error: "Elegí la norma o certificación." };
   if (payload.codigo_norma === CODIGO_OTRA && !(payload.nombre_libre || "").trim()) {
@@ -114,6 +118,9 @@ export async function guardarCertificacion(
 export async function eliminarCertificacion(
   id: string
 ): Promise<{ success: true } | { error: string }> {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   if (!id) return { error: "Falta el identificador de la certificación." };
   const supabase = await createClient();
 

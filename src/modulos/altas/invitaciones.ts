@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
+import { exigirAdmin } from "@/lib/autenticacion/exigir-admin";
 import {
   definirPasswordCore,
   generarYEnviarInvitacion,
@@ -31,6 +32,9 @@ export async function definirPasswordConInvitacion(token: string, password: stri
 
 /** Reenvía la invitación (nuevo token, 30 días) a una empresa que ya tiene cuenta. */
 export async function reenviarInvitacionAlta(altaId: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const db = adminClient();
 
   const { data: alta, error: altaErr } = await db

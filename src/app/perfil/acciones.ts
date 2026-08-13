@@ -16,6 +16,7 @@ import {
   validarEspecialidadLibre,
 } from "@/modulos/compartido/especialidades";
 import { resolverEntidadDePerfil } from "@/modulos/autenticacion/entidad-del-perfil";
+import { exigirSuscripcion } from "@/lib/autenticacion/exigir-suscripcion";
 
 // Server Action strictly bypassing RLS (if needed) for Profile Syncing using the Service Role Key
 const supabaseAdmin = createClient(
@@ -48,6 +49,9 @@ export async function updateCompanyOrProvider(
   profileId: string,
   data: any
 ) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   if (!entityType || !profileId) {
     return { error: "Identidad perdida o sesión expirada. Intenta iniciar sesión nuevamente." };
   }
@@ -159,6 +163,9 @@ export async function saveTags(
   entityId: string,
   tagIds: string[]
 ) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   if (!entityId || !entityType) {
     return { error: "Missing identity" };
   }
@@ -249,6 +256,9 @@ export type ResultadoEtiquetaLibre =
 export async function crearEtiquetaLibre(
   texto: string
 ): Promise<ResultadoEtiquetaLibre> {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const entidad = await resolverEntidadDelUsuario();
   if ("error" in entidad) return { error: entidad.error };
 
@@ -359,6 +369,9 @@ export async function crearEspecialidadLibre(
   texto: string,
   padreId?: string | null
 ): Promise<ResultadoEspecialidadLibre> {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const entidad = await resolverEntidadDelUsuario();
   if ("error" in entidad) return { error: entidad.error };
 
@@ -442,6 +455,9 @@ export async function saveCategories(
   entityId: string,
   categoryIds: string[]
 ) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   if (!entityId || !entityType) {
     return { error: "Missing identity" };
   }

@@ -104,3 +104,29 @@ export function tieneAcceso(
   }
   return false;
 }
+
+/**
+ * ¿Esta ruta exige suscripción al día?
+ *
+ * Vive acá y no adentro del middleware para poder probarla sola: es la lista que
+ * decide qué se puede usar sin pagar, y hasta el 2026-08-13 dejaba afuera a
+ * /perfil y al panel — o sea, casi todo lo que una empresa hace en la plataforma.
+ *
+ * Las excepciones no son un detalle: /suscripcion y /perfil/suscripcion son
+ * justamente donde se paga. Si entraran al gate, quien no pagó quedaría encerrado
+ * sin forma de salir.
+ */
+export function rutaExigeSuscripcion(pathname: string): boolean {
+  if (pathname.startsWith("/api/")) return false;
+  if (pathname.startsWith("/admin")) return false;
+  if (pathname.startsWith("/suscripcion")) return false;
+  if (pathname.startsWith("/perfil/suscripcion")) return false;
+
+  return (
+    pathname.startsWith("/oportunidades") ||
+    pathname.startsWith("/empresa/") ||
+    pathname.startsWith("/proveedor/") ||
+    pathname.startsWith("/perfil") ||
+    pathname.startsWith("/panel-de-control")
+  );
+}

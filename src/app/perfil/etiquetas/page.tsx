@@ -16,7 +16,7 @@ import {
   validarEtiquetaLibre,
 } from "@/modulos/compartido/etiquetas";
 import { toast } from "sonner";
-import { llamarAccion } from "@/lib/accion-segura";
+import { fallo, llamarAccion } from "@/lib/accion-segura";
 
 interface TagRow {
   id: string;
@@ -201,7 +201,7 @@ export default function MiPerfilEtiquetasPage() {
       entityId,
       Array.from(selectedIds)
     ));
-    if (!res.error) {
+    if (!fallo(res)) {
       toast.success("Etiquetas actualizadas", {
         description: "El algoritmo de match ya está usando tus nuevas etiquetas.",
       });

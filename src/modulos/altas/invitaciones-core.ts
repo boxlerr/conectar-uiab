@@ -143,8 +143,33 @@ export async function definirPasswordCore(
 
   const db = adminClient();
 
-  const { error: updErr } = await db.auth.admin.updateUserById(val.perfilId, { password });
+  // `email_confirm` va siempre: el token viajó por correo a esa casilla, así que
+  // usarlo YA prueba que la controla. Sin esto la cuenta queda sin confirmar y,
+  // con "Confirm email" prendido en Supabase, el auto-login de /definir-password
+  // falla con "Email not confirmed" justo después de elegir la contraseña.
+  const { error: updErr } = await db.auth.admin.updateUserById(val.perfilId, {
+    password,
+    email_confirm: true,
+  });
   if (updErr) return { ok: false, error: `No se pudo definir la contraseña: ${updErr.message}` };
+
+  // Puede llegar acá baneado: si antes se había registrado por /register contra
+  // una ficha del padrón, quedó en espera con ban en Auth. Levantarlo, pero sólo
+  // si el perfil está activo — el ban de alguien desactivado a propósito no se
+  // toca por definir una contraseña.
+  const { data: perfil } = await db
+    .from("perfiles")
+    .select("activo")
+    .eq("id", val.perfilId)
+    .maybeSingle();
+  if (perfil?.activo) {
+    const { error: banErr } = await db.auth.admin.updateUserById(val.perfilId, {
+      ban_duration: "none",
+    });
+    if (banErr) {
+      console.error("[invitaciones] No se pudo levantar el ban al definir la contraseña:", banErr.message);
+    }
+  }
 
   // Consumir el token (single-use). El `.is('usado_en', null)` evita el doble uso
   // en una carrera: si otro request ya lo consumió, este update no afecta filas.

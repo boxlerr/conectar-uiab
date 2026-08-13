@@ -5,6 +5,7 @@ import {
   nombrePlan,
   sumarUnMes,
   tieneAcceso,
+  rutaExigeSuscripcion,
   TARIFA_PRECIO_MENSUAL_FALLBACK,
   PRECIO_PARTICULAR_MENSUAL,
   PRECIO_MENSUAL,
@@ -115,5 +116,62 @@ describe("tieneAcceso", () => {
   });
   it("undefined no permite", () => {
     expect(tieneAcceso(null, null)).toBe(false);
+  });
+});
+
+/**
+ * El agujero del 2026-08-13: Transporte Gav se registró, no pagó, y aun así entró
+ * a /perfil y le arrancó el tutorial de onboarding. El gate existía pero sólo
+ * cubría /oportunidades y las fichas internas; el panel y todo /perfil — donde se
+ * edita la ficha pública, se carga el catálogo, se contesta la bandeja y se dan de
+ * alta usuarios — quedaban abiertos.
+ */
+describe("rutaExigeSuscripcion", () => {
+  it("tapa el panel y todo /perfil", () => {
+    for (const ruta of [
+      "/panel-de-control",
+      "/perfil",
+      "/perfil/datos",
+      "/perfil/productos-servicios",
+      "/perfil/solicitudes",
+      "/perfil/usuarios",
+      "/perfil/certificaciones",
+      "/perfil/etiquetas",
+    ]) {
+      expect(rutaExigeSuscripcion(ruta), `${ruta} debería exigir suscripción`).toBe(true);
+    }
+  });
+
+  it("sigue tapando lo que ya tapaba", () => {
+    expect(rutaExigeSuscripcion("/oportunidades")).toBe(true);
+    expect(rutaExigeSuscripcion("/oportunidades/nueva")).toBe(true);
+    expect(rutaExigeSuscripcion("/empresa/abc")).toBe(true);
+    expect(rutaExigeSuscripcion("/proveedor/abc")).toBe(true);
+  });
+
+  it("deja pasar las rutas donde justamente se paga", () => {
+    // Si éstas entraran al gate, quien no pagó quedaría encerrado sin salida.
+    expect(rutaExigeSuscripcion("/suscripcion/checkout")).toBe(false);
+    expect(rutaExigeSuscripcion("/suscripcion/bloqueado")).toBe(false);
+    expect(rutaExigeSuscripcion("/perfil/suscripcion")).toBe(false);
+  });
+
+  it("no toca lo público, el admin ni las APIs", () => {
+    for (const ruta of [
+      "/",
+      "/directorio",
+      "/empresas",
+      "/empresas/vaxler",
+      "/sumate",
+      "/login",
+      "/register",
+      "/pendiente-aprobacion",
+      "/admin",
+      "/admin/altas",
+      "/api/auth/logout",
+      "/api/mercadopago/webhook",
+    ]) {
+      expect(rutaExigeSuscripcion(ruta), `${ruta} NO debería exigir suscripción`).toBe(false);
+    }
   });
 });

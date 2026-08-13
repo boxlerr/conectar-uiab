@@ -65,10 +65,20 @@ function CheckoutContenido() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error creando suscripción");
+
+      // Socia de la UIAB: no hay nada que pagar. El endpoint le restituyó la
+      // cortesía, así que la sacamos de acá y la mandamos adentro — antes este
+      // era el callejón sin salida: el gate no la dejaba entrar y el único botón
+      // que tenía la devolvía a esta misma pantalla.
+      if (data.cortesia) {
+        window.location.href = "/panel-de-control";
+        return;
+      }
+
       setMonto(data.monto);
       window.location.href = data.init_point;
-    } catch (err: any) {
-      setError(err.message || "Error inesperado");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error inesperado");
       setLoading(false);
     }
   }

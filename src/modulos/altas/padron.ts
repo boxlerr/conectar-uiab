@@ -32,6 +32,83 @@ export function normalizarCuit(v: string | null | undefined): string | null {
   return digitos.length < 8 ? null : digitos;
 }
 
+/**
+ * Formas societarias y sus pedazos sueltos. Después de sacar la puntuación,
+ * "S.R.L." queda como tres tokens ("s", "r", "l") y "S.A.I.C.I.F.Y.A" como ocho,
+ * así que la lista incluye las letras solas: se recortan de a una desde el final.
+ */
+const FORMAS_SOCIETARIAS = new Set([
+  "s", "a", "r", "l", "c", "i", "f", "y", "h",
+  "sa", "srl", "sas", "sh", "sca", "scs", "sac", "saic", "sacif", "sacifi",
+  "ltda", "limitada", "soc", "sociedad", "anonima", "resp", "responsabilidad",
+  "coop",
+]);
+
+/**
+ * Palabras que no distinguen a una empresa de otra. No se borran del nombre
+ * normalizado (ahí importa la igualdad literal), sólo se ignoran al comparar
+ * "¿es la misma empresa escrita más larga?".
+ */
+const PALABRAS_VACIAS = new Set([
+  "empresa", "empresas", "establecimiento", "establecimientos", "grupo",
+  "cia", "compania", "y", "e", "de", "del", "la", "el", "los", "las",
+]);
+
+/**
+ * Nombre de empresa comparable: sin acentos, sin puntuación, en minúsculas y sin
+ * la forma societaria del final.
+ *
+ * "EMPRESA TRANSPORTE GAV SRL" → "empresa transporte gav"
+ * "A. D. BARBIERI S.A."        → "a d barbieri"
+ * "Pinturería Giannoni S.A."   → "pintureria giannoni"
+ *
+ * También se van los corchetes con anotaciones internas ("[DUPLICADA — retirada
+ * 2026-08-04]"), que son nuestras y no parte del nombre de nadie.
+ */
+export function normalizarNombreEmpresa(v: string | null | undefined): string {
+  if (!v) return "";
+  const sinAcentos = v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const sinAnotaciones = sinAcentos.replace(/\[.*?\]/g, " ");
+  const tokens = sinAnotaciones.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(Boolean);
+  while (tokens.length > 1 && FORMAS_SOCIETARIAS.has(tokens[tokens.length - 1])) {
+    tokens.pop();
+  }
+  return tokens.join(" ");
+}
+
+/** Los tokens del nombre que de verdad identifican a la empresa. */
+export function tokensSignificativos(v: string | null | undefined): string[] {
+  return normalizarNombreEmpresa(v)
+    .split(" ")
+    .filter((t) => t.length > 1 && !PALABRAS_VACIAS.has(t));
+}
+
+/**
+ * ¿Son el mismo nombre, uno escrito más largo que el otro?
+ *
+ * El caso que motivó esto: la ficha del padrón dice "Transporte Gav" y la empresa
+ * se registró como "EMPRESA TRANSPORTE GAV SRL". Sin CUIT en la ficha del padrón
+ * — 6 de las 63 no lo tienen — el único puente entre las dos es el nombre.
+ *
+ * Se exige que TODOS los tokens significativos del más corto estén en el más
+ * largo, y que el más corto aporte al menos dos tokens o uno de cuatro letras
+ * para arriba. "gav" solo no alcanza; "transporte gav" sí.
+ */
+export function nombreContenido(
+  a: string | null | undefined,
+  b: string | null | undefined
+): boolean {
+  const ta = tokensSignificativos(a);
+  const tb = tokensSignificativos(b);
+  if (ta.length === 0 || tb.length === 0) return false;
+
+  const [corto, largo] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  if (corto.length < 2 && !corto.some((t) => t.length >= 4)) return false;
+
+  const enLargo = new Set(largo);
+  return corto.every((t) => enLargo.has(t));
+}
+
 export type ConflictoPadron = {
   /** Columna de `empresas` en disputa. */
   campo: string;

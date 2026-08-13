@@ -14,7 +14,7 @@ import {
   validarEspecialidadLibre,
 } from "@/modulos/compartido/especialidades";
 import { toast } from "sonner";
-import { llamarAccion } from "@/lib/accion-segura";
+import { fallo, llamarAccion } from "@/lib/accion-segura";
 
 type Categoria = {
   id: string;
@@ -112,7 +112,7 @@ export default function MiPerfilServiciosPage() {
     }
     setSaving(true);
     const res = await llamarAccion(() => saveCategories(tipoEntidadDe(currentUser)!, entityId, selectedIds));
-    if (!res.error) {
+    if (!fallo(res)) {
       toast.success("Especialidades actualizadas", { description: "Tus servicios se han registrado en tu perfil público." });
     } else {
       toast.error("Error al guardar", { description: res.error });

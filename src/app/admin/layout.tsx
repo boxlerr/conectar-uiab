@@ -1,18 +1,22 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { ShieldAlert, LayoutDashboard, Building, Wrench, MessageSquare, Users, Settings, DollarSign, Briefcase, Tag, Tags, UserPlus } from "lucide-react";
+import { ShieldAlert, LayoutDashboard, Award, Building, Wrench, MessageSquare, Users, Settings, DollarSign, Briefcase, Tag, Tags, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utilidades";
 
 const adminNav = [
   { name: "Panel de control", href: "/admin", icon: LayoutDashboard },
+  // "Socios UIAB" acá confundía: esta pantalla es el ABM de fichas del directorio
+  // (incluye no socias, rechazadas y todo lo demás). El seguimiento del padrón
+  // —quién de las socias de siempre ya está adentro y quién no— vive en Altas.
   { name: "Altas de socios", href: "/admin/altas", icon: UserPlus },
-  { name: "Socios UIAB", href: "/admin/empresas", icon: Building },
+  { name: "Empresas", href: "/admin/empresas", icon: Building },
   { name: "Proveedores de servicios", href: "/admin/proveedores", icon: Wrench },
   { name: "Servicios", href: "/admin/servicios", icon: Tags },
   { name: "Etiquetas", href: "/admin/etiquetas", icon: Tag },
+  { name: "Certificaciones", href: "/admin/certificaciones", icon: Award },
   { name: "Reseñas", href: "/admin/resenas", icon: MessageSquare },
   { name: "Oportunidades", href: "/admin/oportunidades", icon: Briefcase },
   { name: "Usuarios", href: "/admin/usuarios", icon: Users },

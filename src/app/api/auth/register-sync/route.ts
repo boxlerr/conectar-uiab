@@ -5,8 +5,7 @@ import { plantillaNotificacionAdmin } from '@/lib/email/plantillas'
 import { plantillaSuscripcionPendiente } from '@/lib/email/plantillas-suscripciones'
 import { calcularMontoMensual, nombrePlan } from '@/lib/mercadopago/suscripciones'
 import { normalizarSitioWeb } from '@/lib/utilidades'
-import { buscarEmpresaEnPadron, esSocia } from '@/modulos/altas/buscar-en-padron'
-import { fusionarConPadron } from '@/modulos/altas/padron'
+import { buscarEnPadron, type EmpresaDelPadron } from '@/modulos/altas/buscar-en-padron'
 
 export async function POST(request: Request) {
   try {
@@ -63,85 +62,59 @@ export async function POST(request: Request) {
 
     // 0. Control contra el padrón UIAB (item 1.3 del reporte de Lucas).
     //
-    // Si el CUIT ya está en `empresas`, la empresa YA EXISTE: no se crea una
-    // segunda ficha. Antes esto cortaba con un 409 y mandaba a /sumate, pero en
-    // la práctica la gente volvía a registrarse igual y el directorio terminaba
-    // duplicado — le pasó a Metalúrgica Longchamps y de nuevo a Pinturería
-    // Giannoni el 2026-08-04.
+    // Si la empresa ya está en `empresas`, YA EXISTE: no se crea una segunda
+    // ficha ni se le cobra nada. Antes esto cortaba con un 409 y mandaba a
+    // /sumate, pero la gente volvía a registrarse igual y el directorio
+    // terminaba duplicado — Metalúrgica Longchamps, Pinturería Giannoni el
+    // 2026-08-04 y Transporte Gav el 2026-08-13.
     //
-    // Ahora se REUSA la ficha: se vincula la cuenta nueva y se le aplican los
-    // datos que cargó la empresa, con las mismas reglas de fusión que el alta de
-    // /sumate (`fusionarConPadron`): el correo y el teléfono del formulario
-    // pisan, el resto sólo completa lo que está vacío, y nunca se borra un dato.
-    // Así el trabajo de corregir la ficha no se pierde.
+    // Desde el 2026-08-13 el registro de una empresa del padrón NO crea nada por
+    // su cuenta: deja una solicitud en `altas_socios` — la misma tabla que llena
+    // /sumate — y la cuenta queda en espera. El admin la ve en /admin/altas y con
+    // "Dar acceso" se dispara `crearCuentaDesdeAlta`, que vincula la ficha, la
+    // fusiona con lo que cargó la empresa y le pone la suscripción de cortesía.
     //
-    // `estado` NO se toca a propósito: una socia ya publicada sigue publicada
-    // (bajarla a pendiente_revision la sacaría del directorio), y una ficha
-    // pendiente sigue pendiente.
+    // Por qué así y no vinculando acá mismo: es UN solo camino de alta de socias,
+    // ya probado, con la fusión y los conflictos resueltos en un solo lugar. Y
+    // sobre todo, el match por nombre puede errar (la ficha de Transporte Gav no
+    // tenía CUIT, así que el nombre es lo único que había): escribir el correo y
+    // el teléfono de quien se registra sobre la ficha publicada de otra empresa
+    // sería mucho peor que hacerle esperar la confirmación de un humano.
     //
-    // Contrapartida a tener presente: un CUIT es público, así que esto vincula a
-    // quien lo conozca. Por eso se notifica al admin en el paso 3 y la membresía
-    // entra como `gestor` sin `es_principal` si la ficha ya tiene dueño.
-    let empresaExistenteId: string | null = null
-    let empresaExistenteEsSocia = false
+    // Contrapartida a tener presente: un CUIT es público y un nombre más todavía,
+    // así que esto lo puede disparar cualquiera. Por eso la cuenta queda inactiva
+    // y baneada hasta que un admin la habilite.
+    let fichaPadron: EmpresaDelPadron | null = null
+    let padronAmbiguo = false
 
     if (role === 'company') {
-      const enPadron = await buscarEmpresaEnPadron(supabaseAdmin, cuit)
-
-      if (enPadron) {
-        empresaExistenteId = enPadron.id
-        empresaExistenteEsSocia = esSocia(enPadron)
-
-        const { data: fichaPadron } = await supabaseAdmin
-          .from('empresas')
-          .select('*')
-          .eq('id', enPadron.id)
-          .single()
-
-        if (fichaPadron) {
-          // Mapeo al vocabulario que espera `fusionarConPadron` (claves de
-          // `altas_socios`), para no duplicar las reglas de fusión.
-          const { cambios } = fusionarConPadron(
-            {
-              email,
-              telefono,
-              nombre_comercial: nombreComercial,
-              sitio_web: sitioWebNormalizado,
-              direccion,
-              localidad,
-              actividad: descripcion,
-              referente_nombre: fullName,
-              cuit,
-            },
-            fichaPadron
-          )
-          if (Object.keys(cambios).length > 0) {
-            const { error: fusionErr } = await supabaseAdmin
-              .from('empresas')
-              .update(cambios)
-              .eq('id', enPadron.id)
-            if (fusionErr) {
-              console.error('[register-sync] No se pudo actualizar la ficha del padrón:', fusionErr.message)
-            }
-          }
-        }
-      }
+      const enPadron = await buscarEnPadron(supabaseAdmin, {
+        cuit,
+        razonSocial,
+        nombreComercial,
+      })
+      fichaPadron = enPadron.empresa
+      padronAmbiguo = enPadron.ambiguo
     }
+
+    // Con empate (dos fichas del padrón compitiendo por el mismo dato) tampoco
+    // seguimos de largo: crear una tercera ficha sería exactamente el bug.
+    const vieneDelPadron = Boolean(fichaPadron) || padronAmbiguo
 
     // 1. Insert into perfiles (bypassing RLS)
     //
-    // Quien se engancha a una ficha del padrón entra DESACTIVADO y espera que un
-    // admin lo habilite. Un alta normal crea su propia ficha en
-    // `pendiente_revision`, así que ya nace bajo control; en cambio la ficha del
-    // padrón YA está aprobada y publicada, así que sin este freno el acceso se
-    // da solo. Y el CUIT es público: alcanza con conocerlo.
+    // Quien matchea contra el padrón entra DESACTIVADO y espera que un admin lo
+    // habilite. Un alta normal crea su propia ficha en `pendiente_revision`, así
+    // que ya nace bajo control; en cambio la ficha del padrón YA está aprobada y
+    // publicada, así que sin este freno el acceso se da solo. Y el CUIT es
+    // público: alcanza con conocerlo.
     //
     // Pasó de verdad el 2026-08-05: dos personas se registraron con el CUIT de
     // Roll Paper con 13 minutos de diferencia y quedaron adentro de la ficha sin
     // que nadie aprobara nada, mientras el mail al admin decía "pendiente de
     // revisión". El gate de `perfiles.activo` ya existe (banea en Auth, el
     // middleware corta la sesión y el login lo explica), sólo faltaba usarlo acá.
-    const quedaPendienteDeHabilitacion = Boolean(empresaExistenteId)
+    const quedaPendienteDeHabilitacion = vieneDelPadron
 
     const { error: profileError } = await supabaseAdmin
       .from('perfiles')
@@ -156,7 +129,23 @@ export async function POST(request: Request) {
 
     if (profileError) {
       console.error('Registration API: Profile Error -', profileError)
-      return NextResponse.json({ error: 'Hubo un error al establecer tu perfil organizacional.' }, { status: 500 })
+
+      // El usuario de Auth ya existe (lo creó el signUp del browser, antes de
+      // llegar acá). Si nos vamos sin más, queda un usuario sin perfil: no puede
+      // usar la plataforma, no aparece en /admin/usuarios —que lista `perfiles`—
+      // y encima ocupa el email, así que la persona no se puede volver a
+      // registrar. No hay ningún trigger en la base que cree el perfil solo, así
+      // que la única red es limpiar acá.
+      try {
+        await supabaseAdmin.auth.admin.deleteUser(instanceId)
+      } catch (err) {
+        console.error('[register-sync] quedó un usuario de Auth sin perfil:', instanceId, err)
+      }
+
+      return NextResponse.json(
+        { error: 'Hubo un error al establecer tu perfil organizacional. Probá de nuevo.' },
+        { status: 500 }
+      )
     }
 
     // El flag solo no alcanza: hay que banear en Auth, igual que hace
@@ -173,34 +162,15 @@ export async function POST(request: Request) {
     // 2. Automatically instantiate "Empresa" or "Proveedor" with 'pending' status for admin review.
     let entityId = null;
 
-    if (role === 'company' && empresaExistenteId) {
-      // La ficha ya existía en el padrón (paso 0): no se crea otra, sólo se
-      // vincula esta cuenta. `es_principal` va en true únicamente si la ficha
-      // todavía no tiene dueño; si ya lo tiene, esta entra como gestor más.
-      entityId = empresaExistenteId
-
-      const { data: yaHayPrincipal } = await supabaseAdmin
-        .from('miembros_empresa')
-        .select('id')
-        .eq('empresa_id', empresaExistenteId)
-        .eq('es_principal', true)
-        .maybeSingle()
-
-      const { data: yaMiembro } = await supabaseAdmin
-        .from('miembros_empresa')
-        .select('id')
-        .eq('empresa_id', empresaExistenteId)
-        .eq('perfil_id', instanceId)
-        .maybeSingle()
-
-      if (!yaMiembro) {
-        await supabaseAdmin.from('miembros_empresa').insert({
-          empresa_id: empresaExistenteId,
-          perfil_id: instanceId,
-          rol: 'gestor',
-          es_principal: !yaHayPrincipal,
-        })
-      }
+    if (role === 'company' && vieneDelPadron) {
+      // La ficha ya existe en el padrón: no se crea ninguna entidad ni membresía
+      // acá. Queda una solicitud en `altas_socios` (paso 2.b) y la vinculación
+      // real la hace `crearCuentaDesdeAlta` cuando el admin da el acceso, con la
+      // fusión de datos y los conflictos que ya resuelve el alta de /sumate.
+      //
+      // Sin entidad tampoco hay suscripción (paso 4): a una empresa del padrón no
+      // le corresponde el circuito arancelado. Ese era el agujero — Transporte Gav
+      // recibió el mail de "activá tu suscripción $50.000" siendo socia.
     } else if (role === 'company') {
       const { data: emp, error: empError } = await supabaseAdmin
         .from('empresas')
@@ -301,6 +271,69 @@ export async function POST(request: Request) {
       }
     }
 
+    // 2.b Empresa del padrón → solicitud de alta de socia.
+    //
+    // Es el pedido literal de la UIAB: que quien ya está en el padrón y se
+    // registra por /register termine en el mismo lugar que si hubiera entrado por
+    // /sumate, con todos sus datos, en vez de en el circuito de pago. La fila
+    // aparece en /admin/altas y el botón "Dar acceso" hace el resto.
+    if (role === 'company' && vieneDelPadron) {
+      try {
+        // Anti-duplicado: si ya hay una solicitud abierta de esta empresa (por
+        // /sumate o por un intento previo), no apilamos otra.
+        // `limit(1)` y no `maybeSingle()`: con dos solicitudes abiertas del mismo
+        // correo, maybeSingle tira error y el catch de abajo se comería el alta
+        // en silencio, que es justo lo que no queremos.
+        const { data: altasAbiertas } = await supabaseAdmin
+          .from('altas_socios')
+          .select('id')
+          .ilike('email', email)
+          .in('estado', ['pendiente', 'contactado'])
+          .limit(1)
+
+        if (!altasAbiertas || altasAbiertas.length === 0) {
+          const { error: altaErr } = await supabaseAdmin.from('altas_socios').insert({
+            razon_social: razonSocial || fichaPadron?.razon_social || 'Sin razón social',
+            nombre_comercial: nombreComercial || null,
+            cuit: cuit || null,
+            actividad: descripcion || null,
+            categoria: 'empresa_socia',
+            // Lo dice la ficha del padrón, no el formulario: en /register nadie
+            // declara ser socio. Con empate no hay ficha de la que leerlo, así
+            // que queda en false y lo decide el admin.
+            ya_es_socio: Boolean(fichaPadron?.es_socia_uiab),
+            n_socio: fichaPadron?.n_socio || null,
+            referente_nombre: fullName,
+            email,
+            telefono: telefono || null,
+            sitio_web: sitioWebNormalizado || null,
+            localidad: localidad || null,
+            direccion: direccion || null,
+            mensaje: [
+              'Se registró por /register y el sistema la reconoció en el padrón.',
+              fichaPadron
+                ? `Coincidencia por ${fichaPadron.coincidencia === 'cuit' ? 'CUIT' : fichaPadron.coincidencia === 'nombre' ? 'nombre' : 'nombre parcial — CONFIRMAR que es la misma empresa'}: "${fichaPadron.razon_social ?? ''}".`
+                : 'Más de una ficha del padrón coincide: hay que elegir a mano cuál corresponde.',
+              provincia ? `Provincia declarada: ${provincia}.` : null,
+            ]
+              .filter(Boolean)
+              .join(' '),
+            estado: 'pendiente',
+            // Con match parcial o ambiguo NO se pre-vincula la ficha: que la elija
+            // un humano. Con CUIT o nombre exacto viene resuelta.
+            empresa_id:
+              fichaPadron && fichaPadron.coincidencia !== 'nombre_parcial' ? fichaPadron.id : null,
+            origen: 'registro_web',
+          })
+          if (altaErr) {
+            console.error('[register-sync] No se pudo crear la solicitud de alta:', altaErr.message)
+          }
+        }
+      } catch (err) {
+        console.error('[register-sync] error creando la solicitud de alta:', err)
+      }
+    }
+
     // 3. Notificación al administrador — nueva entidad pendiente de revisión.
     //    Nunca bloqueamos el registro por un fallo de email: `enviarEmail`
     //    captura y loguea internamente.
@@ -334,14 +367,23 @@ export async function POST(request: Request) {
         localidad: localidad || null,
         provincia: provincia || null,
         rubro: rubroLabel,
-        // Cuando se engancha a una ficha del padrón no hay ninguna empresa nueva
-        // que aprobar: lo que hay que decidir es si esa PERSONA entra o no. El
-        // mail decía "nueva empresa pendiente de revisión" y mandaba a
-        // /admin/empresas, donde no aparecía nada — así se perdieron dos altas
-        // de Roll Paper el 2026-08-05.
-        urlPanelAdmin: quedaPendienteDeHabilitacion ? `${appUrl()}/admin/usuarios` : urlPanelAdmin,
+        // Cuando la empresa ya está en el padrón no hay ninguna ficha nueva que
+        // aprobar: lo que quedó es una solicitud de alta de socia, y se resuelve
+        // en /admin/altas con "Dar acceso". El mail decía "nueva empresa
+        // pendiente de revisión" y mandaba a /admin/empresas, donde no aparecía
+        // nada — así se perdieron dos altas de Roll Paper el 2026-08-05.
+        urlPanelAdmin: quedaPendienteDeHabilitacion ? `${appUrl()}/admin/altas` : urlPanelAdmin,
         vinculacionAFichaExistente: quedaPendienteDeHabilitacion
-          ? { empresa: razonSocial || 'la ficha del padrón' }
+          ? {
+              empresa:
+                fichaPadron?.razon_social || razonSocial || 'una ficha del padrón',
+              ...(fichaPadron?.coincidencia === 'nombre_parcial'
+                ? { advertencia: 'La coincidencia es por nombre parecido, no por CUIT: confirmá que sea la misma empresa antes de dar el acceso.' }
+                : {}),
+              ...(padronAmbiguo
+                ? { advertencia: 'Más de una ficha del padrón coincide con estos datos: elegí a mano cuál corresponde.' }
+                : {}),
+            }
           : undefined,
       })
 
@@ -360,44 +402,29 @@ export async function POST(request: Request) {
     // 4. Crear fila inicial de suscripción en estado `pendiente_pago`.
     //    Esto permite que el webhook y la UI tengan una fila sobre la que operar
     //    aun antes de que el usuario inicie el flujo de checkout.
+    //
+    //    Sólo corre para altas nuevas: si `vieneDelPadron`, no hay `entityId` y
+    //    acá no pasa nada. A una empresa del padrón no se le cobra ni se le manda
+    //    el mail de "activá tu suscripción"; la cortesía se la pone
+    //    `crearCuentaDesdeAlta` cuando el admin le da el acceso.
     try {
       if (entityId && (role === 'company' || role === 'provider')) {
-        // Si nos vinculamos a una ficha que ya existía, puede que ya tenga su
-        // suscripción: no creamos una segunda.
-        const { data: suscExistente } = empresaExistenteId
-          ? await supabaseAdmin
-              .from('suscripciones')
-              .select('id')
-              .eq('empresa_id', empresaExistenteId)
-              .maybeSingle()
-          : { data: null }
-
-        // Las socias UIAB no abonan: su acceso es de cortesía. Antes esto sólo
-        // se contemplaba en el alta de /sumate, así que una socia que entraba
-        // por /register quedaba en `pendiente_pago` y el panel no la dejaba
-        // aprobar (ver migración 20260804_es_socia_uiab).
-        const sinCargo = esPrueba || empresaExistenteEsSocia
+        const sinCargo = esPrueba
         // El monto es plano: no depende del rol, los empleados ni la tarifa.
         const monto = calcularMontoMensual()
 
-        if (!suscExistente) {
-          await supabaseAdmin.from('suscripciones').insert({
-            empresa_id: role === 'company' ? entityId : null,
-            proveedor_id: role === 'provider' ? entityId : null,
-            monto: sinCargo ? 0 : monto,
-            moneda: 'ARS',
-            nombre_plan: empresaExistenteEsSocia
-              ? 'Socia UIAB (sin cargo)'
-              : esPrueba
-                ? 'Cortesía (prueba)'
-                : nombrePlan(),
-            estado: sinCargo ? 'activa' : 'pendiente_pago',
-            metodo_pago: sinCargo ? 'cortesia' : 'mercadopago',
-            notas_admin: esPrueba ? 'Registro de prueba (Acceso gratis).' : null,
-          })
-        }
+        await supabaseAdmin.from('suscripciones').insert({
+          empresa_id: role === 'company' ? entityId : null,
+          proveedor_id: role === 'provider' ? entityId : null,
+          monto: sinCargo ? 0 : monto,
+          moneda: 'ARS',
+          nombre_plan: esPrueba ? 'Cortesía (prueba)' : nombrePlan(),
+          estado: sinCargo ? 'activa' : 'pendiente_pago',
+          metodo_pago: sinCargo ? 'cortesia' : 'mercadopago',
+          notas_admin: esPrueba ? 'Registro de prueba (Acceso gratis).' : null,
+        })
 
-        if (!sinCargo && !suscExistente) {
+        if (!sinCargo) {
           // Email al usuario con CTA al checkout.
           try {
             const plantillaSus = plantillaSuscripcionPendiente({
@@ -426,7 +453,7 @@ export async function POST(request: Request) {
     console.log(
       `[register-sync] Registro completado: ${role} (${fullName}) → ` +
         (quedaPendienteDeHabilitacion
-          ? 'vinculado a ficha del padrón, ACCESO EN ESPERA'
+          ? `reconocida en el padrón (${fichaPadron?.coincidencia ?? 'empate'}), solicitud de alta creada, ACCESO EN ESPERA`
           : 'pendiente de revisión + pendiente_pago')
     )
 

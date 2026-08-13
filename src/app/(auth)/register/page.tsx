@@ -11,7 +11,8 @@ import { createBrowserClient } from '@supabase/ssr'
 import {
   Building2, Truck, Loader2, CheckCircle2, ArrowRight, ChevronLeft, ChevronDown, ShieldCheck,
   Target, Award, Globe, Lock, Mail, User, Users, LayoutDashboard, Megaphone, Rocket,
-  Shield, Check, Search, Factory, Settings2, MapPin, FileText, Phone, Link2, X, Sparkles, Zap
+  Shield, Check, Search, Factory, Settings2, MapPin, FileText, Phone, Link2, X, Sparkles, Zap,
+  Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
@@ -215,6 +216,14 @@ function RegisterContent() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [emailAlreadyExists, setEmailAlreadyExists] = useState(false)
+  /**
+   * La empresa ya figura en el padrón de la UIAB (lo resolvió /api/auth/check-cuit
+   * en el paso 3, por CUIT o por nombre). Cambia el último paso: en vez del plan
+   * y el precio ve que su acceso no tiene cargo y que la UIAB lo confirma.
+   */
+  const [padronDetectado, setPadronDetectado] = useState<
+    { razonSocial: string | null; esSocia: boolean } | null
+  >(null)
 
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -326,38 +335,56 @@ function RegisterContent() {
         return
       }
 
-      // ── Aviso temprano si el CUIT ya está en el padrón (paso 3) ──
-      // Mejor acá que al final: si la empresa ya existe, register-sync rechaza
-      // el alta, y no tiene sentido hacerles completar cuatro pantallas más y
-      // elegir una contraseña para después borrarles la cuenta.
+      // ── Aviso temprano si la empresa ya está en el padrón (paso 3) ──
+      // Mejor acá que al final: si la empresa ya existe no le corresponde el
+      // circuito de pago, y no tiene sentido mostrarle un precio durante cuatro
+      // pantallas para después decirle que no paga nada.
+      //
+      // Se consulta por CUIT Y por nombre. Con CUIT solo no alcanzaba: seis
+      // fichas del padrón no lo tienen cargado, y por una de ésas (Transporte
+      // Gav) una socia terminó con ficha duplicada y un mail de $50.000.
       if (currentStep === 3 && selectedRole === 'company') {
         try {
           const res = await fetch('/api/auth/check-cuit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cuit: form.getValues('cuit') }),
+            body: JSON.stringify({
+              cuit: form.getValues('cuit'),
+              razonSocial: form.getValues('razonSocial'),
+              nombreComercial: form.getValues('nombreComercial'),
+            }),
           })
           const { enPadron, esSocia, razonSocial } = await res.json()
 
+          setPadronDetectado(enPadron ? { razonSocial: razonSocial ?? null, esSocia: !!esSocia } : null)
+
           if (enPadron) {
-            // Aviso, NO bloqueo. Antes esto cortaba el registro y los mandaba a
-            // /sumate, pero la gente se registraba igual con el CUIT escrito de
-            // otra forma y el directorio terminaba duplicado (Metalúrgica
-            // Longchamps, Pinturería Giannoni). Ahora register-sync reusa la
-            // ficha existente y le aplica los datos nuevos, así que dejamos
-            // seguir y sólo explicamos qué va a pasar.
-            const nombre = razonSocial || 'Esa empresa'
-            toast.info(
-              esSocia
-                ? `${nombre} ya es socia de la UIAB`
-                : `${nombre} ya está en UIAB Conecta`,
-              {
-                description: esSocia
-                  ? 'No se crea una ficha nueva: vamos a vincular tu cuenta a la que ya existe y actualizarla con lo que cargues. Tu acceso no tiene cargo.'
-                  : 'No se crea una ficha nueva: vamos a vincular tu cuenta a la que ya existe y actualizarla con lo que cargues.',
-                duration: 10000,
-              }
-            )
+            // La empresa YA está en el directorio: no corresponde crear una
+            // cuenta nueva. Se corta acá y se la manda al formulario de socias
+            // con lo que ya escribió.
+            //
+            // Antes seguía el registro completo y quedaba una cuenta baneada más
+            // una solicitud. Funcionaba, pero le pedía a alguien elegir una
+            // contraseña para una cuenta que no iba a poder usar, y dejaba una
+            // cuenta creada por cualquiera que supiera un nombre o un CUIT — los
+            // dos son públicos. Sin cuenta no hay nada a lo que adosarse: queda
+            // una solicitud, que es lo que un humano tiene que mirar igual.
+            const nombre = razonSocial || 'Tu empresa'
+            const q = new URLSearchParams({
+              desde: 'registro',
+              empresa: form.getValues('razonSocial') || '',
+              comercial: form.getValues('nombreComercial') || '',
+              cuit: form.getValues('cuit') || '',
+              telefono: form.getValues('telefono') || '',
+              localidad: form.getValues('localidad') || '',
+            })
+            toast.info(`${nombre} ya está en el padrón de la UIAB`, {
+              description:
+                'No hace falta que crees una cuenta ni vas a pagar nada. Te llevamos al formulario de socias para pedir el acceso a la ficha que ya está publicada.',
+              duration: 12000,
+            })
+            router.push(`/sumate?${q.toString()}`)
+            return
           }
         } catch {
           // Si el chequeo falla seguimos: register-sync valida igual.
@@ -412,9 +439,13 @@ function RegisterContent() {
         password: values.password,
         options: {
           data: { nombre_completo: fullName },
+          // A una empresa del padrón no se la manda al checkout ni por el link del
+          // correo: su acceso no tiene cargo y además queda en espera.
           emailRedirectTo: esPrueba
             ? `${window.location.origin}/api/auth/callback?next=/panel-de-control`
-            : `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(destinoCheckout)}`,
+            : padronDetectado
+              ? `${window.location.origin}/api/auth/callback?next=/login`
+              : `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(destinoCheckout)}`,
         }
       })
 
@@ -1306,7 +1337,65 @@ function RegisterContent() {
                       )}
 
                       {/* ─── PHASE 7: SUSCRIPCIÓN (plan único UIAB Conecta) ─── */}
-                      {step === 7 && (() => {
+                      {step === 7 && padronDetectado && (
+                        /* Empresa ya en el padrón: no hay plan que elegir ni precio
+                           que mostrar. Enseñarle "$50.000 / mes" a una socia — que es
+                           lo que le pasó a Transporte Gav — es directamente un error
+                           de facturación disfrazado de pantalla. */
+                        <div className="space-y-4">
+                          <div className="space-y-0.5">
+                            {/* La cortesía la define `es_socia_uiab`, NO el estar en la
+                                tabla: hay fichas publicadas que no son socias (Vaxler,
+                                por ejemplo). Prometerle "no pagás nada" a una de ésas y
+                                después dejarla bloqueada en el checkout sería peor que
+                                el problema que vinimos a arreglar. */}
+                            <Badge className={`border-none font-bold px-2 py-0.5 text-[11px] sm:text-[10px] tracking-widest uppercase rounded-sm ${padronDetectado.esSocia ? 'bg-emerald-50 text-emerald-700' : 'bg-primary-50 text-primary-700'}`}>
+                              {padronDetectado.esSocia ? 'Sin cargo' : 'Ya estás en el directorio'}
+                            </Badge>
+                            <h2 className="text-2xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>
+                              Tu empresa ya está en la UIAB.
+                            </h2>
+                            <p className="text-slate-500 font-inter text-xs">
+                              {padronDetectado.razonSocial
+                                ? `Encontramos a ${padronDetectado.razonSocial} en el directorio.`
+                                : 'Encontramos tu empresa en el directorio.'}{' '}
+                              {padronDetectado.esSocia
+                                ? 'No vas a pagar nada.'
+                                : 'No te vamos a cobrar ahora.'}
+                            </p>
+                          </div>
+
+                          <div className={`rounded-xl px-5 py-4 space-y-3 border ${padronDetectado.esSocia ? 'border-emerald-100 bg-emerald-50/60' : 'border-primary-100 bg-primary-50/60'}`}>
+                            <p className="text-xs font-semibold text-[#00213f] flex items-start gap-2">
+                              <ShieldCheck className={`h-4 w-4 shrink-0 mt-0.5 ${padronDetectado.esSocia ? 'text-emerald-600' : 'text-primary-600'}`} />
+                              <span>
+                                {padronDetectado.esSocia
+                                  ? 'Tu acceso es de cortesía: las socias de la UIAB no abonan la suscripción.'
+                                  : 'No hay ningún pago en este paso. Al revisar tu pedido, la UIAB te va a decir cómo sigue tu acceso.'}
+                              </span>
+                            </p>
+                            <p className="text-xs font-semibold text-[#00213f] flex items-start gap-2">
+                              <Building2 className={`h-4 w-4 shrink-0 mt-0.5 ${padronDetectado.esSocia ? 'text-emerald-600' : 'text-primary-600'}`} />
+                              <span>No se crea una ficha nueva. Tus datos se suman a la que ya está publicada en el directorio.</span>
+                            </p>
+                            <p className="text-xs font-semibold text-[#00213f] flex items-start gap-2">
+                              <Clock className={`h-4 w-4 shrink-0 mt-0.5 ${padronDetectado.esSocia ? 'text-emerald-600' : 'text-primary-600'}`} />
+                              <span>La UIAB confirma que trabajás en esa empresa y te habilita el ingreso. Te avisamos por correo.</span>
+                            </p>
+                          </div>
+
+                          <div className="space-y-2 pt-1">
+                            <Button type="submit" disabled={isLoading} className="w-full h-12 bg-primary-600 hover:bg-primary-700 text-white font-black text-base rounded-xl shadow-xl shadow-primary-600/20 transition-all active:scale-[0.98]">
+                              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Enviar mi pedido de acceso <ArrowRight className="ml-2 h-4 w-4" /></>}
+                            </Button>
+                            <p className="text-center text-[11px] sm:text-[10px] text-slate-400 font-medium max-w-md mx-auto leading-relaxed">
+                              Si tu empresa no fuera la que encontramos, la UIAB lo va a ver al revisar el pedido.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {step === 7 && !padronDetectado && (() => {
                         const esEmpresa = selectedRole === 'company';
                         const beneficios = esEmpresa
                           ? [

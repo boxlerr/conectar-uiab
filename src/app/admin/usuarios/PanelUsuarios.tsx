@@ -6,7 +6,13 @@ import { Users, Search, Shield, Building, Wrench, UserX, UserCheck, X, Phone, Ma
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toggleActivarUsuario, cambiarRolUsuario } from "@/modulos/admin/acciones";
-import { llamarAccion } from "@/lib/accion-segura";
+import { fallo, llamarAccion } from "@/lib/accion-segura";
+import { toast } from "sonner";
+import {
+  ESTADO_ACCESO_CONFIG,
+  esperaHabilitacion,
+  estadoDeAcceso,
+} from "@/modulos/admin/estado-acceso";
 
 type Usuario = {
   id: string;
@@ -26,9 +32,17 @@ type Usuario = {
   es_principal: boolean;
   /** ISO del último login (auth.users), o null si nunca entró. */
   ultimo_ingreso: string | null;
+  /** ISO hasta cuándo corre el ban de Auth, o null si no está baneado. */
+  baneado_hasta: string | null;
+  /** null = no se pudo leer Auth, no que esté sin confirmar. */
+  email_confirmado: boolean | null;
+  /** El perfil existe pero no hay usuario de Auth detrás. */
+  sin_usuario_auth: boolean;
+  /** Al revés: existe en Auth pero no tiene fila en `perfiles`. */
+  sin_perfil?: boolean;
 };
 
-type Filtro = "all" | "admin" | "company" | "provider";
+type Filtro = "all" | "pendientes" | "admin" | "company" | "provider";
 
 const ROL_CONFIG: Record<string, { label: string; icon: React.ElementType; bg: string; text: string }> = {
   admin:    { label: "Administrador", icon: Shield,   bg: "bg-slate-100",   text: "text-slate-700" },
@@ -42,10 +56,16 @@ const ROLES_DISPONIBLES: { value: string; label: string }[] = [
   { value: "provider", label: "Particular" },
 ];
 
-export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
+export function PanelUsuarios({
+  usuarios,
+  filtroInicial = "all",
+}: {
+  usuarios: Usuario[];
+  filtroInicial?: Filtro;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [filtro, setFiltro] = useState<Filtro>("all");
+  const [filtro, setFiltro] = useState<Filtro>(filtroInicial);
   const [busqueda, setBusqueda] = useState("");
   const [seleccionado, setSeleccionado] = useState<Usuario | null>(null);
   const [cambiandoRol, setCambiandoRol] = useState<string | null>(null);
@@ -53,7 +73,9 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
   function refresh() { startTransition(() => router.refresh()); }
 
   const filtrados = usuarios.filter((u) => {
-    const matchFiltro = filtro === "all" || u.rol_sistema === filtro;
+    const matchFiltro =
+      filtro === "all" ||
+      (filtro === "pendientes" ? esperaHabilitacion(u) : u.rol_sistema === filtro);
     const q = busqueda.toLowerCase();
     const matchBusqueda = !busqueda ||
       (u.nombre_completo ?? "").toLowerCase().includes(q) ||
@@ -64,17 +86,102 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
   });
 
   const counts = {
-    all:      usuarios.length,
-    admin:    usuarios.filter((u) => u.rol_sistema === "admin").length,
-    company:  usuarios.filter((u) => u.rol_sistema === "company").length,
-    provider: usuarios.filter((u) => u.rol_sistema === "provider").length,
+    all:        usuarios.length,
+    pendientes: usuarios.filter(esperaHabilitacion).length,
+    admin:      usuarios.filter((u) => u.rol_sistema === "admin").length,
+    company:    usuarios.filter((u) => u.rol_sistema === "company").length,
+    provider:   usuarios.filter((u) => u.rol_sistema === "provider").length,
   };
 
-  async function handleToggleActivo(id: string, activo: boolean, e?: React.MouseEvent) {
+  /**
+   * Habilita o desactiva. Al habilitar, la acción levanta el ban y confirma el
+   * correo además de poner `activo`: los tres frenos juntos, porque arreglar uno
+   * solo deja a la persona afuera igual y al panel diciendo que está adentro.
+   */
+  async function handleToggleActivo(
+    id: string,
+    activo: boolean,
+    e?: React.MouseEvent,
+    opciones?: { avisarPorEmail?: boolean }
+  ) {
     e?.stopPropagation();
-    await llamarAccion(() => toggleActivarUsuario(id, !activo));
+    const res = await llamarAccion(() => toggleActivarUsuario(id, !activo, opciones));
+    if (fallo(res)) {
+      toast.error(res.error);
+      return;
+    }
+    if (!activo) {
+      if (opciones?.avisarPorEmail) {
+        if (res.emailEnviado) {
+          toast.success("Acceso habilitado", { description: "Le avisamos por correo que ya puede entrar." });
+        } else {
+          toast.warning("Acceso habilitado, pero el correo no salió", {
+            description: res.emailError ?? "Avisale vos por otro medio.",
+          });
+        }
+      } else {
+        toast.success("Acceso habilitado", {
+          description: "Perfil activo, bloqueo levantado y correo confirmado. Ya puede entrar.",
+        });
+      }
+    }
     refresh();
-    if (seleccionado?.id === id) setSeleccionado(prev => prev ? { ...prev, activo: !activo } : null);
+    if (seleccionado?.id === id) {
+      setSeleccionado((prev) =>
+        prev
+          ? {
+              ...prev,
+              activo: !activo,
+              ...(activo
+                ? {}
+                : { baneado_hasta: null, email_confirmado: true }),
+            }
+          : null
+      );
+    }
+  }
+
+  /**
+   * Habilitar, en dos preguntas separadas.
+   *
+   * La primera puede cancelarse sin efecto: meter "¿le mando el mail?" adentro
+   * del mismo confirm haría que apretar Escape igual habilite, que es justo lo
+   * que no querés cuando dudás.
+   */
+  async function handleHabilitar(u: Usuario, e?: React.MouseEvent) {
+    e?.stopPropagation();
+    const quien = u.nombre_completo || u.email;
+
+    // Sin ficha, habilitar desde acá no alcanza: el middleware la manda igual a
+    // /pendiente-aprobacion porque no tiene empresa aprobada de la que colgarse.
+    // Es el caso de quien se registró contra una ficha del padrón — ahí la
+    // vinculación la hace "Dar acceso" en /admin/altas, no este botón.
+    if (!u.ficha_nombre) {
+      if (
+        !confirm(
+          `${quien} no está vinculada a ninguna ficha.\n\n` +
+            "Habilitarla desde acá la deja igual afuera: sin empresa aprobada, el sistema la manda a la pantalla de \"cuenta pendiente\".\n\n" +
+            "Si se registró con los datos de una empresa del padrón, lo que corresponde es entrar a Altas de socios y usar \"Dar acceso\", que vincula la ficha y le pone la cortesía.\n\n" +
+            "Aceptar = habilitarla igual de todos modos."
+        )
+      )
+        return;
+    }
+
+    if (
+      !confirm(
+        `Habilitar el acceso de ${quien}?\n\n` +
+          "Se activa el perfil, se levanta el bloqueo de Auth y se le da por confirmado el correo."
+      )
+    )
+      return;
+
+    const avisar = confirm(
+      `¿Le mandamos el correo avisándole que ya puede entrar?\n\n` +
+        `Va a ${u.email}.\n\n` +
+        "Cancelar = lo habilitamos igual, pero sin mandar nada."
+    );
+    await handleToggleActivo(u.id, false, undefined, { avisarPorEmail: avisar });
   }
 
   async function handleCambiarRol(id: string, nuevoRol: string) {
@@ -85,11 +192,12 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
     if (seleccionado?.id === id) setSeleccionado(prev => prev ? { ...prev, rol_sistema: nuevoRol } : null);
   }
 
-  const TABS: { key: Filtro; label: string }[] = [
-    { key: "all",      label: `Todos (${counts.all})` },
-    { key: "admin",    label: `Admin (${counts.admin})` },
-    { key: "company",  label: `Empresas (${counts.company})` },
-    { key: "provider", label: `Proveedores de servicios (${counts.provider})` },
+  const TABS: { key: Filtro; label: string; alerta?: boolean }[] = [
+    { key: "all",        label: `Todos (${counts.all})` },
+    { key: "pendientes", label: `Pendientes de habilitar (${counts.pendientes})`, alerta: counts.pendientes > 0 },
+    { key: "admin",      label: `Admin (${counts.admin})` },
+    { key: "company",    label: `Empresas (${counts.company})` },
+    { key: "provider",   label: `Proveedores de servicios (${counts.provider})` },
   ];
 
   return (
@@ -114,8 +222,13 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
           {TABS.map((tab) => (
             <button key={tab.key} onClick={() => setFiltro(tab.key)}
               className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-all ${
-                filtro === tab.key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                filtro === tab.key
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : tab.alerta
+                    ? "text-amber-700 hover:text-amber-800"
+                    : "text-slate-500 hover:text-slate-700"
               }`}>
+              {tab.alerta && <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 align-middle" />}
               {tab.label}
             </button>
           ))}
@@ -184,11 +297,17 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {u.activo ? (
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">Activo</span>
-                      ) : (
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700">Inactivo</span>
-                      )}
+                      {(() => {
+                        const cfg = ESTADO_ACCESO_CONFIG[estadoDeAcceso(u)];
+                        return (
+                          <span
+                            title={cfg.detalle}
+                            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.clase}`}
+                          >
+                            {cfg.label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
                       {u.ultimo_ingreso
@@ -196,17 +315,26 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
                         : <span className="italic text-slate-300">Nunca ingresó</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        size="sm" variant="outline" disabled={isPending}
-                        // En touch no hay hover: con opacity-0 esta era la UNICA accion de la tabla
-                        // y quedaba invisible, o sea que no se podia activar/desactivar a nadie
-                        className={u.activo
-                          ? "border-rose-200 text-rose-600 hover:bg-rose-50 text-xs opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
-                          : "border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
-                        }
-                        onClick={(e) => handleToggleActivo(u.id, u.activo, e)}>
-                        {u.activo ? <><UserX className="w-3.5 h-3.5 mr-1" /> Desactivar</> : <><UserCheck className="w-3.5 h-3.5 mr-1" /> Activar</>}
-                      </Button>
+                      {/* En touch no hay hover: con opacity-0 esta era la UNICA accion de la tabla
+                          y quedaba invisible, o sea que no se podia activar/desactivar a nadie.
+                          "Habilitar" aparece para cualquiera de los tres frenos, no sólo para
+                          `activo=false`: si no, a quien estaba baneado o sin confirmar no había
+                          forma de destrabarlo desde el panel. */}
+                      {esperaHabilitacion(u) ? (
+                        <Button
+                          size="sm" variant="outline" disabled={isPending}
+                          className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => handleHabilitar(u, e)}>
+                          <UserCheck className="w-3.5 h-3.5 mr-1" /> Habilitar
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm" variant="outline" disabled={isPending || u.sin_usuario_auth}
+                          className="border-rose-200 text-rose-600 hover:bg-rose-50 text-xs opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => handleToggleActivo(u.id, true, e)}>
+                          <UserX className="w-3.5 h-3.5 mr-1" /> Desactivar
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -244,6 +372,26 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
             </div>
 
             <div className="p-6 space-y-6">
+              {/* Estado de acceso, explicado. El chip solo no alcanza: "Bloqueado
+                  en Auth" no le dice a nadie qué hacer, y era justamente el
+                  estado en el que quedaban las altas que se enganchaban a una
+                  ficha del padrón. */}
+              {(() => {
+                const estado = estadoDeAcceso(seleccionado);
+                const cfg = ESTADO_ACCESO_CONFIG[estado];
+                return (
+                  <section className={`rounded-lg p-4 ${estado === "ok" ? "bg-emerald-50/60" : "bg-amber-50/60"}`}>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.clase}`}>{cfg.label}</span>
+                      {seleccionado.email_confirmado === null && (
+                        <span className="text-[11px] text-slate-400">no pudimos leer Auth</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">{cfg.detalle}</p>
+                  </section>
+                );
+              })()}
+
               <section>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">Información</p>
                 <dl className="space-y-3 text-sm">
@@ -314,18 +462,21 @@ export function PanelUsuarios({ usuarios }: { usuarios: Usuario[] }) {
             </div>
 
             <div className="sticky bottom-0 bg-white/95 border-t border-slate-100 p-5">
-              <Button
-                className={`w-full ${seleccionado.activo
-                  ? "bg-rose-600 hover:bg-rose-700 text-white"
-                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                }`}
-                disabled={isPending}
-                onClick={() => handleToggleActivo(seleccionado.id, seleccionado.activo)}>
-                {seleccionado.activo
-                  ? <><UserX className="w-4 h-4 mr-2" /> Desactivar usuario</>
-                  : <><UserCheck className="w-4 h-4 mr-2" /> Activar usuario</>
-                }
-              </Button>
+              {esperaHabilitacion(seleccionado) ? (
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                  disabled={isPending}
+                  onClick={() => handleHabilitar(seleccionado)}>
+                  <UserCheck className="w-4 h-4 mr-2" /> Habilitar acceso
+                </Button>
+              ) : (
+                <Button
+                  className="w-full bg-rose-600 hover:bg-rose-700 text-white"
+                  disabled={isPending || seleccionado.sin_usuario_auth}
+                  onClick={() => handleToggleActivo(seleccionado.id, true)}>
+                  <UserX className="w-4 h-4 mr-2" /> Desactivar usuario
+                </Button>
+              )}
             </div>
           </div>
         </>

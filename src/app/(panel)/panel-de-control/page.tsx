@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { BannerSuscripcion, DashboardBlurGate } from '@/components/ui/BannerSuscripcion';
+import { AvisoDatosFaltantes, faltantesDeLaFicha } from '@/components/ui/aviso-datos-faltantes';
 import { AvisoEtiquetasPrecargadas } from '@/components/ui/aviso-etiquetas-precargadas';
 import { BotonReiniciarTour } from '@/modulos/onboarding/componentes/boton-reiniciar-tour';
 import { AvisoConflictosPadron } from '@/modulos/altas/componentes/aviso-conflictos-padron';
@@ -335,6 +336,8 @@ export default async function DashboardPage() {
     {/* svh (no vh ni dvh): evita que la barra de Safari en iOS recorte el alto */}
     <main className="min-h-svh bg-[#f2f5f8]">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-5">
+
+        <AvisoDatosFaltantes faltantes={faltantesDeLaFicha(entityData)} />
 
         <AvisoConflictosPadron conflictos={conflictosPadron} />
 

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/servidor";
 import { revalidatePath } from "next/cache";
 import { crearNotificacion } from "@/modulos/notificaciones/acciones";
+import { exigirSuscripcion } from "@/lib/autenticacion/exigir-suscripcion";
 
 /**
  * Marca una solicitud recibida como "vista". Solo válido si el usuario actual
@@ -10,6 +11,9 @@ import { crearNotificacion } from "@/modulos/notificaciones/acciones";
  * Idempotente: si ya está en un estado más avanzado, no la retrocede.
  */
 export async function marcarSolicitudVista(solicitudId: string) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -49,6 +53,9 @@ export async function marcarSolicitudVista(solicitudId: string) {
  * fue atendida y el destinatario la saque de la bandeja activa.
  */
 export async function marcarSolicitudRespondida(solicitudId: string) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -98,6 +105,9 @@ export async function marcarSolicitudRespondida(solicitudId: string) {
  * Cierra una solicitud (el dueño considera terminado el intercambio).
  */
 export async function cerrarSolicitud(solicitudId: string) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();

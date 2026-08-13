@@ -137,7 +137,19 @@ async function getAltasPublicas(): Promise<AltaPublica[]> {
   });
 }
 
-export default async function SumatePage() {
+type ParamsSumate = {
+  desde?: string; empresa?: string; comercial?: string; cuit?: string;
+  email?: string; telefono?: string; localidad?: string; referente?: string;
+};
+
+export default async function SumatePage({
+  searchParams,
+}: {
+  searchParams: Promise<ParamsSumate>;
+}) {
+  // Los datos vienen de /register: si la empresa ya está en el padrón se corta
+  // el registro y se la manda acá, con lo que ya había escrito puesto.
+  const params = await searchParams;
   const altas = await getAltasPublicas();
 
   return (
@@ -201,7 +213,18 @@ export default async function SumatePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* ─── Formulario ─── */}
           <div className="lg:col-span-7">
-            <FormularioAlta />
+            <FormularioAlta
+              desdeRegistro={params.desde === "registro"}
+              inicial={{
+                razon_social: params.empresa ?? "",
+                nombre_comercial: params.comercial ?? "",
+                cuit: params.cuit ?? "",
+                email: params.email ?? "",
+                telefono: params.telefono ?? "",
+                localidad: params.localidad ?? "",
+                referente_nombre: params.referente ?? "",
+              }}
+            />
           </div>
 
           {/* ─── Listado en vivo ─── */}

@@ -20,12 +20,14 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { traducirErrorAuth } from '@/lib/autenticacion/errores-auth'
 
 // Form schema with Zod
 const loginSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
   password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
 })
+
 
 function LoginContent() {
   const router = useRouter()
@@ -86,16 +88,7 @@ function LoginContent() {
       })
 
       if (error) {
-        // "User is banned" = usuario desactivado por su empresa o por la UIAB.
-        // El mensaje crudo de Supabase no le dice nada a un socio.
-        const translatedMessage = error.message === "Invalid login credentials"
-          ? "El correo electrónico o la contraseña son incorrectos."
-          : /banned/i.test(error.message)
-            ? "Tu acceso está desactivado. Pedile a quien administra la cuenta de tu empresa que lo vuelva a activar."
-            : error.message;
-
-
-        toast.error("Error de acceso", { description: translatedMessage });
+        toast.error("Error de acceso", { description: traducirErrorAuth(error.message) });
         setIsLoading(false)
         return
       }
@@ -127,9 +120,9 @@ function LoginContent() {
       }
       
       router.refresh()
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error('Error al iniciar sesión', {
-        description: err.message || 'Credenciales inválidas.',
+        description: traducirErrorAuth(err instanceof Error ? err.message : ''),
       })
     } finally {
       setIsLoading(false)
