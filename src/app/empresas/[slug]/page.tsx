@@ -10,6 +10,7 @@ import { MapPin, Mail, Phone, Globe, CheckCircle2, Building2, Wrench, User, Brie
 import type { LucideIcon } from "lucide-react";
 import {
   CabeceraFicha,
+  SelloVerificado,
   type DatoCabecera,
   type MetricaCabecera,
 } from "@/components/ui/directorio/cabecera-ficha";
@@ -17,6 +18,7 @@ import { ChipNorma } from "@/modulos/certificaciones/chip-norma";
 import { etiquetaNorma, familiaNorma, normaPorCodigo, estadoVigencia } from "@/modulos/certificaciones/normas";
 import { BotonWhatsApp } from "@/components/ui/boton-whatsapp";
 import { RegistrarVisita } from "@/components/ui/registrar-visita";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { ID_ORG_UIAB, SITE_URL, telefonoE164 } from "@/lib/seo/entidad";
 import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
@@ -185,11 +187,15 @@ function PanelCertificaciones({ certs, accent }: { certs: CertFicha[]; accent: "
       <div className="p-5">
         <div className="flex items-start gap-3">
           <span
-            className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
               esAmber ? "bg-[#bf7035]/10" : "bg-blue-50"
             }`}
           >
-            <ShieldCheck className={`h-4.5 w-4.5 ${esAmber ? "text-[#bf7035]" : "text-blue-600"}`} />
+            {esAmber ? (
+              <ShieldCheck className="h-5 w-5 text-[#bf7035]" />
+            ) : (
+              <SelloVerificado className="h-6 w-6" />
+            )}
           </span>
           <div className="min-w-0">
             <p className="text-[14px] font-bold leading-snug text-[#00213f]">
@@ -530,6 +536,8 @@ type EmpresaHermana = {
   slug: string;
   localidad: string | null;
   rubro: string | null;
+  /** URL pública del logo, si la socia lo tiene cargado. */
+  logoUrl: string | null;
 };
 
 /**
@@ -573,7 +581,13 @@ function rubrosConLandingDe(empresaDb: any): RubroConLanding[] {
 function empresasHermanasDe(
   empresaDb: any,
   todasLasEmpresas: any[],
-  rubrosConLanding: RubroConLanding[]
+  rubrosConLanding: RubroConLanding[],
+  /** Sólo se usa para resolver la URL pública del logo. */
+  supabase: {
+    storage: {
+      from: (bucket: string) => { getPublicUrl: (ruta: string) => { data: { publicUrl: string } } };
+    };
+  }
 ): EmpresaHermana[] {
   const slugsCategoria = new Set<string>(
     (empresaDb.empresas_categorias || [])
@@ -620,6 +634,10 @@ function empresasHermanasDe(
       slug: crearSlug(e.razon_social),
       localidad: (e.localidad as string) || null,
       rubro: (e.empresas_categorias || [])[0]?.categorias?.nombre ?? null,
+      logoUrl:
+        e.bucket_logo && e.ruta_logo
+          ? supabase.storage.from(e.bucket_logo).getPublicUrl(e.ruta_logo).data.publicUrl
+          : null,
     }));
 }
 
@@ -676,6 +694,7 @@ export default async function EmpresaProfilePage({
         provincia,
         codigo_postal,
         cuit,
+        cantidad_empleados,
         actividad,
         descripcion,
         sitio_web,
@@ -765,7 +784,7 @@ export default async function EmpresaProfilePage({
   // pero el cálculo se hace ACÁ y baja sólo el resultado. Ver el comentario
   // largo de `empresasHermanasDe`.
   const rubrosConLanding = rubrosConLandingDe(empresaDb);
-  const hermanas = empresasHermanasDe(empresaDb, empresasData ?? [], rubrosConLanding);
+  const hermanas = empresasHermanasDe(empresaDb, empresasData ?? [], rubrosConLanding, supabase);
 
   return (
     <EmpresaProfile
@@ -1045,24 +1064,32 @@ async function EmpresaProfile({
     totalItems > 0
       ? {
           icono: PackageSearch,
+          imagen: "/marca/ic-productos.png",
           valor: String(totalItems),
           etiqueta: totalItems === 1 ? "Producto o servicio" : "Productos y servicios",
         }
       : null,
-    { icono: ShieldCheck, valor: "Verificada", etiqueta: "UIAB Conecta" },
+    { icono: ShieldCheck, valor: "Verificada", etiqueta: "UIAB Conecta", conSello: true },
     cats.length > 0
       ? {
           icono: Layers,
+          imagen: "/marca/ic-rubros.png",
           valor: String(cats.length),
           etiqueta: cats.length === 1 ? "Rubro" : "Rubros",
         }
       : null,
     tagsEmpresa.length > 0
-      ? { icono: Tag, valor: String(tagsEmpresa.length), etiqueta: "Especialidades" }
+      ? {
+          icono: Tag,
+          imagen: "/marca/ic-etiquetas.png",
+          valor: String(tagsEmpresa.length),
+          etiqueta: "Especialidades",
+        }
       : null,
     certs.length > 0
       ? {
           icono: Award,
+          imagen: "/marca/ic-certif.png",
           valor: String(certs.length),
           etiqueta: certs.length === 1 ? "Certificación" : "Certificaciones",
         }
@@ -1070,6 +1097,7 @@ async function EmpresaProfile({
     promedioResenas !== null
       ? {
           icono: Star,
+          imagen: "/marca/ic-resenas.png",
           valor: promedioResenas.toFixed(1),
           etiqueta: `${totalResenas} ${totalResenas === 1 ? "reseña" : "reseñas"}`,
         }
@@ -1140,7 +1168,7 @@ async function EmpresaProfile({
           nombre={empresa.nombre}
           rubroPrincipal={empresa.categoria}
           rubroPrincipalHref={rubrosConLanding[0]?.href ?? null}
-          selloEstado={{ icono: CheckCircle2, texto: "Verificado UIAB" }}
+          selloEstado={{ icono: CheckCircle2, texto: "Verificado UIAB", conSello: true }}
           logoUrl={empresa.logoUrl}
           inicial={empresa.logo}
           ubicacion={empresa.ubicacion}
@@ -1435,17 +1463,40 @@ async function EmpresaProfile({
             <p className="text-[14px] text-slate-500 mb-6">
               Socias de la UIAB que comparten rubro con {empresa.nombre}.
             </p>
+            {/* Con el logo al lado del nombre: en un directorio, la marca es lo
+                que la gente reconoce antes de leer la razón social. La placa
+                blanca resuelve los logos guardados como JPG con fondo blanco, y
+                cuando no hay logo cargado queda la inicial. */}
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {hermanas.map((h) => (
                 <li key={h.slug}>
                   <Link
                     href={`/empresas/${h.slug}`}
-                    className="block h-full bg-white rounded-md border border-slate-200 p-4 hover:border-blue-300 hover:shadow-md transition-all"
+                    className="flex h-full items-center gap-3.5 rounded-xl border border-slate-200 bg-white p-3.5 transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
                   >
-                    <p className="font-bold text-[14.5px] text-[#00213f] leading-snug">{h.nombre}</p>
-                    <p className="mt-1 text-[12.5px] text-slate-500">
-                      {[h.rubro, h.localidad].filter(Boolean).join(" · ")}
-                    </p>
+                    <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-100 bg-white p-1.5">
+                      {h.logoUrl ? (
+                        <Image
+                          src={h.logoUrl}
+                          alt=""
+                          width={96}
+                          height={96}
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <span className="font-manrope text-lg font-black text-slate-300">
+                          {h.nombre.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-bold text-[14.5px] leading-snug text-[#00213f]">
+                        {h.nombre}
+                      </span>
+                      <span className="mt-0.5 block truncate text-[12.5px] text-slate-500">
+                        {[h.rubro, h.localidad].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -1582,14 +1633,16 @@ async function ProveedorProfile({
     totalItems > 0
       ? {
           icono: PackageSearch,
+          imagen: "/marca/ic-productos.png",
           valor: String(totalItems),
           etiqueta: totalItems === 1 ? "Producto o servicio" : "Productos y servicios",
         }
       : null,
-    { icono: ShieldCheck, valor: "Verificado", etiqueta: "UIAB Conecta" },
+    { icono: ShieldCheck, valor: "Verificado", etiqueta: "UIAB Conecta", conSello: true },
     cats.length > 0
       ? {
           icono: Layers,
+          imagen: "/marca/ic-rubros.png",
           valor: String(cats.length),
           etiqueta: cats.length === 1 ? "Rubro" : "Rubros",
         }
@@ -1597,6 +1650,7 @@ async function ProveedorProfile({
     certs.length > 0
       ? {
           icono: Award,
+          imagen: "/marca/ic-certif.png",
           valor: String(certs.length),
           etiqueta: certs.length === 1 ? "Certificación" : "Certificaciones",
         }
@@ -1604,6 +1658,7 @@ async function ProveedorProfile({
     promedioResenas !== null
       ? {
           icono: Star,
+          imagen: "/marca/ic-resenas.png",
           valor: promedioResenas.toFixed(1),
           etiqueta: `${totalResenas} ${totalResenas === 1 ? "reseña" : "reseñas"}`,
         }

@@ -28,6 +28,29 @@ import type { LucideIcon } from "lucide-react";
  *  una ficha con tres datos no queda con dos huecos.
  */
 
+/**
+ * Sello de verificación.
+ *
+ * Es una imagen y no un ícono de librería a pedido de Julián: el check
+ * dentado de red social se reconoce al instante como "esta cuenta es la de
+ * verdad", que es exactamente lo que la ficha quiere decir. Vive en
+ * `public/marca/verificado.png` con fondo transparente para poder apoyarse
+ * sobre el azul del hero o sobre una placa celeste. La variante industrial
+ * (rueda dentada) está al lado, en `verificado-tuerca.png`.
+ */
+export function SelloVerificado({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <Image
+      src="/marca/verificado.png"
+      alt=""
+      width={192}
+      height={192}
+      className={`${className} shrink-0 object-contain`}
+      aria-hidden
+    />
+  );
+}
+
 export type DatoCabecera = {
   icono: LucideIcon;
   etiqueta: string;
@@ -41,6 +64,15 @@ export type MetricaCabecera = {
   icono: LucideIcon;
   valor: string;
   etiqueta: string;
+  /** Usa el sello de verificación en lugar del ícono de librería. */
+  conSello?: boolean;
+  /**
+   * Ruta a un ícono ilustrado de `public/marca/`. Son los mismos que se
+   * generaron para el catálogo, en versión chica y recoloreados a celeste
+   * para que resalten sobre el azul: en el azul original quedaban apagados.
+   * Si falta, se cae al ícono de lucide, que nunca deja el hueco vacío.
+   */
+  imagen?: string;
 };
 
 export type RubroCabecera = { nombre: string; href: string | null };
@@ -77,7 +109,7 @@ interface Props {
   /** Landing del rubro principal, si existe: el sello pasa a ser un enlace. */
   rubroPrincipalHref?: string | null;
   /** Sello de estado: "Verificado UIAB" / "Particular". */
-  selloEstado: { icono: LucideIcon; texto: string };
+  selloEstado: { icono: LucideIcon; texto: string; conSello?: boolean };
   logoUrl: string | null;
   /** Inicial de respaldo cuando no hay logo cargado. */
   inicial: string;
@@ -122,10 +154,10 @@ export function CabeceraFicha({
 }: Props) {
   const c = ACENTO[acento];
   const SelloIcono = selloEstado.icono;
-  // 5 secundarios + el principal del sello = 6, que es el máximo que tiene
-  // cualquier ficha: con este tope los rubros dejan de repetirse abajo en su
-  // propia sección.
-  const rubrosVisibles = rubros.slice(0, 5);
+  // Tope de 3: con más, el "+N" caía a un segundo renglón él solo. Tres chips
+  // más el contador entran en una línea al lado de la columna de datos, que es
+  // como se lee en el mockup.
+  const rubrosVisibles = rubros.slice(0, 3);
   const rubrosOcultos = rubros.length - rubrosVisibles.length;
 
   return (
@@ -153,7 +185,7 @@ export function CabeceraFicha({
         <div className="absolute inset-y-0 right-0 w-2/3 bg-gradient-to-l from-[#00182e]/75 via-[#00182e]/35 to-transparent" />
       </div>
 
-      <div className="p-5 sm:p-7 lg:p-9">
+      <div className="p-5 sm:p-6 lg:p-8">
         {/* ── 1. Sellos ──────────────────────────────────────────────────
             `sm:pr-56` reserva el hueco del CTA, que a partir de sm se ancla
             arriba a la derecha en vez de compartir esta fila. */}
@@ -172,14 +204,18 @@ export function CabeceraFicha({
               {rubroPrincipal}
             </span>
           )}
-          <span className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.15em] text-white sm:text-[10px]">
-            <SelloIcono className={`h-3 w-3 ${c.icono}`} />
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-white/10 py-1 pl-1.5 pr-2.5 text-[11px] font-bold uppercase tracking-[0.15em] text-white sm:text-[10px]">
+            {selloEstado.conSello ? (
+              <SelloVerificado className="h-4 w-4" />
+            ) : (
+              <SelloIcono className={`h-3 w-3 ${c.icono}`} />
+            )}
             {selloEstado.texto}
           </span>
         </div>
 
         {/* ── 2. Identidad + datos duros ─────────────────────────────────── */}
-        <div className="mt-6 flex flex-col gap-7 lg:mt-8 lg:flex-row lg:items-start lg:gap-10">
+        <div className="mt-5 flex flex-col gap-6 lg:mt-6 lg:flex-row lg:items-start lg:gap-10">
           {/* En mobile el logo va ARRIBA y no al costado: al costado le comía
               100px a la columna de texto y los chips de rubro caían en una
               tira de uno por renglón contra el borde derecho. */}
@@ -191,8 +227,8 @@ export function CabeceraFicha({
             <div
               className={`grid shrink-0 place-items-center overflow-hidden bg-white shadow-lg shadow-black/20 ${
                 logoRedondo
-                  ? "h-20 w-20 rounded-full sm:h-24 sm:w-24"
-                  : "h-20 w-20 rounded-xl p-3 sm:h-24 sm:w-24 sm:rounded-2xl sm:p-4 lg:h-28 lg:w-28"
+                  ? "h-20 w-20 rounded-full sm:h-24 sm:w-24 lg:h-32 lg:w-32"
+                  : "h-20 w-20 rounded-xl p-3 sm:h-24 sm:w-24 sm:rounded-2xl sm:p-4 lg:h-36 lg:w-36 lg:p-5"
               }`}
             >
               {logoUrl ? (
@@ -211,7 +247,7 @@ export function CabeceraFicha({
             </div>
 
             <div className="w-full min-w-0 flex-1">
-              <h1 className="font-manrope text-2xl font-black leading-[1.08] tracking-tight text-white sm:text-3xl lg:text-[2.6rem]">
+              <h1 className="font-manrope text-2xl font-black leading-[1.05] tracking-tight text-white sm:text-3xl lg:text-[2.9rem]">
                 {nombre}
               </h1>
 
@@ -286,7 +322,7 @@ export function CabeceraFicha({
                 return (
                   <div
                     key={d.etiqueta}
-                    className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-b-0"
+                    className="flex items-baseline justify-between gap-4 border-b border-white/8 py-1.5 last:border-b-0"
                   >
                     <dt className="inline-flex shrink-0 items-center gap-2 text-[12.5px] text-white/50">
                       <Icono className="h-3.5 w-3.5 shrink-0" />
@@ -319,17 +355,30 @@ export function CabeceraFicha({
             `-ml-px -mt-px` deja los divisores entre celdas y recorta los del
             borde contra el `overflow-hidden` del contenedor. */}
         {metricas.length > 0 && (
-          <div className="mt-7 overflow-hidden rounded-xl border border-white/12 bg-[#00182e]/70 backdrop-blur-sm">
+          <div className="mt-6 overflow-hidden rounded-xl border border-white/12 bg-[#00182e]/70 backdrop-blur-sm">
             <div className="-ml-px -mt-px flex flex-wrap">
               {metricas.map((m) => {
                 const Icono = m.icono;
                 return (
                   <div
                     key={m.etiqueta}
-                    className="flex min-w-[9.5rem] flex-1 items-center gap-3 border-l border-t border-white/10 px-3.5 py-3.5 sm:px-4"
+                    className="flex min-w-[9.5rem] flex-1 items-center gap-3 border-l border-t border-white/10 px-3.5 py-3 sm:px-4 lg:justify-center"
                   >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/10">
-                      <Icono className={`h-4 w-4 ${c.icono}`} />
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/10">
+                      {m.conSello ? (
+                        <SelloVerificado className="h-5 w-5" />
+                      ) : m.imagen ? (
+                        <Image
+                          src={m.imagen}
+                          alt=""
+                          width={128}
+                          height={128}
+                          className="h-[18px] w-[18px] object-contain"
+                          aria-hidden
+                        />
+                      ) : (
+                        <Icono className={`h-4 w-4 ${c.icono}`} />
+                      )}
                     </span>
                     {/* Sin `truncate`: en 390px "Productos y servicios" salía
                         "Productos y …", que no dice nada. Que envuelva. */}
