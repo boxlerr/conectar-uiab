@@ -524,6 +524,134 @@ function jsonLdOrganizacion(opts: {
   return jsonLd;
 }
 
+type RubroConLanding = { nombre: string; href: string | null };
+type EmpresaHermana = {
+  nombre: string;
+  slug: string;
+  localidad: string | null;
+  rubro: string | null;
+};
+
+/**
+ * Rubros de la ficha con su landing, si la tienen.
+ *
+ * Los chips ya traían el anchor text perfecto ("Automatización y Robótica",
+ * "Ingeniería y Consultoría Técnica") pero eran <span>: texto de enlace
+ * escrito y desperdiciado en las 59 fichas. `landingDeCategoria` además
+ * colapsa los slugs fragmentados del catálogo —los cuatro de informática, los
+ * tres de electricidad— contra la MISMA landing.
+ */
+function rubrosConLandingDe(empresaDb: any): RubroConLanding[] {
+  return (empresaDb.empresas_categorias || [])
+    .map((ec: any) => ec.categorias)
+    .filter((c: any) => c?.nombre)
+    .map((c: any) => {
+      const landing = landingDeCategoria(c.slug);
+      return { nombre: c.nombre as string, href: landing ? `/rubros/${landing.slug}` : null };
+    });
+}
+
+/**
+ * Empresas hermanas: otras socias que comparten alguna categoría.
+ *
+ * Las 59 fichas eran hojas terminales — 0 enlaces salientes a otras fichas—,
+ * así que todo el enlace interno entraba por /directorio y no circulaba. Con
+ * esto cada ficha reparte hacia 4-6 pares del mismo rubro, que además es
+ * navegación genuinamente útil para quien está comparando proveedores.
+ *
+ * Se filtra en memoria sobre la lista que la página ya tenía cargada: cero
+ * queries nuevas.
+ *
+ * VIVE ACÁ, EN LA PÁGINA, Y NO ADENTRO DE `EmpresaProfile`. Antes la lista
+ * completa de 59 socias —con sus categorías y etiquetas anidadas— viajaba como
+ * prop al componente hijo, y en `next dev` eso rompía el render: la ficha
+ * devolvía 500 con `TypeError: frame.join is not a function`, un error del
+ * serializador de errores de Next que además tapaba al verdadero. Pasar sólo
+ * el resultado (6 filas de 4 campos) lo arregla y de paso saca ese peso del
+ * payload RSC.
+ */
+function empresasHermanasDe(
+  empresaDb: any,
+  todasLasEmpresas: any[],
+  rubrosConLanding: RubroConLanding[]
+): EmpresaHermana[] {
+  const slugsCategoria = new Set<string>(
+    (empresaDb.empresas_categorias || [])
+      .map((ec: any) => ec.categorias?.slug)
+      .filter(Boolean)
+  );
+
+  const candidatas = (todasLasEmpresas || []).filter(
+    (e: any) => e.id !== empresaDb.id && !esEmpresaInstitucional(e.id) && e.razon_social
+  );
+
+  const datosRubro = (e: any) => ({
+    categoriaSlugs: (e.empresas_categorias || [])
+      .map((ec: any) => ec.categorias?.slug)
+      .filter(Boolean),
+    tags: (e.empresas_tags || []).map((et: any) => et.tags?.nombre).filter(Boolean),
+  });
+
+  // Primero por categoría exacta compartida. Después, si no llega a 6, se
+  // completa con la landing de rubro: el catálogo de categorías está
+  // fragmentado (los cuatro slugs de informática son cuatro filas distintas
+  // para el mismo rubro), así que el match exacto solo deja fichas como Vaxler
+  // con uno o dos pares cuando en realidad comparte rubro con varias más.
+  const porCategoria = candidatas.filter((e: any) =>
+    (e.empresas_categorias || []).some((ec: any) => slugsCategoria.has(ec.categorias?.slug))
+  );
+  const landing = rubrosConLanding.find((r) => r.href);
+  const rubroDeLanding = landing
+    ? RUBROS_SEO.find((r) => `/rubros/${r.slug}` === landing.href)
+    : undefined;
+  const porLanding = rubroDeLanding
+    ? candidatas.filter((e: any) => perteneceAlRubro(rubroDeLanding, datosRubro(e)))
+    : [];
+
+  return Array.from(
+    new Map([...porCategoria, ...porLanding].map((e: any) => [e.id, e])).values()
+  )
+    .sort((a: any, b: any) =>
+      a.razon_social.localeCompare(b.razon_social, "es", { sensitivity: "base" })
+    )
+    .slice(0, 6)
+    .map((e: any) => ({
+      nombre: e.razon_social as string,
+      slug: crearSlug(e.razon_social),
+      localidad: (e.localidad as string) || null,
+      rubro: (e.empresas_categorias || [])[0]?.categorias?.nombre ?? null,
+    }));
+}
+
+/**
+ * Copia plana de una fila antes de cruzarla a un Server Component hijo.
+ *
+ * En `next dev` (Next 16.1.6 + Turbopack), pasar las filas que devuelve
+ * supabase-js directamente como prop a `EmpresaProfile` / `ProveedorProfile`
+ * hacía que el render tirara 500. El error real era
+ * `TypeError: Object prototype may only be an Object or null: undefined`,
+ * dentro del serializador de debug info que Next arma para cada Server
+ * Component — y encima el formateador de errores se rompía sobre eso con
+ * `frame.join is not a function`, así que en pantalla sólo se veía "Algo no
+ * cargó como esperábamos" y en consola un stack 100% de frames de Next.
+ *
+ * En producción (`next start`) nunca pasó: es del pipeline de desarrollo. Pero
+ * dejaba las 59 fichas inaccesibles en local para cualquiera sin sesión, que
+ * es justo cómo se las mira mientras se trabaja en ellas.
+ *
+ * `structuredClone` corta la identidad compartida entre lo que se serializa
+ * acá y lo que ya viajó en el mismo render. No es gratis (~59 filas → 1), pero
+ * es una copia por request de un objeto chico.
+ *
+ * Las otras dos mitades del mismo problema ya están resueltas por diseño: el
+ * cliente de Supabase se crea adentro de cada componente en vez de viajar por
+ * prop, y las empresas hermanas se calculan en la página para no mandar la
+ * tabla entera.
+ */
+function filaSerializable<T>(fila: T): T {
+  return structuredClone(fila);
+}
+
 export default async function EmpresaProfilePage({
   params,
 }: {
@@ -624,22 +752,26 @@ export default async function EmpresaProfilePage({
 
     return (
       <ProveedorProfile
-        provDb={provDb}
-        supabase={supabase}
+        provDb={filaSerializable(provDb)}
         isAuthenticated={isAuthenticated}
         currentPath={`/empresas/${slug}`}
       />
     );
   }
 
+  // `empresasData` ya está en memoria: la página trae la tabla entera para
+  // resolver el slug (no hay columna `slug`, así que no se puede filtrar en
+  // SQL). Aprovecharla para las empresas hermanas no cuesta una query más —
+  // pero el cálculo se hace ACÁ y baja sólo el resultado. Ver el comentario
+  // largo de `empresasHermanasDe`.
+  const rubrosConLanding = rubrosConLandingDe(empresaDb);
+  const hermanas = empresasHermanasDe(empresaDb, empresasData ?? [], rubrosConLanding);
+
   return (
     <EmpresaProfile
-      empresaDb={empresaDb}
-      // `empresasData` ya está en memoria: la página trae la tabla entera para
-      // resolver el slug (no hay columna `slug`, así que no se puede filtrar en
-      // SQL). Aprovecharla para las empresas hermanas no cuesta una query más.
-      todasLasEmpresas={empresasData ?? []}
-      supabase={supabase}
+      empresaDb={filaSerializable(empresaDb)}
+      rubrosConLanding={rubrosConLanding}
+      hermanas={hermanas}
       isAuthenticated={isAuthenticated}
       currentPath={`/empresas/${slug}`}
     />
@@ -651,98 +783,32 @@ export default async function EmpresaProfilePage({
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function EmpresaProfile({
   empresaDb,
-  todasLasEmpresas,
-  supabase,
+  rubrosConLanding,
+  hermanas,
   isAuthenticated,
   currentPath,
 }: {
   empresaDb: any;
-  todasLasEmpresas: any[];
-  supabase: any;
+  rubrosConLanding: RubroConLanding[];
+  hermanas: EmpresaHermana[];
   isAuthenticated: boolean;
   currentPath: string;
 }) {
+  /**
+   * El cliente se construye ACÁ y no llega por prop.
+   *
+   * Pasarlo desde la página rompía el render en `next dev`: un cliente de
+   * Supabase no es un valor serializable, y el serializador de debug info que
+   * Next 16 arma para cada Server Component se caía con
+   * `TypeError: Object prototype may only be an Object or null` — que a su vez
+   * disparaba `frame.join is not a function` en el formateador de errores, así
+   * que lo único que se veía era la pantalla de "Algo no cargó". No cuesta
+   * nada: `createAdminClient` sólo lee dos variables de entorno.
+   */
+  const supabase = createAdminClient();
   const cats = empresaDb.empresas_categorias?.map((ec: any) => ec.categorias?.nombre) || [];
   const mainCat = cats.length > 0 ? cats[0] : "General";
 
-  /**
-   * Rubros de la ficha con su landing, si la tienen.
-   *
-   * Los chips ya traían el anchor text perfecto ("Automatización y Robótica",
-   * "Ingeniería y Consultoría Técnica") pero eran <span>: texto de enlace
-   * escrito y desperdiciado en las 59 fichas. `landingDeCategoria` además
-   * colapsa los slugs fragmentados del catálogo —los cuatro de informática, los
-   * tres de electricidad— contra la MISMA landing.
-   */
-  const rubrosConLanding: { nombre: string; href: string | null }[] = (
-    empresaDb.empresas_categorias || []
-  )
-    .map((ec: any) => ec.categorias)
-    .filter((c: any) => c?.nombre)
-    .map((c: any) => {
-      const landing = landingDeCategoria(c.slug);
-      return { nombre: c.nombre as string, href: landing ? `/rubros/${landing.slug}` : null };
-    });
-
-  /**
-   * Empresas hermanas: otras socias que comparten alguna categoría.
-   *
-   * Las 59 fichas eran hojas terminales — 0 enlaces salientes a otras fichas—,
-   * así que todo el enlace interno entraba por /directorio y no circulaba. Con
-   * esto cada ficha reparte hacia 4-6 pares del mismo rubro, que además es
-   * navegación genuinamente útil para quien está comparando proveedores.
-   *
-   * Se filtra en memoria sobre la lista que la página ya tenía cargada: cero
-   * queries nuevas.
-   */
-  const slugsCategoria = new Set<string>(
-    (empresaDb.empresas_categorias || [])
-      .map((ec: any) => ec.categorias?.slug)
-      .filter(Boolean)
-  );
-
-  const candidatas = (todasLasEmpresas || []).filter(
-    (e: any) => e.id !== empresaDb.id && !esEmpresaInstitucional(e.id) && e.razon_social
-  );
-
-  const datosRubro = (e: any) => ({
-    categoriaSlugs: (e.empresas_categorias || [])
-      .map((ec: any) => ec.categorias?.slug)
-      .filter(Boolean),
-    tags: (e.empresas_tags || []).map((et: any) => et.tags?.nombre).filter(Boolean),
-  });
-
-  // Primero por categoría exacta compartida. Después, si no llega a 6, se
-  // completa con la landing de rubro: el catálogo de categorías está
-  // fragmentado (los cuatro slugs de informática son cuatro filas distintas
-  // para el mismo rubro), así que el match exacto solo deja fichas como Vaxler
-  // con uno o dos pares cuando en realidad comparte rubro con varias más.
-  const porCategoria = candidatas.filter((e: any) =>
-    (e.empresas_categorias || []).some((ec: any) => slugsCategoria.has(ec.categorias?.slug))
-  );
-  const landing = rubrosConLanding.find((r) => r.href);
-  const rubroDeLanding = landing
-    ? RUBROS_SEO.find((r) => `/rubros/${r.slug}` === landing.href)
-    : undefined;
-  const porLanding = rubroDeLanding
-    ? candidatas.filter((e: any) => perteneceAlRubro(rubroDeLanding, datosRubro(e)))
-    : [];
-
-  const hermanas = Array.from(
-    new Map(
-      [...porCategoria, ...porLanding].map((e: any) => [e.id, e])
-    ).values()
-  )
-    .sort((a: any, b: any) =>
-      a.razon_social.localeCompare(b.razon_social, "es", { sensitivity: "base" })
-    )
-    .slice(0, 6)
-    .map((e: any) => ({
-      nombre: e.razon_social as string,
-      slug: crearSlug(e.razon_social),
-      localidad: (e.localidad as string) || null,
-      rubro: (e.empresas_categorias || [])[0]?.categorias?.nombre ?? null,
-    }));
   const logoUrl = empresaDb.bucket_logo && empresaDb.ruta_logo
     ? supabase.storage.from(empresaDb.bucket_logo).getPublicUrl(empresaDb.ruta_logo).data.publicUrl
     : null;
@@ -1405,15 +1471,15 @@ async function EmpresaProfile({
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function ProveedorProfile({
   provDb,
-  supabase,
   isAuthenticated,
   currentPath,
 }: {
   provDb: any;
-  supabase: any;
   isAuthenticated: boolean;
   currentPath: string;
 }) {
+  // Ver el comentario de EmpresaProfile: el cliente no viaja por prop.
+  const supabase = createAdminClient();
   const displayName =
     provDb.nombre_comercial ||
     [provDb.nombre, provDb.apellido].filter(Boolean).join(" ") ||
