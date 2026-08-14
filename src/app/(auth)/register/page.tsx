@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn, normalizarSitioWeb } from '@/lib/utilidades'
 import { LOCALIDADES_ALMIRANTE_BROWN, PROVINCIAS_AR } from '@/lib/datos/geografia-ar'
 import { useAuth } from '@/modulos/autenticacion/contexto-autenticacion'
-import { PRECIO_MENSUAL, PRECIO_ANUAL } from '@/lib/mercadopago/suscripciones'
+import { PRECIO_MENSUAL, PRECIO_ANUAL } from '@/lib/suscripciones/modelo'
 import { validarEspecialidadLibre } from '@/modulos/compartido/especialidades'
 
 // Mismo número que se muestra en la landing para el plan anual: comparar

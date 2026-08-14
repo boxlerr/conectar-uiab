@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sumarUnMes, nombrePlan } from "@/lib/mercadopago/suscripciones";
+import { proximoCobro, nombrePlan, type CicloSuscripcion } from "@/lib/suscripciones/modelo";
 import { enviarEmail } from "@/lib/email/cliente";
 import { plantillaPagoManualRegistrado } from "@/lib/email/plantillas-suscripciones";
 import { notificarEntidad } from "@/modulos/notificaciones/acciones";
@@ -13,14 +13,20 @@ import { notificarEntidad } from "@/modulos/notificaciones/acciones";
  * {
  *   empresa_id?: string,
  *   proveedor_id?: string,
- *   metodo: 'efectivo' | 'cheque' | 'cortesia',
+ *   metodo: 'transferencia' | 'efectivo' | 'cheque' | 'cortesia',
+ *   ciclo?: 'mensual' | 'anual',
  *   monto: number,
  *   pagado_en: string (ISO),
  *   nota?: string
  * }
  *
- * Registra un pago cargado en persona por el admin y deja la suscripción activa
- * por un mes a partir de la fecha de pago. Sólo admins.
+ * Registra un pago cargado en persona por el admin —transferencia, efectivo,
+ * cheque— y deja la suscripción activa hasta el próximo vencimiento. Sólo admins.
+ *
+ * `ciclo` no es opcional de verdad: sin él, un pago anual de $500.000 quedaba
+ * con `proximo_cobro_en` a 30 días y el cron lo mandaba a mora al mes, con mail
+ * de deuda incluido. Se acepta ausente sólo para no romper llamadas viejas, y
+ * cae en 'mensual'.
  */
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -37,13 +43,14 @@ export async function POST(req: NextRequest) {
   if (!body) return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   const { empresa_id, proveedor_id, metodo, monto, pagado_en, nota } = body as {
     empresa_id?: string; proveedor_id?: string;
-    metodo: "efectivo" | "cheque" | "cortesia";
+    metodo: "transferencia" | "efectivo" | "cheque" | "cortesia";
     monto: number; pagado_en: string; nota?: string;
   };
+  const ciclo: CicloSuscripcion = body.ciclo === "anual" ? "anual" : "mensual";
   if ((!empresa_id && !proveedor_id) || !metodo || !monto || !pagado_en) {
     return NextResponse.json({ error: "Parámetros incompletos" }, { status: 400 });
   }
-  if (!["efectivo", "cheque", "cortesia"].includes(metodo)) {
+  if (!["transferencia", "efectivo", "cheque", "cortesia"].includes(metodo)) {
     return NextResponse.json({ error: "Método inválido" }, { status: 400 });
   }
 
@@ -59,14 +66,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (!sus) {
-    // Determinar plan base
-    let plan = "UIAB Conecta";
-    if (empresa_id) {
-      const { data: e } = await admin.from("empresas").select("tarifa").eq("id", empresa_id).maybeSingle();
-      plan = nombrePlan("company", e?.tarifa ?? null);
-    } else {
-      plan = nombrePlan("provider");
-    }
+    // El plan ya no depende de la tarifa ni del rol: sale del ciclo y nada más.
     const { data: nueva, error: errIns } = await admin
       .from("suscripciones")
       .insert({
@@ -74,9 +74,10 @@ export async function POST(req: NextRequest) {
         proveedor_id,
         monto,
         moneda: "ARS",
-        nombre_plan: plan,
+        nombre_plan: nombrePlan(ciclo),
         estado: "activa",
         metodo_pago: metodo,
+        ciclo,
       })
       .select("id, nombre_plan")
       .single();
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
     sus = nueva;
   }
 
-  const proximo = sumarUnMes(new Date(pagado_en)).toISOString();
+  const proximo = proximoCobro(ciclo, new Date(pagado_en)).toISOString();
 
   // Pago manual
   const { error: errPago } = await admin.from("pagos_suscripciones").insert({
@@ -106,8 +107,14 @@ export async function POST(req: NextRequest) {
   await admin
     .from("suscripciones")
     .update({
-      estado: metodo === "cortesia" ? "activa" : "activa",
+      estado: "activa",
       metodo_pago: metodo,
+      // El ciclo se escribe SIEMPRE: si la fila venía de un alta ('mensual' por
+      // defecto) y el admin registra el pago de un año, dejarlo como estaba hacía
+      // que el socio viera "$500.000 /mes" y que el cron lo venciera a los 30 días.
+      ciclo,
+      monto,
+      nombre_plan: nombrePlan(ciclo),
       proximo_cobro_en: proximo,
       gracia_hasta: null,
       notas_admin: nota || null,
@@ -132,8 +139,9 @@ export async function POST(req: NextRequest) {
   if (email) {
     const p = plantillaPagoManualRegistrado({
       nombre, email,
-      plan: sus.nombre_plan || "UIAB Conecta",
+      plan: nombrePlan(ciclo),
       monto,
+      ciclo,
       metodo,
       pagadoEn: pagado_en,
       proximoCobro: proximo,

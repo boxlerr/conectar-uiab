@@ -19,7 +19,7 @@ import { marcarTourVisto, resetearTour } from "./acciones";
 import { proximoPasoMostrable } from "./salteo-pasos";
 import type { TourId } from "./tipos";
 import { createClient } from "@/lib/supabase/cliente";
-import { ESTADOS_CON_ACCESO } from "@/lib/mercadopago/suscripciones";
+import { ESTADOS_CON_ACCESO } from "@/lib/suscripciones/modelo";
 import { crearSlug } from "@/lib/utilidades";
 import { toast } from "sonner";
 

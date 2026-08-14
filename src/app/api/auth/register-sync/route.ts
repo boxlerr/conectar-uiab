@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { enviarEmail, emailAdmin, appUrl } from '@/lib/email/cliente'
 import { plantillaNotificacionAdmin } from '@/lib/email/plantillas'
 import { plantillaSuscripcionPendiente } from '@/lib/email/plantillas-suscripciones'
-import { calcularMontoMensual, nombrePlan } from '@/lib/mercadopago/suscripciones'
+import { calcularMontoMensual, nombrePlan } from '@/lib/suscripciones/modelo'
 import { normalizarSitioWeb } from '@/lib/utilidades'
 import { buscarEnPadron, type EmpresaDelPadron } from '@/modulos/altas/buscar-en-padron'
 import {

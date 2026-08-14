@@ -9,41 +9,47 @@ import { Input } from "@/components/ui/input";
 import { Loader2, X, Banknote } from "lucide-react";
 import { toast } from "sonner";
 
-import { TARIFA_PRECIO_MENSUAL_FALLBACK, PRECIO_PARTICULAR_MENSUAL } from "@/lib/mercadopago/suscripciones";
+import {
+  PRECIOS_POR_DEFECTO,
+  montoPorCiclo,
+  type CicloSuscripcion,
+  type Precios,
+} from "@/lib/suscripciones/modelo";
 
-type EmpresaLite = { id: string; razon_social: string; tarifa?: number | null };
+type EmpresaLite = { id: string; razon_social: string };
 type ProveedorLite = { id: string; nombre: string; apellido: string | null };
+
+/** Cómo cobra la UIAB de verdad. La transferencia es el caso normal. */
+type MetodoPago = "transferencia" | "efectivo" | "cheque" | "cortesia";
 
 
 export function ModalPagoManual({
   empresas,
   proveedores,
-  preciosPorNivel,
+  precios = PRECIOS_POR_DEFECTO,
   onClose,
 }: {
   empresas: EmpresaLite[];
   proveedores: ProveedorLite[];
-  preciosPorNivel?: Record<number, number>;
+  precios?: Precios;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [tipo, setTipo] = useState<"empresa" | "proveedor">("empresa");
   const [entidadId, setEntidadId] = useState("");
-  const [metodo, setMetodo] = useState<"efectivo" | "cheque" | "cortesia">("efectivo");
-  const [monto, setMonto] = useState<string>("");
+  const [metodo, setMetodo] = useState<MetodoPago>("transferencia");
+  const [ciclo, setCiclo] = useState<CicloSuscripcion>("mensual");
+  // El monto sale del ciclo, que es lo único de lo que depende el precio ahora.
+  // Antes se autocargaba desde `empresas.tarifa`, y a las fichas sin nivel les
+  // dejaba el campo vacío para que el admin adivinara.
+  const [monto, setMonto] = useState<string>(String(montoPorCiclo("mensual", precios)));
   const [pagadoEn, setPagadoEn] = useState<string>(new Date().toISOString().slice(0, 10));
   const [nota, setNota] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const precios = preciosPorNivel ?? TARIFA_PRECIO_MENSUAL_FALLBACK;
-
-  function autoMonto(id: string, t: "empresa" | "proveedor") {
-    if (t === "proveedor") {
-      setMonto(String(PRECIO_PARTICULAR_MENSUAL));
-      return;
-    }
-    const emp = empresas.find((e) => e.id === id);
-    if (emp?.tarifa) setMonto(String(precios[emp.tarifa] ?? TARIFA_PRECIO_MENSUAL_FALLBACK[emp.tarifa] ?? 0));
+  function elegirCiclo(nuevo: CicloSuscripcion) {
+    setCiclo(nuevo);
+    setMonto(String(montoPorCiclo(nuevo, precios)));
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -61,6 +67,7 @@ export function ModalPagoManual({
           empresa_id: tipo === "empresa" ? entidadId : undefined,
           proveedor_id: tipo === "proveedor" ? entidadId : undefined,
           metodo,
+          ciclo,
           monto: Number(monto),
           pagado_en: new Date(pagadoEn).toISOString(),
           nota: nota || undefined,
@@ -118,7 +125,7 @@ export function ModalPagoManual({
               required
               placeholder="Seleccionar..."
               value={entidadId}
-              onValueChange={(v) => { setEntidadId(v); autoMonto(v, tipo); }}
+              onValueChange={setEntidadId}
               className="mt-1 w-full h-10 rounded border border-slate-200 px-3 text-sm"
               options={
                 tipo === "empresa"
@@ -137,6 +144,7 @@ export function ModalPagoManual({
                 onValueChange={(v) => setMetodo(v as any)}
                 className="mt-1 w-full h-10 rounded border border-slate-200 px-3 text-sm"
                 options={[
+                  { value: "transferencia", label: "Transferencia" },
                   { value: "efectivo", label: "Efectivo" },
                   { value: "cheque", label: "Cheque" },
                   { value: "cortesia", label: "Cortesía" },
@@ -150,10 +158,41 @@ export function ModalPagoManual({
           </div>
 
           <div>
+            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Qué está pagando</label>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              {([
+                { valor: "mensual" as const, titulo: "Un mes", detalle: montoPorCiclo("mensual", precios) },
+                { valor: "anual" as const, titulo: "Un año", detalle: montoPorCiclo("anual", precios) },
+              ]).map((op) => (
+                <button
+                  key={op.valor}
+                  type="button"
+                  onClick={() => elegirCiclo(op.valor)}
+                  className={`py-2 px-3 rounded border text-left transition-colors ${
+                    ciclo === op.valor
+                      ? "border-primary-500 bg-primary-50"
+                      : "border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  <span className={`block text-sm font-semibold ${ciclo === op.valor ? "text-primary-700" : "text-slate-700"}`}>
+                    {op.titulo}
+                  </span>
+                  <span className="block text-xs text-slate-500">
+                    ${op.detalle.toLocaleString("es-AR")}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 mt-1.5">
+              Define hasta cuándo queda al día. Un pago anual vence recién dentro de 12 meses.
+            </p>
+          </div>
+
+          <div>
             <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Monto (ARS)</label>
             <Input type="number" min={0} step={1} value={monto} onChange={(e) => setMonto(e.target.value)} required className="mt-1" />
             <p className="text-xs text-slate-500 mt-1">
-              Se autocarga según la tarifa de la entidad. Podés ajustarlo si corresponde.
+              Viene del plan elegido. Ajustalo si se acordó otra cosa.
             </p>
           </div>
 

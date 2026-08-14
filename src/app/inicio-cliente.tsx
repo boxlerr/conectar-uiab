@@ -27,7 +27,7 @@ import { PreviewDirectorio } from "@/components/ui/directorio/preview-directorio
 import { SeccionBeneficios } from "@/components/ui/directorio/seccion-beneficios";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { useRouter } from "next/navigation";
-import { PRECIO_MENSUAL, PRECIO_ANUAL } from "@/lib/mercadopago/suscripciones";
+import { PRECIO_MENSUAL, PRECIO_ANUAL } from "@/lib/suscripciones/modelo";
 
 /* ─── Animations ─── */
 const fadeUp = {

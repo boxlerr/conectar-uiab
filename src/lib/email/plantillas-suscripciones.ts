@@ -26,7 +26,23 @@ export interface DatosSuscripcionComun {
   email: string;
   plan: string;
   monto: number;
+  /**
+   * Sin esto, todas las plantillas rotulaban el importe como "Monto mensual".
+   * Con el plan anual eso es falso: el que paga $500.000 por doce meses recibía
+   * un correo diciéndole que ése era su costo por mes.
+   */
+  ciclo?: "mensual" | "anual";
   entidad: "empresa" | "particular";
+}
+
+/** "Monto mensual" / "Monto anual", según lo que realmente se cobró. */
+function rotuloMonto(ciclo?: "mensual" | "anual"): string {
+  return ciclo === "anual" ? "Monto anual" : "Monto mensual";
+}
+
+/** "$50.000 por mes" / "$500.000 por año". */
+function montoConPeriodo(monto: number, ciclo?: "mensual" | "anual"): string {
+  return `${formatARS(monto)} ${ciclo === "anual" ? "por año" : "por mes"}`;
 }
 
 // ─── 1. Completar pago (tras registro) ──────────────────────────────────────
@@ -39,10 +55,9 @@ export function plantillaSuscripcionPendiente(d: DatosSuscripcionComun & {
     <p style="margin: 0 0 16px 0;">Para activar tu perfil y aparecer en el directorio, resta un último paso: completar el pago de tu suscripción.</p>
     ${tarjetaDatos([
       { etiqueta: "Plan", valor: d.plan },
-      { etiqueta: "Monto mensual", valor: formatARS(d.monto) },
-      { etiqueta: "Método", valor: "Mercado Pago (tarjeta recurrente)" },
+      { etiqueta: rotuloMonto(d.ciclo), valor: formatARS(d.monto) },
     ])}
-    <p style="margin: 20px 0 0 0;">Tu suscripción se renovará automáticamente. Podés cancelarla en cualquier momento desde tu perfil.</p>
+    <p style="margin: 20px 0 0 0;">Desde la UIAB te contactamos para coordinar el cobro. Cuando registremos el pago, tu perfil queda publicado.</p>
   `;
   return {
     asunto: "Completá tu suscripción a UIAB Conecta",
@@ -75,7 +90,7 @@ export function plantillaPagoConfirmado(d: DatosSuscripcionComun & {
     <p style="margin: 0 0 16px 0;">Hola <strong>${d.nombre}</strong>, recibimos tu pago correctamente. Tu suscripción a UIAB Conecta está <strong>activa</strong>.</p>
     ${tarjetaDatos([
       { etiqueta: "Plan", valor: d.plan },
-      { etiqueta: "Monto", valor: formatARS(d.monto) },
+      { etiqueta: rotuloMonto(d.ciclo), valor: montoConPeriodo(d.monto, d.ciclo) },
       { etiqueta: "Método", valor: nombreMetodo },
       { etiqueta: "Fecha de pago", valor: formatFecha(d.pagadoEn) },
       { etiqueta: "Próximo cobro", valor: formatFecha(d.proximoCobro) },
@@ -103,6 +118,7 @@ export function plantillaPagoConfirmadoAdmin(d: {
   email: string;
   plan: string;
   monto: number;
+  ciclo?: "mensual" | "anual";
   pagadoEn: Date | string;
   referenciaPago?: string | null;
   entidad: "empresa" | "particular";
@@ -116,7 +132,7 @@ export function plantillaPagoConfirmadoAdmin(d: {
       { etiqueta: d.entidad === "empresa" ? "Razón social" : "Nombre", valor: d.nombre },
       { etiqueta: "Email", valor: d.email },
       { etiqueta: "Plan", valor: d.plan },
-      { etiqueta: "Monto", valor: formatARS(d.monto) },
+      { etiqueta: rotuloMonto(d.ciclo), valor: montoConPeriodo(d.monto, d.ciclo) },
       { etiqueta: "Fecha de pago", valor: formatFecha(d.pagadoEn) },
       ...(d.referenciaPago ? [{ etiqueta: "Referencia MP", valor: d.referenciaPago }] : []),
     ])}
@@ -135,7 +151,7 @@ export function plantillaPagoConfirmadoAdmin(d: {
     texto: [
       `Pago recibido — ${d.nombre}`,
       `Plan: ${d.plan}`,
-      `Monto: ${formatARS(d.monto)}`,
+      `Monto: ${montoConPeriodo(d.monto, d.ciclo)}`,
       `Fecha: ${formatFecha(d.pagadoEn)}`,
       "",
       `Revisá en el panel: ${appUrl()}/admin/empresas`,
@@ -153,7 +169,7 @@ export function plantillaPagoFallido(d: DatosSuscripcionComun & {
     <p style="margin: 0 0 16px 0;">Hola <strong>${d.nombre}</strong>, tuvimos un problema al procesar el cobro de tu suscripción.</p>
     ${tarjetaDatos([
       { etiqueta: "Plan", valor: d.plan },
-      { etiqueta: "Monto", valor: formatARS(d.monto) },
+      { etiqueta: rotuloMonto(d.ciclo), valor: montoConPeriodo(d.monto, d.ciclo) },
       { etiqueta: "Motivo", valor: d.motivo || "Rechazado por el emisor de la tarjeta" },
     ])}
     <p style="margin: 20px 0 0 0;">Te sugerimos actualizar el medio de pago. Si no se puede resolver en los próximos 7 días, tu perfil quedará suspendido temporalmente.</p>
@@ -206,7 +222,7 @@ export function plantillaRecordatorioVencimiento(d: DatosSuscripcionComun & {
     <p style="margin: 0 0 16px 0;">Hola <strong>${d.nombre}</strong>, tu próximo cobro de UIAB Conecta es el <strong>${formatFecha(d.venceEn)}</strong>.</p>
     ${tarjetaDatos([
       { etiqueta: "Plan", valor: d.plan },
-      { etiqueta: "Monto", valor: formatARS(d.monto) },
+      { etiqueta: rotuloMonto(d.ciclo), valor: montoConPeriodo(d.monto, d.ciclo) },
     ])}
     <p style="margin: 20px 0 0 0;">Si tu medio de pago está al día, no tenés que hacer nada. Te avisamos por si querés anticiparte.</p>
   `;
@@ -219,7 +235,7 @@ export function plantillaRecordatorioVencimiento(d: DatosSuscripcionComun & {
       cuerpo,
       cta: { etiqueta: "Ver mi suscripción", href: `${appUrl()}/perfil/suscripcion` },
     }),
-    texto: `Tu suscripción se renueva el ${formatFecha(d.venceEn)} por ${formatARS(d.monto)}. Verla en ${appUrl()}/perfil/suscripcion`,
+    texto: `Tu suscripción se renueva el ${formatFecha(d.venceEn)} por ${montoConPeriodo(d.monto, d.ciclo)}. Verla en ${appUrl()}/perfil/suscripcion`,
   };
 }
 
@@ -232,7 +248,7 @@ export function plantillaSuscripcionSuspendida(d: DatosSuscripcionComun): {
     <p style="margin: 0 0 16px 0;">Hola <strong>${d.nombre}</strong>, tu acceso a UIAB Conecta fue <strong>suspendido</strong> por falta de pago.</p>
     ${tarjetaDatos([
       { etiqueta: "Plan", valor: d.plan },
-      { etiqueta: "Monto adeudado", valor: formatARS(d.monto) },
+      { etiqueta: "Monto adeudado", valor: montoConPeriodo(d.monto, d.ciclo) },
     ])}
     <p style="margin: 20px 0 0 0;">Tu perfil ya no aparece en el directorio. Regularizá tu pago para reactivarlo de forma inmediata.</p>
   `;
@@ -252,7 +268,7 @@ export function plantillaSuscripcionSuspendida(d: DatosSuscripcionComun): {
 // ─── 7. Pago manual registrado (por admin) ──────────────────────────────────
 
 export function plantillaPagoManualRegistrado(d: DatosSuscripcionComun & {
-  metodo: "efectivo" | "cheque" | "cortesia";
+  metodo: "transferencia" | "efectivo" | "cheque" | "cortesia";
   pagadoEn: Date | string;
   proximoCobro: Date | string;
   nota?: string | null;
@@ -262,7 +278,7 @@ export function plantillaPagoManualRegistrado(d: DatosSuscripcionComun & {
     <p style="margin: 0 0 16px 0;">Hola <strong>${d.nombre}</strong>, registramos tu pago de forma manual desde el panel UIAB.</p>
     ${tarjetaDatos([
       { etiqueta: "Plan", valor: d.plan },
-      { etiqueta: "Monto", valor: formatARS(d.monto) },
+      { etiqueta: rotuloMonto(d.ciclo), valor: montoConPeriodo(d.monto, d.ciclo) },
       { etiqueta: "Método", valor: nombreMetodo },
       { etiqueta: "Fecha", valor: formatFecha(d.pagadoEn) },
       { etiqueta: "Próximo cobro", valor: formatFecha(d.proximoCobro) },

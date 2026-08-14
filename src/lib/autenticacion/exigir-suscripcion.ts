@@ -1,6 +1,6 @@
 import { createClient as createClienteSSR } from "@/lib/supabase/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { tieneAcceso } from "@/lib/mercadopago/suscripciones";
+import { tieneAcceso } from "@/lib/suscripciones/modelo";
 
 /**
  * Guard de suscripción para Server Actions.

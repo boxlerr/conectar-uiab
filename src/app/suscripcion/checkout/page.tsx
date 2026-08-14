@@ -11,7 +11,7 @@ import {
   PRECIO_MENSUAL,
   PRECIO_ANUAL,
   type CicloSuscripcion,
-} from "@/lib/mercadopago/suscripciones";
+} from "@/lib/suscripciones/modelo";
 
 const formatARS = (n: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
@@ -58,7 +58,7 @@ function CheckoutContenido() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/mercadopago/crear-preapproval", {
+      const res = await fetch("/api/suscripcion/solicitar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ciclo }),

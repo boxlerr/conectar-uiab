@@ -3,8 +3,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { createClient as createClienteSSR } from "@/lib/supabase/servidor";
 import { revalidatePath } from "next/cache";
-import { NivelTarifa } from "@/tipos";
 import { exigirAdmin } from "@/lib/autenticacion/exigir-admin";
+import { CLAVE_PRECIOS, validarPrecios } from "@/lib/suscripciones/precios";
 import {
   limpiarNombreEtiqueta,
   normalizarTexto,
@@ -128,41 +128,49 @@ export async function rechazarEmpresa(empresaId: string, motivo: string) {
   return { success: true };
 }
 
-export async function asignarTarifa(empresaId: string, tarifa: NivelTarifa) {
+/**
+ * Cambia el precio de la suscripción — el único que hay.
+ *
+ * Reemplaza a `actualizarPrecioTarifa(nivel, ...)`, que editaba una de las tres
+ * filas de `tarifas_precios` y no movía nada: lo que se cobraba salía de una
+ * constante del código. Ahora la base es la fuente y esto la escribe.
+ */
+export async function actualizarPrecios(mensual: number, anual: number) {
   const noAutorizado = await exigirAdmin();
   if (noAutorizado) return noAutorizado;
+
+  const invalido = validarPrecios(mensual, anual);
+  if (invalido) return { error: invalido };
 
   const { error } = await adminClient()
-    .from("empresas")
-    .update({ tarifa })
-    .eq("id", empresaId);
+    .from("configuraciones_sistema")
+    .upsert(
+      {
+        clave: CLAVE_PRECIOS,
+        valor: { mensual: Math.round(mensual), anual: Math.round(anual) },
+        descripcion:
+          "Precio único de la suscripción, en pesos. `anual` es el pago de una vez por 12 meses.",
+        actualizado_en: new Date().toISOString(),
+      },
+      { onConflict: "clave" }
+    );
+
   if (error) return { error: error.message };
-  revalidatePath("/admin/empresas");
-  revalidatePath("/admin/suscripciones");
-  return { success: true };
-}
 
-export async function actualizarPrecioTarifa(nivel: 1 | 2 | 3, precioMensual: number, vigenteHasta?: string | null) {
-  const noAutorizado = await exigirAdmin();
-  if (noAutorizado) return noAutorizado;
-
-  if (!Number.isFinite(precioMensual) || precioMensual <= 0) {
-    return { error: "Precio inválido" };
+  // El precio se muestra en media plataforma: la home, el registro, el checkout,
+  // el panel del socio y el del admin.
+  for (const ruta of [
+    "/",
+    "/admin",
+    "/admin/suscripciones",
+    "/perfil/suscripcion",
+    "/suscripcion/checkout",
+    "/pendiente-aprobacion",
+    "/sumate",
+    "/nosotros",
+  ]) {
+    revalidatePath(ruta);
   }
-  const update: Record<string, unknown> = {
-    precio_mensual: precioMensual,
-    actualizado_en: new Date().toISOString(),
-  };
-  if (vigenteHasta !== undefined) update.vigente_hasta = vigenteHasta;
-
-  const { error } = await adminClient()
-    .from("tarifas_precios")
-    .update(update)
-    .eq("nivel", nivel);
-  if (error) return { error: error.message };
-  revalidatePath("/admin/suscripciones");
-  revalidatePath("/admin");
-  revalidatePath("/perfil/suscripcion");
   return { success: true };
 }
 

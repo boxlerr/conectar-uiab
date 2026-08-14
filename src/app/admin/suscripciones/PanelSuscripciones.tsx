@@ -1,991 +1,505 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { SelectUIAB } from "@/components/ui/select-uiab";
 import {
-  DollarSign,
-  TrendingUp,
-  Building,
-  Wrench,
-  Search,
-  Download,
-  Users,
-  Pencil,
-  Check,
-  X,
-  Calendar,
-  Banknote,
+  Banknote, Building, Wrench, Search, Pencil, Check, X, Gift,
+  AlertTriangle, CalendarClock, Wallet, TrendingUp,
 } from "lucide-react";
 import { ModalPagoManual } from "./ModalPagoManual";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { SelectUIAB } from "@/components/ui/select-uiab";
+import { actualizarPrecios } from "@/modulos/admin/acciones";
+import { fallo, llamarAccion } from "@/lib/accion-segura";
+import { toast } from "sonner";
 import {
-  asignarTarifa,
-  actualizarCantidadEmpleados,
-  actualizarPrecioTarifa,
-  actualizarSuscripcionParticular,
-} from "@/modulos/admin/acciones";
-import { NivelTarifa } from "@/tipos";
-import { llamarAccion } from "@/lib/accion-segura";
+  aporteAnual,
+  aporteMensual,
+  ahorroAnual,
+  equivalenteMensual,
+  mesesGratis,
+  type Precios,
+} from "@/lib/suscripciones/modelo";
 
-type Empresa = {
+export type FilaSocio = {
   id: string;
-  razon_social: string;
-  email: string;
-  estado: string;
-  tarifa: number | null;
-  cantidad_empleados: number | null;
-  tarifa_vigente_hasta: string | null;
-  creado_en: string;
-  logo_url?: string | null;
-};
-
-type SuscripcionParticular = {
-  id: string;
-  estado: string | null;
-  monto: number | null;
-  metodo_pago: string | null;
-  proximo_cobro_en: string | null;
-};
-
-type Proveedor = {
-  id: string;
+  tipo: "empresa" | "particular";
   nombre: string;
-  apellido: string | null;
-  email: string;
-  estado: string;
-  creado_en: string;
-  suscripcion?: SuscripcionParticular | null;
+  email: string | null;
+  /** Socia de la UIAB: no paga, tiene acceso de cortesía. */
+  esSociaUiab: boolean;
+  creadoEn: string;
+  logoUrl: string | null;
+  estadoSuscripcion: string | null;
+  monto: number;
+  ciclo: string | null;
+  metodoPago: string | null;
+  proximoCobro: string | null;
+  graciaHasta: string | null;
 };
 
-type Pago = {
+export type Pago = {
   id: string;
   empresa_id: string | null;
   proveedor_id: string | null;
   monto: number | string | null;
   moneda: string | null;
   estado: string | null;
+  metodo_pago: string | null;
   pagado_en: string | null;
   creado_en: string;
 };
 
-type Tarifa = {
-  nivel: number;
-  precio_mensual: number | string;
-  vigente_desde: string;
-  vigente_hasta: string | null;
-  actualizado_en: string;
-};
-
-const TARIFA_LABEL: Record<number, string> = { 1: "Tarifa 1", 2: "Tarifa 2", 3: "Tarifa 3" };
-const TARIFA_RANGO: Record<number, string> = {
-  1: "Hasta 30 empleados",
-  2: "31 a 99 empleados",
-  3: "100+ empleados",
-};
-const TARIFA_CHIP: Record<number, string> = {
-  1: "bg-slate-100 text-slate-700",
-  2: "bg-blue-100 text-blue-700",
-  3: "bg-amber-100 text-amber-700",
-};
-
-const formatCurrency = (amount: number) =>
+const pesos = (n: number) =>
   new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(n);
 
-const formatCurrencyCompact = (amount: number) => {
-  if (amount >= 1_000_000)
-    return `$${(amount / 1_000_000).toLocaleString("es-AR", { maximumFractionDigits: 1 })}M`;
-  if (amount >= 1_000)
-    return `$${(amount / 1_000).toLocaleString("es-AR", { maximumFractionDigits: 0 })}K`;
-  return formatCurrency(amount);
+const pesosCorto = (n: number) => {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toLocaleString("es-AR", { maximumFractionDigits: 1 })}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toLocaleString("es-AR", { maximumFractionDigits: 0 })}K`;
+  return pesos(n);
 };
 
-function calcTarifaSugerida(emp: number | null): NivelTarifa | null {
-  if (emp == null || emp <= 0) return null;
-  if (emp <= 30) return 1;
-  if (emp <= 99) return 2;
-  return 3;
+const fecha = (d: string | null) =>
+  d ? new Date(d).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
+/** Cortesía, al día, vencido o sin suscripción: lo que hay que ver de un vistazo. */
+type Situacion = "cortesia" | "al_dia" | "vence_pronto" | "en_mora" | "sin_pagar" | "sin_suscripcion";
+
+function situacionDe(s: FilaSocio): Situacion {
+  if (!s.estadoSuscripcion) return "sin_suscripcion";
+  if (s.esSociaUiab || s.metodoPago === "cortesia" || (s.estadoSuscripcion === "activa" && s.monto === 0)) {
+    return "cortesia";
+  }
+  if (s.estadoSuscripcion === "en_mora") return "en_mora";
+  if (s.estadoSuscripcion !== "activa") return "sin_pagar";
+  if (s.proximoCobro) {
+    const dias = (new Date(s.proximoCobro).getTime() - Date.now()) / 86_400_000;
+    if (dias < 0) return "en_mora";
+    if (dias <= 15) return "vence_pronto";
+  }
+  return "al_dia";
 }
 
+const SITUACION: Record<Situacion, { label: string; chip: string }> = {
+  cortesia:        { label: "Cortesía UIAB", chip: "bg-violet-100 text-violet-700" },
+  al_dia:          { label: "Al día", chip: "bg-emerald-100 text-emerald-700" },
+  vence_pronto:    { label: "Vence pronto", chip: "bg-amber-100 text-amber-700" },
+  en_mora:         { label: "Vencida", chip: "bg-rose-100 text-rose-700" },
+  sin_pagar:       { label: "Sin pagar", chip: "bg-slate-200 text-slate-600" },
+  sin_suscripcion: { label: "Sin suscripción", chip: "bg-orange-100 text-orange-700" },
+};
+
+type Filtro = "todos" | "pagando" | "cortesia" | "problema";
+
 export function PanelSuscripciones({
-  empresas,
-  proveedores,
-  pagos = [],
-  tarifas = [],
+  socios,
+  pagos,
+  precios,
 }: {
-  empresas: Empresa[];
-  proveedores: Proveedor[];
-  pagos?: Pago[];
-  tarifas?: Tarifa[];
+  socios: FilaSocio[];
+  pagos: Pago[];
+  precios: Precios;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [filtroTipo, setFiltroTipo] = useState<"company" | "provider">("company");
   const [busqueda, setBusqueda] = useState("");
-  const [editandoEmpleados, setEditandoEmpleados] = useState<string | null>(null);
-  const [empleadosDraft, setEmpleadosDraft] = useState<string>("");
-  const [editandoPrecio, setEditandoPrecio] = useState<number | null>(null);
-  const [precioDraft, setPrecioDraft] = useState<string>("");
-  const [mostrarModalPagoManual, setMostrarModalPagoManual] = useState(false);
-  const [editandoSusParticular, setEditandoSusParticular] = useState<string | null>(null);
-  const [montoProvDraft, setMontoProvDraft] = useState<string>("");
-  const [estadoProvDraft, setEstadoProvDraft] = useState<string>("");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [modalPago, setModalPago] = useState(false);
+  const [editandoPrecio, setEditandoPrecio] = useState(false);
+  const [mensualDraft, setMensualDraft] = useState(String(precios.mensual));
+  const [anualDraft, setAnualDraft] = useState(String(precios.anual));
 
-  const [mesSeleccionado, setMesSeleccionado] = useState<string>(() => {
+  const [mes, setMes] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
 
-  // Precios actuales (mapa nivel → monto mensual)
-  const precioPorNivel = useMemo(() => {
-    const map: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
-    tarifas.forEach((t) => {
-      map[t.nivel] = Number(t.precio_mensual) || 0;
-    });
-    return map;
-  }, [tarifas]);
+  function refresh() { startTransition(() => router.refresh()); }
 
-  const tarifaInfo = useMemo(() => {
-    const map: Record<number, Tarifa | undefined> = {};
-    tarifas.forEach((t) => {
-      map[t.nivel] = t;
-    });
-    return map;
-  }, [tarifas]);
+  // ── Plata de verdad ────────────────────────────────────────────────────────
+  //
+  // Sólo suman las suscripciones activas CON monto. Las de cortesía valen 0 por
+  // definición y contarlas como ingreso era lo que inflaba la cifra vieja.
+  const conSuscripcion = socios.filter((s) => s.estadoSuscripcion);
+  const pagando = socios.filter((s) => situacionDe(s) !== "cortesia" && s.estadoSuscripcion === "activa" && s.monto > 0);
+  const cortesia = socios.filter((s) => situacionDe(s) === "cortesia");
+  const conProblema = socios.filter((s) => ["en_mora", "sin_pagar", "sin_suscripcion"].includes(situacionDe(s)));
 
-  const montoMensualEmpresa = (e: Empresa): number =>
-    e.tarifa ? precioPorNivel[e.tarifa] ?? 0 : 0;
+  const ingresoMensual = pagando.reduce((acc, s) => acc + aporteMensual(s.monto, s.ciclo), 0);
+  const ingresoAnual = pagando.reduce((acc, s) => acc + aporteAnual(s.monto, s.ciclo), 0);
+  const enAnual = pagando.filter((s) => s.ciclo === "anual").length;
 
-  function refresh() {
-    startTransition(() => router.refresh());
-  }
-
-  async function handleAsignarTarifa(empresaId: string, tarifa: NivelTarifa) {
-    await llamarAccion(() => asignarTarifa(empresaId, tarifa));
-    refresh();
-  }
-
-  async function handleGuardarEmpleados(empresaId: string) {
-    const n = parseInt(empleadosDraft.replace(/\D/g, ""), 10);
-    await llamarAccion(() => actualizarCantidadEmpleados(empresaId, Number.isFinite(n) && n > 0 ? n : null));
-    setEditandoEmpleados(null);
-    setEmpleadosDraft("");
-    refresh();
-  }
-
-  async function handleGuardarPrecio(nivel: 1 | 2 | 3) {
-    const n = parseInt(precioDraft.replace(/\D/g, ""), 10);
-    if (!Number.isFinite(n) || n <= 0) return;
-    await llamarAccion(() => actualizarPrecioTarifa(nivel, n));
-    setEditandoPrecio(null);
-    setPrecioDraft("");
-    refresh();
-  }
-
-  async function handleGuardarSusParticular(proveedorId: string) {
-    const monto = parseInt(montoProvDraft.replace(/\D/g, ""), 10);
-    const datos: { estado?: string; monto?: number } = {};
-    if (estadoProvDraft) datos.estado = estadoProvDraft;
-    if (Number.isFinite(monto) && monto > 0) datos.monto = monto;
-    await llamarAccion(() => actualizarSuscripcionParticular(proveedorId, datos));
-    setEditandoSusParticular(null);
-    setMontoProvDraft("");
-    setEstadoProvDraft("");
-    refresh();
-  }
-
-  // Métricas
-  const ingresosParticulares = proveedores.reduce(
-    (acc, p) => acc + (Number(p.suscripcion?.monto) || 0),
-    0
-  );
-  const ingresosMensual = empresas.reduce((acc, e) => acc + montoMensualEmpresa(e), 0) + ingresosParticulares;
-  const ingresosAnuales = ingresosMensual * 12;
-  const sinTarifa = empresas.filter((e) => !e.tarifa).length;
-  const conTarifa = empresas.filter((e) => e.tarifa).length;
+  const cobradoTotal = pagos
+    .filter((p) => p.estado === "aprobado" || p.estado === "acreditado")
+    .reduce((acc, p) => acc + (Number(p.monto) || 0), 0);
 
   const metricas = [
     {
-      label: "Ingreso Mensual Estimado",
-      valor: ingresosMensual,
-      sub: `${conTarifa} socios con tarifa asignada`,
+      label: "Ingreso mensual real",
+      valor: pesosCorto(ingresoMensual),
+      sub: pagando.length === 0
+        ? "Todavía no hay ninguna suscripción paga"
+        : `${pagando.length} ${pagando.length === 1 ? "socio abonando" : "socios abonando"}${enAnual ? ` · ${enAnual} en anual` : ""}`,
       icon: TrendingUp,
       accent: "bg-primary-50 text-primary-700",
     },
     {
-      label: "Ingreso Anual Proyectado",
-      valor: ingresosAnuales,
-      sub: "Mensual × 12 meses",
-      icon: DollarSign,
+      label: "Proyección a 12 meses",
+      valor: pesosCorto(ingresoAnual),
+      sub: "Según el ciclo de cada uno, no mensual × 12",
+      icon: CalendarClock,
       accent: "bg-blue-50 text-blue-700",
     },
     {
-      label: "Socios Activos",
-      valor: empresas.length,
-      sub: `${sinTarifa} sin tarifa asignada`,
-      icon: Building,
+      label: "Cobrado hasta hoy",
+      valor: pesosCorto(cobradoTotal),
+      sub: pagos.length === 0 ? "No hay pagos registrados" : `${pagos.length} ${pagos.length === 1 ? "pago" : "pagos"} en el historial`,
+      icon: Wallet,
       accent: "bg-emerald-50 text-emerald-700",
-      isCount: true,
     },
     {
-      label: "Particulares activos",
-      valor: proveedores.length,
-      sub: "Aprobados en la plataforma",
-      icon: Wrench,
+      label: "Sin cargo",
+      valor: String(cortesia.length),
+      sub: "Socias UIAB con acceso de cortesía",
+      icon: Gift,
       accent: "bg-violet-50 text-violet-700",
-      isCount: true,
     },
   ];
 
-  const empresasFiltradas = empresas.filter(
-    (e) =>
-      !busqueda ||
-      e.razon_social.toLowerCase().includes(busqueda.toLowerCase()) ||
-      e.email.toLowerCase().includes(busqueda.toLowerCase())
-  );
-  const proveedoresFiltrados = proveedores.filter(
-    (p) =>
-      !busqueda ||
-      `${p.nombre} ${p.apellido ?? ""}`.toLowerCase().includes(busqueda.toLowerCase()) ||
-      p.email.toLowerCase().includes(busqueda.toLowerCase())
-  );
+  // ── Listado ────────────────────────────────────────────────────────────────
+  const filtrados = socios.filter((s) => {
+    const q = busqueda.trim().toLowerCase();
+    const coincide = !q || s.nombre.toLowerCase().includes(q) || (s.email ?? "").toLowerCase().includes(q);
+    if (!coincide) return false;
+    const sit = situacionDe(s);
+    if (filtro === "pagando") return sit === "al_dia" || sit === "vence_pronto";
+    if (filtro === "cortesia") return sit === "cortesia";
+    if (filtro === "problema") return ["en_mora", "sin_pagar", "sin_suscripcion"].includes(sit);
+    return true;
+  });
 
+  const TABS: { key: Filtro; label: string }[] = [
+    { key: "problema", label: `A resolver (${conProblema.length})` },
+    { key: "pagando", label: `Abonando (${pagando.length})` },
+    { key: "cortesia", label: `Cortesía (${cortesia.length})` },
+    { key: "todos", label: `Todos (${socios.length})` },
+  ];
+
+  // ── Pagos por mes ──────────────────────────────────────────────────────────
   const mesesDisponibles = useMemo(() => {
     const set = new Set<string>();
     pagos.forEach((p) => {
       const d = p.pagado_en ? new Date(p.pagado_en) : new Date(p.creado_en);
       set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     });
-    set.add(mesSeleccionado);
+    set.add(mes);
     return Array.from(set).sort().reverse();
-  }, [pagos, mesSeleccionado]);
+  }, [pagos, mes]);
 
-  const pagosDelMes = useMemo(() => {
-    return pagos.filter((p) => {
-      const d = p.pagado_en ? new Date(p.pagado_en) : new Date(p.creado_en);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      return key === mesSeleccionado;
-    });
-  }, [pagos, mesSeleccionado]);
-
+  const pagosDelMes = pagos.filter((p) => {
+    const d = p.pagado_en ? new Date(p.pagado_en) : new Date(p.creado_en);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` === mes;
+  });
   const totalMes = pagosDelMes.reduce((acc, p) => acc + (Number(p.monto) || 0), 0);
+  const nombrePorId = useMemo(
+    () => Object.fromEntries(socios.map((s) => [s.id, s.nombre])),
+    [socios]
+  );
 
-  const empresasById = useMemo(
-    () => Object.fromEntries(empresas.map((e) => [e.id, e])),
-    [empresas]
-  );
-  const proveedoresById = useMemo(
-    () => Object.fromEntries(proveedores.map((p) => [p.id, p])),
-    [proveedores]
-  );
+  async function guardarPrecios() {
+    const m = parseInt(mensualDraft.replace(/\D/g, ""), 10);
+    const a = parseInt(anualDraft.replace(/\D/g, ""), 10);
+    const res = await llamarAccion(() => actualizarPrecios(m, a));
+    if (fallo(res)) {
+      toast.error("No se pudo guardar el precio", { description: res.error });
+      return;
+    }
+    toast.success("Precio actualizado", {
+      description: "Ya se ve así en la home, el registro y el panel de cada socio.",
+    });
+    setEditandoPrecio(false);
+    refresh();
+  }
+
+  const preciosDraft: Precios = {
+    mensual: parseInt(mensualDraft.replace(/\D/g, ""), 10) || 0,
+    anual: parseInt(anualDraft.replace(/\D/g, ""), 10) || 0,
+  };
+  const preciosMostrados = editandoPrecio ? preciosDraft : precios;
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header editorial */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400 mb-2">
             Administración · Finanzas
           </p>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
-            Suscripciones y Tarifas
-          </h1>
-          <p className="text-slate-500 mt-2 max-w-xl text-sm">
-            Tarifas vigentes hasta mayo 2026. Ajuste trimestral por IPC. Los cambios de precio
-            impactan a todos los socios del nivel.
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">Suscripciones</h1>
+          <p className="text-slate-500 mt-2 max-w-2xl text-sm">
+            Una sola suscripción para todos: {pesos(precios.mensual)} por mes, o {pesos(precios.anual)} por
+            año. Las socias de la UIAB tienen acceso sin cargo.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="default"
-            className="gap-2"
-            onClick={() => setMostrarModalPagoManual(true)}
-          >
-            <Banknote className="w-4 h-4" />
-            Registrar pago manual
-          </Button>
-          <Button variant="outline" className="gap-2 bg-white hidden sm:flex" disabled>
-            <Download className="w-4 h-4" />
-            Exportar Reporte
-          </Button>
-        </div>
+        <Button className="gap-2" onClick={() => setModalPago(true)}>
+          <Banknote className="w-4 h-4" />
+          Registrar pago
+        </Button>
       </div>
 
-      {mostrarModalPagoManual && (
+      {modalPago && (
         <ModalPagoManual
-          empresas={empresas.map((e) => ({ id: e.id, razon_social: e.razon_social, tarifa: e.tarifa }))}
-          proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, apellido: p.apellido }))}
-          preciosPorNivel={precioPorNivel}
-          onClose={() => setMostrarModalPagoManual(false)}
+          empresas={socios.filter((s) => s.tipo === "empresa").map((s) => ({ id: s.id, razon_social: s.nombre }))}
+          proveedores={socios.filter((s) => s.tipo === "particular").map((s) => ({ id: s.id, nombre: s.nombre, apellido: null }))}
+          precios={precios}
+          onClose={() => setModalPago(false)}
         />
       )}
 
-      {/* Métricas — responsive numerics, no overflow */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metricas.map((m) => {
-          const Icon = m.icon;
-          const display = m.isCount
-            ? String(m.valor)
-            : formatCurrency(Number(m.valor));
-          return (
-            <div
-              key={m.label}
-              className="bg-white rounded-lg p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-100 min-w-0"
-            >
-              <div className="flex items-start gap-3 mb-4">
-                <div
-                  className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${m.accent}`}
-                >
-                  <Icon className="w-5 h-5" />
-                </div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mt-2">
-                  {m.label}
-                </p>
+        {metricas.map((m) => (
+          <Card key={m.label} className="p-5 shadow-sm border-slate-100">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{m.label}</p>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${m.accent}`}>
+                <m.icon className="w-4 h-4" />
               </div>
-              <p
-                className="font-bold text-slate-900 tabular-nums leading-tight break-words"
-                style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.75rem)" }}
-                title={display}
-              >
-                {display}
-              </p>
-              <p className="text-xs text-slate-400 mt-1.5">{m.sub}</p>
             </div>
-          );
-        })}
+            <p className="text-3xl font-bold text-slate-900 mt-3 tracking-tight">{m.valor}</p>
+            <p className="text-xs text-slate-400 mt-1 leading-snug">{m.sub}</p>
+          </Card>
+        ))}
       </div>
 
-      {/* Precios editables por nivel */}
-      <section>
-        <div className="flex items-baseline justify-between mb-4">
+      {/* ── El precio, que ahora sí es el que se cobra ── */}
+      <Card className="p-6 shadow-sm border-slate-100">
+        <div className="flex items-start justify-between gap-4 mb-5">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-              Precios vigentes
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Editar impacta el cálculo de ingresos y lo que ve cada socio en su panel.
+            <h2 className="text-lg font-bold text-slate-900">Precio vigente</h2>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Lo que ve todo el mundo: la home, el registro, el checkout y el panel de cada socio.
             </p>
           </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {([1, 2, 3] as const).map((nivel) => {
-            const precio = precioPorNivel[nivel] ?? 0;
-            const info = tarifaInfo[nivel];
-            const count = empresas.filter((e) => e.tarifa === nivel).length;
-            const subtotal = count * precio;
-            const isEditing = editandoPrecio === nivel;
-
-            return (
-              <div
-                key={nivel}
-                className="bg-white rounded-lg p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-100 min-w-0"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span
-                    className={`text-[11px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${TARIFA_CHIP[nivel]}`}
-                  >
-                    {TARIFA_LABEL[nivel]}
-                  </span>
-                  {!isEditing ? (
-                    <button
-                      onClick={() => {
-                        setEditandoPrecio(nivel);
-                        setPrecioDraft(String(precio));
-                      }}
-                      className="text-xs text-slate-500 hover:text-primary-600 flex items-center gap-1 group"
-                      disabled={isPending}
-                    >
-                      <Pencil className="w-3 h-3" />
-                      Editar
-                    </button>
-                  ) : null}
-                </div>
-
-                <p className="text-xs text-slate-500 mb-3">{TARIFA_RANGO[nivel]}</p>
-
-                {isEditing ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-lg font-bold text-slate-900">$</span>
-                      <Input
-                        autoFocus
-                        type="text"
-                        inputMode="numeric"
-                        value={precioDraft}
-                        onChange={(ev) =>
-                          setPrecioDraft(ev.target.value.replace(/\D/g, ""))
-                        }
-                        className="h-10 text-lg font-bold tabular-nums"
-                      />
-                      <span className="text-xs text-slate-500 whitespace-nowrap">/mes</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleGuardarPrecio(nivel)}
-                        disabled={isPending}
-                        className="h-8"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Guardar
-                      </Button>
-                      <button
-                        onClick={() => {
-                          setEditandoPrecio(null);
-                          setPrecioDraft("");
-                        }}
-                        className="text-xs text-slate-500 hover:text-slate-700 px-2 h-8"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-baseline gap-1 mb-1 min-w-0">
-                    <p
-                      className="font-bold text-slate-900 tabular-nums tracking-tight leading-none"
-                      style={{ fontSize: "clamp(1.5rem, 2.5vw, 2rem)" }}
-                      title={formatCurrency(precio)}
-                    >
-                      {formatCurrency(precio)}
-                    </p>
-                    <span className="text-xs text-slate-400 whitespace-nowrap">/mes</span>
-                  </div>
-                )}
-
-                <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <p className="text-[11px] sm:text-[10px] uppercase tracking-wider text-slate-400 mb-0.5">
-                      Socios
-                    </p>
-                    <p className="font-semibold text-slate-700 tabular-nums">{count}</p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] sm:text-[10px] uppercase tracking-wider text-slate-400 mb-0.5">
-                      Subtotal/mes
-                    </p>
-                    <p
-                      className="font-semibold text-slate-700 tabular-nums truncate"
-                      title={formatCurrency(subtotal)}
-                    >
-                      {formatCurrencyCompact(subtotal)}
-                    </p>
-                  </div>
-                </div>
-
-                {info?.vigente_hasta ? (
-                  <p className="text-[11px] sm:text-[10px] text-slate-400 mt-3">
-                    Vigente hasta{" "}
-                    {new Date(info.vigente_hasta).toLocaleDateString("es-AR", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Pagos por mes */}
-      <Card className="p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-100 border-0">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-primary-600" />
-            <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-              Pagos por mes
-            </h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <SelectUIAB
-              ariaLabel="Mes"
-              value={mesSeleccionado}
-              onValueChange={(v) => setMesSeleccionado(v)}
-              className="h-9 px-3 rounded-md bg-slate-50 text-sm font-semibold text-slate-700"
-              options={mesesDisponibles.map((m) => {
-                const [y, mo] = m.split("-");
-                const label = new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString(
-                  "es-AR",
-                  { month: "long", year: "numeric" }
-                );
-                return { value: m, label };
-              })}
-            />
-            <div className="text-right">
-              <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Total recaudado
-              </p>
-              <p className="text-lg font-bold text-emerald-600 tabular-nums">
-                {formatCurrency(totalMes)}
-              </p>
+          {editandoPrecio ? (
+            <div className="flex gap-2 shrink-0">
+              <Button size="sm" variant="outline" onClick={() => {
+                setEditandoPrecio(false);
+                setMensualDraft(String(precios.mensual));
+                setAnualDraft(String(precios.anual));
+              }}>
+                <X className="w-4 h-4" />
+              </Button>
+              <Button size="sm" onClick={guardarPrecios} disabled={isPending}>
+                <Check className="w-4 h-4 mr-1" /> Guardar
+              </Button>
             </div>
-          </div>
+          ) : (
+            <Button size="sm" variant="outline" className="shrink-0" onClick={() => setEditandoPrecio(true)}>
+              <Pencil className="w-4 h-4 mr-1.5" /> Editar
+            </Button>
+          )}
         </div>
 
-        <div className="overflow-x-auto">
-          {/* min-w: con w-full sola la tabla se comprime y el wrapper overflow-x-auto nunca llega a scrollear */}
-          <table className="w-full min-w-[720px]">
-            <thead>
-              <tr className="bg-slate-50/80">
-                <th className="px-4 py-3 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                  Fecha
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                  Socio / Particular
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                  Monto
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                  Estado
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white">
-              {pagosDelMes.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-10 text-center text-sm text-slate-400"
-                  >
-                    Sin pagos registrados en este mes.
-                  </td>
-                </tr>
-              ) : (
-                pagosDelMes.map((p) => {
-                  const fecha = p.pagado_en ?? p.creado_en;
-                  const emp = p.empresa_id ? empresasById[p.empresa_id] : null;
-                  const prov = p.proveedor_id ? proveedoresById[p.proveedor_id] : null;
-                  const nombre =
-                    emp?.razon_social ?? (prov ? `${prov.nombre} ${prov.apellido ?? ""}` : "—");
-                  return (
-                    <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 tabular-nums">
-                        {new Date(fecha).toLocaleDateString("es-AR", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
-                        {nombre}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700 font-semibold tabular-nums">
-                        {formatCurrency(Number(p.monto) || 0)} {p.moneda ?? "ARS"}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`text-[11px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${
-                            p.estado === "aprobado" || p.estado === "aprobada"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-amber-50 text-amber-700"
-                          }`}
-                        >
-                          {p.estado ?? "pendiente"}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-xl border border-slate-200 p-5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Mensual</p>
+            {editandoPrecio ? (
+              <Input
+                type="number" min={0} step={1000} value={mensualDraft}
+                onChange={(e) => setMensualDraft(e.target.value)}
+                className="text-2xl font-bold h-12"
+              />
+            ) : (
+              <p className="text-3xl font-bold text-slate-900">
+                {pesos(precios.mensual)}<span className="text-base font-medium text-slate-400"> /mes</span>
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-primary-200 bg-primary-50/40 p-5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-primary-500 mb-2">Anual</p>
+            {editandoPrecio ? (
+              <Input
+                type="number" min={0} step={1000} value={anualDraft}
+                onChange={(e) => setAnualDraft(e.target.value)}
+                className="text-2xl font-bold h-12"
+              />
+            ) : (
+              <p className="text-3xl font-bold text-slate-900">
+                {pesos(precios.anual)}<span className="text-base font-medium text-slate-400"> /año</span>
+              </p>
+            )}
+            {preciosMostrados.mensual > 0 && preciosMostrados.anual > 0 && (
+              <p className="text-xs text-primary-700 mt-2 font-medium">
+                Equivale a {pesos(equivalenteMensual(preciosMostrados))}/mes ·{" "}
+                {mesesGratis(preciosMostrados) > 0
+                  ? `se ahorra ${pesos(ahorroAnual(preciosMostrados))}, o sea ${mesesGratis(preciosMostrados)} ${mesesGratis(preciosMostrados) === 1 ? "mes" : "meses"}`
+                  : "sin ahorro respecto de pagar mes a mes"}
+              </p>
+            )}
+          </div>
         </div>
       </Card>
 
-      {/* Filtros */}
-      <Card className="p-4 flex flex-col sm:flex-row gap-3 items-center shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-100 border-0">
-        <div className="relative flex-1 w-full">
+      {/* ── Socios ── */}
+      <Card className="p-3 flex flex-col lg:flex-row gap-3 lg:items-center shadow-sm border-slate-100">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre o email..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 rounded-md text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            value={busqueda} onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre o correo..."
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-md w-full sm:w-auto overflow-x-auto">
-          {(["company", "provider"] as const).map((tipo) => (
-            <button
-              key={tipo}
-              onClick={() => setFiltroTipo(tipo)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded whitespace-nowrap transition-all ${
-                filtroTipo === tipo
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {tipo === "company"
-                ? `Socios (${empresas.length})`
-                : `Particulares (${proveedores.length})`}
+        <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200 overflow-x-auto">
+          {TABS.map((t) => (
+            <button key={t.key} onClick={() => setFiltro(t.key)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-all ${
+                filtro === t.key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              }`}>
+              {t.label}
             </button>
           ))}
         </div>
       </Card>
 
-      {filtroTipo === "company" ? (
-        <Card className="shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-100 border-0 overflow-hidden">
-          <div className="overflow-x-auto">
-            {/* min-w: con w-full sola la tabla se comprime y el wrapper overflow-x-auto nunca llega a scrollear */}
-            <table className="w-full min-w-[720px]">
-              <thead>
-                <tr className="bg-slate-50/80">
-                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Empresa
-                  </th>
-                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Empleados
-                  </th>
-                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Tarifa
-                  </th>
-                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Mensual
-                  </th>
-                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Miembro desde
-                  </th>
-                  <th className="px-6 py-4 text-right text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Cambiar tarifa
-                  </th>
+      <Card className="shadow-sm border-slate-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px]">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/50">
+                <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Socio</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-40">Situación</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-40">Plan</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-40">Próximo vencimiento</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {filtrados.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-5 py-16 text-center text-slate-500">
+                    No hay socios con este filtro.
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white">
-                {empresasFiltradas.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                      No se encontraron empresas.
+              ) : filtrados.map((s) => {
+                const sit = situacionDe(s);
+                const cfg = SITUACION[sit];
+                return (
+                  <tr key={`${s.tipo}-${s.id}`} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2">
+                        {s.tipo === "empresa"
+                          ? <Building className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                          : <Wrench className="w-3.5 h-3.5 text-slate-300 shrink-0" />}
+                        <span className="font-semibold text-sm text-slate-900">{s.nombre}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[320px]">{s.email || "Sin correo"}</p>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${cfg.chip}`}>
+                        {cfg.label}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-sm">
+                      {sit === "cortesia" ? (
+                        <span className="text-slate-400">Sin cargo</span>
+                      ) : s.monto > 0 ? (
+                        <span className="text-slate-800 font-medium">
+                          {pesos(s.monto)}
+                          <span className="text-slate-400 font-normal">{s.ciclo === "anual" ? " /año" : " /mes"}</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-sm">
+                      {sit === "cortesia" ? (
+                        <span className="text-slate-300">—</span>
+                      ) : (
+                        <span className={sit === "en_mora" ? "text-rose-600 font-medium" : "text-slate-600"}>
+                          {fecha(s.proximoCobro)}
+                        </span>
+                      )}
                     </td>
                   </tr>
-                ) : (
-                  empresasFiltradas.map((e) => {
-                    const sugerida = calcTarifaSugerida(e.cantidad_empleados);
-                    const montoActual = montoMensualEmpresa(e);
-                    return (
-                      <tr
-                        key={e.id}
-                        className="hover:bg-slate-50/50 transition-colors align-top"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            {e.logo_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={e.logo_url}
-                                alt={e.razon_social}
-                                className="w-10 h-10 rounded-md object-cover bg-white ring-1 ring-slate-200"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-md bg-blue-50 flex items-center justify-center ring-1 ring-slate-200">
-                                <Building className="w-5 h-5 text-blue-600" />
-                              </div>
-                            )}
-                            <div>
-                              <p className="font-semibold text-slate-900 text-sm">
-                                {e.razon_social}
-                              </p>
-                              <p className="text-xs text-slate-500">{e.email}</p>
-                            </div>
-                          </div>
-                        </td>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {editandoEmpleados === e.id ? (
-                            <div className="flex items-center gap-1">
-                              <Input
-                                type="number"
-                                min={1}
-                                value={empleadosDraft}
-                                onChange={(ev) =>
-                                  setEmpleadosDraft(ev.target.value.replace(/\D/g, ""))
-                                }
-                                className="h-8 w-20 text-sm"
-                                autoFocus
-                              />
-                              <button
-                                onClick={() => handleGuardarEmpleados(e.id)}
-                                disabled={isPending}
-                                className="p-2.5 -m-1 text-emerald-600 hover:bg-emerald-50 rounded"
-                              >
-                                <Check className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditandoEmpleados(null);
-                                  setEmpleadosDraft("");
-                                }}
-                                className="p-2.5 -m-1 text-slate-400 hover:bg-slate-50 rounded"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setEditandoEmpleados(e.id);
-                                setEmpleadosDraft(String(e.cantidad_empleados ?? ""));
-                              }}
-                              className="flex items-center gap-2 group"
-                            >
-                              <Users className="w-4 h-4 text-slate-400" />
-                              <span className="text-sm font-semibold text-slate-700 tabular-nums">
-                                {e.cantidad_empleados ?? (
-                                  <span className="italic text-slate-400">sin dato</span>
-                                )}
-                              </span>
-                              {/* En touch no hay hover: sin esto no se ve que el dato sea editable */}
-                              <Pencil className="w-3 h-3 text-slate-300 opacity-100 lg:opacity-0 lg:group-hover:opacity-100" />
-                            </button>
-                          )}
-                        </td>
+      {/* ── Pagos ── */}
+      <Card className="shadow-sm border-slate-100 overflow-hidden">
+        <div className="p-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100">
+          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Banknote className="w-5 h-5 text-slate-400" /> Pagos registrados
+          </h2>
+          <div className="flex items-center gap-4">
+            <SelectUIAB
+              ariaLabel="Mes"
+              value={mes}
+              onValueChange={setMes}
+              className="h-9 rounded border border-slate-200 px-3 text-sm"
+              options={mesesDisponibles.map((m) => ({
+                value: m,
+                label: new Date(`${m}-01T12:00:00`).toLocaleDateString("es-AR", { month: "long", year: "numeric" }),
+              }))}
+            />
+            <div className="text-right">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total del mes</p>
+              <p className="text-lg font-bold text-emerald-600">{pesos(totalMes)}</p>
+            </div>
+          </div>
+        </div>
 
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {e.tarifa ? (
-                            <div className="flex flex-col gap-0.5">
-                              <span
-                                className={`text-[11px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest w-fit ${
-                                  TARIFA_CHIP[e.tarifa]
-                                }`}
-                              >
-                                {TARIFA_LABEL[e.tarifa]}
-                              </span>
-                              {sugerida && sugerida !== e.tarifa && (
-                                <span className="text-[11px] sm:text-[10px] text-amber-600 font-medium">
-                                  Sugerida por empleados: T{sugerida}
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-400 italic">Sin asignar</span>
-                          )}
-                        </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900 tabular-nums">
-                          {montoActual > 0 ? (
-                            formatCurrency(montoActual)
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500 tabular-nums">
-                          {new Date(e.creado_en).toLocaleDateString("es-AR", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {([1, 2, 3] as const).map((nivel) => (
-                              <button
-                                key={nivel}
-                                disabled={isPending || e.tarifa === nivel}
-                                onClick={() => handleAsignarTarifa(e.id, nivel)}
-                                className={`px-2.5 py-1 text-xs font-semibold rounded transition-all ${
-                                  e.tarifa === nivel
-                                    ? `${TARIFA_CHIP[nivel]} cursor-default`
-                                    : "bg-slate-50 text-slate-500 hover:bg-slate-100"
-                                }`}
-                              >
-                                T{nivel}
-                              </button>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
+        {pagosDelMes.length === 0 ? (
+          <div className="p-10 text-center">
+            <AlertTriangle className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+            <p className="text-slate-500 text-sm">No hay pagos registrados en este mes.</p>
+            <p className="text-slate-400 text-xs mt-1">
+              Cuando cobres una cuota, cargala con &laquo;Registrar pago&raquo; y la suscripción queda al día sola.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Socio</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Método</th>
+                  <th className="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Monto</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {pagosDelMes.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50/60">
+                    <td className="px-5 py-3 text-sm text-slate-600">{fecha(p.pagado_en ?? p.creado_en)}</td>
+                    <td className="px-5 py-3 text-sm font-medium text-slate-800">
+                      {nombrePorId[(p.empresa_id ?? p.proveedor_id) as string] ?? "—"}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-slate-500 capitalize">{p.metodo_pago ?? "—"}</td>
+                    <td className="px-5 py-3 text-sm text-right font-semibold text-slate-900">
+                      {pesos(Number(p.monto) || 0)}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        </Card>
-      ) : (
-        <Card className="shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-100 border-0 overflow-hidden">
-          <div className="overflow-x-auto">
-            {/* min-w: con w-full sola la tabla se comprime y el wrapper overflow-x-auto nunca llega a scrollear */}
-            <table className="w-full min-w-[720px]">
-              <thead>
-                <tr className="bg-slate-50/80">
-                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Particular
-                  </th>
-                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Monto mensual
-                  </th>
-                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Estado
-                  </th>
-                  <th className="px-6 py-4 text-left text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Registrado
-                  </th>
-                  <th className="px-6 py-4 text-right text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white">
-                {proveedoresFiltrados.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                      No se encontraron particulares.
-                    </td>
-                  </tr>
-                ) : (
-                  proveedoresFiltrados.map((p) => {
-                    const sus = p.suscripcion;
-                    const isEditing = editandoSusParticular === p.id;
-                    const estadoActual = sus?.estado ?? null;
-                    const montoActual = sus?.monto ? Number(sus.monto) : null;
+        )}
+      </Card>
 
-                    const estadoChip: Record<string, string> = {
-                      activa: "bg-emerald-50 text-emerald-700",
-                      pendiente_pago: "bg-amber-50 text-amber-700",
-                      en_mora: "bg-orange-50 text-orange-700",
-                      suspendida: "bg-rose-50 text-rose-700",
-                      cancelada: "bg-slate-100 text-slate-500",
-                    };
-                    const estadoLabel: Record<string, string> = {
-                      activa: "Activa",
-                      pendiente_pago: "Pendiente",
-                      en_mora: "En mora",
-                      suspendida: "Suspendida",
-                      cancelada: "Cancelada",
-                    };
-
-                    return (
-                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors align-middle">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center">
-                              <Wrench className="w-4 h-4 text-emerald-600" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-slate-900 text-sm">
-                                {p.nombre} {p.apellido ?? ""}
-                              </p>
-                              <p className="text-xs text-slate-500">{p.email}</p>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {isEditing ? (
-                            <div className="flex items-center gap-1">
-                              <span className="text-sm font-bold text-slate-700">$</span>
-                              <Input
-                                type="text"
-                                inputMode="numeric"
-                                value={montoProvDraft}
-                                onChange={(ev) =>
-                                  setMontoProvDraft(ev.target.value.replace(/\D/g, ""))
-                                }
-                                className="h-8 w-28 text-sm"
-                                autoFocus
-                              />
-                            </div>
-                          ) : (
-                            <span className="text-sm font-semibold text-slate-700 tabular-nums">
-                              {montoActual != null ? (
-                                formatCurrency(montoActual)
-                              ) : (
-                                <span className="text-slate-400 italic">sin dato</span>
-                              )}
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {isEditing ? (
-                            <SelectUIAB
-                              ariaLabel="Estado de la suscripción"
-                              value={estadoProvDraft}
-                              onValueChange={(v) => setEstadoProvDraft(v)}
-                              className="h-8 px-2 rounded-md bg-slate-50 text-sm text-slate-700"
-                              options={[
-                                { value: "activa", label: "Activa" },
-                                { value: "pendiente_pago", label: "Pendiente de pago" },
-                                { value: "en_mora", label: "En mora" },
-                                { value: "suspendida", label: "Suspendida" },
-                                { value: "cancelada", label: "Cancelada" },
-                              ]}
-                            />
-                          ) : estadoActual ? (
-                            <span
-                              className={`text-[11px] sm:text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest ${
-                                estadoChip[estadoActual] ?? "bg-slate-100 text-slate-500"
-                              }`}
-                            >
-                              {estadoLabel[estadoActual] ?? estadoActual}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-slate-400 italic">sin suscripción</span>
-                          )}
-                        </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500 tabular-nums">
-                          {new Date(p.creado_en).toLocaleDateString("es-AR", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          {isEditing ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleGuardarSusParticular(p.id)}
-                                disabled={isPending}
-                                className="h-8"
-                              >
-                                <Check className="w-4 h-4 mr-1" />
-                                Guardar
-                              </Button>
-                              <button
-                                onClick={() => {
-                                  setEditandoSusParticular(null);
-                                  setMontoProvDraft("");
-                                  setEstadoProvDraft("");
-                                }}
-                                className="text-xs text-slate-500 hover:text-slate-700 px-2 h-8"
-                              >
-                                Cancelar
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setEditandoSusParticular(p.id);
-                                setMontoProvDraft(sus?.monto != null ? String(sus.monto) : "");
-                                setEstadoProvDraft(sus?.estado ?? "activa");
-                              }}
-                              title={!sus ? "Asignar suscripción" : "Editar suscripción"}
-                              className="flex items-center gap-1 text-xs text-slate-500 hover:text-primary-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                              {sus ? "Editar" : "Asignar"}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+      {conSuscripcion.length === 0 && (
+        <p className="text-xs text-slate-400 text-center">
+          Todavía no hay ninguna suscripción cargada.
+        </p>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { rutaExigeSuscripcion, tieneAcceso } from '@/lib/mercadopago/suscripciones'
+import { rutaExigeSuscripcion, tieneAcceso } from '@/lib/suscripciones/modelo'
 import { fetchConTimeoutServidor } from './fetch-con-timeout'
 
 export async function updateSession(request: NextRequest) {
@@ -230,7 +230,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/perfil') ||
     pathname.startsWith('/suscripcion') ||
     pathname.startsWith('/api/auth/') ||
-    pathname.startsWith('/api/mercadopago/');
+    pathname.startsWith('/api/suscripcion/');
 
   if (user && !userError && !isApproved && isProtectedRoute && !isPendingAllowedPath) {
     if (isApiRoute) {
