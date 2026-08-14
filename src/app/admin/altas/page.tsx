@@ -75,40 +75,95 @@ async function getEstadosCuenta(emails: string[]): Promise<Record<string, Estado
  * solicitud enganchada si la hay, más las solicitudes que no matchean ninguna
  * ficha (una empresa que se anotó por /sumate y todavía no tiene ficha propia).
  */
-export type SituacionSocia = "adentro" | "esperando" | "sin_novedades";
+/**
+ * Qué está pasando de verdad con esta socia.
+ *
+ * Reemplaza al "adentro / esperando / sin novedades" viejo, que llamaba
+ * "Ya entró" a cualquier ficha con un usuario creado — aunque esa persona no se
+ * hubiera logueado nunca. Hoy eso pasa en 3 de las 19 fichas con cuenta: el
+ * panel decía que estaban adentro y en realidad nadie abrió la puerta.
+ */
+export type SituacionSocia =
+  | "activa"        // alguien entró en el último mes
+  | "dormida"       // entró alguna vez, pero hace rato
+  | "nunca_entro"   // tiene cuenta y jamás se logueó
+  | "esperando"     // cargó sus datos y falta darle el acceso
+  | "sin_cuenta";   // no hay nadie ni solicitud
 
 export type FilaPadron = {
   clave: string;
   empresaId: string | null;
   altaId: string | null;
   nombre: string;
+  razonSocial: string | null;
   cuit: string | null;
   localidad: string | null;
   email: string | null;
   telefono: string | null;
   esSocia: boolean;
+  /** Cuántas cuentas tiene la ficha y cuántas de esas entraron alguna vez. */
   usuarios: number;
+  entraron: number;
+  /** Cuándo se creó la primera cuenta de la empresa. */
+  altaCuenta: string | null;
+  /** Cuándo activó el acceso (definió su contraseña). Su primer ingreso real. */
+  activoDesde: string | null;
+  /** El login más reciente de cualquiera de sus usuarios. */
+  ultimoIngreso: string | null;
+  /** Tours completados de los que existen. No cuenta los avisos de novedad. */
+  tutorialesHechos: number;
+  tutorialesTotales: number;
   situacion: SituacionSocia;
   /** Cómo llegó: por /sumate, por /register, o todavía por ningún lado. */
   origen: string | null;
+  /** Diferencias con el padrón que la socia todavía no revisó. */
+  conflictosSinRevisar: number;
 };
+
+type EstadoAcceso = {
+  empresa_id: string;
+  usuarios: number;
+  entraron: number;
+  alta_cuenta: string | null;
+  activo_desde: string | null;
+  ultimo_ingreso: string | null;
+  tutoriales_completos: number;
+  tutoriales_totales: number;
+};
+
+const DIAS_PARA_DORMIRSE = 30;
+
+function situacionDe(
+  acceso: EstadoAcceso | undefined,
+  solicitudAbierta: boolean
+): SituacionSocia {
+  if (!acceso || acceso.usuarios === 0) return solicitudAbierta ? "esperando" : "sin_cuenta";
+  if (acceso.entraron === 0) return "nunca_entro";
+  if (!acceso.ultimo_ingreso) return "nunca_entro";
+  const dias = (Date.now() - new Date(acceso.ultimo_ingreso).getTime()) / 86_400_000;
+  return dias <= DIAS_PARA_DORMIRSE ? "activa" : "dormida";
+}
 
 async function getPadron(
   altas: Record<string, unknown>[]
 ): Promise<FilaPadron[]> {
   const db = adminClient();
-  const [fichasRes, miembrosRes] = await Promise.all([
+  const [fichasRes, accesoRes] = await Promise.all([
     db
       .from("empresas")
       .select("id, razon_social, nombre_comercial, cuit, email, telefono, localidad, estado, es_socia_uiab")
       .neq("estado", "rechazada")
       .order("razon_social"),
-    db.from("miembros_empresa").select("empresa_id"),
+    // Una sola llamada trae el acceso real de todas: cuántos entraron, cuándo
+    // fue el último login y cuántos tutoriales hicieron. Sin esto la pantalla
+    // sólo sabía si existía un `miembros_empresa`, que no dice nada de si esa
+    // persona llegó a usar la plataforma.
+    db.rpc("estado_acceso_empresas"),
   ]);
 
-  const usuariosPor = new Map<string, number>();
-  for (const m of (miembrosRes.data ?? []) as { empresa_id: string }[]) {
-    usuariosPor.set(m.empresa_id, (usuariosPor.get(m.empresa_id) ?? 0) + 1);
+  const accesoPor = new Map<string, EstadoAcceso>();
+  for (const a of (accesoRes.data ?? []) as EstadoAcceso[]) {
+    accesoPor.set(a.empresa_id, a);
   }
 
   // La solicitud más reciente de cada ficha, para colgarla de su fila.
@@ -124,24 +179,38 @@ async function getPadron(
     localidad: string | null; estado: string; es_socia_uiab: boolean | null;
   };
 
+  const conflictosSinRevisar = (alta: Record<string, unknown> | undefined): number => {
+    if (!alta || alta.conflictos_revisados_en) return 0;
+    const c = alta.conflictos_padron;
+    return Array.isArray(c) ? c.length : 0;
+  };
+
   const filas: FilaPadron[] = ((fichasRes.data ?? []) as unknown as Ficha[]).map((f) => {
-    const usuarios = usuariosPor.get(f.id) ?? 0;
+    const acceso = accesoPor.get(f.id);
     const alta = altaPorEmpresa.get(f.id);
-    const abierta = alta && ["pendiente", "contactado"].includes(alta.estado as string);
+    const abierta = Boolean(alta && ["pendiente", "contactado"].includes(alta.estado as string));
     return {
       clave: `emp-${f.id}`,
       empresaId: f.id,
       altaId: (alta?.id as string) ?? null,
       nombre: f.nombre_comercial || f.razon_social,
+      razonSocial: f.razon_social,
       cuit: f.cuit,
       localidad: f.localidad,
       // El correo de la solicitud es más fresco que el del padrón importado.
       email: (alta?.email as string) ?? f.email,
       telefono: (alta?.telefono as string) ?? f.telefono,
       esSocia: Boolean(f.es_socia_uiab),
-      usuarios,
-      situacion: usuarios > 0 ? "adentro" : abierta ? "esperando" : "sin_novedades",
+      usuarios: acceso?.usuarios ?? 0,
+      entraron: acceso?.entraron ?? 0,
+      altaCuenta: acceso?.alta_cuenta ?? null,
+      activoDesde: acceso?.activo_desde ?? null,
+      ultimoIngreso: acceso?.ultimo_ingreso ?? null,
+      tutorialesHechos: acceso?.tutoriales_completos ?? 0,
+      tutorialesTotales: acceso?.tutoriales_totales ?? 4,
+      situacion: situacionDe(acceso, abierta),
       origen: (alta?.origen as string) ?? null,
+      conflictosSinRevisar: conflictosSinRevisar(alta),
     };
   });
 
@@ -155,14 +224,22 @@ async function getPadron(
       empresaId: null,
       altaId: a.id as string,
       nombre: (a.nombre_comercial as string) || (a.razon_social as string),
+      razonSocial: (a.razon_social as string) ?? null,
       cuit: (a.cuit as string) ?? null,
       localidad: (a.localidad as string) ?? null,
       email: (a.email as string) ?? null,
       telefono: (a.telefono as string) ?? null,
       esSocia: Boolean(a.ya_es_socio),
       usuarios: 0,
+      entraron: 0,
+      altaCuenta: null,
+      activoDesde: null,
+      ultimoIngreso: null,
+      tutorialesHechos: 0,
+      tutorialesTotales: 4,
       situacion: "esperando",
       origen: (a.origen as string) ?? null,
+      conflictosSinRevisar: conflictosSinRevisar(a),
     });
   }
 

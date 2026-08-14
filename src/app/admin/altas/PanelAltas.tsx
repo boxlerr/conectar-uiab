@@ -147,43 +147,88 @@ type EstadoCuenta = {
 /** Las cuatro primeras miran el PADRÓN (todas las socias); "solicitudes" y las
  *  que le siguen miran `altas_socios` (sólo las que completaron el formulario). */
 type Filtro =
-  | "padron" | "adentro" | "esperando" | "sin_novedades"
+  | "padron" | "activa" | "dormida" | "nunca_entro" | "esperando" | "sin_cuenta"
   | "solicitudes" | "pendiente" | "contactado" | "cuenta_creada" | "descartado";
 
-type SituacionSocia = "adentro" | "esperando" | "sin_novedades";
+type SituacionSocia = "activa" | "dormida" | "nunca_entro" | "esperando" | "sin_cuenta";
 
 type FilaPadron = {
   clave: string;
   empresaId: string | null;
   altaId: string | null;
   nombre: string;
+  razonSocial: string | null;
   cuit: string | null;
   localidad: string | null;
   email: string | null;
   telefono: string | null;
   esSocia: boolean;
   usuarios: number;
+  entraron: number;
+  altaCuenta: string | null;
+  activoDesde: string | null;
+  ultimoIngreso: string | null;
+  tutorialesHechos: number;
+  tutorialesTotales: number;
   situacion: SituacionSocia;
   origen: string | null;
+  conflictosSinRevisar: number;
 };
 
-const SITUACION_CONFIG: Record<SituacionSocia, { label: string; bg: string; text: string; ayuda: string }> = {
-  adentro: {
-    label: "Ya entró",
-    bg: "bg-emerald-50", text: "text-emerald-700",
-    ayuda: "Hay al menos una persona de la empresa con cuenta.",
+/**
+ * La situación de cada socia, dicha sin adornos.
+ *
+ * El estado viejo "Ya entró" se ponía en cuanto la ficha tenía un usuario
+ * creado, aunque esa persona nunca se hubiera logueado — pasa en 3 de las 19
+ * fichas con cuenta. Ahora se separa tener cuenta de haberla usado, y usar la
+ * plataforma hace poco de haberla abandonado.
+ */
+const SITUACION_CONFIG: Record<
+  SituacionSocia,
+  { label: string; bg: string; text: string; punto: string; ayuda: string }
+> = {
+  activa: {
+    label: "Activa",
+    bg: "bg-emerald-50", text: "text-emerald-700", punto: "bg-emerald-500",
+    ayuda: "Alguien de la empresa entró en el último mes.",
+  },
+  dormida: {
+    label: "Sin actividad",
+    bg: "bg-amber-50", text: "text-amber-700", punto: "bg-amber-500",
+    ayuda: "Entró alguna vez, pero hace más de un mes que nadie aparece.",
+  },
+  nunca_entro: {
+    label: "Nunca entró",
+    bg: "bg-rose-50", text: "text-rose-700", punto: "bg-rose-500",
+    ayuda: "Tiene la cuenta creada y todavía no se logueó ni una vez. Conviene llamarla.",
   },
   esperando: {
     label: "Esperando acceso",
-    bg: "bg-amber-50", text: "text-amber-700",
-    ayuda: "Cargó sus datos y todavía no le dimos el acceso.",
+    bg: "bg-blue-50", text: "text-blue-700", punto: "bg-blue-500",
+    ayuda: "Cargó sus datos y falta darle el acceso.",
   },
-  sin_novedades: {
-    label: "Sin novedades",
-    bg: "bg-slate-100", text: "text-slate-600",
-    ayuda: "La ficha está publicada pero la empresa todavía no se anotó ni tiene a nadie adentro.",
+  sin_cuenta: {
+    label: "Sin cuenta",
+    bg: "bg-slate-100", text: "text-slate-600", punto: "bg-slate-400",
+    ayuda: "La ficha está publicada pero nadie de la empresa se anotó todavía.",
   },
 };
+
+/** "hace 3 días", "hace 2 meses". Más útil que una fecha para leer una lista. */
+function haceCuanto(iso: string | null): string {
+  if (!iso) return "—";
+  const ms = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return "recién";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "ayer";
+  if (d < 30) return `hace ${d} días`;
+  const meses = Math.floor(d / 30);
+  return meses === 1 ? "hace un mes" : `hace ${meses} meses`;
+}
 
 const ESTADO_CONFIG: Record<string, { label: string; bg: string; text: string; icon: React.ElementType }> = {
   pendiente:     { label: "Pendiente",     bg: "bg-amber-50",   text: "text-amber-700",   icon: Clock },
@@ -209,11 +254,31 @@ function soloDigitos(s: string | null | undefined) {
   return (s ?? "").replace(/\D/g, "");
 }
 
-// Cuántos de los 4 tutoriales principales vio (perfil, directorio, oportunidades, dashboard).
-const TOURS_PRINCIPALES = ["perfil", "directorio", "oportunidades", "dashboard"];
+/**
+ * El tutorial no son "4 pasos": son cuatro RECORRIDOS distintos, uno por
+ * sección, y cada uno tiene los suyos (el del perfil tiene 13, el de
+ * oportunidades 10). Decir "2 de 4 pasos" mezclaba las dos cosas y hacía pensar
+ * que todos se trababan en el mismo lugar; lo que pasa es que casi todos
+ * recorren dos secciones y no vuelven.
+ *
+ * `tutoriales_vistos` guarda además avisos de novedad (`novedad_usuarios_empresa`)
+ * que no son tutoriales: por eso se filtra contra esta lista y no se cuentan las
+ * claves del objeto.
+ */
+const TOURS: { clave: string; nombre: string }[] = [
+  { clave: "dashboard", nombre: "Panel de control" },
+  { clave: "perfil", nombre: "Mi perfil" },
+  { clave: "directorio", nombre: "Directorio" },
+  { clave: "oportunidades", nombre: "Oportunidades" },
+];
+
 function toursVistos(vistos: Record<string, string | null> | null | undefined) {
   if (!vistos) return 0;
-  return TOURS_PRINCIPALES.filter((t) => Boolean(vistos[t])).length;
+  return TOURS.filter((t) => Boolean(vistos[t.clave])).length;
+}
+
+function detalleTours(vistos: Record<string, string | null> | null | undefined) {
+  return TOURS.map((t) => ({ ...t, hecho: Boolean(vistos?.[t.clave]) }));
 }
 
 const TONO_ESTADO: Record<"ok" | "warn" | "bad" | "muted", string> = {
@@ -318,40 +383,60 @@ function EstadoCuentaCard({ estado }: { estado?: EstadoCuenta }) {
             }),
     },
     {
+      // Es `last_sign_in_at` de Auth: el ÚLTIMO login, no el primero. Se rotulaba
+      // "Primer ingreso", que era directamente otro dato.
       icon: LogIn,
-      label: "Primer ingreso",
+      label: "Último ingreso",
       ...(estado.ultimo_ingreso
-        ? { valor: fechaHora(estado.ultimo_ingreso), tono: "ok" as const }
-        : { valor: "Todavía no ingresó", tono: "muted" as const }),
-    },
-    {
-      icon: GraduationCap,
-      label: "Tutorial",
-      ...(completoTutorial
-        ? { valor: "Completado", tono: "ok" as const }
-        : vistos > 0
-          ? { valor: `${vistos} de 4 pasos vistos`, tono: "warn" as const }
-          : { valor: "No lo empezó", tono: "muted" as const }),
+        ? { valor: `${haceCuanto(estado.ultimo_ingreso)} · ${fechaHora(estado.ultimo_ingreso)}`, tono: "ok" as const }
+        : { valor: "Todavía no ingresó ni una vez", tono: "bad" as const }),
     },
   ];
 
+  const tours = detalleTours(estado.tutoriales_vistos);
+
   return (
-    <dl className="space-y-3 text-sm">
-      {filas.map((f) => {
-        const Icon = f.icon;
-        return (
-          <div key={f.label} className="flex items-start gap-3">
-            <Icon className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-            <div className="min-w-0">
-              <span className="block text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                {f.label}
-              </span>
-              <span className={`font-medium ${TONO_ESTADO[f.tono]}`}>{f.valor}</span>
+    <div className="space-y-4">
+      <dl className="space-y-3 text-sm">
+        {filas.map((f) => {
+          const Icon = f.icon;
+          return (
+            <div key={f.label} className="flex items-start gap-3">
+              <Icon className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <span className="block text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                  {f.label}
+                </span>
+                <span className={`font-medium ${TONO_ESTADO[f.tono]}`}>{f.valor}</span>
+              </div>
             </div>
+          );
+        })}
+      </dl>
+
+      {/* Qué secciones del tutorial recorrió. Se nombran una por una en vez de
+          un "2 de 4": así se ve QUÉ le falta conocer, que es lo accionable. */}
+      <div className="flex items-start gap-3 text-sm">
+        <GraduationCap className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+        <div className="min-w-0 flex-1">
+          <span className="block text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+            Tutorial · {completoTutorial ? "completo" : `${vistos} de ${TOURS.length} secciones`}
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {tours.map((t) => (
+              <span
+                key={t.clave}
+                className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                  t.hecho ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400"
+                }`}
+              >
+                {t.nombre}
+              </span>
+            ))}
           </div>
-        );
-      })}
-    </dl>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -636,12 +721,16 @@ export function PanelAltas({
 
   const cuentaPadron = {
     padron: padron.length,
-    adentro: padron.filter((f) => f.situacion === "adentro").length,
+    activa: padron.filter((f) => f.situacion === "activa").length,
+    dormida: padron.filter((f) => f.situacion === "dormida").length,
+    nunca_entro: padron.filter((f) => f.situacion === "nunca_entro").length,
     esperando: padron.filter((f) => f.situacion === "esperando").length,
-    sin_novedades: padron.filter((f) => f.situacion === "sin_novedades").length,
+    sin_cuenta: padron.filter((f) => f.situacion === "sin_cuenta").length,
   };
 
-  const esVistaPadron = ["padron", "adentro", "esperando", "sin_novedades"].includes(filtro);
+  const esVistaPadron = [
+    "padron", "activa", "dormida", "nunca_entro", "esperando", "sin_cuenta",
+  ].includes(filtro);
 
   const padronFiltrado = padron.filter((f) => {
     if (filtro !== "padron" && f.situacion !== filtro) return false;
@@ -653,10 +742,12 @@ export function PanelAltas({
   });
 
   const TABS: { key: Filtro; label: string; grupo: "padron" | "solicitudes" }[] = [
-    { key: "padron",        label: `Padrón (${cuentaPadron.padron})`,                grupo: "padron" },
-    { key: "adentro",       label: `Ya entraron (${cuentaPadron.adentro})`,          grupo: "padron" },
-    { key: "esperando",     label: `Esperando (${cuentaPadron.esperando})`,          grupo: "padron" },
-    { key: "sin_novedades", label: `Sin novedades (${cuentaPadron.sin_novedades})`,  grupo: "padron" },
+    { key: "padron",      label: `Todo el padrón (${cuentaPadron.padron})`,      grupo: "padron" },
+    { key: "activa",      label: `Activas (${cuentaPadron.activa})`,              grupo: "padron" },
+    { key: "dormida",     label: `Sin actividad (${cuentaPadron.dormida})`,       grupo: "padron" },
+    { key: "nunca_entro", label: `Nunca entraron (${cuentaPadron.nunca_entro})`,  grupo: "padron" },
+    { key: "esperando",   label: `Esperando (${cuentaPadron.esperando})`,         grupo: "padron" },
+    { key: "sin_cuenta",  label: `Sin cuenta (${cuentaPadron.sin_cuenta})`,       grupo: "padron" },
     { key: "solicitudes",   label: `Solicitudes (${counts.all})`,                    grupo: "solicitudes" },
     { key: "pendiente",     label: `Pendientes (${counts.pendiente})`,               grupo: "solicitudes" },
     { key: "cuenta_creada", label: `Con cuenta (${counts.cuenta_creada})`,           grupo: "solicitudes" },
@@ -733,9 +824,9 @@ export function PanelAltas({
       {esVistaPadron && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {([
-            { k: "adentro", n: cuentaPadron.adentro, titulo: "Ya entraron", pie: "tienen a alguien adentro", clase: "text-emerald-700" },
-            { k: "esperando", n: cuentaPadron.esperando, titulo: "Esperando acceso", pie: "cargaron datos y falta dárselo", clase: "text-amber-700" },
-            { k: "sin_novedades", n: cuentaPadron.sin_novedades, titulo: "Sin novedades", pie: "hay que salir a buscarlas", clase: "text-slate-700" },
+            { k: "activa", n: cuentaPadron.activa, titulo: "Usando la plataforma", pie: "entraron en el último mes", clase: "text-emerald-700" },
+            { k: "nunca_entro", n: cuentaPadron.nunca_entro, titulo: "Nunca entraron", pie: "tienen la cuenta y no la abrieron", clase: "text-rose-700" },
+            { k: "sin_cuenta", n: cuentaPadron.sin_cuenta, titulo: "Sin cuenta", pie: "hay que salir a buscarlas", clase: "text-slate-700" },
           ] as const).map((c) => (
             <button
               key={c.k}
@@ -761,20 +852,22 @@ export function PanelAltas({
       {esVistaPadron && (
         <Card className="shadow-sm border-slate-100 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px]">
+            <table className="w-full min-w-[1040px]">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Empresa</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Contacto</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Situación</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Gente adentro</th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Acción</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Empresa</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-40">Situación</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-36">Último ingreso</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-28">Usuarios</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-32">Tutorial</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-56">Contacto</th>
+                  <th className="px-5 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-32">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {padronFiltrado.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-16 text-center">
+                    <td colSpan={7} className="px-5 py-16 text-center">
                       <UserPlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                       <p className="text-slate-500">No hay socias con este filtro.</p>
                     </td>
@@ -783,68 +876,143 @@ export function PanelAltas({
                   padronFiltrado.map((f) => {
                     const sit = SITUACION_CONFIG[f.situacion];
                     const alta = f.altaId ? altas.find((a) => a.id === f.altaId) : null;
+                    const sinContacto = !f.email && !f.telefono;
                     return (
-                      <tr key={f.clave} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-semibold text-slate-900 text-sm">{f.nombre}</div>
-                          <div className="text-xs text-slate-400">
-                            {[f.localidad, f.cuit].filter(Boolean).join(" · ") || "Sin datos"}
-                            {!f.esSocia && <span className="ml-1.5 text-slate-300">· no socia</span>}
+                      <tr key={f.clave} className="hover:bg-slate-50/60 transition-colors align-middle">
+                        {/* Empresa */}
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-900 text-sm">{f.nombre}</span>
+                            {!f.esSocia && (
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                no socia
+                              </span>
+                            )}
+                            {f.conflictosSinRevisar > 0 && (
+                              <span
+                                title="Cargó datos distintos a los del padrón y todavía nadie los revisó"
+                                className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded"
+                              >
+                                {f.conflictosSinRevisar} a revisar
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-400 mt-0.5 tabular-nums">
+                            {[f.localidad, f.cuit].filter(Boolean).join(" · ") || "Sin localidad ni CUIT"}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          {f.email ? (
-                            <div className="flex items-center gap-1.5">
-                              <a
-                                href={`mailto:${f.email}`}
-                                className="text-sm text-primary-700 hover:underline break-words"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {f.email}
-                              </a>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); copiar(f.email!, "Correo"); }}
-                                title="Copiar el correo"
-                                className="shrink-0 p-1 rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100"
-                              >
-                                <Copy className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-rose-500">Sin correo cargado</span>
-                          )}
-                          {f.telefono ? (
-                            <a
-                              href={`https://wa.me/${soloDigitos(f.telefono).replace(/^0/, "").replace(/^15/, "")}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-xs text-emerald-700 hover:underline inline-flex items-center gap-1 mt-0.5"
-                            >
-                              <PhoneCall className="w-3 h-3" /> {f.telefono}
-                            </a>
-                          ) : (
-                            !f.email && <div className="text-xs text-rose-500">ni teléfono</div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
+
+                        {/* Situación */}
+                        <td className="px-5 py-3">
                           <span
                             title={sit.ayuda}
-                            className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${sit.bg} ${sit.text}`}
+                            className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${sit.bg} ${sit.text}`}
                           >
+                            <span className={`w-1.5 h-1.5 rounded-full ${sit.punto}`} />
                             {sit.label}
                           </span>
                           {f.origen === "registro_web" && (
-                            <div className="text-[10px] text-slate-400 mt-1">Se registró sola</div>
+                            <div className="text-[10px] text-slate-400 mt-1">se registró sola</div>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-600 tabular-nums">
-                          {f.usuarios > 0 ? f.usuarios : <span className="text-slate-300">—</span>}
+
+                        {/* Último ingreso — antes esta fecha se mostraba como
+                            "primer ingreso", que es lo que nunca fue. */}
+                        <td className="px-5 py-3">
+                          {f.ultimoIngreso ? (
+                            <>
+                              <div className="text-sm text-slate-700">{haceCuanto(f.ultimoIngreso)}</div>
+                              <div className="text-[11px] text-slate-400 tabular-nums">
+                                {new Date(f.ultimoIngreso).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-300">nunca</span>
+                          )}
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          {/* Antes "Ver ficha" mandaba a /admin/empresas, que abre en el
-                              filtro "Pendientes" y muestra la lista vacía: el click no
-                              llevaba a ninguna parte. Ahora abre el detalle acá. */}
+
+                        {/* Usuarios: cuántos hay y cuántos entraron alguna vez */}
+                        <td className="px-5 py-3">
+                          {f.usuarios === 0 ? (
+                            <span className="text-xs text-slate-300">—</span>
+                          ) : (
+                            <div className="text-sm text-slate-700 tabular-nums">
+                              {f.entraron}
+                              <span className="text-slate-300"> / {f.usuarios}</span>
+                              <div className="text-[10px] text-slate-400">
+                                {f.entraron === 0
+                                  ? f.usuarios === 1 ? "no entró" : "no entró ninguno"
+                                  : f.entraron === f.usuarios
+                                    ? "entraron todos"
+                                    : "entraron"}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Tutorial: secciones recorridas, no "pasos" */}
+                        <td className="px-5 py-3">
+                          {f.usuarios === 0 ? (
+                            <span className="text-xs text-slate-300">—</span>
+                          ) : (
+                            <div className="flex items-center gap-2" title="Secciones del tutorial que recorrió">
+                              <div className="flex gap-0.5">
+                                {Array.from({ length: f.tutorialesTotales }).map((_, i) => (
+                                  <span
+                                    key={i}
+                                    className={`w-4 h-1.5 rounded-sm ${
+                                      i < f.tutorialesHechos ? "bg-primary-500" : "bg-slate-200"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-[11px] text-slate-400 tabular-nums">
+                                {f.tutorialesHechos}/{f.tutorialesTotales}
+                              </span>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Contacto */}
+                        <td className="px-5 py-3">
+                          {sinContacto ? (
+                            <span className="text-xs font-semibold text-rose-600">Sin correo ni teléfono</span>
+                          ) : (
+                            <div className="space-y-0.5">
+                              {f.email && (
+                                <div className="flex items-center gap-1">
+                                  <a
+                                    href={`mailto:${f.email}`}
+                                    className="text-[13px] text-primary-700 hover:underline truncate max-w-[190px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {f.email}
+                                  </a>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); copiar(f.email!, "Correo"); }}
+                                    title="Copiar el correo"
+                                    className="shrink-0 p-0.5 rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+                              {f.telefono && (
+                                <a
+                                  href={`https://wa.me/${soloDigitos(f.telefono).replace(/^0/, "").replace(/^15/, "")}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-[11px] text-emerald-700 hover:underline inline-flex items-center gap-1"
+                                >
+                                  <PhoneCall className="w-3 h-3" /> {f.telefono}
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="px-5 py-3 text-right">
                           <Button
                             size="sm"
                             variant="outline"
