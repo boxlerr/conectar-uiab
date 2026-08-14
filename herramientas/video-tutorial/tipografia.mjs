@@ -64,33 +64,55 @@ const cartelHTML = ({ rotulo, texto, sello }) => `
   html,body{width:${MARCO.ancho}px;height:${MARCO.alto}px;background:transparent;overflow:hidden}
 
   /* Velo: sin esto el texto blanco se pierde sobre las pantallas claras del
-     sitio. Elíptico y anclado abajo a la izquierda —donde está el texto— y no
-     una banda recta de lado a lado: así el 60% derecho de la pantalla queda
-     limpio y el encuadre sigue viéndose. */
+     sitio.
+     Era elíptico y anclado abajo a la izquierda, para dejar limpia la derecha.
+     Se midió el contraste WCAG del titular compuesto sobre blanco puro —el
+     peor caso, que es la página del directorio— en diez franjas a lo ancho:
+     daba 12.74 · 10.30 · 7.11 · 4.58 · 2.65 · 1.48 · 1.02 · 1.00 · 1.00 · 1.00.
+     O sea que el 40% derecho de la frase estaba literalmente invisible.
+     Ahora es una banda a todo el ancho (piso medido: 15.32:1), pero con un
+     segundo degradado horizontal que mantiene el sesgo a la izquierda para que
+     no se lea como zócalo de noticiero y la página se siga viendo a la derecha. */
+  /* El sesgo hacia la izquierda va como MÁSCARA, no como una segunda capa
+     apilada: apilado, el degradado horizontal no se desvanece hacia arriba y
+     el borde superior de la banda salta de alfa 0 a 126 en un solo píxel — una
+     línea recta cruzando la pantalla, justo el zócalo de noticiero que se
+     quería evitar. Multiplicando, el borde de arriba sigue la curva del
+     vertical, que ya termina en 0.
+     330 px y no 420: el bloque de texto ocupa de y=815 a y=944, así que con 420
+     quedaban 217 px de velo tapando pantalla sin nada adentro. */
   .velo{
-    position:fixed; left:${P.x}px; top:${P.y}px; width:${P.w}px; height:${P.h}px;
-    background:radial-gradient(78% 62% at 4% 112%,
-      rgba(4,16,28,.96) 0%, rgba(4,16,28,.88) 30%,
-      rgba(4,16,28,.50) 58%, rgba(4,16,28,0) 82%);
+    position:fixed; left:${P.x}px; top:${P.y + P.h - 330}px;
+    width:${P.w}px; height:330px;
+    background:linear-gradient(to top,
+      rgba(9,20,35,.94) 0%, rgba(9,20,35,.90) 34%,
+      rgba(9,20,35,.64) 60%, rgba(9,20,35,.22) 82%, rgba(9,20,35,0) 100%);
+    -webkit-mask-image:linear-gradient(to right, #000 0%, rgba(0,0,0,.66) 58%, transparent 94%);
+            mask-image:linear-gradient(to right, #000 0%, rgba(0,0,0,.66) 58%, transparent 94%);
   }
   .bloque{
     position:fixed; left:${P.x + 68}px; bottom:${MARCO.alto - (P.y + P.h) + 74}px;
-    width:1120px; font-family:${PILA};
+    width:1180px; font-family:${PILA};
   }
-  .fila{display:flex; align-items:center; gap:16px; margin-bottom:16px}
-  .barra{width:4px; height:26px; background:${MARCA.azulClaro}; border-radius:2px}
+  .fila{display:flex; align-items:center; gap:16px; margin-bottom:18px}
+  .barra{width:4px; height:30px; background:${MARCA.azulClaro}; border-radius:2px}
   .rotulo{
-    font-weight:600; font-size:23px; letter-spacing:.2em; text-transform:uppercase;
+    font-weight:600; font-size:26px; letter-spacing:.2em; text-transform:uppercase;
     color:${MARCA.azulClaro};
   }
   .sello{
-    font-weight:800; font-size:18px; letter-spacing:.12em; text-transform:uppercase;
-    color:#fff; background:${MARCA.naranja}; padding:7px 15px 6px; border-radius:999px;
+    font-weight:800; font-size:19px; letter-spacing:.12em; text-transform:uppercase;
+    color:#fff; background:${MARCA.naranja}; padding:7px 16px 6px; border-radius:999px;
     box-shadow:0 6px 18px rgba(249,115,22,.42);
   }
+  /* 64px y no 46: WhatsApp recomprime a ~848x480 pase lo que pase, así que lo
+     que decide si se lee no es el crf sino el cuerpo de la letra. A 46px la
+     altura de mayúscula queda en ~30 px sobre 1080 y al bajar a 480 no
+     sobrevive; a 64px quedan ~42 px, que sí. El text-shadow se fue: con la
+     banda ya no hace falta y sólo ensuciaba el borde de los glifos. */
   .texto{
-    font-weight:800; font-size:46px; line-height:1.16; color:#fff;
-    letter-spacing:-.015em; text-shadow:0 2px 22px rgba(0,10,20,.6);
+    font-weight:800; font-size:64px; line-height:1.12; color:#fff;
+    letter-spacing:-.02em;
   }
 </style>
 <div class="velo"></div>

@@ -46,7 +46,16 @@ const TMP = join(process.cwd(), "tmp-montaje");
 const TMP_TEXTO = join(process.cwd(), "tmp-texto");
 const SALIDA = join(process.cwd(), "tutorial-uiab-conecta.mp4");
 
-const FPS = 30;
+// 25 y no 30. Playwright graba a 25 fps CONSTANTES (medido: 911 intervalos de
+// 0.0400 s exactos en 01-directorio.webm, sin una sola excepción). Forzar 30
+// es un pulldown 5:6: uno de cada cinco cuadros es una repetición del
+// anterior, o sea SEIS tirones por segundo durante todo el video. Ésa es la
+// sensación de "se traba" — no es el codec ni el reproductor.
+//
+// Ojo con el instinto de subir a 60 "porque es más fluido": 60 no es múltiplo
+// de 25 y el reparto queda 12:5, peor que 30. Si algún día se quiere línea de
+// tiempo alta, va 50, que es 25×2 exacto (y ahí hay que subir el -level).
+const FPS = 25;
 const { pantalla: PANT, ancho: W, alto: H } = MARCO;
 const FONDO = "#061f33"; // el mismo navy del marco: los cortes no parpadean
 
@@ -67,6 +76,15 @@ const LOGO_ANCHO = 820;
 const PUNCH = 0.34;        // cuánto dura el acercamiento
 const DERIVA = 1.055;      // empuje lento de los planos generales
 
+// zoompan recorta en píxel ENTERO. En un movimiento lento eso significa que la
+// imagen se queda quieta dos o tres cuadros y después pega un salto: es el
+// temblor de las derivas. Ampliando ×2 antes, cada píxel del recorte vale medio
+// píxel de la fuente y el salto se parte al medio. Medido sobre una deriva real
+// (z 1→1.055 en 3 s): sin esto, 2 de 73 cuadros congelados y la energía entre
+// cuadros va de 0.0068 a 5.8144; con esto, 0 de 73 y el rango baja a 79×.
+// ×4 no: cuesta seis veces más y encima PIERDE nitidez.
+const SOBREMUESTREO = 2;
+
 // El texto entra enseguida y se queda hasta el final del plano.
 //
 // Antes salía 0.30 s antes del corte y entraba recién a los 0.16 con un
@@ -74,7 +92,7 @@ const DERIVA = 1.055;      // empuje lento de los planos generales
 // segundo. La duración del plano ahora la fija el tiempo de lectura
 // (piloto.mjs, minimoLegible), así que acá lo único que hace falta es no
 // desperdiciar ese tiempo: entra rápido y se va justo en el corte.
-const TEXTO = { entra: 0.10, entrada: 0.28, sube: 24, sale: 0.14 };
+const TEXTO = { entra: 0.10, entrada: 0.28, sube: 24, sale: 0.20 };
 
 // Hasta dónde se puede recortar el sujeto para encuadrarlo. Un elemento de
 // 900 px de alto encuadrado ENTERO no deja acercarse nada; encuadrando su
@@ -120,8 +138,12 @@ const duracion = (f) => {
   return null;
 };
 
-const X264 = ["-c:v", "libx264", "-preset", "medium", "-crf", "17",
-              "-pix_fmt", "yuv420p", "-r", String(FPS)];
+// Ésta es ahora la única compresión con pérdida de la cadena (la normalización
+// va sin pérdida y el empaquetado final copia), así que puede permitirse ser
+// buena: antes el contenido pasaba por cuatro encodes encadenados.
+const X264 = ["-c:v", "libx264", "-preset", "slow", "-crf", "16",
+              "-pix_fmt", "yuv420p", "-profile:v", "high", "-level", "4.1",
+              "-r", String(FPS)];
 
 rmSync(TMP, { recursive: true, force: true });
 mkdirSync(TMP, { recursive: true });
@@ -147,7 +169,7 @@ function normalizarPasada(parte, i) {
   const dst = join(TMP, `pase-${i}.mp4`);
   console.log(`  · normalizando ${parte.nombre}`);
   ff(["-i", parte.archivo, "-vf", `fps=${FPS},format=yuv420p`, "-an",
-      "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", dst]);
+      "-c:v", "libx264", "-preset", "ultrafast", "-qp", "0", dst]);
   return dst;
 }
 
@@ -227,7 +249,7 @@ const suave = (fotogramas) => {
  * intención y no como una animación. Un movimiento lento y largo, además,
  * delata el salto de píxel entero que hace zoompan.
  */
-function movimiento({ z, x, y }, dur) {
+function movimiento({ z, x, y }, dur, sobremuestreo = 1) {
   if (z <= 1.001) {
     // Plano general: empuje lento durante todo el plano. Sin esto la pieza
     // tiene planos completamente muertos, que es de lo que se quejaba.
@@ -239,8 +261,10 @@ function movimiento({ z, x, y }, dur) {
   const e = suave(PUNCH * FPS);
   const zexp = `${zIni.toFixed(4)}+${(z - zIni).toFixed(4)}*${e}`;
   // El centro se mantiene fijo y la ventana crece/decrece alrededor.
-  const cx = (x + (W / z) / 2).toFixed(1);
-  const cy = (y + (H / z) / 2).toFixed(1);
+  // Va multiplicado por el sobremuestreo porque zoompan trabaja sobre la
+  // imagen YA ampliada: las cajas se midieron en el viewport de 1920x1080.
+  const cx = ((x + (W / z) / 2) * sobremuestreo).toFixed(1);
+  const cy = ((y + (H / z) / 2) * sobremuestreo).toFixed(1);
   return {
     z: zexp,
     x: `max(0,min(iw-iw/zoom,${cx}-(iw/zoom)/2))`,
@@ -283,13 +307,13 @@ await rasterizar(piezas, { destino: TMP_TEXTO });
 
 // ── 5. Armar cada plano ──────────────────────────────────────────────
 /** Un plano ya compuesto: pantalla encuadrada + texto + marco. */
-function armarPlano(fuente, marca, { desde, dur }, salida) {
+function armarPlano(fuente, marca, { desde, bruto, dur, vel = 1 }, salida) {
   const enc = encuadreDe(marca);
-  const mov = movimiento(enc, dur);
+  const mov = movimiento(enc, dur, SOBREMUESTREO);
   const durSalida = dur; // el setpts ya se aplicó al recortar
 
   const entradas = [
-    "-ss", desde.toFixed(3), "-t", dur.toFixed(3), "-i", fuente,
+    "-ss", desde.toFixed(3), "-t", (bruto ?? dur).toFixed(3), "-i", fuente,
     "-loop", "1", "-framerate", String(FPS), "-i", join(TMP_TEXTO, marca.__texto ?? PLACAS.cierre.archivo),
     "-loop", "1", "-framerate", String(FPS), "-i", "assets/marco.png",
   ];
@@ -299,7 +323,11 @@ function armarPlano(fuente, marca, { desde, dur }, salida) {
   const subir = `${TEXTO.sube}*pow(1-${p},3)`;
 
   const cadena = [
-    `[0:v]fps=${FPS},zoompan=z='${mov.z}':x='${mov.x}':y='${mov.y}':d=1:s=${PANT.w}x${PANT.h}:fps=${FPS},setsar=1[pant]`,
+    `[0:v]${vel !== 1 ? `setpts=PTS/${vel.toFixed(4)},` : ""}fps=${FPS},`
+      + `scale=${W * SOBREMUESTREO}:${H * SOBREMUESTREO}:flags=lanczos,`
+      + `zoompan=z='${mov.z}':x='${mov.x}':y='${mov.y}':d=1:`
+      + `s=${PANT.w * SOBREMUESTREO}x${PANT.h * SOBREMUESTREO}:fps=${FPS},`
+      + `scale=${PANT.w}:${PANT.h}:flags=lanczos,setsar=1[pant]`,
     `color=c=${FONDO}:s=${W}x${H}:r=${FPS}[bg]`,
     `[bg][pant]overlay=${PANT.x}:${PANT.y}:shortest=1[conpant]`,
     marca.__texto
@@ -327,14 +355,42 @@ function armarPlaca(placa, salida) {
   ]);
 }
 
+/** Cuadros por segundo reales de un archivo, o null. */
+const fpsDe = (f) => {
+  try {
+    const v = execFileSync(FFPROBE, ["-v", "error", "-select_streams", "v:0",
+      "-show_entries", "stream=r_frame_rate", "-of", "default=nw=1:nk=1", f])
+      .toString().trim();
+    const [n, d] = v.split("/").map(Number);
+    const fps = d ? n / d : n;
+    return Number.isFinite(fps) && fps > 0 ? fps : null;
+  } catch { return null; }
+};
+
 /** Plano aéreo con el logo compuesto encima. */
 function armarBookend(plano, cual, salida) {
   const total = duracion(plano.archivo);
-  const dur = Math.min(plano.dur, total ?? plano.dur);
-  const desde = plano.anclaje === "final" && total ? Math.max(0, total - dur) : 0;
-
   const conLogo = ["ambos", cual].includes(DONDE_LOGO);
-  const base = `scale=${W}:${H}:force_original_aspect_ratio=decrease:flags=lanczos,`
+
+  // Los planos de dron vienen a 24 fps (medido: 120 intervalos de 0.0417 s).
+  // Pasarlos por `fps=25` a secas repite un cuadro cada 25 — un pulldown de
+  // manual, y encima cae en los primeros segundos de la pieza, que es donde
+  // más se nota. Con setpts los 24 cuadros de origen entran uno a uno en los
+  // 25 de salida. Acelera el clip un 4%, que en un dron es imperceptible.
+  // OJO CON EL SIGNO: PTS*origen/FPS. Al revés sale peor.
+  const fpsOrigen = fpsDe(plano.archivo);
+  const retimar = fpsOrigen && Math.abs(fpsOrigen - FPS) > 0.01
+    ? `setpts=PTS*${(fpsOrigen / FPS).toFixed(6)},`
+    : "";
+  const factor = retimar ? fpsOrigen / FPS : 1;
+  const totalRetimado = total ? total * factor : null;
+
+  const dur = Math.min(plano.dur, totalRetimado ?? plano.dur);
+  const desde = plano.anclaje === "final" && totalRetimado
+    ? Math.max(0, (totalRetimado - dur) / factor)
+    : 0;
+
+  const base = `${retimar}scale=${W}:${H}:force_original_aspect_ratio=decrease:flags=lanczos,`
     + `pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=${FONDO},fps=${FPS}`;
 
   // El fundido a navy en el empalme con la pieza: como el marco TIENE ese
@@ -344,8 +400,12 @@ function armarBookend(plano, cual, salida) {
     ? `,fade=t=out:st=${(dur - 0.4).toFixed(2)}:d=0.4:color=${FONDO}`
     : `,fade=t=in:st=0:d=0.4:color=${FONDO}`;
 
+  // -t antes de -i cuenta tiempo de ENTRADA, y el setpts comprime: para que
+  // salgan `dur` segundos hay que pedir dur/factor de fuente.
+  const durEntrada = (dur / factor).toFixed(3);
+
   if (!conLogo) {
-    ff(["-ss", String(desde), "-t", String(dur), "-i", plano.archivo,
+    ff(["-ss", String(desde), "-t", durEntrada, "-i", plano.archivo,
         "-vf", `${base}${haciaLaPieza},format=yuv420p`, "-an", ...X264, salida]);
     return dur;
   }
@@ -356,7 +416,7 @@ function armarBookend(plano, cual, salida) {
   const entra = cual === "apertura" ? 0.7 : 0.8;
   const sale = cual === "apertura" ? `,fade=t=out:st=${(dur - 0.75).toFixed(2)}:d=0.4:alpha=1` : "";
   ff([
-    "-ss", String(desde), "-t", String(dur), "-i", plano.archivo,
+    "-ss", String(desde), "-t", durEntrada, "-i", plano.archivo,
     "-framerate", String(FPS), "-loop", "1", "-i", LOGO,
     "-filter_complex",
     `[0:v]${base},eq=brightness=-0.06:saturation=1.05[v];`
@@ -414,15 +474,12 @@ for (let i = 0; i < partes.length; i++) {
     const bruto = (m.tOut - m.tIn) / 1000;
     const dur = bruto / vel;
 
-    // El recorte y la aceleración se hacen en un paso aparte: zoompan sobre
-    // un stream ya retimado se lleva mal con setpts en la misma cadena.
-    const trozo = join(TMP, `crudo-${i}-${m.id}.mp4`);
-    ff(["-ss", desde.toFixed(3), "-t", bruto.toFixed(3), "-i", fuente,
-        "-vf", vel !== 1 ? `setpts=PTS/${vel.toFixed(4)},fps=${FPS}` : `fps=${FPS}`,
-        "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", trozo]);
-
+    // El recorte, la aceleración y la composición van en UNA sola llamada.
+    // Antes el recorte era un paso aparte "porque zoompan y setpts se llevaban
+    // mal": no es cierto, y cada paso extra es una generación más de H.264
+    // encima del texto chico del sitio, que es justo lo que hay que salvar.
     const dst = join(TMP, `s${String(++n).padStart(3, "0")}-${m.id}.mp4`);
-    armarPlano(trozo, m, { desde: 0, dur }, dst);
+    armarPlano(fuente, m, { desde, bruto, dur, vel }, dst);
     const real = duracion(dst) ?? dur;
     segmentos.push({ archivo: dst, dur: real, nombre: m.id });
     const enc = encuadreDe(m);
@@ -460,11 +517,10 @@ const total = duracion(encadenado) ?? segmentos.reduce((a, s) => a + s.dur, 0);
 console.log(`▸ ${segmentos.length} segmentos → ${total.toFixed(1)}s`);
 
 // ── 8. Música y empaquetado ──────────────────────────────────────────
-const comunes = [
-  "-c:v", "libx264", "-preset", "slow", "-crf", "19",
-  "-pix_fmt", "yuv420p", "-profile:v", "high", "-level", "4.1",
-  "-movflags", "+faststart",
-];
+// El video ya está codificado en cada segmento y el concat lo pega sin tocar:
+// acá sólo se le mete el audio. Reencodificarlo era una cuarta generación de
+// H.264 sobre el texto del sitio, y no aportaba nada.
+const comunes = ["-c:v", "copy", "-movflags", "+faststart"];
 
 if (MUSICA && existsSync(MUSICA)) {
   const salidaFade = Math.max(0, total - 2.5);
