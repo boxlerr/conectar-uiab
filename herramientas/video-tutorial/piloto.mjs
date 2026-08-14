@@ -330,6 +330,14 @@ export async function plano(page, opts, accion) {
     // Congela el scroll de la APP durante el plano (el guion sigue pudiendo
     // scrollear). Para las pantallas que se mueven solas al interactuar.
     congelar = false,
+    // El plano TERMINA navegando (un click que cambia de página).
+    //
+    // Con esto la espera de lectura va ANTES de la acción y el plano corta
+    // apenas se dispara el click. Sin esto, la espera caía DESPUÉS: el plano
+    // seguía filmando mientras la página navegaba y quedaba casi un segundo de
+    // "Cargando oportunidades…" sobre una pantalla en blanco dentro de la
+    // pieza. Eso es lo que el cliente vio como "se ven pantallas de carga".
+    navega = false,
   } = opts;
 
   const medir = async () => {
@@ -338,6 +346,19 @@ export async function plano(page, opts, accion) {
     if (encuadre && typeof encuadre === "object") return encuadre;
     return null;
   };
+
+  // Un plano no arranca hasta que exista lo que va a encuadrar.
+  //
+  // `asentar()` espera networkidle, pero eso no alcanza: los componentes de
+  // cliente pintan "Cargando oportunidades…" DESPUÉS de que la red se calmó,
+  // así que el plano empezaba sobre una pantalla en blanco con un spinner y
+  // eso terminaba adentro de la pieza. Esperar al sujeto es la garantía que
+  // realmente importa: si lo vamos a encuadrar, tiene que estar.
+  if (typeof encuadre === "string") {
+    await page.waitForSelector(encuadre, { state: "visible", timeout: 10_000 })
+      .catch(() => console.log(`    · plano "${id}": ${encuadre} no apareció en 10 s`));
+    await dormir(160);
+  }
 
   // Se mide DOS veces, y manda la de después.
   //
@@ -351,15 +372,12 @@ export async function plano(page, opts, accion) {
   const rectAntes = await medir();
 
   if (congelar) await cast(page, "congelarScroll", true);
+  // Las animaciones decorativas del sitio se congelan mientras dura el plano.
+  // La franja de logos del directorio se desplaza sola, y encuadrada debajo
+  // del cartel se veía como si el video estuviera roto.
+  await cast(page, "congelarAnimaciones", true).catch(() => {});
+
   const tIn = Date.now();
-  try {
-    if (accion) await accion();
-    if (colaMs) await dormir(colaMs);
-  } finally {
-    // Sin el finally, un paso que falla deja la página congelada y se lleva
-    // puestos todos los planos que vienen después.
-    if (congelar) await cast(page, "congelarScroll", false).catch(() => {});
-  }
 
   // El plano no puede terminar antes de que se alcance a LEER su texto.
   //
@@ -368,8 +386,25 @@ export async function plano(page, opts, accion) {
   // fue exactamente esa: "los textos aparecen muy rápido y se van muy rápido".
   // Ahora el guion declara el texto y el tiempo sale de ahí, así que es
   // imposible escribir un plano ilegible.
-  const faltante = minimoLegible({ rotulo, texto, velocidad }) - (Date.now() - tIn);
-  if (faltante > 0) await dormir(faltante);
+  const minimo = minimoLegible({ rotulo, texto, velocidad });
+  const esperar = async () => {
+    const faltante = minimo - (Date.now() - tIn);
+    if (faltante > 0) await dormir(faltante);
+  };
+
+  try {
+    // Si el plano termina navegando, se lee ANTES y se corta apenas se
+    // dispara el click: filmar la navegación es filmar una pantalla de carga.
+    if (navega) await esperar();
+    if (accion) await accion();
+    if (colaMs) await dormir(navega ? Math.min(colaMs, 80) : colaMs);
+    if (!navega) await esperar();
+  } finally {
+    // Sin el finally, un paso que falla deja la página congelada y se lleva
+    // puestos todos los planos que vienen después.
+    if (congelar) await cast(page, "congelarScroll", false).catch(() => {});
+    await cast(page, "congelarAnimaciones", false).catch(() => {});
+  }
 
   const tOut = Date.now();
 

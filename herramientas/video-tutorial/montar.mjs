@@ -85,6 +85,9 @@ const DERIVA = 1.055;      // empuje lento de los planos generales
 // ×4 no: cuesta seis veces más y encima PIERDE nitidez.
 const SOBREMUESTREO = 2;
 
+// Duración de las disolvencias entre segmentos.
+const CRUCE = { plano: 0.18, placa: 0.06 };
+
 // El texto entra enseguida y se queda hasta el final del plano.
 //
 // Antes salía 0.30 s antes del corte y entraba recién a los 0.16 con un
@@ -445,7 +448,7 @@ if (OBJETIVO) {
 if (!SIN_BOOKENDS && existsSync(APERTURA.archivo)) {
   const dst = join(TMP, "s000-apertura.mp4");
   const d = armarBookend(APERTURA, "apertura", dst);
-  segmentos.push({ archivo: dst, dur: d, nombre: "apertura (dron)" });
+  segmentos.push({ archivo: dst, dur: d, cruce: CRUCE.placa, nombre: "apertura (dron)" });
   console.log(`  · apertura → ${d.toFixed(1)}s`);
 }
 
@@ -456,7 +459,7 @@ for (let i = 0; i < partes.length; i++) {
   if (i === 1) {
     const dst = join(TMP, `s${String(++n).padStart(3, "0")}-placa2.mp4`);
     armarPlaca(PLACAS.capitulo2, dst);
-    segmentos.push({ archivo: dst, dur: PLACAS.capitulo2.dur, nombre: "placa · Oportunidades" });
+    segmentos.push({ archivo: dst, dur: PLACAS.capitulo2.dur, cruce: CRUCE.placa, nombre: "placa · Oportunidades" });
   }
 
   const fuente = normalizarPasada(parte, i);
@@ -466,6 +469,7 @@ for (let i = 0; i < partes.length; i++) {
     console.log("     (los textos pueden entrar corridos: volvé a grabar).");
   }
   const t0 = (fClaqueta ?? 0) / FPS;
+  let primeroDelCapitulo = true;
 
   for (const m of parte.planos) {
     if (SOLO && m.id !== SOLO) continue;
@@ -481,7 +485,8 @@ for (let i = 0; i < partes.length; i++) {
     const dst = join(TMP, `s${String(++n).padStart(3, "0")}-${m.id}.mp4`);
     armarPlano(fuente, m, { desde, bruto, dur, vel }, dst);
     const real = duracion(dst) ?? dur;
-    segmentos.push({ archivo: dst, dur: real, nombre: m.id });
+    segmentos.push({ archivo: dst, dur: real, cruce: primeroDelCapitulo ? CRUCE.placa : CRUCE.plano, nombre: m.id });
+    primeroDelCapitulo = false;
     const enc = encuadreDe(m);
     console.log(`  · ${m.id.padEnd(14)} ${real.toFixed(1)}s  zoom ${enc.z.toFixed(2)}×`
       + (vel !== 1 ? `  ${vel.toFixed(2)}× rápido` : ""));
@@ -491,29 +496,54 @@ for (let i = 0; i < partes.length; i++) {
 if (!SOLO) {
   const dst = join(TMP, `s${String(++n).padStart(3, "0")}-placa-cierre.mp4`);
   armarPlaca(PLACAS.cierre, dst);
-  segmentos.push({ archivo: dst, dur: PLACAS.cierre.dur, nombre: "placa · cierre" });
+  segmentos.push({ archivo: dst, dur: PLACAS.cierre.dur, cruce: CRUCE.placa, nombre: "placa · cierre" });
 }
 
 if (!SIN_BOOKENDS && !SOLO && existsSync(CIERRE.archivo)) {
   const dst = join(TMP, "s999-cierre.mp4");
   const d = armarBookend(CIERRE, "cierre", dst);
-  segmentos.push({ archivo: dst, dur: d, nombre: "cierre (dron)" });
+  segmentos.push({ archivo: dst, dur: d, cruce: CRUCE.placa, nombre: "cierre (dron)" });
   console.log(`  · cierre → ${d.toFixed(1)}s`);
 }
 
 if (!segmentos.length) throw new Error("No quedó ningún segmento para montar.");
 
 // ── 7. Encadenar ─────────────────────────────────────────────────────
-// Cortes secos entre planos: es lo que da el ritmo. Los únicos fundidos son
-// contra el navy (bookends y placas), y ese fundido ya viene hecho adentro de
-// cada segmento, así que todo se puede pegar sin recodificar.
-const lista = join(TMP, "lista.txt");
-writeFileSync(lista, segmentos.map((s) => `file '${s.archivo.replace(/'/g, "'\\''")}'`).join("\n"));
-
+// Disolvencias cortas entre planos en vez de cortes secos.
+//
+// Son 0.18 s: suficiente para que el cambio se sienta acompañado y no un salto,
+// y corto para que no baje el ritmo. Puede hacerse porque el cartel ya se fue
+// 0.20 s antes del corte y el siguiente entra 0.10 s después, así que nunca hay
+// dos textos superpuestos — que es lo que hace ilegible un fundido sobre una
+// pantalla llena de letras.
+//
+// En los empalmes con placas y planos aéreos la disolvencia baja a 0.06 s: esos
+// segmentos ya funden contra el navy por dentro, y encimar los dos fundidos
+// oscurecía el doble.
 const encadenado = join(TMP, "encadenado.mp4");
-ff(["-f", "concat", "-safe", "0", "-i", lista, "-c", "copy", encadenado]);
+let total;
 
-const total = duracion(encadenado) ?? segmentos.reduce((a, s) => a + s.dur, 0);
+if (segmentos.length === 1) {
+  total = segmentos[0].dur;
+  ff(["-i", segmentos[0].archivo, "-c", "copy", encadenado]);
+} else {
+  const entradas = segmentos.flatMap((s) => ["-i", s.archivo]);
+  const cadena = [];
+  let etiqueta = "0:v";
+  let acumulado = segmentos[0].dur;
+  for (let i = 1; i < segmentos.length; i++) {
+    const d = segmentos[i].cruce ?? CRUCE.plano;
+    const salida = i === segmentos.length - 1 ? "vfin" : `x${i}`;
+    const offset = (acumulado - d).toFixed(3);
+    cadena.push(`[${etiqueta}][${i}:v]xfade=transition=fade:duration=${d}:offset=${offset}[${salida}]`);
+    etiqueta = salida;
+    acumulado += segmentos[i].dur - d;
+  }
+  ff([...entradas, "-filter_complex", cadena.join(";"), "-map", "[vfin]", "-an", ...X264, encadenado]);
+  total = acumulado;
+}
+
+total = duracion(encadenado) ?? total;
 console.log(`▸ ${segmentos.length} segmentos → ${total.toFixed(1)}s`);
 
 // ── 8. Música y empaquetado ──────────────────────────────────────────

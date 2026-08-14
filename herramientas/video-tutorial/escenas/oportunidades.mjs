@@ -25,7 +25,7 @@ export async function escenaOportunidades({ page, BASE }) {
     id: "tablero",
     escala: 1,
     rotulo: "Oportunidades",
-    texto: "Lo que las empresas del parque necesitan.",
+    texto: "Lo que el parque necesita, publicado.",
   }, () => dormir(1200));
 
   // ── 2. Una publicación ──────────────────────────────────────────
@@ -33,10 +33,11 @@ export async function escenaOportunidades({ page, BASE }) {
     id: "publicacion",
     encuadre: TARJETA,
     escala: 1.6,
+    navega: true,
     rotulo: "Cada pedido",
-    texto: "Estado, empresa, rubro y fecha de un vistazo.",
+    texto: "Estado, empresa, rubro y fecha.",
   }, async () => {
-    await dormir(900);
+    await dormir(180);
     await clickEn(page, `${TARJETA} a[href^="/oportunidades/"]`, { ms: 420 })
       .catch(() => clickEn(page, TARJETA, { ms: 420 }));
   });
@@ -61,7 +62,7 @@ export async function escenaOportunidades({ page, BASE }) {
     id: "ficha-tecnica",
     encuadre: '[data-tour="op-detalle-ficha"]',
     rotulo: "Ficha técnica",
-    texto: "Cantidad, plazo y ubicación para cotizar.",
+    texto: "Cantidad, plazo y ubicación.",
   }, () => dormir(1200));
 
   // ── 5. Postularse (se muestra, NO se envía) ─────────────────────
@@ -113,7 +114,7 @@ export async function escenaOportunidades({ page, BASE }) {
     id: "publicar",
     encuadre: "#titulo",
     rotulo: "¿Necesitás algo?",
-    texto: "Publicá tu propio requerimiento en un minuto.",
+    texto: "Publicá el tuyo en un minuto.",
     velocidad: 1.35,
   }, async () => {
     await opcional("título", () =>
@@ -135,7 +136,7 @@ export async function escenaOportunidades({ page, BASE }) {
       encuadre: 'div[role="listbox"][aria-label="Rubro"]',
       escala: 1.45,
       rotulo: "Elegí el rubro",
-      texto: "193 rubros, para que el match sea preciso.",
+      texto: "193 rubros para afinar el match.",
     }, async () => {
       await clickEn(page, "#categoria_id", { ms: 420 });
       await page.waitForSelector(OPCION, { timeout: 5000, state: "visible" });
@@ -203,7 +204,7 @@ export async function escenaOportunidades({ page, BASE }) {
     encuadre: hayForm ? FORM : null,
     escala: hayForm ? 1.35 : 1,
     rotulo: "Y listo",
-    texto: "Se lo sugiere a los proveedores que matchean.",
+    texto: "Se lo sugiere a quien puede hacerlo.",
     sello: "Match",
   }, () => dormir(1500));
 }

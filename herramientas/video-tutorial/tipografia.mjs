@@ -90,9 +90,13 @@ const cartelHTML = ({ rotulo, texto, sello }) => `
     -webkit-mask-image:linear-gradient(to right, #000 0%, rgba(0,0,0,.66) 58%, transparent 94%);
             mask-image:linear-gradient(to right, #000 0%, rgba(0,0,0,.66) 58%, transparent 94%);
   }
+  /* 1290 y no 1180: a 64px, una frase de ~41 caracteres se partía en dos
+     renglones, y el segundo renglón empujaba al primero hacia arriba, fuera de
+     la parte fuerte del velo. Con 1290 entran en una línea y todavía quedan
+     240 px hasta el borde de la pantalla. */
   .bloque{
     position:fixed; left:${P.x + 68}px; bottom:${MARCO.alto - (P.y + P.h) + 74}px;
-    width:1180px; font-family:${PILA};
+    width:1290px; font-family:${PILA};
   }
   .fila{display:flex; align-items:center; gap:16px; margin-bottom:18px}
   .barra{width:4px; height:30px; background:${MARCA.azulClaro}; border-radius:2px}
@@ -189,6 +193,40 @@ export async function rasterizar(piezas, { destino = join(AQUI, "tmp-texto") } =
       : cartelHTML(pieza);
     await page.setContent(html, { waitUntil: "load" });
     await page.evaluate(() => document.fonts.ready);
+
+    // El velo se ajusta al bloque de texto REAL, ya maquetado.
+    //
+    // Con una altura fija, un texto de dos renglones empujaba el primero hacia
+    // arriba, fuera de la parte fuerte del degradado: quedaba blanco sobre
+    // fondo claro y no se leía. Midiendo después de que el navegador maquetó,
+    // el velo tapa lo que hay que tapar, sean uno o dos renglones, y ni un
+    // píxel más.
+    if (pieza.tipo !== "placa") {
+      const renglones = await page.evaluate(({ abajo, minimo }) => {
+        const bloque = document.querySelector(".bloque");
+        const velo = document.querySelector(".velo");
+        if (!bloque || !velo) return 0;
+        const caja = bloque.getBoundingClientRect();
+        const arriba = Math.max(minimo, Math.round(caja.top) - 170);
+        velo.style.top = `${arriba}px`;
+        velo.style.height = `${abajo - arriba}px`;
+        velo.style.background = "linear-gradient(to bottom,"
+          + " rgba(9,20,35,0) 0%, rgba(9,20,35,.52) 38%,"
+          + " rgba(9,20,35,.88) 68%, rgba(9,20,35,.94) 100%)";
+        // Cuántos renglones ocupa el titular, medido de verdad.
+        const t = document.querySelector(".texto");
+        const cs = getComputedStyle(t);
+        return Math.round(t.getBoundingClientRect().height / parseFloat(cs.lineHeight));
+      }, { abajo: P.y + P.h, minimo: P.y });
+
+      // Un titular de dos renglones no es un error, pero conviene saberlo: se
+      // lee peor y empuja el bloque hacia arriba. El techo real depende de qué
+      // palabras caigan, no del número de caracteres, así que se mide.
+      if (renglones > 1) {
+        console.log(`  ⚠ "${String(pieza.texto).slice(0, 42)}…" ocupa ${renglones} renglones`);
+      }
+    }
+
     const ruta = join(destino, pieza.archivo);
     await page.screenshot({
       path: ruta,

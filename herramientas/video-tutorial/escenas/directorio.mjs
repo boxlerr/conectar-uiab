@@ -100,12 +100,13 @@ export async function escenaDirectorio({ page, BASE }) {
     encuadre: TARJETA,
     idx: iFicha,
     escala: 1.3,
+    navega: true,
     rotulo: "Cada tarjeta",
     texto: "Un click y estás en el perfil.",
   }, async () => {
-    await moverAlSelector(page, TARJETA, { ms: 520, idx: iFicha });
-    await dormir(700);
-    await clickEn(page, TARJETA, { ms: 220, idx: iFicha });
+    await moverAlSelector(page, TARJETA, { ms: 420, idx: iFicha });
+    await dormir(180);
+    await clickEn(page, TARJETA, { ms: 200, idx: iFicha });
   });
 
   // La navegación no se filma.
