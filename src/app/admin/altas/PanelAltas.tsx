@@ -17,6 +17,7 @@ import {
   Copy,
   Trash2,
   Download,
+  FileSpreadsheet,
   CheckCircle2,
   Clock,
   PhoneCall,
@@ -686,9 +687,17 @@ export function PanelAltas({
               Ver formulario
             </Button>
           </a>
+          {/* El Excel se arma en el servidor: trae el padrón COMPLETO con todos
+              los datos de contacto, no lo que quedó filtrado en pantalla. */}
+          <a href="/api/admin/padron/export" download>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0">
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Descargar el padrón en Excel
+            </Button>
+          </a>
           <Button variant="outline" onClick={exportarCSV} disabled={filtradas.length === 0} className="shrink-0">
             <Download className="w-4 h-4 mr-2" />
-            Exportar CSV
+            CSV de lo filtrado
           </Button>
         </div>
       </div>
