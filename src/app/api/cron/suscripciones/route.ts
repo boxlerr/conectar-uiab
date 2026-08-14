@@ -36,9 +36,10 @@ export async function GET(req: NextRequest) {
   // 1. Recordatorios
   const { data: vencen } = await admin
     .from("suscripciones")
-    .select("id, empresa_id, proveedor_id, monto, nombre_plan, proximo_cobro_en, ultima_notificacion_en")
+    .select("id, empresa_id, proveedor_id, monto, ciclo, nombre_plan, proximo_cobro_en, ultima_notificacion_en")
     .eq("estado", "activa")
-    .eq("metodo_pago", "mercadopago")
+    .neq("metodo_pago", "cortesia")
+    .gt("monto", 0)
     .lte("proximo_cobro_en", en3dias.toISOString())
     .gt("proximo_cobro_en", now.toISOString());
 
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest) {
     const dest = await destinatario(admin, s);
     if (dest?.email) {
       const p = plantillaRecordatorioVencimiento({
-        ...dest, plan: s.nombre_plan || "UIAB Conecta", monto: Number(s.monto), venceEn: s.proximo_cobro_en!,
+        ...dest, plan: s.nombre_plan || "UIAB Conecta", monto: Number(s.monto), ciclo: s.ciclo === "anual" ? "anual" as const : "mensual" as const, venceEn: s.proximo_cobro_en!,
       });
       await enviarEmail({ para: dest.email, asunto: p.asunto, html: p.html, texto: p.texto });
       await admin.from("suscripciones").update({ ultima_notificacion_en: now.toISOString() }).eq("id", s.id);
@@ -67,11 +68,17 @@ export async function GET(req: NextRequest) {
   }
 
   // 2. Pasar a en_mora
+  //
+  // Sin `.neq(metodo_pago,'cortesia')` este paso alcanzaría a las 55 socias UIAB:
+  // hoy zafan sólo porque tienen `proximo_cobro_en` en NULL, y una socia que no
+  // paga por decisión de la UIAB no puede recibir un mail de deuda por un dato
+  // que alguien complete de más.
   const { data: morosas } = await admin
     .from("suscripciones")
     .select("id, empresa_id, proveedor_id")
     .eq("estado", "activa")
-    .eq("metodo_pago", "mercadopago")
+    .neq("metodo_pago", "cortesia")
+    .gt("monto", 0)
     .lt("proximo_cobro_en", now.toISOString());
   for (const s of morosas ?? []) {
     const gracia = new Date(now.getTime() + 7 * 24 * 3600 * 1000).toISOString();

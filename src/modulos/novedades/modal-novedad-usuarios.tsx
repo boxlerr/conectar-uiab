@@ -94,7 +94,7 @@ export function ModalNovedadUsuarios() {
           </button>
 
           <div className="relative z-10">
-            <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/50">
+            <span className="inline-flex items-center gap-2 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.16em] text-white/50">
               <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
               Novedad — UIAB Conecta
             </span>
@@ -154,13 +154,13 @@ export function ModalNovedadUsuarios() {
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-bold text-slate-800 leading-tight truncate">
                     {p.nombre}
-                    <span className="ml-2 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                    <span className="ml-2 text-[11px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-400">
                       {p.area}
                     </span>
                   </p>
                   <p className="text-[11px] text-slate-400 truncate">{p.mail}</p>
                 </div>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5 shrink-0">
+                <span className="hidden sm:inline-flex items-center gap-1 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5 shrink-0">
                   <Check className="w-3 h-3" />
                   Activo
                 </span>

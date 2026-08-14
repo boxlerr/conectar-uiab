@@ -80,7 +80,7 @@ export function AvisoConflictosPadron({
       <ul className="divide-y divide-slate-100">
         {pendientes.map((c) => (
           <li key={c.campo} className="px-6 py-4">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-2.5">
+            <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-2.5">
               {c.etiqueta}
             </p>
             <div className="grid sm:grid-cols-2 gap-2.5">
@@ -96,11 +96,11 @@ export function AvisoConflictosPadron({
                     className="group text-left border border-slate-200 hover:border-[#00213f] rounded-md px-4 py-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em]">
+                      <span className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em]">
                         {ORIGEN_ETIQUETA[origen]}
                       </span>
                       {esActual && (
-                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-sm px-1.5 py-px uppercase tracking-wider">
+                        <span className="text-[11px] sm:text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-sm px-1.5 py-px uppercase tracking-wider">
                           Actual
                         </span>
                       )}

@@ -123,11 +123,20 @@ export async function validarTokenCore(
  */
 export async function definirPasswordCore(
   token: string,
-  password: string
+  password: string,
+  nombre?: string
 ): Promise<{ ok: true; email: string } | { ok: false; error: string }> {
   const pass = passwordSchema.safeParse(password);
   if (!pass.success) {
     return { ok: false, error: pass.error.issues[0]?.message ?? "La contraseña no cumple los requisitos." };
+  }
+
+  // El nombre se pide en el mismo paso que la contraseña. Antes el perfil
+  // quedaba con lo que hubiera cargado el admin al crear la cuenta —o vacío—,
+  // y esa persona aparecía sin nombre en /admin/usuarios y en las novedades.
+  const nombreLimpio = (nombre ?? "").replace(/\s+/g, " ").trim();
+  if (nombre !== undefined && nombreLimpio.length < 3) {
+    return { ok: false, error: "Escribí tu nombre y apellido." };
   }
 
   const val = await validarTokenCore(token);
@@ -143,8 +152,45 @@ export async function definirPasswordCore(
 
   const db = adminClient();
 
-  const { error: updErr } = await db.auth.admin.updateUserById(val.perfilId, { password });
+  // `email_confirm` va siempre: el token viajó por correo a esa casilla, así que
+  // usarlo YA prueba que la controla. Sin esto la cuenta queda sin confirmar y,
+  // con "Confirm email" prendido en Supabase, el auto-login de /definir-password
+  // falla con "Email not confirmed" justo después de elegir la contraseña.
+  const { error: updErr } = await db.auth.admin.updateUserById(val.perfilId, {
+    password,
+    email_confirm: true,
+  });
   if (updErr) return { ok: false, error: `No se pudo definir la contraseña: ${updErr.message}` };
+
+  // Puede llegar acá baneado: si antes se había registrado por /register contra
+  // una ficha del padrón, quedó en espera con ban en Auth. Levantarlo, pero sólo
+  // si el perfil está activo — el ban de alguien desactivado a propósito no se
+  // toca por definir una contraseña.
+  const { data: perfil } = await db
+    .from("perfiles")
+    .select("activo")
+    .eq("id", val.perfilId)
+    .maybeSingle();
+  if (perfil?.activo) {
+    const { error: banErr } = await db.auth.admin.updateUserById(val.perfilId, {
+      ban_duration: "none",
+    });
+    if (banErr) {
+      console.error("[invitaciones] No se pudo levantar el ban al definir la contraseña:", banErr.message);
+    }
+  }
+
+  if (nombreLimpio) {
+    const { error: nombreErr } = await db
+      .from("perfiles")
+      .update({ nombre_completo: nombreLimpio })
+      .eq("id", val.perfilId);
+    if (nombreErr) {
+      // No se corta por esto: la contraseña ya quedó puesta y dejarlo afuera
+      // sería peor que un perfil sin nombre.
+      console.error("[invitaciones] no se pudo guardar el nombre:", nombreErr.message);
+    }
+  }
 
   // Consumir el token (single-use). El `.is('usado_en', null)` evita el doble uso
   // en una carrera: si otro request ya lo consumió, este update no afecta filas.

@@ -42,40 +42,41 @@ export function ResenasPerfil({ resenasAprobadas, targetType, targetId }: Resena
       : "0.0";
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       {/* Listado de Opiniones */}
-      <div className="bg-white p-10 rounded-2xl shadow-xl shadow-primary/5 border border-slate-200/60">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10 pb-6 border-b border-slate-100">
+      <div className="bg-white p-5 sm:p-7 rounded-xl border border-slate-200 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-100/50">
-              <MessageSquare className="w-5 h-5 text-amber-500" />
-            </div>
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-amber-100 bg-amber-50">
+              <MessageSquare className="h-4 w-4 text-amber-500" />
+            </span>
             <div>
-              <h2 className="font-manrope text-2xl font-extrabold text-slate-800 tracking-tight">Evaluaciones</h2>
-              <p className="text-sm font-medium text-slate-500 mt-1">Lo que opina nuestra red industrial</p>
+              <h2 className="font-manrope text-[17px] font-black tracking-tight text-[#00213f]">
+                Reseñas{total > 0 && <span className="font-bold text-slate-400"> ({total})</span>}
+              </h2>
+              <span className="mt-1.5 block h-[3px] w-7 rounded-full bg-amber-400" />
             </div>
           </div>
           {total > 0 && (
-            <div className="text-right sm:text-center px-6 py-3 bg-amber-50 rounded-xl border border-amber-100">
-              <div className="text-2xl font-black text-amber-900 leading-none">{prom}</div>
-              <div className="flex items-center gap-1 mt-1 justify-end sm:justify-center">
-                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                <span className="text-xs font-bold text-amber-700 uppercase tracking-widest">{total} OPINIONES</span>
-              </div>
+            <div className="flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50 px-3.5 py-2">
+              <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
+              <span className="font-manrope text-lg font-black leading-none text-amber-900">{prom}</span>
+              <span className="text-[11px] font-bold uppercase tracking-widest text-amber-700">
+                / {total} {total === 1 ? "opinión" : "opiniones"}
+              </span>
             </div>
           )}
         </div>
 
+        {/* El vacío ocupaba 300px de tarjeta para decir que no hay nada: en una
+            base con 0 reseñas aprobadas, ese cartel era el bloque más grande de
+            las 59 fichas. Ahora es un renglón. */}
         {total === 0 ? (
-          <div className="text-center py-12 px-4">
-            <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Star className="w-6 h-6 text-slate-300" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-700 mb-2">Aún no hay reseñas</h3>
-            <p className="text-sm text-slate-500 max-w-sm mx-auto">
-              Esta empresa aún no ha recibido evaluaciones públicas verificadas. ¡Sé el primero en opinar!
-            </p>
-          </div>
+          <p className="flex items-start gap-2.5 rounded-lg bg-slate-50 px-4 py-3 text-[13.5px] leading-relaxed text-slate-500">
+            <Star className="mt-0.5 h-4 w-4 shrink-0 text-slate-300" />
+            Todavía no recibió reseñas de la red. Si trabajaste con esta empresa, tu opinión es la
+            primera.
+          </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {resenasAprobadas.map((r) => {
@@ -92,7 +93,7 @@ export function ResenasPerfil({ resenasAprobadas, targetType, targetId }: Resena
                 >
                   <div className="flex justify-between items-start mb-3">
                     <Estrellas n={r.calificacion} />
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <span className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       {new Date(r.creada_en).toLocaleDateString("es-AR", { month: 'short', year: 'numeric' })}
                     </span>
                   </div>
@@ -105,9 +106,9 @@ export function ResenasPerfil({ resenasAprobadas, targetType, targetId }: Resena
                   <div className="pt-4 border-t border-slate-100 mt-auto flex items-center justify-between">
                     <div>
                       <p className="text-xs font-bold text-slate-900">{autorNombre}</p>
-                      <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">Socio Verificado</p>
+                      <p className="text-[11px] sm:text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">Socio Verificado</p>
                     </div>
-                    <span className="text-[10px] font-bold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Leer más &rarr;</span>
+                    <span className="text-[11px] sm:text-[10px] font-bold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Leer más &rarr;</span>
                   </div>
                 </div>
               );

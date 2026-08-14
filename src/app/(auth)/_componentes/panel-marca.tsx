@@ -45,7 +45,7 @@ export function PanelMarcaAuth() {
         <MarcaMark />
         <div>
           <span
-            className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/45"
+            className="block text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.16em] text-white/45"
             style={{ fontFamily: FONT_BODY }}
           >
             UIAB Conecta

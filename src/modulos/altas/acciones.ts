@@ -6,8 +6,10 @@ import { z } from "zod";
 import { appUrl, emailAdmin, enviarEmail } from "@/lib/email/cliente";
 import { escapeText, renderEmailBase } from "@/lib/email/plantillas";
 import { CATEGORIAS_ALTA, type AltaSocioInput } from "./constantes";
+import { exigirAdmin } from "@/lib/autenticacion/exigir-admin";
+import { buscarEnPadron, coincidenciaConfiable } from "./buscar-en-padron";
 import { generarYEnviarInvitacion } from "./invitaciones-core";
-import { fusionarConPadron, normalizarCuit, type ConflictoPadron } from "./padron";
+import { fusionarConPadron, type ConflictoPadron } from "./padron";
 import { normalizarSitioWeb } from "@/lib/utilidades";
 
 function adminClient() {
@@ -162,6 +164,9 @@ export async function enviarAltaSocio(input: AltaSocioInput) {
 const ESTADOS_ALTA = ["pendiente", "contactado", "cuenta_creada", "descartado"] as const;
 
 export async function actualizarEstadoAlta(id: string, estado: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   if (!ESTADOS_ALTA.includes(estado as (typeof ESTADOS_ALTA)[number])) {
     return { error: "Estado no válido" };
   }
@@ -176,6 +181,9 @@ export async function actualizarEstadoAlta(id: string, estado: string) {
 }
 
 export async function vincularEmpresaAlta(id: string, empresaId: string | null) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { error } = await adminClient()
     .from("altas_socios")
     .update({ empresa_id: empresaId })
@@ -186,6 +194,9 @@ export async function vincularEmpresaAlta(id: string, empresaId: string | null) 
 }
 
 export async function eliminarAlta(id: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { error } = await adminClient().from("altas_socios").delete().eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/admin/altas");
@@ -210,7 +221,18 @@ const CATEGORIA_SOCIO_MAP: Record<string, string | undefined> = {
   cooperativa: "cooperativas",
 };
 
-export async function crearCuentaDesdeAlta(altaId: string) {
+export async function crearCuentaDesdeAlta(
+  altaId: string,
+  /**
+   * `crearFichaNueva` saltea la búsqueda en el padrón. Es la salida para cuando
+   * el sistema sugiere una ficha parecida y el admin confirma que NO es la misma
+   * empresa: sin esto la sugerencia sería un callejón sin salida.
+   */
+  opciones?: { crearFichaNueva?: boolean }
+) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const db = adminClient();
 
   const { data: alta, error: altaErr } = await db
@@ -279,6 +301,27 @@ export async function crearCuentaDesdeAlta(altaId: string) {
   );
   if (perfErr) return { error: `Error creando el perfil: ${perfErr.message}` };
 
+  // `perfiles.activo = true` sola es cosmética: el corte real es el ban de Auth.
+  // Cuando el usuario ya existía puede venir baneado — es el caso de quien se
+  // registró antes por /register con el CUIT de su empresa y quedó en espera
+  // (ver register-sync). Sin este unban el panel decía "Activo", el alta decía
+  // "✓ activó su cuenta" y la persona no podía entrar: le salía "Tu acceso está
+  // desactivado". Le pasó a Naves del Sur el 2026-08-12 y estuvo un día afuera.
+  //
+  // El `email_confirm` va por lo mismo: si venía de /register con "Confirm
+  // email" prendido, la casilla quedó sin confirmar y el login falla igual.
+  if (perfilExistente?.id) {
+    const { error: desbloqueoErr } = await db.auth.admin.updateUserById(userId, {
+      ban_duration: "none",
+      email_confirm: true,
+    });
+    if (desbloqueoErr) {
+      return {
+        error: `El perfil quedó activo pero no se pudo habilitar el acceso en Auth: ${desbloqueoErr.message}. La persona no va a poder entrar.`,
+      };
+    }
+  }
+
   // 3. Entidad + membresía.
   let empresaIdFinal: string | null = alta.empresa_id ?? null;
   let conflictosPadron: ConflictoPadron[] = [];
@@ -310,21 +353,41 @@ export async function crearCuentaDesdeAlta(altaId: string) {
       es_principal: true,
     });
   } else {
-    // Empresa: reutilizar la del padrón si ya está vinculada o si matchea por CUIT.
-    // El padrón tiene CUITs con formatos mixtos (con y sin guiones), así que el
-    // match se hace normalizando a solo dígitos de los dos lados.
-    const cuitAlta = normalizarCuit(alta.cuit);
-    if (!empresaIdFinal && cuitAlta) {
-      const { data: candidatas } = await db
-        .from("empresas")
-        .select("id, cuit")
-        .not("cuit", "is", null);
-      const coincidencias = (candidatas ?? []).filter(
-        (e) => normalizarCuit(e.cuit) === cuitAlta
-      );
-      // Si hay más de una coincidencia es un CUIT duplicado en el padrón:
-      // no vinculamos ninguna y dejamos que el admin lo resuelva a mano.
-      if (coincidencias.length === 1) empresaIdFinal = coincidencias[0].id;
+    // Empresa: reutilizar la del padrón si ya está vinculada, o si matchea por
+    // CUIT o por nombre. El padrón tiene CUITs con formatos mixtos (con y sin
+    // guiones) y seis fichas sin CUIT ninguno, así que la búsqueda normaliza los
+    // dos datos de los dos lados (ver ./buscar-en-padron).
+    if (!empresaIdFinal && !opciones?.crearFichaNueva) {
+      const { empresa, ambiguo } = await buscarEnPadron(db, {
+        cuit: alta.cuit,
+        razonSocial: alta.razon_social,
+        nombreComercial: alta.nombre_comercial,
+      });
+
+      // Empate = el mismo dato en dos fichas del padrón. Antes esto seguía de
+      // largo y creaba una TERCERA ficha, que es exactamente el duplicado que se
+      // quería evitar. Ahora corta y lo resuelve un humano con el selector de
+      // "Vincular al padrón" que ya está en el panel.
+      if (ambiguo) {
+        return {
+          error:
+            "Hay más de una ficha del padrón que coincide con estos datos. Elegí a mano cuál corresponde en «Vincular al padrón» y volvé a dar el acceso.",
+          requiereDecision: "padron_ambiguo" as const,
+        };
+      }
+
+      // El match por nombre parecido no se acepta solo: puede ser otra empresa, y
+      // el precio de equivocarse es meter a alguien adentro de una ficha ajena.
+      // La decisión vuelve al panel, que ofrece vincular o crear ficha nueva.
+      if (empresa && !coincidenciaConfiable(empresa)) {
+        return {
+          error: `El nombre se parece al de "${empresa.razon_social ?? "una ficha del padrón"}", pero no coincide exacto ni hay un CUIT que lo confirme.`,
+          requiereDecision: "padron_parcial" as const,
+          sugerencia: { id: empresa.id, razon_social: empresa.razon_social },
+        };
+      }
+
+      if (empresa) empresaIdFinal = empresa.id;
     }
 
     if (!empresaIdFinal) {
@@ -386,19 +449,46 @@ export async function crearCuentaDesdeAlta(altaId: string) {
     }
 
     // Membresía (evitar duplicado).
+    //
+    // `es_principal` sólo si la ficha NO tiene titular todavía. Hasta acá esta
+    // acción siempre lo ponía en true, y era correcto mientras la usaba sólo
+    // /sumate, donde el alta es la primera persona de una ficha nueva. Desde que
+    // el registro contra el padrón también termina acá, la segunda persona que
+    // pide entrar a una ficha ya publicada dejaba DOS titulares: y como
+    // /perfil/usuarios no deja desactivar a un `es_principal`, el titular
+    // original se quedaba sin forma de sacar a alguien que entró conociendo un
+    // CUIT o un nombre, que son públicos. (BRANCH INGENIERIA ya tiene ese
+    // duplicado de antes; conviene limpiarlo a mano.)
+    //
+    // `limit(1)` y no `maybeSingle()`: justamente donde ya hay dos titulares,
+    // maybeSingle tira error.
+    const { data: yaHayPrincipal } = await db
+      .from("miembros_empresa")
+      .select("id")
+      .eq("empresa_id", empresaIdFinal)
+      .eq("es_principal", true)
+      .limit(1);
+
     const { data: yaMiembro } = await db
       .from("miembros_empresa")
       .select("id")
       .eq("empresa_id", empresaIdFinal)
       .eq("perfil_id", userId)
       .maybeSingle();
+
     if (!yaMiembro) {
-      await db.from("miembros_empresa").insert({
+      const { error: miembroErr } = await db.from("miembros_empresa").insert({
         empresa_id: empresaIdFinal,
         perfil_id: userId,
         rol: "gestor",
-        es_principal: true,
+        es_principal: (yaHayPrincipal ?? []).length === 0,
       });
+      // Sin este chequeo, un fallo acá dejaba la cuenta creada y el alta en
+      // "cuenta_creada" con la persona sin ficha: entra y cae en la pantalla de
+      // "cuenta pendiente" para siempre.
+      if (miembroErr) {
+        return { error: `No se pudo vincular la persona a la ficha: ${miembroErr.message}` };
+      }
     }
 
     // 3.5 Suscripción de cortesía para socias UIAB: si la empresa tiene N° de

@@ -110,7 +110,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
               {isParticular ? (
                 <span className="inline-flex items-center gap-1.5">
                   <span className={`inline-block w-1 h-1 rounded-full ${accentDot}`} />
-                  <span className={`text-[9px] font-bold uppercase tracking-[0.22em] ${accentText}`}>
+                  <span className={`text-[11px] sm:text-[9px] font-bold uppercase tracking-[0.22em] ${accentText}`}>
                     Particular
                   </span>
                 </span>
@@ -119,17 +119,17 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
               )}
               {metaTipo && (
                 <span
-                  className={`inline-flex items-center text-[9px] font-black uppercase tracking-[0.16em] px-1.5 py-0.5 rounded-[3px] ${metaTipo.chipClases}`}
+                  className={`inline-flex items-center text-[11px] sm:text-[9px] font-black uppercase tracking-[0.16em] px-1.5 py-0.5 rounded-[3px] ${metaTipo.chipClases}`}
                 >
                   {metaTipo.chip}
                 </span>
               )}
               {tieneRating && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 rounded-[2px] text-[10px] font-black text-amber-700">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 rounded-[2px] text-[11px] sm:text-[10px] font-black text-amber-700">
                   <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                   {entidad.rating!.toFixed(1)}
                   {tieneReviews && (
-                    <span className="text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1.5 ml-0.5">
+                    <span className="text-[11px] sm:text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1.5 ml-0.5">
                       {entidad.reviews}
                     </span>
                   )}
@@ -148,7 +148,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
                   <ChipNorma key={idx} etiqueta={c.etiqueta} familia={c.familia} size="sm" />
                 ))}
                 {entidad.certificaciones.length > 2 && (
-                  <span className="bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 rounded-[3px]">
+                  <span className="bg-slate-100 px-1.5 py-0.5 text-[11px] sm:text-[10px] font-bold text-slate-400 rounded-[3px]">
                     +{entidad.certificaciones.length - 2}
                   </span>
                 )}
@@ -175,7 +175,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
           {/* Metadata editorial */}
           <div className="hidden xl:flex flex-col gap-2 w-[170px] 2xl:w-[200px] shrink-0 pl-6 2xl:pl-8 border-l border-[#191c1e]/6">
             <div>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.22em]">Sector</span>
+              <span className="text-[11px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-[0.22em]">Sector</span>
               <p className="text-sm font-semibold text-[#191c1e] leading-tight mt-0.5 line-clamp-1">{entidad.categoria}</p>
             </div>
             {entidad.ubicacion && (
@@ -227,9 +227,9 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
           {tieneRating && (
             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-amber-50 text-amber-700 group-hover:bg-amber-100 transition-colors">
               <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-              <span className="text-[10px] font-black leading-none">{entidad.rating!.toFixed(1)}</span>
+              <span className="text-[11px] sm:text-[10px] font-black leading-none">{entidad.rating!.toFixed(1)}</span>
               {tieneReviews && (
-                <span className="text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1 ml-0.5">
+                <span className="text-[11px] sm:text-[9px] font-bold text-amber-500/60 border-l border-amber-200/60 pl-1 ml-0.5">
                   {entidad.reviews}
                 </span>
               )}
@@ -271,11 +271,11 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
             directorio unificado, donde la lista viene mezclada. */}
         <div className="mt-4 flex flex-wrap items-center gap-1.5">
           {metaTipo && (
-            <span className={`inline-flex items-center text-[10px] font-black uppercase tracking-[0.14em] px-2 py-1 rounded-[2px] ${metaTipo.chipClases}`}>
+            <span className={`inline-flex items-center text-[11px] sm:text-[10px] font-black uppercase tracking-[0.14em] px-2 py-1 rounded-[2px] ${metaTipo.chipClases}`}>
               {metaTipo.chip}
             </span>
           )}
-          <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-1 rounded-[2px] ${sectorChip}`}>
+          <span className={`inline-flex items-center text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-1 rounded-[2px] ${sectorChip}`}>
             {entidad.categoria}
           </span>
         </div>
@@ -299,7 +299,7 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
                 <ChipNorma key={idx} etiqueta={c.etiqueta} familia={c.familia} size="sm" />
               ))}
               {entidad.certificaciones.length > 3 && (
-                <span className="bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400 rounded-[3px]">
+                <span className="bg-slate-100 px-2 py-0.5 text-[11px] sm:text-[10px] font-bold text-slate-400 rounded-[3px]">
                   +{entidad.certificaciones.length - 3}
                 </span>
               )}
@@ -310,12 +310,12 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
           {entidad.servicios.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {entidad.servicios.slice(0, 3).map((servicio, idx) => (
-                <span key={idx} className="bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 rounded-[2px] whitespace-nowrap">
+                <span key={idx} className="bg-slate-100 px-2 py-0.5 text-[11px] sm:text-[10px] font-bold text-slate-500 rounded-[2px] whitespace-nowrap">
                   {servicio}
                 </span>
               ))}
               {entidad.servicios.length > 3 && (
-                <span className="bg-[#f2f4f6] px-2 py-0.5 text-[10px] font-bold text-slate-400 rounded-[2px]">
+                <span className="bg-[#f2f4f6] px-2 py-0.5 text-[11px] sm:text-[10px] font-bold text-slate-400 rounded-[2px]">
                   +{entidad.servicios.length - 3}
                 </span>
               )}

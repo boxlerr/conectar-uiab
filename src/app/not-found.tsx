@@ -103,15 +103,15 @@ export default function NotFound() {
         >
           <div className="flex flex-col items-center gap-2">
             <Building2 className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Infraestructura</span>
+            <span className="text-[11px] sm:text-[10px] font-bold uppercase tracking-widest">Infraestructura</span>
           </div>
           <div className="flex flex-col items-center gap-2">
             <Wrench className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Mantenimiento</span>
+            <span className="text-[11px] sm:text-[10px] font-bold uppercase tracking-widest">Mantenimiento</span>
           </div>
           <div className="hidden md:flex flex-col items-center gap-2">
             <Factory className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Conexiones</span>
+            <span className="text-[11px] sm:text-[10px] font-bold uppercase tracking-widest">Conexiones</span>
           </div>
         </motion.div>
       </div>

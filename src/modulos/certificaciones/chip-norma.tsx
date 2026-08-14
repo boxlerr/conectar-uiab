@@ -45,7 +45,7 @@ export function ChipNorma({ etiqueta, familia, size = "sm", className, title }: 
       className={cn(
         "inline-flex items-center gap-1 rounded-[3px] border font-bold whitespace-nowrap",
         meta.chip,
-        esSm ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-[11px]",
+        esSm ? "px-1.5 py-0.5 text-[11px] sm:text-[10px]" : "px-2 py-1 text-[11px]",
         className
       )}
     >

@@ -250,7 +250,7 @@ export function SelectorEtiquetas({
         <label
           id={`${uid}-lbl`}
           htmlFor={`${uid}-input`}
-          className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500"
+          className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500"
         >
           {etiquetaCampo}
         </label>
@@ -276,7 +276,7 @@ export function SelectorEtiquetas({
                 setArmada(null);
                 inputRef.current?.focus();
               }}
-              className="rounded-sm text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 transition-colors hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10375c]/40"
+              className="rounded-sm text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 transition-colors hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10375c]/40"
             >
               Quitar todas
             </button>
@@ -431,7 +431,7 @@ export function SelectorEtiquetas({
                     setConsulta("");
                     inputRef.current?.focus();
                   }}
-                  className="mt-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#10375c] hover:underline underline-offset-2"
+                  className="mt-3 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.16em] text-[#10375c] hover:underline underline-offset-2"
                 >
                   Ver todas las etiquetas
                 </button>
@@ -443,7 +443,7 @@ export function SelectorEtiquetas({
                   <div
                     id={`${uid}-grp-${grupo.tipo}`}
                     role="presentation"
-                    className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-slate-100 bg-white/95 backdrop-blur-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400"
+                    className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-slate-100 bg-white/95 backdrop-blur-sm px-3 py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400"
                   >
                     <span>{grupo.label}</span>
                     <span className="tabular-nums text-slate-300">{grupo.items.length}</span>
@@ -523,10 +523,10 @@ export function SelectorEtiquetas({
           </div>
 
           <div className="flex items-center justify-between border-t border-slate-100 bg-[#f7f9fb] px-3 py-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 tabular-nums">
+            <span className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 tabular-nums">
               {planas.length} resultado{planas.length === 1 ? "" : "s"}
             </span>
-            <span className="hidden sm:inline text-[10px] text-slate-400">
+            <span className="hidden sm:inline text-[11px] sm:text-[10px] text-slate-400">
               ↑↓ navegar · Enter elegir · Esc cerrar
             </span>
           </div>

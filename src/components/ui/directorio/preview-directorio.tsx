@@ -232,7 +232,7 @@ export function PreviewDirectorio() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-7 gap-4">
           <div className="max-w-xl">
-            <span className="text-[10.5px] font-bold text-[#10375c] tracking-[0.16em] uppercase mb-2 block">
+            <span className="text-[11px] sm:text-[10.5px] font-bold text-[#10375c] tracking-[0.16em] uppercase mb-2 block">
               Así se ve la red UIAB
             </span>
             <h2
@@ -363,7 +363,7 @@ export function PreviewDirectorio() {
                       <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center border border-white/20">
                         <ActiveIcon className="w-4 h-4" />
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
+                      <span className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
                         {active.tagline}
                       </span>
                     </div>
@@ -414,12 +414,12 @@ export function PreviewDirectorio() {
             <div className="relative p-5 sm:p-6 lg:p-7 flex flex-col">
               <div className="flex items-center gap-2 mb-3.5">
                 <span
-                  className="text-[10px] font-bold uppercase tracking-[0.18em]"
+                  className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.18em]"
                   style={{ color: active.accent }}
                 >
                   Perfil de ejemplo
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#191c1e]/30">
+                <span className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.18em] text-[#191c1e]/30">
                   · vista pública
                 </span>
               </div>
@@ -453,13 +453,13 @@ export function PreviewDirectorio() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
                           <span
-                            className="text-[9.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded"
+                            className="text-[11px] sm:text-[9.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded"
                             style={{ background: active.accentSoft, color: active.accent }}
                           >
                             {active.demo.badge}
                           </span>
                           <span
-                            className="inline-flex items-center gap-0.5 text-[9.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded"
+                            className="inline-flex items-center gap-0.5 text-[11px] sm:text-[9.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded"
                             style={{ background: "#10375c0d", color: "#10375c" }}
                           >
                             <ShieldCheck className="w-2.5 h-2.5" />
@@ -477,7 +477,7 @@ export function PreviewDirectorio() {
 
                     <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-md bg-amber-50 shrink-0">
                       <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                      <span className="text-[10.5px] font-black text-amber-700">5.0</span>
+                      <span className="text-[11px] sm:text-[10.5px] font-black text-amber-700">5.0</span>
                     </div>
                   </div>
 
@@ -497,7 +497,7 @@ export function PreviewDirectorio() {
                     {active.demo.servicios.map((s) => (
                       <span
                         key={s}
-                        className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full border"
+                        className="text-[11px] sm:text-[10.5px] font-semibold px-2 py-0.5 rounded-full border"
                         style={{
                           color: active.accentInk,
                           background: "white",
@@ -523,7 +523,7 @@ export function PreviewDirectorio() {
                       ))}
                     </div>
                     <span
-                      className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider"
+                      className="inline-flex items-center gap-1 text-[11px] sm:text-[10.5px] font-bold uppercase tracking-wider"
                       style={{ color: active.accent }}
                     >
                       <CheckCircle2 className="w-3 h-3" />
@@ -543,7 +543,7 @@ export function PreviewDirectorio() {
 
               {/* Tipos de perfil */}
               <div className="mt-5 pt-4 border-t border-[#191c1e]/6">
-                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#191c1e]/40 block mb-2.5">
+                <span className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.16em] text-[#191c1e]/40 block mb-2.5">
                   Tipos de perfil que vas a encontrar
                 </span>
                 <AnimatePresence mode="wait">

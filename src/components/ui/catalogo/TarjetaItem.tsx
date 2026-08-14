@@ -104,11 +104,11 @@ export function TarjetaItem({ item, onClick, actions, className = "" }: Props) {
         )}
 
         {item.destacado && (
-          <div className="absolute top-2 left-2 bg-amber-400 text-amber-950 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
+          <div className="absolute top-2 left-2 bg-amber-400 text-amber-950 text-[11px] sm:text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
             <Star className="w-3 h-3 fill-current" /> DESTACADO
           </div>
         )}
-        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur text-slate-700 text-[10px] font-semibold px-2 py-0.5 rounded uppercase flex items-center gap-1">
+        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur text-slate-700 text-[11px] sm:text-[10px] font-semibold px-2 py-0.5 rounded uppercase flex items-center gap-1">
           {esServicio ? <Wrench className="w-3 h-3" /> : <Package className="w-3 h-3" />}
           {item.tipo_item}
         </div>
@@ -141,7 +141,7 @@ export function TarjetaItem({ item, onClick, actions, className = "" }: Props) {
             </span>
           )}
           {item.sku && (
-            <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+            <span className="text-[11px] sm:text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
               {item.sku}
             </span>
           )}
@@ -152,13 +152,13 @@ export function TarjetaItem({ item, onClick, actions, className = "" }: Props) {
             {palabras.slice(0, 4).map((t) => (
               <span
                 key={t}
-                className="text-[10px] bg-secondary-100 text-secondary-800 px-1.5 py-0.5 rounded"
+                className="text-[11px] sm:text-[10px] bg-secondary-100 text-secondary-800 px-1.5 py-0.5 rounded"
               >
                 #{t}
               </span>
             ))}
             {palabras.length > 4 && (
-              <span className="text-[10px] text-slate-500">+{palabras.length - 4}</span>
+              <span className="text-[11px] sm:text-[10px] text-slate-500">+{palabras.length - 4}</span>
             )}
           </div>
         )}
@@ -171,7 +171,7 @@ export function TarjetaItem({ item, onClick, actions, className = "" }: Props) {
               return (
                 <span
                   key={i}
-                  className="inline-flex items-center gap-1 text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded"
+                  className="inline-flex items-center gap-1 text-[11px] sm:text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded"
                 >
                   <Icon className="w-3 h-3" />
                   {en.etiqueta || meta.label}

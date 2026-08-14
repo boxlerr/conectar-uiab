@@ -17,6 +17,7 @@ import {
   Copy,
   Trash2,
   Download,
+  FileSpreadsheet,
   CheckCircle2,
   Clock,
   PhoneCall,
@@ -45,9 +46,14 @@ import {
   CATEGORIA_ALTA_LABEL,
   ESTADOS_ALTA,
 } from "@/modulos/altas/constantes";
-import { conflictosPendientes, type ConflictoPadron } from "@/modulos/altas/padron";
+import {
+  conflictosPendientes,
+  nombreContenido,
+  normalizarNombreEmpresa,
+  type ConflictoPadron,
+} from "@/modulos/altas/padron";
 import { normalizarSitioWeb } from "@/lib/utilidades";
-import { llamarAccion } from "@/lib/accion-segura";
+import { fallo, llamarAccion } from "@/lib/accion-segura";
 
 type Alta = {
   id: string;
@@ -81,7 +87,52 @@ type EmpresaPadron = {
   cuit: string | null;
   n_socio: string | null;
   estado: string;
+  // El resto se usa para mostrar qué le falta cargar en su panel.
+  email?: string | null;
+  telefono?: string | null;
+  whatsapp?: string | null;
+  sitio_web?: string | null;
+  direccion?: string | null;
+  localidad?: string | null;
+  provincia?: string | null;
+  descripcion?: string | null;
+  actividad?: string | null;
+  ruta_logo?: string | null;
+  ruta_portada?: string | null;
+  referente?: string | null;
+  email_compras?: string | null;
+  email_mantenimiento?: string | null;
+  cantidad_empleados?: number | null;
+  codigo_postal?: string | null;
 };
+
+/**
+ * Qué campos de la ficha están cargados y cuáles quedaron vacíos.
+ *
+ * Es lo que la socia ve —o no ve— en su panel. Sirve para levantar el teléfono
+ * con algo concreto que pedirle en vez de un "completá tu perfil" genérico.
+ */
+const CAMPOS_FICHA: { clave: keyof EmpresaPadron; etiqueta: string; clave2?: keyof EmpresaPadron }[] = [
+  { clave: "email", etiqueta: "Correo de contacto" },
+  { clave: "telefono", etiqueta: "Teléfono", clave2: "whatsapp" },
+  { clave: "descripcion", etiqueta: "Descripción", clave2: "actividad" },
+  { clave: "ruta_logo", etiqueta: "Logo" },
+  { clave: "direccion", etiqueta: "Dirección" },
+  { clave: "localidad", etiqueta: "Localidad" },
+  { clave: "sitio_web", etiqueta: "Sitio web" },
+  { clave: "cuit", etiqueta: "CUIT" },
+  { clave: "referente", etiqueta: "Referente" },
+  { clave: "email_compras", etiqueta: "Correo de compras" },
+  { clave: "email_mantenimiento", etiqueta: "Correo de mantenimiento" },
+  { clave: "ruta_portada", etiqueta: "Portada" },
+  { clave: "cantidad_empleados", etiqueta: "Cantidad de empleados" },
+  { clave: "codigo_postal", etiqueta: "Código postal" },
+];
+
+function tieneValor(v: unknown): boolean {
+  if (typeof v === "number") return Number.isFinite(v) && v > 0;
+  return typeof v === "string" && v.trim() !== "";
+}
 
 type EstadoCuenta = {
   email: string;
@@ -93,7 +144,91 @@ type EstadoCuenta = {
   onboarding_completado_en: string | null;
 };
 
-type Filtro = "all" | "pendiente" | "contactado" | "cuenta_creada" | "descartado";
+/** Las cuatro primeras miran el PADRÓN (todas las socias); "solicitudes" y las
+ *  que le siguen miran `altas_socios` (sólo las que completaron el formulario). */
+type Filtro =
+  | "padron" | "activa" | "dormida" | "nunca_entro" | "esperando" | "sin_cuenta"
+  | "solicitudes" | "pendiente" | "contactado" | "cuenta_creada" | "descartado";
+
+type SituacionSocia = "activa" | "dormida" | "nunca_entro" | "esperando" | "sin_cuenta";
+
+type FilaPadron = {
+  clave: string;
+  empresaId: string | null;
+  altaId: string | null;
+  nombre: string;
+  razonSocial: string | null;
+  cuit: string | null;
+  localidad: string | null;
+  email: string | null;
+  telefono: string | null;
+  esSocia: boolean;
+  usuarios: number;
+  entraron: number;
+  altaCuenta: string | null;
+  activoDesde: string | null;
+  ultimoIngreso: string | null;
+  tutorialesHechos: number;
+  tutorialesTotales: number;
+  situacion: SituacionSocia;
+  origen: string | null;
+  conflictosSinRevisar: number;
+};
+
+/**
+ * La situación de cada socia, dicha sin adornos.
+ *
+ * El estado viejo "Ya entró" se ponía en cuanto la ficha tenía un usuario
+ * creado, aunque esa persona nunca se hubiera logueado — pasa en 3 de las 19
+ * fichas con cuenta. Ahora se separa tener cuenta de haberla usado, y usar la
+ * plataforma hace poco de haberla abandonado.
+ */
+const SITUACION_CONFIG: Record<
+  SituacionSocia,
+  { label: string; bg: string; text: string; punto: string; ayuda: string }
+> = {
+  activa: {
+    label: "Activa",
+    bg: "bg-emerald-50", text: "text-emerald-700", punto: "bg-emerald-500",
+    ayuda: "Alguien de la empresa entró en el último mes.",
+  },
+  dormida: {
+    label: "Sin actividad",
+    bg: "bg-amber-50", text: "text-amber-700", punto: "bg-amber-500",
+    ayuda: "Entró alguna vez, pero hace más de un mes que nadie aparece.",
+  },
+  nunca_entro: {
+    label: "Nunca entró",
+    bg: "bg-rose-50", text: "text-rose-700", punto: "bg-rose-500",
+    ayuda: "Tiene la cuenta creada y todavía no se logueó ni una vez. Conviene llamarla.",
+  },
+  esperando: {
+    label: "Esperando acceso",
+    bg: "bg-blue-50", text: "text-blue-700", punto: "bg-blue-500",
+    ayuda: "Cargó sus datos y falta darle el acceso.",
+  },
+  sin_cuenta: {
+    label: "Sin cuenta",
+    bg: "bg-slate-100", text: "text-slate-600", punto: "bg-slate-400",
+    ayuda: "La ficha está publicada pero nadie de la empresa se anotó todavía.",
+  },
+};
+
+/** "hace 3 días", "hace 2 meses". Más útil que una fecha para leer una lista. */
+function haceCuanto(iso: string | null): string {
+  if (!iso) return "—";
+  const ms = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return "recién";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "ayer";
+  if (d < 30) return `hace ${d} días`;
+  const meses = Math.floor(d / 30);
+  return meses === 1 ? "hace un mes" : `hace ${meses} meses`;
+}
 
 const ESTADO_CONFIG: Record<string, { label: string; bg: string; text: string; icon: React.ElementType }> = {
   pendiente:     { label: "Pendiente",     bg: "bg-amber-50",   text: "text-amber-700",   icon: Clock },
@@ -119,11 +254,31 @@ function soloDigitos(s: string | null | undefined) {
   return (s ?? "").replace(/\D/g, "");
 }
 
-// Cuántos de los 4 tutoriales principales vio (perfil, directorio, oportunidades, dashboard).
-const TOURS_PRINCIPALES = ["perfil", "directorio", "oportunidades", "dashboard"];
+/**
+ * El tutorial no son "4 pasos": son cuatro RECORRIDOS distintos, uno por
+ * sección, y cada uno tiene los suyos (el del perfil tiene 13, el de
+ * oportunidades 10). Decir "2 de 4 pasos" mezclaba las dos cosas y hacía pensar
+ * que todos se trababan en el mismo lugar; lo que pasa es que casi todos
+ * recorren dos secciones y no vuelven.
+ *
+ * `tutoriales_vistos` guarda además avisos de novedad (`novedad_usuarios_empresa`)
+ * que no son tutoriales: por eso se filtra contra esta lista y no se cuentan las
+ * claves del objeto.
+ */
+const TOURS: { clave: string; nombre: string }[] = [
+  { clave: "dashboard", nombre: "Panel de control" },
+  { clave: "perfil", nombre: "Mi perfil" },
+  { clave: "directorio", nombre: "Directorio" },
+  { clave: "oportunidades", nombre: "Oportunidades" },
+];
+
 function toursVistos(vistos: Record<string, string | null> | null | undefined) {
   if (!vistos) return 0;
-  return TOURS_PRINCIPALES.filter((t) => Boolean(vistos[t])).length;
+  return TOURS.filter((t) => Boolean(vistos[t.clave])).length;
+}
+
+function detalleTours(vistos: Record<string, string | null> | null | undefined) {
+  return TOURS.map((t) => ({ ...t, hecho: Boolean(vistos?.[t.clave]) }));
 }
 
 const TONO_ESTADO: Record<"ok" | "warn" | "bad" | "muted", string> = {
@@ -158,11 +313,11 @@ function DiferenciasPadronCard({ alta }: { alta: Alta }) {
                   {c.etiqueta}
                 </span>
                 {c.resuelto ? (
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-px uppercase tracking-wider">
+                  <span className="text-[11px] sm:text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-px uppercase tracking-wider">
                     Confirmado
                   </span>
                 ) : (
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-px uppercase tracking-wider">
+                  <span className="text-[11px] sm:text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-px uppercase tracking-wider">
                     Sin confirmar
                   </span>
                 )}
@@ -228,40 +383,60 @@ function EstadoCuentaCard({ estado }: { estado?: EstadoCuenta }) {
             }),
     },
     {
+      // Es `last_sign_in_at` de Auth: el ÚLTIMO login, no el primero. Se rotulaba
+      // "Primer ingreso", que era directamente otro dato.
       icon: LogIn,
-      label: "Primer ingreso",
+      label: "Último ingreso",
       ...(estado.ultimo_ingreso
-        ? { valor: fechaHora(estado.ultimo_ingreso), tono: "ok" as const }
-        : { valor: "Todavía no ingresó", tono: "muted" as const }),
-    },
-    {
-      icon: GraduationCap,
-      label: "Tutorial",
-      ...(completoTutorial
-        ? { valor: "Completado", tono: "ok" as const }
-        : vistos > 0
-          ? { valor: `${vistos} de 4 pasos vistos`, tono: "warn" as const }
-          : { valor: "No lo empezó", tono: "muted" as const }),
+        ? { valor: `${haceCuanto(estado.ultimo_ingreso)} · ${fechaHora(estado.ultimo_ingreso)}`, tono: "ok" as const }
+        : { valor: "Todavía no ingresó ni una vez", tono: "bad" as const }),
     },
   ];
 
+  const tours = detalleTours(estado.tutoriales_vistos);
+
   return (
-    <dl className="space-y-3 text-sm">
-      {filas.map((f) => {
-        const Icon = f.icon;
-        return (
-          <div key={f.label} className="flex items-start gap-3">
-            <Icon className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-            <div className="min-w-0">
-              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                {f.label}
-              </span>
-              <span className={`font-medium ${TONO_ESTADO[f.tono]}`}>{f.valor}</span>
+    <div className="space-y-4">
+      <dl className="space-y-3 text-sm">
+        {filas.map((f) => {
+          const Icon = f.icon;
+          return (
+            <div key={f.label} className="flex items-start gap-3">
+              <Icon className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <span className="block text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                  {f.label}
+                </span>
+                <span className={`font-medium ${TONO_ESTADO[f.tono]}`}>{f.valor}</span>
+              </div>
             </div>
+          );
+        })}
+      </dl>
+
+      {/* Qué secciones del tutorial recorrió. Se nombran una por una en vez de
+          un "2 de 4": así se ve QUÉ le falta conocer, que es lo accionable. */}
+      <div className="flex items-start gap-3 text-sm">
+        <GraduationCap className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+        <div className="min-w-0 flex-1">
+          <span className="block text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+            Tutorial · {completoTutorial ? "completo" : `${vistos} de ${TOURS.length} secciones`}
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {tours.map((t) => (
+              <span
+                key={t.clave}
+                className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                  t.hecho ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400"
+                }`}
+              >
+                {t.nombre}
+              </span>
+            ))}
           </div>
-        );
-      })}
-    </dl>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -269,16 +444,20 @@ export function PanelAltas({
   altas,
   empresas,
   estados,
+  padron,
 }: {
   altas: Alta[];
   empresas: EmpresaPadron[];
   estados: Record<string, EstadoCuenta>;
+  padron: FilaPadron[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [filtro, setFiltro] = useState<Filtro>("all");
+  const [filtro, setFiltro] = useState<Filtro>("padron");
   const [busqueda, setBusqueda] = useState("");
   const [seleccionada, setSeleccionada] = useState<Alta | null>(null);
+  /** Ficha del padrón que todavía no tiene solicitud: se abre en su propio modal. */
+  const [fichaVista, setFichaVista] = useState<FilaPadron | null>(null);
   const [creando, setCreando] = useState(false);
   const [reenviando, setReenviando] = useState(false);
   const [filtroPadron, setFiltroPadron] = useState("");
@@ -303,15 +482,51 @@ export function PanelAltas({
     [seleccionada, empresas]
   );
 
-  const sugerenciaCuit = useMemo(() => {
+  /**
+   * Ficha del padrón que probablemente sea ésta. Mismo criterio en tres pasadas
+   * que usa el registro (ver modulos/altas/buscar-en-padron): CUIT, nombre
+   * exacto y nombre contenido. El CUIT solo no alcanzaba — seis fichas del padrón
+   * no lo tienen cargado, y por eso Transporte Gav terminó duplicada.
+   */
+  const sugerenciaPadron = useMemo(() => {
     if (!seleccionada || seleccionada.empresa_id) return null;
+
+    const unica = (matches: EmpresaPadron[], por: "CUIT" | "nombre" | "nombre parecido") =>
+      matches.length === 1 ? { empresa: matches[0], por } : null;
+
     const cuitAlta = soloDigitos(seleccionada.cuit);
-    if (!cuitAlta) return null;
-    const matches = empresas.filter((e) => {
-      const cuitEmpresa = soloDigitos(e.cuit);
-      return cuitEmpresa !== "" && cuitEmpresa === cuitAlta;
-    });
-    return matches.length === 1 ? matches[0] : null;
+    if (cuitAlta) {
+      const porCuit = unica(
+        empresas.filter((e) => soloDigitos(e.cuit) !== "" && soloDigitos(e.cuit) === cuitAlta),
+        "CUIT"
+      );
+      if (porCuit) return porCuit;
+    }
+
+    const nombres = [seleccionada.razon_social, seleccionada.nombre_comercial].filter(
+      (n): n is string => Boolean(n)
+    );
+    if (nombres.length === 0) return null;
+    const normalizados = nombres.map(normalizarNombreEmpresa).filter(Boolean);
+
+    const porNombre = unica(
+      empresas.filter((e) =>
+        [e.razon_social, e.nombre_comercial]
+          .map(normalizarNombreEmpresa)
+          .some((n) => n !== "" && normalizados.includes(n))
+      ),
+      "nombre"
+    );
+    if (porNombre) return porNombre;
+
+    return unica(
+      empresas.filter((e) =>
+        nombres.some(
+          (n) => nombreContenido(n, e.razon_social) || nombreContenido(n, e.nombre_comercial)
+        )
+      ),
+      "nombre parecido"
+    );
   }, [seleccionada, empresas]);
 
   const empresasFiltradas = useMemo(() => {
@@ -336,7 +551,7 @@ export function PanelAltas({
     } finally {
       setVinculando(false);
     }
-    if (res?.error) return toast.error(res.error);
+    if (fallo(res)) return toast.error(res.error);
     toast.success(empresaId ? "Empresa vinculada al padrón" : "Empresa desvinculada del padrón");
     setSeleccionada((prev) => (prev && prev.id === altaId ? { ...prev, empresa_id: empresaId } : prev));
     setEmpresaElegida("");
@@ -344,9 +559,10 @@ export function PanelAltas({
     refresh();
   }
 
-  async function darAcceso(alta: Alta) {
+  async function darAcceso(alta: Alta, opciones?: { crearFichaNueva?: boolean }) {
     const nombre = alta.nombre_comercial || alta.razon_social;
     if (
+      !opciones?.crearFichaNueva &&
       !confirm(
         `Crear la cuenta de "${nombre}" y darle acceso?\n\nSe va a crear el usuario, vincular su empresa (o crearla si no existe) y enviarle un email para definir su contraseña.`
       )
@@ -355,13 +571,40 @@ export function PanelAltas({
     setCreando(true);
     let res;
     try {
-      res = await crearCuentaDesdeAlta(alta.id);
+      res = await crearCuentaDesdeAlta(alta.id, opciones);
     } catch {
       return toast.error("No se pudo crear la cuenta. Probá de nuevo.");
     } finally {
       setCreando(false);
     }
-    if (res?.error) return toast.error(res.error);
+
+    // El sistema encontró una ficha del padrón que se parece pero no está seguro.
+    // Sin esta salida la sugerencia sería un callejón: el botón fallaría siempre
+    // con el mismo aviso y no habría forma de decirle "no, es otra empresa".
+    if (res && "requiereDecision" in res && res.requiereDecision === "padron_parcial") {
+      const sugerida =
+        ("sugerencia" in res && res.sugerencia?.razon_social) || "la ficha sugerida";
+      const sugeridaId = ("sugerencia" in res && res.sugerencia?.id) || null;
+      if (
+        sugeridaId &&
+        confirm(
+          `${res.error}\n\n¿"${nombre}" es la misma empresa que "${sugerida}"?\n\nAceptar = vincularla a esa ficha y darle el acceso.\nCancelar = crear una ficha nueva.`
+        )
+      ) {
+        await vincular(alta.id, sugeridaId);
+        return darAcceso({ ...alta, empresa_id: sugeridaId });
+      }
+      if (
+        confirm(
+          `Entonces se crea una ficha NUEVA para "${nombre}" en el directorio, aparte de "${sugerida}".\n\n¿Seguimos?`
+        )
+      ) {
+        return darAcceso(alta, { crearFichaNueva: true });
+      }
+      return;
+    }
+
+    if (fallo(res)) return toast.error(res.error);
     if ("emailEnviado" in res && res.emailEnviado) {
       toast.success("Cuenta creada. Le enviamos el email para definir su contraseña.");
     } else {
@@ -395,7 +638,7 @@ export function PanelAltas({
     } finally {
       setReenviando(false);
     }
-    if (res?.error) return toast.error(res.error);
+    if (fallo(res)) return toast.error(res.error);
     toast.success("Invitación reenviada", {
       description: "Le llegará un nuevo email con un enlace válido por 30 días.",
     });
@@ -415,7 +658,7 @@ export function PanelAltas({
   const filtradas = useMemo(() => {
     const term = busqueda.toLowerCase();
     return altas.filter((a) => {
-      const matchFiltro = filtro === "all" || a.estado === filtro;
+      const matchFiltro = filtro === "solicitudes" || a.estado === filtro;
       const matchBusqueda =
         !term ||
         a.razon_social.toLowerCase().includes(term) ||
@@ -429,7 +672,7 @@ export function PanelAltas({
 
   async function cambiarEstado(id: string, estado: string) {
     const res = await llamarAccion(() => actualizarEstadoAlta(id, estado));
-    if (res?.error) return toast.error(res.error);
+    if (fallo(res)) return toast.error(res.error);
     toast.success("Estado actualizado");
     refresh();
     if (seleccionada?.id === id) setSeleccionada((prev) => (prev ? { ...prev, estado } : null));
@@ -438,7 +681,7 @@ export function PanelAltas({
   async function borrar(id: string) {
     if (!confirm("¿Eliminar esta solicitud definitivamente? No se puede deshacer.")) return;
     const res = await llamarAccion(() => eliminarAlta(id));
-    if (res?.error) return toast.error(res.error);
+    if (fallo(res)) return toast.error(res.error);
     toast.success("Solicitud eliminada");
     setSeleccionada(null);
     refresh();
@@ -476,12 +719,39 @@ export function PanelAltas({
     toast.success(`${filtradas.length} registros exportados`);
   }
 
-  const TABS: { key: Filtro; label: string }[] = [
-    { key: "all", label: `Todas (${counts.all})` },
-    { key: "pendiente", label: `Pendientes (${counts.pendiente})` },
-    { key: "contactado", label: `Contactadas (${counts.contactado})` },
-    { key: "cuenta_creada", label: `Con cuenta (${counts.cuenta_creada})` },
-    { key: "descartado", label: `Descartadas (${counts.descartado})` },
+  const cuentaPadron = {
+    padron: padron.length,
+    activa: padron.filter((f) => f.situacion === "activa").length,
+    dormida: padron.filter((f) => f.situacion === "dormida").length,
+    nunca_entro: padron.filter((f) => f.situacion === "nunca_entro").length,
+    esperando: padron.filter((f) => f.situacion === "esperando").length,
+    sin_cuenta: padron.filter((f) => f.situacion === "sin_cuenta").length,
+  };
+
+  const esVistaPadron = [
+    "padron", "activa", "dormida", "nunca_entro", "esperando", "sin_cuenta",
+  ].includes(filtro);
+
+  const padronFiltrado = padron.filter((f) => {
+    if (filtro !== "padron" && f.situacion !== filtro) return false;
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return true;
+    return [f.nombre, f.email, f.localidad, f.cuit].some((v) =>
+      (v ?? "").toLowerCase().includes(q)
+    );
+  });
+
+  const TABS: { key: Filtro; label: string; grupo: "padron" | "solicitudes" }[] = [
+    { key: "padron",      label: `Todo el padrón (${cuentaPadron.padron})`,      grupo: "padron" },
+    { key: "activa",      label: `Activas (${cuentaPadron.activa})`,              grupo: "padron" },
+    { key: "dormida",     label: `Sin actividad (${cuentaPadron.dormida})`,       grupo: "padron" },
+    { key: "nunca_entro", label: `Nunca entraron (${cuentaPadron.nunca_entro})`,  grupo: "padron" },
+    { key: "esperando",   label: `Esperando (${cuentaPadron.esperando})`,         grupo: "padron" },
+    { key: "sin_cuenta",  label: `Sin cuenta (${cuentaPadron.sin_cuenta})`,       grupo: "padron" },
+    { key: "solicitudes",   label: `Solicitudes (${counts.all})`,                    grupo: "solicitudes" },
+    { key: "pendiente",     label: `Pendientes (${counts.pendiente})`,               grupo: "solicitudes" },
+    { key: "cuenta_creada", label: `Con cuenta (${counts.cuenta_creada})`,           grupo: "solicitudes" },
+    { key: "descartado",    label: `Descartadas (${counts.descartado})`,             grupo: "solicitudes" },
   ];
 
   return (
@@ -493,7 +763,8 @@ export function PanelAltas({
             Altas de socios
           </h1>
           <p className="text-slate-500 mt-1">
-            Solicitudes cargadas desde el formulario de alta de socios. Compartí el link con cada empresa, revisá los datos y dale acceso.
+            El padrón de la UIAB con el estado de cada socia: quién ya está adentro,
+            quién cargó sus datos y espera el acceso, y a quién todavía hay que salir a buscar.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -507,9 +778,17 @@ export function PanelAltas({
               Ver formulario
             </Button>
           </a>
+          {/* El Excel se arma en el servidor: trae el padrón COMPLETO con todos
+              los datos de contacto, no lo que quedó filtrado en pantalla. */}
+          <a href="/api/admin/padron/export" download>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0">
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Descargar el padrón en Excel
+            </Button>
+          </a>
           <Button variant="outline" onClick={exportarCSV} disabled={filtradas.length === 0} className="shrink-0">
             <Download className="w-4 h-4 mr-2" />
-            Exportar CSV
+            CSV de lo filtrado
           </Button>
         </div>
       </div>
@@ -521,7 +800,7 @@ export function PanelAltas({
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por empresa, email, referente o localidad..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
         <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200 w-full sm:w-auto flex-wrap">
@@ -539,6 +818,221 @@ export function PanelAltas({
         </div>
       </Card>
 
+      {/* Resumen del embudo. Son las tres preguntas que se hace la UIAB, y de paso
+          funcionan como filtro: antes había que leer una fila de pestañas
+          apretadas para enterarse de lo mismo. */}
+      {esVistaPadron && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {([
+            { k: "activa", n: cuentaPadron.activa, titulo: "Usando la plataforma", pie: "entraron en el último mes", clase: "text-emerald-700" },
+            { k: "nunca_entro", n: cuentaPadron.nunca_entro, titulo: "Nunca entraron", pie: "tienen la cuenta y no la abrieron", clase: "text-rose-700" },
+            { k: "sin_cuenta", n: cuentaPadron.sin_cuenta, titulo: "Sin cuenta", pie: "hay que salir a buscarlas", clase: "text-slate-700" },
+          ] as const).map((c) => (
+            <button
+              key={c.k}
+              onClick={() => setFiltro(filtro === c.k ? "padron" : c.k)}
+              className={`text-left bg-white rounded-lg p-5 ring-1 transition-all ${
+                filtro === c.k ? "ring-primary-400 bg-primary-50/40" : "ring-slate-100 hover:ring-slate-300"
+              }`}
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{c.titulo}</p>
+              <p className={`text-3xl font-bold tabular-nums leading-none mt-1 ${c.clase}`}>
+                {c.n}
+                <span className="text-base font-semibold text-slate-300"> / {cuentaPadron.padron}</span>
+              </p>
+              <p className="text-xs text-slate-400 mt-2">{c.pie}</p>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── El padrón: TODAS las socias, no sólo las que completaron el formulario.
+             Las que están "sin novedades" no viven en `altas_socios`, así que sin
+             esta vista no aparecían en ninguna pantalla del panel. ── */}
+      {esVistaPadron && (
+        <Card className="shadow-sm border-slate-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1040px]">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Empresa</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-40">Situación</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-36">Último ingreso</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-28">Usuarios</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-32">Tutorial</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-56">Contacto</th>
+                  <th className="px-5 py-3 text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-32">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {padronFiltrado.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-16 text-center">
+                      <UserPlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-slate-500">No hay socias con este filtro.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  padronFiltrado.map((f) => {
+                    const sit = SITUACION_CONFIG[f.situacion];
+                    const alta = f.altaId ? altas.find((a) => a.id === f.altaId) : null;
+                    const sinContacto = !f.email && !f.telefono;
+                    return (
+                      <tr key={f.clave} className="hover:bg-slate-50/60 transition-colors align-middle">
+                        {/* Empresa */}
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-900 text-sm">{f.nombre}</span>
+                            {!f.esSocia && (
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                no socia
+                              </span>
+                            )}
+                            {f.conflictosSinRevisar > 0 && (
+                              <span
+                                title="Cargó datos distintos a los del padrón y todavía nadie los revisó"
+                                className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded"
+                              >
+                                {f.conflictosSinRevisar} a revisar
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-400 mt-0.5 tabular-nums">
+                            {[f.localidad, f.cuit].filter(Boolean).join(" · ") || "Sin localidad ni CUIT"}
+                          </div>
+                        </td>
+
+                        {/* Situación */}
+                        <td className="px-5 py-3">
+                          <span
+                            title={sit.ayuda}
+                            className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${sit.bg} ${sit.text}`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${sit.punto}`} />
+                            {sit.label}
+                          </span>
+                          {f.origen === "registro_web" && (
+                            <div className="text-[10px] text-slate-400 mt-1">se registró sola</div>
+                          )}
+                        </td>
+
+                        {/* Último ingreso — antes esta fecha se mostraba como
+                            "primer ingreso", que es lo que nunca fue. */}
+                        <td className="px-5 py-3">
+                          {f.ultimoIngreso ? (
+                            <>
+                              <div className="text-sm text-slate-700">{haceCuanto(f.ultimoIngreso)}</div>
+                              <div className="text-[11px] text-slate-400 tabular-nums">
+                                {new Date(f.ultimoIngreso).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-300">nunca</span>
+                          )}
+                        </td>
+
+                        {/* Usuarios: cuántos hay y cuántos entraron alguna vez */}
+                        <td className="px-5 py-3">
+                          {f.usuarios === 0 ? (
+                            <span className="text-xs text-slate-300">—</span>
+                          ) : (
+                            <div className="text-sm text-slate-700 tabular-nums">
+                              {f.entraron}
+                              <span className="text-slate-300"> / {f.usuarios}</span>
+                              <div className="text-[10px] text-slate-400">
+                                {f.entraron === 0
+                                  ? f.usuarios === 1 ? "no entró" : "no entró ninguno"
+                                  : f.entraron === f.usuarios
+                                    ? "entraron todos"
+                                    : "entraron"}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Tutorial: secciones recorridas, no "pasos" */}
+                        <td className="px-5 py-3">
+                          {f.usuarios === 0 ? (
+                            <span className="text-xs text-slate-300">—</span>
+                          ) : (
+                            <div className="flex items-center gap-2" title="Secciones del tutorial que recorrió">
+                              <div className="flex gap-0.5">
+                                {Array.from({ length: f.tutorialesTotales }).map((_, i) => (
+                                  <span
+                                    key={i}
+                                    className={`w-4 h-1.5 rounded-sm ${
+                                      i < f.tutorialesHechos ? "bg-primary-500" : "bg-slate-200"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-[11px] text-slate-400 tabular-nums">
+                                {f.tutorialesHechos}/{f.tutorialesTotales}
+                              </span>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Contacto */}
+                        <td className="px-5 py-3">
+                          {sinContacto ? (
+                            <span className="text-xs font-semibold text-rose-600">Sin correo ni teléfono</span>
+                          ) : (
+                            <div className="space-y-0.5">
+                              {f.email && (
+                                <div className="flex items-center gap-1">
+                                  <a
+                                    href={`mailto:${f.email}`}
+                                    className="text-[13px] text-primary-700 hover:underline truncate max-w-[190px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {f.email}
+                                  </a>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); copiar(f.email!, "Correo"); }}
+                                    title="Copiar el correo"
+                                    className="shrink-0 p-0.5 rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+                              {f.telefono && (
+                                <a
+                                  href={`https://wa.me/${soloDigitos(f.telefono).replace(/^0/, "").replace(/^15/, "")}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-[11px] text-emerald-700 hover:underline inline-flex items-center gap-1"
+                                >
+                                  <PhoneCall className="w-3 h-3" /> {f.telefono}
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="px-5 py-3 text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => (alta ? abrirDetalle(alta) : setFichaVista(f))}
+                            className="text-xs"
+                          >
+                            {alta ? "Ver solicitud" : "Ver ficha"}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {!esVistaPadron && (
       <Card className="shadow-sm border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
           {/* min-w: con w-full sola la tabla se comprime y el wrapper overflow-x-auto nunca llega a scrollear */}
@@ -589,7 +1083,7 @@ export function PanelAltas({
                       <td className="px-6 py-4">
                         <span className="text-xs text-slate-600">{CATEGORIA_ALTA_LABEL[a.categoria] ?? a.categoria}</span>
                         {a.ya_es_socio && (
-                          <span className="block text-[10px] font-bold text-emerald-600 uppercase tracking-wide mt-0.5">Ya es socio</span>
+                          <span className="block text-[11px] sm:text-[10px] font-bold text-emerald-600 uppercase tracking-wide mt-0.5">Ya es socio</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -602,7 +1096,7 @@ export function PanelAltas({
                           if (!ec) return null;
                           const activo = Boolean(ec.invitacion_usada);
                           return (
-                            <span className={`block text-[10px] mt-1 ${activo ? "text-emerald-600" : "text-slate-400"}`}>
+                            <span className={`block text-[11px] sm:text-[10px] mt-1 ${activo ? "text-emerald-600" : "text-slate-400"}`}>
                               {activo ? "✓ activó su cuenta" : "sin activar aún"}
                             </span>
                           );
@@ -617,13 +1111,125 @@ export function PanelAltas({
           </table>
         </div>
       </Card>
+      )}
 
       {/* Slide-over detalle */}
+
+      {/* Ficha del padrón que todavía no pidió el acceso. Antes acá no había nada
+          que mostrar y el botón te sacaba de la pantalla. */}
+      {fichaVista && (() => {
+        const ficha = fichaVista.empresaId
+          ? empresas.find((e) => e.id === fichaVista.empresaId) ?? null
+          : null;
+        const cargados = ficha
+          ? CAMPOS_FICHA.filter((c) => tieneValor(ficha[c.clave]) || (c.clave2 ? tieneValor(ficha[c.clave2]) : false))
+          : [];
+        const vacios = ficha ? CAMPOS_FICHA.filter((c) => !cargados.includes(c)) : [];
+        const pct = ficha ? Math.round((cargados.length / CAMPOS_FICHA.length) * 100) : 0;
+        const sit = SITUACION_CONFIG[fichaVista.situacion];
+        return (
+          <>
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onClick={() => setFichaVista(null)} />
+            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-0 sm:p-6 pointer-events-none">
+              <div className="pointer-events-auto w-full sm:max-w-3xl max-h-full sm:max-h-[90vh] bg-white sm:rounded-lg shadow-2xl overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-slate-100 p-5 flex items-center justify-between z-10">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold uppercase">
+                      {fichaVista.nombre.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="font-bold text-slate-900 truncate">{fichaVista.nombre}</h2>
+                      <p className="text-xs text-slate-500">
+                        {[fichaVista.localidad, fichaVista.cuit].filter(Boolean).join(" · ") || "Sin datos de ubicación"}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setFichaVista(null)} className="h-8 w-8 rounded-full bg-slate-100 hover:bg-rose-50 hover:text-rose-600 shrink-0">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  <div className={`rounded-lg p-4 ${sit.bg}`}>
+                    <p className={`text-sm font-bold ${sit.text}`}>{sit.label}</p>
+                    <p className="text-xs text-slate-600 mt-1">{sit.ayuda}</p>
+                  </div>
+
+                  <section>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">
+                      Cómo contactarla
+                    </p>
+                    {fichaVista.email || fichaVista.telefono ? (
+                      <dl className="space-y-3 text-sm">
+                        {fichaVista.email && (
+                          <DetalleFila icon={Mail} valor={fichaVista.email} onCopy={() => copiar(fichaVista.email!, "Correo")} />
+                        )}
+                        {fichaVista.telefono && (
+                          <DetalleFila icon={Phone} valor={fichaVista.telefono} onCopy={() => copiar(fichaVista.telefono!, "Teléfono")} />
+                        )}
+                      </dl>
+                    ) : (
+                      <p className="text-sm text-rose-600">
+                        No hay ni correo ni teléfono cargados. No hay por dónde escribirle: habría
+                        que conseguir el contacto por afuera y cargarlo en la ficha.
+                      </p>
+                    )}
+                  </section>
+
+                  {ficha && (
+                    <section>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">
+                        Su ficha: {cargados.length} de {CAMPOS_FICHA.length} campos cargados ({pct}%)
+                      </p>
+                      <div className="h-1.5 w-full rounded-sm bg-slate-100 overflow-hidden mb-4">
+                        <div
+                          className={`h-full rounded-sm ${pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-rose-500"}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1.5">
+                        {[...vacios, ...cargados].map((c) => {
+                          const ok = cargados.includes(c);
+                          return (
+                            <div key={String(c.clave)} className="flex items-center gap-2 text-[13px]">
+                              {ok ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                  : <X className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
+                              <span className={ok ? "text-slate-500" : "text-slate-900 font-semibold"}>{c.etiqueta}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Button onClick={copiarLinkFormulario} className="bg-primary-600 hover:bg-primary-700 text-white">
+                      <Link2 className="w-4 h-4 mr-2" /> Copiar el link de Sumate
+                    </Button>
+                    {fichaVista.empresaId && (
+                      <a href="/admin/empresas?filtro=todas" target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline">
+                          <ExternalLink className="w-4 h-4 mr-2" /> Abrir en Empresas
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
       {seleccionada && (
         <>
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onClick={() => setSeleccionada(null)} />
-          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl overflow-y-auto border-l border-slate-200 animate-in slide-in-from-right duration-300">
-            <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-100 p-5 flex items-center justify-between z-10">
+          {/* Modal ancho y no panel lateral: en 400px de ancho todo esto entraba
+              en una columna larguísima y había que scrollear para cruzar dos
+              datos. Acá entra de una. */}
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-0 sm:p-6 pointer-events-none">
+            <div className="pointer-events-auto w-full sm:max-w-6xl max-h-full sm:max-h-[90vh] bg-white sm:rounded-lg shadow-2xl overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+            <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-slate-100 p-5 flex items-center justify-between z-10">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-700 flex items-center justify-center font-bold uppercase">
                   {(seleccionada.nombre_comercial || seleccionada.razon_social).charAt(0)}
@@ -638,7 +1244,7 @@ export function PanelAltas({
               </Button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6 items-start">
               {/* Estado */}
               <section>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">Estado de la gestión</p>
@@ -665,6 +1271,52 @@ export function PanelAltas({
                   })}
                 </div>
               </section>
+
+              {/* Qué cargó y qué le falta en su panel */}
+              {empresaVinculada && (() => {
+                const cargados = CAMPOS_FICHA.filter((c) =>
+                  tieneValor(empresaVinculada[c.clave]) ||
+                  (c.clave2 ? tieneValor(empresaVinculada[c.clave2]) : false)
+                );
+                const vacios = CAMPOS_FICHA.filter((c) => !cargados.includes(c));
+                const pct = Math.round((cargados.length / CAMPOS_FICHA.length) * 100);
+                return (
+                  <section className="lg:col-span-2">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">
+                      Su ficha: {cargados.length} de {CAMPOS_FICHA.length} campos cargados ({pct}%)
+                    </p>
+                    <div className="h-1.5 w-full rounded-sm bg-slate-100 overflow-hidden mb-4">
+                      <div
+                        className={`h-full rounded-sm ${pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-rose-500"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1.5">
+                      {[...vacios, ...cargados].map((c) => {
+                        const ok = cargados.includes(c);
+                        return (
+                          <div key={String(c.clave)} className="flex items-center gap-2 text-[13px]">
+                            {ok ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            ) : (
+                              <X className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                            )}
+                            <span className={ok ? "text-slate-500" : "text-slate-900 font-semibold"}>
+                              {c.etiqueta}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {vacios.length > 0 && (
+                      <p className="text-xs text-slate-500 mt-3">
+                        Lo que está en negrita es lo que le falta cargar desde su panel. Sirve para
+                        pedirle algo concreto en vez de un &ldquo;completá tu perfil&rdquo;.
+                      </p>
+                    )}
+                  </section>
+                );
+              })()}
 
               {/* Contacto */}
               <section>
@@ -714,7 +1366,7 @@ export function PanelAltas({
                 {seleccionada.empresa_id ? (
                   <div className="flex items-start justify-between gap-3 bg-emerald-50/60 border border-emerald-100 rounded-lg p-3">
                     <div className="min-w-0">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full mb-1.5">
+                      <span className="inline-flex items-center gap-1 text-[11px] sm:text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full mb-1.5">
                         <CheckCircle2 className="w-3 h-3" /> Vinculada al padrón
                       </span>
                       <p className="text-sm font-medium text-slate-900 truncate">
@@ -741,18 +1393,25 @@ export function PanelAltas({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {sugerenciaCuit && (
+                    {sugerenciaPadron && (
                       <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-100 rounded-lg p-3">
                         <p className="text-xs text-amber-800 min-w-0">
-                          Posible match por CUIT:{" "}
-                          <span className="font-semibold">{sugerenciaCuit.razon_social}</span>
-                          {sugerenciaCuit.cuit && <span className="text-amber-600"> · {sugerenciaCuit.cuit}</span>}
+                          Posible match por {sugerenciaPadron.por}:{" "}
+                          <span className="font-semibold">{sugerenciaPadron.empresa.razon_social}</span>
+                          {sugerenciaPadron.empresa.cuit && (
+                            <span className="text-amber-600"> · {sugerenciaPadron.empresa.cuit}</span>
+                          )}
+                          {sugerenciaPadron.por === "nombre parecido" && (
+                            <span className="block text-amber-600">
+                              No es exacto: confirmá que sea la misma empresa.
+                            </span>
+                          )}
                         </p>
                         <Button
                           size="sm"
                           className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white"
                           disabled={vinculando}
-                          onClick={() => vincular(seleccionada.id, sugerenciaCuit.id)}
+                          onClick={() => vincular(seleccionada.id, sugerenciaPadron.empresa.id)}
                         >
                           <Link2 className="w-3.5 h-3.5 mr-1" /> Vincular
                         </Button>
@@ -767,7 +1426,7 @@ export function PanelAltas({
                           setEmpresaElegida("");
                         }}
                         placeholder="Filtrar por razón social, nombre o CUIT..."
-                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                       />
                     </div>
                     <div className="flex gap-2">
@@ -870,6 +1529,7 @@ export function PanelAltas({
                   <Trash2 className="w-4 h-4 mr-2" /> Eliminar solicitud
                 </Button>
               </section>
+            </div>
             </div>
           </div>
         </>

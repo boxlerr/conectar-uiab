@@ -42,7 +42,7 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { createClient } from "@/lib/supabase/cliente";
 import { TarjetaItem } from "@/components/ui/catalogo/TarjetaItem";
-import { llamarAccion, fallo } from "@/lib/accion-segura";
+import { fallo, llamarAccion } from "@/lib/accion-segura";
 
 interface FormularioItemProps {
   itemInit?: any;
@@ -211,7 +211,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
 
   async function eliminarRemota(id: string) {
     const res = await llamarAccion(() => eliminarImagenItem(id));
-    if (res?.error) {
+    if (fallo(res)) {
       toast.error("No se pudo eliminar la imagen", { description: res.error });
       return;
     }
@@ -318,7 +318,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
 
       if (itemId) {
         const res = await updateItem(itemId, payload);
-        if (res?.error) {
+        if (fallo(res)) {
           toast.error("Error al guardar", { description: res.error });
           return;
         }
@@ -558,7 +558,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
               </div>
               <input
                 type="text"
-                className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                className="w-full bg-transparent text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
                 placeholder={palabrasClave.length === 0 ? "Ej. aluminio, tornería, CNC..." : "Agregar más..."}
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
@@ -663,7 +663,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
               >
                 <ImagePlus className="w-6 h-6 mb-1" />
                 <span className="text-xs font-semibold">Agregar imagen</span>
-                <span className="text-[10px] text-slate-400 mt-0.5">JPG, PNG · máx 6 MB</span>
+                <span className="text-[11px] sm:text-[10px] text-slate-400 mt-0.5">JPG, PNG · máx 6 MB</span>
               </button>
             )}
           </div>
@@ -863,7 +863,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
                     Destacar en el catálogo
                   </span>
                   {destacado && (
-                    <span className="text-[10px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">
+                    <span className="text-[11px] sm:text-[10px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">
                       Activo
                     </span>
                   )}
@@ -948,7 +948,7 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
 /* ---------- Primitivos de UI locales ---------- */
 
 const inputCls =
-  "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all placeholder:text-slate-400";
+  "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm text-slate-900 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all placeholder:text-slate-400";
 
 function cls(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -1011,7 +1011,7 @@ function ContadorChars({ value, max }: { value: string; max: number }) {
   const left = max - value.length;
   const color = left < 20 ? "text-amber-600" : "text-slate-400";
   return (
-    <div className={cls("text-[10px] text-right", color)}>
+    <div className={cls("text-[11px] sm:text-[10px] text-right", color)}>
       {value.length}/{max}
     </div>
   );
@@ -1089,7 +1089,7 @@ function CategoriaCombobox({
               <input
                 autoFocus
                 type="text"
-                className="w-full pl-8 pr-2 py-2 text-sm bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                className="w-full pl-8 pr-2 py-2 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                 placeholder="Buscar categoría..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -1106,7 +1106,7 @@ function CategoriaCombobox({
               const hijas = hijasDe(raiz.id);
               return (
                 <div key={raiz.id} className="py-1">
-                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50">
+                  <div className="px-3 py-1 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50">
                     {raiz.nombre}
                   </div>
                   <button
@@ -1157,7 +1157,7 @@ function CategoriaCombobox({
                   className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50"
                 >
                   {padreDe(c)?.nombre && (
-                    <span className="text-[10px] text-slate-400 mr-1">
+                    <span className="text-[11px] sm:text-[10px] text-slate-400 mr-1">
                       {padreDe(c)!.nombre} ›
                     </span>
                   )}
@@ -1194,14 +1194,14 @@ function ImagenCard({
 
       <div className="absolute top-1.5 left-1.5 right-1.5 flex items-start justify-between gap-1 pointer-events-none">
         {isPortada ? (
-          <span className="bg-primary-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm">
+          <span className="bg-primary-600 text-white text-[11px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm">
             Portada
           </span>
         ) : (
           <span />
         )}
         {pending && (
-          <span className="bg-amber-400 text-amber-950 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shadow-sm">
+          <span className="bg-amber-400 text-amber-950 text-[11px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shadow-sm">
             Pendiente
           </span>
         )}

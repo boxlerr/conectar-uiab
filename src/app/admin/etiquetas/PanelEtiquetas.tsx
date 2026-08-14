@@ -235,7 +235,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre, slug o socio que la propuso..."
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all font-medium"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all font-medium"
           />
         </div>
       </Card>
@@ -260,15 +260,15 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
                   <div className="flex flex-wrap items-center gap-2 mb-1">
                     <h3 className="font-bold text-slate-900 truncate">{etiqueta.nombre}</h3>
                     {propuesta ? (
-                      <span className="bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
+                      <span className="bg-amber-100 text-amber-700 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
                         Propuesta
                       </span>
                     ) : (
-                      <span className="bg-slate-200 text-slate-600 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
+                      <span className="bg-slate-200 text-slate-600 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
                         Catálogo
                       </span>
                     )}
-                    <span className="bg-primary-50 text-primary-700 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
+                    <span className="bg-primary-50 text-primary-700 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
                       {TIPO_TAG_LABELS[etiqueta.tipo_tag] ?? etiqueta.tipo_tag}
                     </span>
                   </div>
@@ -402,7 +402,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
                     type="text"
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all font-medium"
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all font-medium"
                   />
                   <p className="text-xs text-slate-400 mt-1.5">
                     El slug se recalcula solo. Si el nombre choca con otra etiqueta, fusionalas en
@@ -554,7 +554,7 @@ export function PanelEtiquetas({ etiquetas }: { etiquetas: EtiquetaAdmin[] }) {
                           type="text"
                           value={confirmacionTexto}
                           onChange={(e) => setConfirmacionTexto(e.target.value)}
-                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/40"
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/40"
                         />
                       </div>
                     )}

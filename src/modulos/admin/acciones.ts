@@ -3,12 +3,20 @@
 import { createClient } from "@supabase/supabase-js";
 import { createClient as createClienteSSR } from "@/lib/supabase/servidor";
 import { revalidatePath } from "next/cache";
-import { NivelTarifa } from "@/tipos";
-import { crearSlug } from "@/lib/utilidades";
-import { getRole } from "@/lib/autenticacion/obtener-rol";
-import { limpiarNombreEtiqueta, slugEtiqueta } from "@/modulos/compartido/etiquetas";
+import { exigirAdmin } from "@/lib/autenticacion/exigir-admin";
+import { CLAVE_PRECIOS, validarPrecios } from "@/lib/suscripciones/precios";
+import {
+  limpiarNombreEtiqueta,
+  normalizarTexto,
+  slugEtiqueta,
+} from "@/modulos/compartido/etiquetas";
+import {
+  normalizarNombreServicio,
+  slugEspecialidad,
+} from "@/modulos/compartido/especialidades";
 import { appUrl, enviarEmail } from "@/lib/email/cliente";
 import {
+  plantillaAccesoHabilitado,
   plantillaAprobacion,
   plantillaRechazo,
   plantillaResenaAprobada,
@@ -23,6 +31,7 @@ function adminClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
+
 
 // ─── Empresas ────────────────────────────────────────────────────────────────
 
@@ -71,6 +80,9 @@ async function notificarRechazo(
 }
 
 export async function aprobarEmpresa(empresaId: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const db = adminClient();
   const { data: empresa, error } = await db
     .from("empresas")
@@ -92,6 +104,9 @@ export async function aprobarEmpresa(empresaId: string) {
 }
 
 export async function rechazarEmpresa(empresaId: string, motivo: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const db = adminClient();
   const { data: empresa, error } = await db
     .from("empresas")
@@ -113,39 +128,56 @@ export async function rechazarEmpresa(empresaId: string, motivo: string) {
   return { success: true };
 }
 
-export async function asignarTarifa(empresaId: string, tarifa: NivelTarifa) {
-  const { error } = await adminClient()
-    .from("empresas")
-    .update({ tarifa })
-    .eq("id", empresaId);
-  if (error) return { error: error.message };
-  revalidatePath("/admin/empresas");
-  revalidatePath("/admin/suscripciones");
-  return { success: true };
-}
+/**
+ * Cambia el precio de la suscripción — el único que hay.
+ *
+ * Reemplaza a `actualizarPrecioTarifa(nivel, ...)`, que editaba una de las tres
+ * filas de `tarifas_precios` y no movía nada: lo que se cobraba salía de una
+ * constante del código. Ahora la base es la fuente y esto la escribe.
+ */
+export async function actualizarPrecios(mensual: number, anual: number) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
 
-export async function actualizarPrecioTarifa(nivel: 1 | 2 | 3, precioMensual: number, vigenteHasta?: string | null) {
-  if (!Number.isFinite(precioMensual) || precioMensual <= 0) {
-    return { error: "Precio inválido" };
+  const invalido = validarPrecios(mensual, anual);
+  if (invalido) return { error: invalido };
+
+  const { error } = await adminClient()
+    .from("configuraciones_sistema")
+    .upsert(
+      {
+        clave: CLAVE_PRECIOS,
+        valor: { mensual: Math.round(mensual), anual: Math.round(anual) },
+        descripcion:
+          "Precio único de la suscripción, en pesos. `anual` es el pago de una vez por 12 meses.",
+        actualizado_en: new Date().toISOString(),
+      },
+      { onConflict: "clave" }
+    );
+
+  if (error) return { error: error.message };
+
+  // El precio se muestra en media plataforma: la home, el registro, el checkout,
+  // el panel del socio y el del admin.
+  for (const ruta of [
+    "/",
+    "/admin",
+    "/admin/suscripciones",
+    "/perfil/suscripcion",
+    "/suscripcion/checkout",
+    "/pendiente-aprobacion",
+    "/sumate",
+    "/nosotros",
+  ]) {
+    revalidatePath(ruta);
   }
-  const update: Record<string, unknown> = {
-    precio_mensual: precioMensual,
-    actualizado_en: new Date().toISOString(),
-  };
-  if (vigenteHasta !== undefined) update.vigente_hasta = vigenteHasta;
-
-  const { error } = await adminClient()
-    .from("tarifas_precios")
-    .update(update)
-    .eq("nivel", nivel);
-  if (error) return { error: error.message };
-  revalidatePath("/admin/suscripciones");
-  revalidatePath("/admin");
-  revalidatePath("/perfil/suscripcion");
   return { success: true };
 }
 
 export async function actualizarCantidadEmpleados(empresaId: string, cantidad: number | null) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { error } = await adminClient()
     .from("empresas")
     .update({ cantidad_empleados: cantidad })
@@ -159,6 +191,9 @@ export async function actualizarSuscripcionParticular(
   proveedorId: string,
   datos: { estado?: string; monto?: number }
 ) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const db = adminClient();
 
   const { data: sus } = await db
@@ -193,6 +228,9 @@ export async function actualizarSuscripcionParticular(
 // ─── Proveedores ─────────────────────────────────────────────────────────────
 
 export async function aprobarProveedor(proveedorId: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const db = adminClient();
   const { data: prov, error } = await db
     .from("proveedores")
@@ -215,6 +253,9 @@ export async function aprobarProveedor(proveedorId: string) {
 }
 
 export async function rechazarProveedor(proveedorId: string, motivo: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const db = adminClient();
   const { data: prov, error } = await db
     .from("proveedores")
@@ -239,6 +280,9 @@ export async function rechazarProveedor(proveedorId: string, motivo: string) {
 // ─── Reseñas ─────────────────────────────────────────────────────────────────
 
 export async function aprobarResena(resenaId: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const db = adminClient();
 
   const { data: resena, error: fetchError } = await db
@@ -370,6 +414,9 @@ export async function aprobarResena(resenaId: string) {
 }
 
 export async function rechazarResena(resenaId: string, motivo: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const db = adminClient();
 
   const { data: resena, error: fetchError } = await db
@@ -437,6 +484,9 @@ export async function rechazarResena(resenaId: string, motivo: string) {
 // ─── Oportunidades ────────────────────────────────────────────────────────────
 
 export async function cerrarOportunidad(oportunidadId: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { error } = await adminClient()
     .from("oportunidades")
     .update({ estado: "cerrada" })
@@ -447,6 +497,9 @@ export async function cerrarOportunidad(oportunidadId: string) {
 }
 
 export async function eliminarOportunidad(oportunidadId: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { error } = await adminClient()
     .from("oportunidades")
     .delete()
@@ -459,7 +512,19 @@ export async function eliminarOportunidad(oportunidadId: string) {
 
 // ─── Usuarios / Perfiles ──────────────────────────────────────────────────────
 
-export async function toggleActivarUsuario(perfilId: string, activar: boolean) {
+export async function toggleActivarUsuario(
+  perfilId: string,
+  activar: boolean,
+  /**
+   * Al habilitar, mandarle el correo avisándole que ya puede entrar. Lo decide
+   * quien aprieta el botón: si la UIAB ya lo habló por teléfono no hace falta
+   * duplicar el aviso, y si pasaron días desde que se registró sí.
+   */
+  opciones?: { avisarPorEmail?: boolean }
+) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   // Antes desactivar era cosmético y auto-desactivarse no tenía consecuencias.
   // Ahora banea de verdad: sin este freno, un admin se deja afuera del panel y
   // sólo se arregla por SQL.
@@ -480,10 +545,21 @@ export async function toggleActivarUsuario(perfilId: string, activar: boolean) {
   // `perfiles.activo` sólo pintaba un chip: el usuario desactivado seguía
   // entrando lo más bien. El corte real es el ban de Auth (más el rebote del
   // middleware para la sesión que ya estaba abierta).
+  //
+  // Y al habilitar hay que levantar los DOS frenos. Desde que se prendió
+  // "Confirm email" en Supabase, toda cuenta creada por /register nace con
+  // `email_confirmed_at` en null: levantarle sólo el ban dejaba el panel
+  // diciendo "Activo" mientras a la persona le seguía saliendo "Email not
+  // confirmed" en el login. Le pasó a Naves del Sur. Confirmar acá es una
+  // decisión deliberada: el admin habilita a alguien que ya verificó por otro
+  // lado que trabaja en esa empresa.
   try {
-    await db.auth.admin.updateUserById(perfilId, {
-      ban_duration: activar ? "none" : "876000h",
-    });
+    await db.auth.admin.updateUserById(
+      perfilId,
+      activar
+        ? { ban_duration: "none", email_confirm: true }
+        : { ban_duration: "876000h" }
+    );
   } catch (e) {
     await db.from("perfiles").update({ activo: !activar }).eq("id", perfilId);
     return {
@@ -493,12 +569,94 @@ export async function toggleActivarUsuario(perfilId: string, activar: boolean) {
     };
   }
 
+  let emailEnviado = false;
+  let emailError: string | undefined;
+
+  if (activar && opciones?.avisarPorEmail) {
+    const aviso = await avisarAccesoHabilitado(db, perfilId);
+    emailEnviado = aviso.ok;
+    emailError = aviso.error;
+  }
+
   revalidatePath("/admin/usuarios");
+  revalidatePath("/admin");
   revalidatePath("/perfil/usuarios");
-  return { success: true };
+  return { success: true, emailEnviado, emailError };
+}
+
+/**
+ * Le avisa por correo a la persona que ya puede entrar.
+ *
+ * Nunca tira: si el correo falla, el acceso ya quedó habilitado igual y lo que
+ * corresponde es contarlo, no deshacerlo. El nombre de la ficha sale de su
+ * membresía real (empresa o prestador), que es lo que la persona reconoce —
+ * "ya tenés acceso" a secas no le dice a qué.
+ */
+async function avisarAccesoHabilitado(
+  db: ReturnType<typeof adminClient>,
+  perfilId: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { data: perfil } = await db
+      .from("perfiles")
+      .select("email, nombre_completo")
+      .eq("id", perfilId)
+      .maybeSingle();
+
+    if (!perfil?.email) return { ok: false, error: "El perfil no tiene correo cargado." };
+
+    // `limit(1)` y no `maybeSingle()`: un perfil puede figurar en más de una
+    // ficha, y ahí maybeSingle tira error y nos quedamos sin nombre que poner en
+    // el asunto del correo.
+    const [{ data: me }, { data: mp }] = await Promise.all([
+      db
+        .from("miembros_empresa")
+        .select("empresas:empresa_id(razon_social, nombre_comercial)")
+        .eq("perfil_id", perfilId)
+        .limit(1),
+      db
+        .from("miembros_proveedor")
+        .select("proveedores:proveedor_id(nombre, razon_social)")
+        .eq("perfil_id", perfilId)
+        .limit(1),
+    ]);
+
+    const emp = (me as { empresas?: { razon_social?: string | null; nombre_comercial?: string | null } | null }[] | null)?.[0]?.empresas;
+    const prov = (mp as { proveedores?: { nombre?: string | null; razon_social?: string | null } | null }[] | null)?.[0]?.proveedores;
+    const nombreFicha =
+      emp?.nombre_comercial || emp?.razon_social || prov?.razon_social || prov?.nombre || "UIAB Conecta";
+
+    const plantilla = plantillaAccesoHabilitado({
+      nombre: perfil.nombre_completo || perfil.email,
+      empresa: nombreFicha,
+      email: perfil.email,
+      urlLogin: `${appUrl()}/login`,
+      urlRestablecer: `${appUrl()}/recovery`,
+    });
+
+    const res = await enviarEmail({
+      para: perfil.email,
+      asunto: plantilla.asunto,
+      html: plantilla.html,
+      texto: plantilla.texto,
+    });
+
+    if (res.ok) return { ok: true };
+    return {
+      ok: false,
+      error: res.skipped
+        ? "No hay SMTP configurado en este entorno, así que el correo no salió."
+        : res.error ?? "No se pudo enviar el correo.",
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "error desconocido" };
+  }
 }
 
 export async function cambiarRolUsuario(perfilId: string, nuevoRol: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const rolesPermitidos = ["admin", "company", "provider"];
   if (!rolesPermitidos.includes(nuevoRol)) return { error: "Rol no válido" };
 
@@ -513,34 +671,133 @@ export async function cambiarRolUsuario(perfilId: string, nuevoRol: string) {
 
 // ─── Servicios (Categorías) ──────────────────────────────────────────────────
 
-export async function crearCategoria(nombre: string, descripcion: string) {
-  const slug = crearSlug(nombre);
-  const { error } = await adminClient()
-    .from("categorias")
-    .insert({ nombre, slug, descripcion, activa: true });
-  if (error) return { error: error.message };
+type CategoriaBreve = { id: string; nombre: string; slug: string };
+
+export type ResultadoCategoria = {
+  error?: string;
+  success?: boolean;
+  /** Con quién choca el nombre. La UI ofrece fusionar en vez de dejar el duplicado. */
+  duplicado?: { id: string; nombre: string };
+  /** Cómo quedó guardado, cuando la normalización cambió lo que se mandó. */
+  nombreFinal?: string;
+};
+
+function revalidarServicios() {
   revalidatePath("/admin/servicios");
-  return { success: true };
+  revalidatePath("/perfil/servicios");
+  revalidatePath("/directorio");
+  revalidatePath("/empresas");
 }
 
-export async function editarCategoria(id: string, nombre: string, descripcion: string) {
-  const slug = crearSlug(nombre);
+/** Límite laxo: el admin puede escribir nombres más largos que un socio. */
+function validarNombreServicio(nombre: string): string | null {
+  if (nombre.length < 3) return "El nombre es muy corto.";
+  if (nombre.length > 80) return "El nombre no puede tener más de 80 caracteres.";
+  return null;
+}
+
+/**
+ * La categoría que ya ocupa ese nombre, si existe.
+ *
+ * Compara por slug canónico y no por texto: "Alquiler de Andamios" y "alquiler
+ * autoelevador " son la misma entrada del catálogo. Sin esto, la unique de
+ * `slug` devuelve un 23505 crudo que en pantalla no dice nada.
+ */
+async function categoriaQueYaOcupa(
+  nombre: string,
+  exceptoId?: string
+): Promise<CategoriaBreve | null> {
+  const slug = slugEspecialidad(nombre);
+  if (!slug) return null;
+
+  const { data } = await adminClient().from("categorias").select("id, nombre, slug");
+  const candidatas = (data ?? []) as CategoriaBreve[];
+
+  return (
+    candidatas.find(
+      (c) =>
+        c.id !== exceptoId &&
+        (c.slug === slug ||
+          slugEspecialidad(c.slug) === slug ||
+          slugEspecialidad(c.nombre) === slug)
+    ) ?? null
+  );
+}
+
+export async function crearCategoria(
+  nombre: string,
+  descripcion: string
+): Promise<ResultadoCategoria> {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
+  const nombreFinal = normalizarNombreServicio(nombre);
+  const invalido = validarNombreServicio(nombreFinal);
+  if (invalido) return { error: invalido };
+
+  const duplicado = await categoriaQueYaOcupa(nombreFinal);
+  if (duplicado) {
+    return {
+      error: `Ya existe "${duplicado.nombre}" en el catálogo.`,
+      duplicado: { id: duplicado.id, nombre: duplicado.nombre },
+    };
+  }
+
+  const { error } = await adminClient().from("categorias").insert({
+    nombre: nombreFinal,
+    slug: slugEspecialidad(nombreFinal),
+    descripcion: descripcion?.trim() || null,
+    activa: true,
+    administrado_por_admin: true,
+  });
+  if (error) return { error: error.message };
+  revalidarServicios();
+  return { success: true, nombreFinal };
+}
+
+export async function editarCategoria(
+  id: string,
+  nombre: string,
+  descripcion: string
+): Promise<ResultadoCategoria> {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
+  const nombreFinal = normalizarNombreServicio(nombre);
+  const invalido = validarNombreServicio(nombreFinal);
+  if (invalido) return { error: invalido };
+
+  const duplicado = await categoriaQueYaOcupa(nombreFinal, id);
+  if (duplicado) {
+    return {
+      error: `Ya existe "${duplicado.nombre}" en el catálogo.`,
+      duplicado: { id: duplicado.id, nombre: duplicado.nombre },
+    };
+  }
+
   const { error } = await adminClient()
     .from("categorias")
-    .update({ nombre, slug, descripcion })
+    .update({
+      nombre: nombreFinal,
+      slug: slugEspecialidad(nombreFinal),
+      descripcion: descripcion?.trim() || null,
+    })
     .eq("id", id);
   if (error) return { error: error.message };
-  revalidatePath("/admin/servicios");
-  return { success: true };
+  revalidarServicios();
+  return { success: true, nombreFinal };
 }
 
 export async function toggleActivarCategoria(id: string, activa: boolean) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { error } = await adminClient()
     .from("categorias")
     .update({ activa })
     .eq("id", id);
   if (error) return { error: error.message };
-  revalidatePath("/admin/servicios");
+  revalidarServicios();
   return { success: true };
 }
 
@@ -548,19 +805,149 @@ export async function toggleActivarCategoria(id: string, activa: boolean) {
  * Sube una especialidad propuesta por un socio al catálogo oficial (o la baja
  * de vuelta). No toca los pivotes: quien ya la tenía elegida la conserva, sólo
  * cambia si el resto de los socios la ve en el picker de /perfil/servicios.
+ *
+ * Al subirla, el nombre se normaliza. Los socios escriben su rubro como les
+ * sale ("alquiler autoelevador", "…para uso industrial.") y hasta ahora eso
+ * entraba al catálogo tal cual, al lado de las entradas curadas. `nombreEditado`
+ * permite además corregirlo a mano en el mismo paso —tildes, sobre todo, que la
+ * normalización no inventa.
+ *
+ * Bajarla de nuevo a propuesta no toca el nombre: ya está curado.
  */
-export async function promoverCategoria(id: string, oficial: boolean) {
-  const { error } = await adminClient()
-    .from("categorias")
-    .update({ administrado_por_admin: oficial })
-    .eq("id", id);
+export async function promoverCategoria(
+  id: string,
+  oficial: boolean,
+  nombreEditado?: string
+): Promise<ResultadoCategoria> {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
+  const cambios: Record<string, unknown> = { administrado_por_admin: oficial };
+  let nombreFinal: string | undefined;
+
+  if (oficial) {
+    const { data: actual } = await adminClient()
+      .from("categorias")
+      .select("nombre")
+      .eq("id", id)
+      .maybeSingle();
+    if (!actual) return { error: "No encontramos ese servicio." };
+
+    nombreFinal = normalizarNombreServicio(nombreEditado || (actual.nombre as string));
+    const invalido = validarNombreServicio(nombreFinal);
+    if (invalido) return { error: invalido };
+
+    const duplicado = await categoriaQueYaOcupa(nombreFinal, id);
+    if (duplicado) {
+      return {
+        error: `"${duplicado.nombre}" ya está en el catálogo. Fusionalos para no dejar dos entradas iguales.`,
+        duplicado: { id: duplicado.id, nombre: duplicado.nombre },
+      };
+    }
+
+    cambios.nombre = nombreFinal;
+    cambios.slug = slugEspecialidad(nombreFinal);
+    cambios.activa = true;
+  }
+
+  const { error } = await adminClient().from("categorias").update(cambios).eq("id", id);
   if (error) return { error: error.message };
-  revalidatePath("/admin/servicios");
-  revalidatePath("/perfil/servicios");
-  return { success: true };
+  revalidarServicios();
+  return { success: true, nombreFinal };
+}
+
+/**
+ * Une dos entradas del catálogo que son la misma cosa escrita distinto
+ * ("resina" y "Resinas"): todo lo que colgaba de `origenId` pasa a `destinoId`
+ * y el origen se borra.
+ *
+ * El nombre viejo queda como alias del destino, así el buscador del directorio
+ * lo sigue encontrando: fusionar no puede costarle visibilidad a la socia que
+ * había escrito la palabra "equivocada".
+ */
+export async function fusionarCategorias(
+  origenId: string,
+  destinoId: string
+): Promise<ResultadoCategoria> {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+  if (origenId === destinoId) return { error: "Son el mismo servicio." };
+
+  const db = adminClient();
+  const { data: extremos } = await db
+    .from("categorias")
+    .select("id, nombre")
+    .in("id", [origenId, destinoId]);
+
+  const origen = (extremos ?? []).find((c) => c.id === origenId);
+  const destino = (extremos ?? []).find((c) => c.id === destinoId);
+  if (!origen || !destino) return { error: "No encontramos alguno de los dos servicios." };
+
+  // Los pivotes tienen unique (entidad, categoría): si la socia ya tenía las dos,
+  // repuntar a ciegas choca. Se mueven sólo las que faltan y el resto se borra.
+  for (const [tabla, columna] of [
+    ["empresas_categorias", "empresa_id"],
+    ["proveedores_categorias", "proveedor_id"],
+  ] as const) {
+    const [{ data: enOrigen }, { data: enDestino }] = await Promise.all([
+      db.from(tabla).select(`id, ${columna}`).eq("categoria_id", origenId),
+      db.from(tabla).select(columna).eq("categoria_id", destinoId),
+    ]);
+
+    const yaTienen = new Set(
+      ((enDestino ?? []) as Record<string, string>[]).map((r) => r[columna])
+    );
+    const aMover = ((enOrigen ?? []) as Record<string, string>[]).filter(
+      (r) => !yaTienen.has(r[columna])
+    );
+
+    if (aMover.length > 0) {
+      const { error } = await db
+        .from(tabla)
+        .update({ categoria_id: destinoId })
+        .in("id", aMover.map((r) => r.id));
+      if (error) return { error: error.message };
+    }
+    await db.from(tabla).delete().eq("categoria_id", origenId);
+  }
+
+  // Lo que referencia la categoría sin unique: se repunta y listo.
+  await Promise.all([
+    db.from("items").update({ categoria_id: destinoId }).eq("categoria_id", origenId),
+    db.from("oportunidades").update({ categoria_id: destinoId }).eq("categoria_id", origenId),
+    db.from("categorias").update({ categoria_padre_id: destinoId }).eq("categoria_padre_id", origenId),
+    db.from("alias_categorias").update({ categoria_id: destinoId }).eq("categoria_id", origenId),
+  ]);
+
+  // El nombre viejo sobrevive como alias, para que el buscador lo siga tomando.
+  if (normalizarTexto(origen.nombre) !== normalizarTexto(destino.nombre)) {
+    await db
+      .from("alias_categorias")
+      .upsert(
+        { categoria_id: destinoId, alias: origen.nombre },
+        { onConflict: "categoria_id,alias", ignoreDuplicates: true }
+      );
+  }
+
+  const { error } = await db.from("categorias").delete().eq("id", origenId);
+  if (error) {
+    if (error.code === "23503" || /foreign key/i.test(error.message)) {
+      return {
+        error:
+          "Movimos todo pero no pudimos borrar el duplicado: algo más lo sigue referenciando. Desactivalo por ahora.",
+      };
+    }
+    return { error: error.message };
+  }
+
+  revalidarServicios();
+  return { success: true, nombreFinal: destino.nombre };
 }
 
 export async function eliminarCategoria(id: string) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
   const { error } = await adminClient()
     .from("categorias")
     .delete()
@@ -582,22 +969,6 @@ export async function eliminarCategoria(id: string) {
 // ─── Etiquetas ───────────────────────────────────────────────────────────────
 
 type ResultadoEtiqueta = { error?: string; success?: boolean };
-
-/**
- * Guard explícito para las acciones sobre etiquetas.
- *
- * El layout de /admin es client-side y no protege nada, así que sin esto
- * cualquier usuario logueado podría borrar una etiqueta invocando el server
- * action a mano. Devuelve el error en vez de redirigir para que el panel lo
- * muestre con un toast.
- */
-async function exigirAdmin(): Promise<{ error: string } | null> {
-  const rol = await getRole();
-  if (rol !== "admin") {
-    return { error: "No tenés permiso para hacer esto." };
-  }
-  return null;
-}
 
 function revalidarEtiquetas() {
   revalidatePath("/admin/etiquetas");

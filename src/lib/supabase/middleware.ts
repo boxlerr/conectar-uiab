@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { tieneAcceso } from '@/lib/mercadopago/suscripciones'
+import { rutaExigeSuscripcion, tieneAcceso } from '@/lib/suscripciones/modelo'
 import { fetchConTimeoutServidor } from './fetch-con-timeout'
 
 export async function updateSession(request: NextRequest) {
@@ -105,11 +105,38 @@ export async function updateSession(request: NextRequest) {
   // borrando cookies a mano.
   let cuentaDesactivada = false;
   if (user && !userError) {
-    const { data: perfil } = await supabase
-      .from('perfiles')
-      .select('rol_sistema, activo')
-      .eq('id', user.id)
-      .maybeSingle();
+    // El perfil se lee con reintento porque de esta query cuelga TODO el gating
+    // de abajo, y cuando falla no devuelve "no sos admin": devuelve nada.
+    //
+    // Pasó el 2026-08-14 a las 9:51 con el admin real: la query a `perfiles`
+    // timeouteó a los 8s (`fetch-con-timeout`), `perfil` volvió null, `rol`
+    // quedó undefined y el middleware lo mandó a /403 — una pantalla que le
+    // decía que no tenía privilegios. Y como cada recarga volvía a fallar,
+    // quedó rebotando ahí. Un blip de red no puede leerse como "te degradamos
+    // el rol".
+    let perfil: {
+      rol_sistema?: string | null;
+      activo?: boolean | null;
+      debe_completar_cuenta?: boolean | null;
+    } | null = null;
+    let perfilError: unknown = null;
+
+    for (let intento = 0; intento < 2; intento++) {
+      const r = await supabase
+        .from('perfiles')
+        .select('rol_sistema, activo, debe_completar_cuenta')
+        .eq('id', user.id)
+        .maybeSingle();
+      perfil = r.data;
+      perfilError = r.error;
+      // Sin error, la respuesta es buena aunque venga vacía (usuario sin perfil).
+      if (!perfilError) break;
+      console.error('[middleware] no se pudo leer el perfil, reintento', intento + 1, perfilError);
+    }
+
+    // No es lo mismo "el perfil dice que no sos admin" que "no pudimos leer el
+    // perfil". Lo primero es una decisión; lo segundo, una falla nuestra.
+    const perfilIlegible = Boolean(perfilError);
 
     // Usuario desactivado (por su empresa o por la UIAB): el ban de Auth le
     // frena el login nuevo, pero si tenía la sesión abierta el access token
@@ -135,11 +162,79 @@ export async function updateSession(request: NextRequest) {
 
     const rol = perfil?.rol_sistema;
 
+    // 2.a Primer ingreso con clave provisoria.
+    //
+    // A quien la UIAB da de alta se le pasa una clave por mensaje: compartida,
+    // predecible y, en el caso de las cuentas de administración, la llave del
+    // panel entero. Mientras no elija una propia y diga cómo se llama, no se lo
+    // deja ir a ningún lado. Va acá, en el middleware, y no como un cartel en la
+    // página: un cartel se cierra, y las páginas de /admin ya mandaron sus datos
+    // para cuando el navegador lo dibuja.
+    if (perfil?.debe_completar_cuenta && !perfilIlegible) {
+      const permitido =
+        pathname === '/completar-cuenta' ||
+        pathname.startsWith('/api/auth/') ||
+        pathname === '/login';
+      if (!permitido) {
+        if (isApiRoute) {
+          return responderJson(
+            { error: 'Tenés que terminar de activar tu cuenta.' },
+            { status: 403 }
+          );
+        }
+        const url = request.nextUrl.clone();
+        url.pathname = '/completar-cuenta';
+        url.search = '';
+        return redirigir(url);
+      }
+    }
+
+    // 2.b Corte de /admin por ROL, del lado del servidor.
+    //
+    // `admin/layout.tsx` es un client component: cuando el rol no es admin pinta
+    // "Acceso Restringido" y listo. Pero las páginas de adentro son Server
+    // Components que consultan con `service_role`, así que para cuando ese cartel
+    // se dibuja el servidor YA renderizó y mandó los datos. Medido el 2026-08-13
+    // con una socia común: `GET /admin/usuarios` le devolvió 182 KB con el correo
+    // de todos los usuarios de la plataforma, su último ingreso y su estado de
+    // Auth. El cartel tapaba, en el browser, algo que ya había viajado.
+    //
+    // El middleware es el único lugar que corta ANTES de renderizar, y cubre de
+    // una todas las rutas y sus payloads RSC.
+    //
+    // Con el perfil ilegible se corta igual —nunca se sirve /admin sin haber
+    // confirmado el rol— pero se avisa cuál de los dos casos fue, así el admin
+    // no se come un cartel de "no tenés permisos" por un timeout.
+    if (pathname.startsWith('/admin') && (perfilIlegible || rol !== 'admin')) {
+      if (isApiRoute) {
+        return responderJson(
+          {
+            error: perfilIlegible
+              ? 'No pudimos verificar tu sesión. Probá de nuevo.'
+              : 'Solo para administradores',
+          },
+          { status: perfilIlegible ? 503 : 403 }
+        );
+      }
+      const url = request.nextUrl.clone();
+      url.pathname = '/403';
+      url.search = '';
+      if (perfilIlegible) url.searchParams.set('motivo', 'sin-verificar');
+      return redirigir(url);
+    }
+
     // Sin filtrar por `es_principal`: el estado es de la EMPRESA, no del
     // miembro. Ahora que una socia puede darle acceso a su gente, filtrar por
     // titular dejaba a esos usuarios sin membresía visible y el gate los
     // mandaba a /pendiente-aprobacion aunque la empresa estuviera aprobada.
-    if (rol === 'company') {
+    //
+    // El gate de aprobación, en cambio, con el perfil ilegible se deja pasar:
+    // no protege datos ajenos (para eso están las RLS y los guards de los
+    // actions), sólo elige a qué pantalla mandarte. Rebotar a una socia al día
+    // hasta /pendiente-aprobacion por un timeout es peor que dejarla seguir.
+    if (perfilIlegible) {
+      // isApproved queda en true.
+    } else if (rol === 'company') {
       const { data: m } = await supabase
         .from('miembros_empresa')
         .select('empresas(estado)')
@@ -166,7 +261,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/perfil') ||
     pathname.startsWith('/suscripcion') ||
     pathname.startsWith('/api/auth/') ||
-    pathname.startsWith('/api/mercadopago/');
+    pathname.startsWith('/api/suscripcion/');
 
   if (user && !userError && !isApproved && isProtectedRoute && !isPendingAllowedPath) {
     if (isApiRoute) {
@@ -187,22 +282,28 @@ export async function updateSession(request: NextRequest) {
     return redirigir(url)
   }
 
-  // 3. Subscription gate: bloquea rutas pagantes si la suscripción no está activa.
-  // Dashboard y /perfil son accesibles (el dashboard muestra un banner con blur).
+  // 3. Subscription gate: bloquea las rutas pagantes si la suscripción no está
+  // activa.
+  //
+  // Hasta el 2026-08-13 el dashboard y /perfil quedaban afuera del gate: la idea
+  // era mostrarlos con un banner y el contenido difuminado. Nunca funcionó —
+  // `DashboardBlurGate` es un `return <>{children}</>` y /perfil no mira la
+  // suscripción en ninguna línea. O sea que quien se registraba y no pagaba
+  // entraba igual: editaba su ficha pública, cargaba catálogo, contestaba la
+  // bandeja de entrada, daba de alta usuarios y hasta le arrancaba el tutorial de
+  // onboarding. Es lo que pasó con Transporte Gav, que además ni siquiera tenía
+  // que estar pagando. Se tapa entero hasta que haya pasarela de pago de verdad.
+  //
+  // Excepciones a propósito:
+  //  - /perfil/suscripcion y todo /suscripcion: es DONDE se paga. Bloquearlas
+  //    dejaría a la gente encerrada sin forma de salir del bloqueo.
+  //  - /pendiente-aprobacion: quien todavía no fue aprobado tiene que poder leer
+  //    en qué estado está.
+  //
   // El directorio público (/directorio, /empresas, /proveedores) NO se bloquea:
   // se ve sin cuenta y también para socios sin suscripción — pagás para aparecer,
-  // no para mirar. Siguen bloqueados: oportunidades y las vistas internas de
-  // empresa/proveedor dentro del dashboard.
-  const gatedRoute =
-    user && !userError &&
-    !isApiRoute &&
-    !pathname.startsWith('/suscripcion') &&
-    !pathname.startsWith('/admin') &&
-    (
-      pathname.startsWith('/oportunidades') ||
-      pathname.startsWith('/empresa/') ||
-      pathname.startsWith('/proveedor/')
-    );
+  // no para mirar.
+  const gatedRoute = Boolean(user) && !userError && rutaExigeSuscripcion(pathname);
 
   if (gatedRoute) {
     // Obtener rol + entityId

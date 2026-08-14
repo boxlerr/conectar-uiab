@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { BannerSuscripcion, DashboardBlurGate } from '@/components/ui/BannerSuscripcion';
+import { AvisoDatosFaltantes, faltantesDeLaFicha } from '@/components/ui/aviso-datos-faltantes';
 import { AvisoEtiquetasPrecargadas } from '@/components/ui/aviso-etiquetas-precargadas';
 import { BotonReiniciarTour } from '@/modulos/onboarding/componentes/boton-reiniciar-tour';
 import { AvisoConflictosPadron } from '@/modulos/altas/componentes/aviso-conflictos-padron';
@@ -336,6 +337,8 @@ export default async function DashboardPage() {
     <main className="min-h-svh bg-[#f2f5f8]">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-5">
 
+        <AvisoDatosFaltantes faltantes={faltantesDeLaFicha(entityData)} />
+
         <AvisoConflictosPadron conflictos={conflictosPadron} />
 
         <AvisoEtiquetasPrecargadas />
@@ -381,11 +384,11 @@ export default async function DashboardPage() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 mb-2.5">
-                    <span className="bg-white/10 text-white/70 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-white/10">
+                    <span className="bg-white/10 text-white/70 text-[11px] sm:text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-white/10">
                       {isCompany ? 'Empresa' : isProvider ? 'Proveedor de servicios' : isAdmin ? 'Admin' : 'Invitado'}
                     </span>
                     {(entityData?.estado === 'aprobada' || entityData?.estado === 'aprobado') && (
-                      <span className="flex items-center gap-1.5 bg-emerald-400/15 border border-emerald-400/25 text-emerald-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                      <span className="flex items-center gap-1.5 bg-emerald-400/15 border border-emerald-400/25 text-emerald-300 text-[11px] sm:text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                         <ShieldCheck className="w-3 h-3" /> Verificado
                       </span>
                     )}
@@ -448,7 +451,7 @@ export default async function DashboardPage() {
             {profilePct < 100 && (
               <div className="mt-6 pt-5 border-t border-white/[0.07]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold text-white/35 uppercase tracking-[0.14em] flex items-center gap-1.5">
+                  <span className="text-[11px] sm:text-[10px] font-bold text-white/35 uppercase tracking-[0.14em] flex items-center gap-1.5">
                     <Sparkles className="w-3 h-3" /> Completitud del Perfil
                   </span>
                   <span className="text-[11px] font-black text-sky-300 tabular-nums">{profilePct}%</span>
@@ -558,8 +561,8 @@ export default async function DashboardPage() {
                 <ArrowUpRight className="w-4 h-4 text-slate-200 group-hover:text-[#00213f] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200" />
               </div>
               <p className="font-poppins text-[32px] lg:text-[38px] font-black text-[#00213f] leading-none tracking-tight">{stat.value}</p>
-              <p className="text-[10px] font-bold text-[#00213f]/50 uppercase tracking-[0.11em] mt-2">{stat.label}</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">{stat.sub}</p>
+              <p className="text-[11px] sm:text-[10px] font-bold text-[#00213f]/50 uppercase tracking-[0.11em] mt-2">{stat.label}</p>
+              <p className="text-[11px] sm:text-[10px] text-slate-400 mt-0.5">{stat.sub}</p>
             </Link>
           ))}
         </section>
@@ -594,7 +597,7 @@ export default async function DashboardPage() {
                           <Link key={match.id} href={`/oportunidades/${match.oportunidad_id}`}>
                             <div className="bg-[#f8fafc] hover:bg-slate-100/70 rounded-xl p-4 transition-all duration-200 group h-full flex flex-col border border-slate-100/80 hover:border-slate-200 hover:shadow-sm">
                               <div className="flex items-center justify-between mb-3">
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black ${scoreColor(score)}`}>
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] sm:text-[10px] font-black ${scoreColor(score)}`}>
                                   <TrendingUp className="w-3 h-3" />{score}%
                                 </span>
                                 <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#00213f] transition-colors" />
@@ -603,7 +606,7 @@ export default async function DashboardPage() {
                                 {isProvider ? match.oportunidad?.titulo : match.proveedor?.nombre_comercial || match.proveedor?.nombre}
                               </h4>
                               {(isProvider ? match.oportunidad?.localidad : match.proveedor?.localidad) && (
-                                <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-2.5">
+                                <p className="text-[11px] sm:text-[10px] text-slate-400 flex items-center gap-1 mt-2.5">
                                   <MapPin className="w-3 h-3" />
                                   {isProvider ? match.oportunidad?.localidad : match.proveedor?.localidad}
                                 </p>
@@ -653,12 +656,12 @@ export default async function DashboardPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-[#00213f] truncate">{op.titulo}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            {(op.categoria as any)?.nombre && <span className="text-[10px] text-slate-400">{(op.categoria as any).nombre}</span>}
-                            <span className="text-[10px] text-slate-300">·</span>
-                            <span className="text-[10px] text-slate-400">{timeAgo(op.creado_en)}</span>
+                            {(op.categoria as any)?.nombre && <span className="text-[11px] sm:text-[10px] text-slate-400">{(op.categoria as any).nombre}</span>}
+                            <span className="text-[11px] sm:text-[10px] text-slate-300">·</span>
+                            <span className="text-[11px] sm:text-[10px] text-slate-400">{timeAgo(op.creado_en)}</span>
                           </div>
                         </div>
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${est.style}`}>{est.label}</span>
+                        <span className={`text-[11px] sm:text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${est.style}`}>{est.label}</span>
                       </Link>
                     );
                   })}
@@ -688,9 +691,9 @@ export default async function DashboardPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-[#00213f] truncate">{origenNombre}</p>
-                          <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(sol.creado_en)}</p>
+                          <p className="text-[11px] sm:text-[10px] text-slate-400 mt-0.5">{timeAgo(sol.creado_en)}</p>
                         </div>
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${
+                        <span className={`text-[11px] sm:text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${
                           sol.estado === 'enviada' ? 'bg-amber-50 text-amber-600' :
                           sol.estado === 'respondida' ? 'bg-emerald-50 text-emerald-600' :
                           sol.estado === 'vista' ? 'bg-sky-50 text-sky-600' : 'bg-slate-50 text-slate-500'
@@ -731,11 +734,11 @@ export default async function DashboardPage() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-bold text-[#00213f] truncate">{item.nombre}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] text-slate-400 uppercase tracking-wider">{item.tipo_item || 'Producto'}</span>
+                            <span className="text-[11px] sm:text-[10px] text-slate-400 uppercase tracking-wider">{item.tipo_item || 'Producto'}</span>
                             {item.precio && (
                               <>
                                 <span className="text-slate-300">·</span>
-                                <span className="text-[10px] text-emerald-600 font-bold">$ {Number(item.precio).toLocaleString('es-AR')}</span>
+                                <span className="text-[11px] sm:text-[10px] text-emerald-600 font-bold">$ {Number(item.precio).toLocaleString('es-AR')}</span>
                               </>
                             )}
                           </div>
@@ -782,14 +785,14 @@ export default async function DashboardPage() {
                         <p className="text-sm font-semibold text-[#00213f] truncate">{op.titulo}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {(op.categoria as any)?.nombre && (
-                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">{(op.categoria as any).nombre}</span>
+                            <span className="text-[11px] sm:text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">{(op.categoria as any).nombre}</span>
                           )}
                           {op.localidad && (
-                            <span className="text-[10px] text-slate-400 flex items-center gap-0.5"><MapPin className="w-3 h-3" />{op.localidad}</span>
+                            <span className="text-[11px] sm:text-[10px] text-slate-400 flex items-center gap-0.5"><MapPin className="w-3 h-3" />{op.localidad}</span>
                           )}
                         </div>
                       </div>
-                      <span className="text-[10px] text-slate-300 font-medium flex items-center gap-1 flex-shrink-0">
+                      <span className="text-[11px] sm:text-[10px] text-slate-300 font-medium flex items-center gap-1 flex-shrink-0">
                         <Clock className="w-3 h-3" />{timeAgo(op.creado_en)}
                       </span>
                     </Link>
@@ -814,7 +817,7 @@ export default async function DashboardPage() {
             {/* QUICK ACTIONS */}
             <section data-tour="dash-quick" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:230ms] [animation-fill-mode:both]">
               <div className="px-6 py-5 border-b border-slate-100">
-                <h3 className="text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em]">Acciones Rápidas</h3>
+                <h3 className="text-[11px] sm:text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em]">Acciones Rápidas</h3>
               </div>
               <div className="p-3 space-y-0.5">
                 {quickActions.map((a) => (
@@ -824,7 +827,7 @@ export default async function DashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-[#00213f]">{a.label}</p>
-                      <p className="text-[10px] text-slate-400">{a.sub}</p>
+                      <p className="text-[11px] sm:text-[10px] text-slate-400">{a.sub}</p>
                     </div>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-200 group-hover:text-slate-400 transition-colors" />
                   </Link>
@@ -862,7 +865,7 @@ export default async function DashboardPage() {
             {/* NETWORK STATS */}
             <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:390ms] [animation-fill-mode:both]">
               <div className="px-6 py-5 border-b border-slate-100">
-                <h3 className="text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em] flex items-center gap-2">
+                <h3 className="text-[11px] sm:text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em] flex items-center gap-2">
                   <BarChart3 className="w-3.5 h-3.5" /> Red Industrial
                 </h3>
               </div>
@@ -884,7 +887,7 @@ export default async function DashboardPage() {
             {/* NOTIFICATIONS */}
             <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:470ms] [animation-fill-mode:both]">
               <div className="px-6 py-5 border-b border-slate-100">
-                <h3 className="text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em] flex items-center gap-2">
+                <h3 className="text-[11px] sm:text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em] flex items-center gap-2">
                   <Bell className="w-3.5 h-3.5" /> Notificaciones
                 </h3>
               </div>

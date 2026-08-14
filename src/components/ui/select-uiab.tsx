@@ -276,7 +276,7 @@ export function SelectUIAB({
                       <div
                         id={`${uid}-grp-${gi}`}
                         role="presentation"
-                        className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/95"
+                        className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 px-3 py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/95"
                       >
                         {g.label}
                       </div>

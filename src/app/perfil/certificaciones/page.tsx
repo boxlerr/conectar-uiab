@@ -43,7 +43,7 @@ const BUCKET_DOCS = "documentos-privados";
 const MAX_MB = 10;
 
 const inputCls =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition";
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base sm:text-sm text-slate-800 placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition";
 const labelCls = "block text-[13px] font-semibold text-slate-700 mb-1.5";
 
 const ORGANISMOS = [
@@ -602,7 +602,7 @@ function FormularioCertificacion({
         {/* Preview del chip */}
         <div className="lg:w-52 shrink-0">
           <div className="lg:sticky lg:top-28 bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
+            <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
               Así se ve en el directorio
             </p>
             <div className="flex justify-center">

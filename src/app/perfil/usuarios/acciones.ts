@@ -5,6 +5,7 @@ import { createClient as createClienteSSR } from "@/lib/supabase/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolverEntidadDePerfil } from "@/modulos/autenticacion/entidad-del-perfil";
 import type { TipoEntidadPerfil } from "@/tipos";
+import { exigirSuscripcion } from "@/lib/autenticacion/exigir-suscripcion";
 
 /**
  * Usuarios de la ficha (empresa o prestador).
@@ -176,6 +177,9 @@ export async function crearUsuarioDeLaFicha(datos: {
   password: string;
   cargo?: string;
 }): Promise<{ credenciales: CredencialesNuevoUsuario } | { error: string }> {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const ctx = await contextoDelSolicitante();
   if (esError(ctx)) return ctx;
 
@@ -285,6 +289,9 @@ export async function cambiarEstadoUsuarioDeLaFicha(
   perfilId: string,
   activar: boolean
 ): Promise<{ success: true } | { error: string }> {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const ctx = await contextoDelSolicitante();
   if (esError(ctx)) return ctx;
 
@@ -332,6 +339,9 @@ export async function cambiarPasswordUsuarioDeLaFicha(
   perfilId: string,
   password: string
 ): Promise<{ credenciales: CredencialesNuevoUsuario } | { error: string }> {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const ctx = await contextoDelSolicitante();
   if (esError(ctx)) return ctx;
 

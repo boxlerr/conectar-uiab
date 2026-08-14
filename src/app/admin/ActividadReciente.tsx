@@ -3,13 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  Building, Wrench, Briefcase, Star, DollarSign, UserPlus, Activity,
+  Building, Wrench, Briefcase, Star, DollarSign, UserPlus, Activity, Award, Users,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 type ActividadItem = {
   id: string;
-  tipo: "empresa" | "proveedor" | "oportunidad" | "resena" | "pago" | "usuario";
+  tipo: "empresa" | "proveedor" | "oportunidad" | "resena" | "pago" | "usuario" | "alta" | "ingreso" | "certificacion";
   titulo: string;
   detalle?: string;
   estado?: string | null;
@@ -28,6 +28,13 @@ const TIPO_META: Record<
   resena:     { icon: Star,       bg: "bg-violet-50",  color: "text-violet-600",  label: "Reseña" },
   pago:       { icon: DollarSign, bg: "bg-primary-50", color: "text-primary-700", label: "Pago" },
   usuario:    { icon: UserPlus,   bg: "bg-slate-100",  color: "text-slate-600",   label: "Usuario" },
+  // Las tres de abajo son las que de verdad se mueven en esta plataforma. Las de
+  // arriba se dejan porque el día que aparezca un proveedor, una oportunidad, una
+  // reseña o un pago tienen que salir — pero hoy cuatro de esas cinco no
+  // devuelven una sola fila en toda la historia.
+  alta:          { icon: UserPlus, bg: "bg-primary-50", color: "text-primary-700", label: "Alta de socia" },
+  ingreso:       { icon: Users,    bg: "bg-emerald-50", color: "text-emerald-600", label: "Entró alguien" },
+  certificacion: { icon: Award,    bg: "bg-violet-50",  color: "text-violet-600",  label: "Certificación" },
 };
 
 function fechaRelativa(fecha: string): string {
@@ -102,16 +109,16 @@ export function ActividadReciente({ items }: { items: ActividadItem[] }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    <span className="text-[11px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400">
                       {meta.label}
                     </span>
                     {item.esNuevo && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 uppercase tracking-widest">
+                      <span className="text-[11px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 uppercase tracking-widest">
                         Nuevo
                       </span>
                     )}
                     {item.estado && (
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase tracking-widest ${
+                      <span className={`text-[11px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded uppercase tracking-widest ${
                         item.estado === "abierta" || item.estado === "aprobada" || item.estado === "aprobado"
                           ? "bg-emerald-50 text-emerald-700"
                           : item.estado === "pendiente_revision" || item.estado === "pendiente"

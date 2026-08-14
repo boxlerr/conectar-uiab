@@ -1,105 +1,40 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/cliente";
-import { crearSlug } from "@/lib/utilidades";
-import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
+import type { SociaConLogo } from "@/lib/datos/socias-logos";
 
-interface EmpresaSocia {
-  id: string;
-  nombre: string;
-  slug: string;
-  logoUrl: string | null;
-}
-
-// Fisher-Yates: devuelve una copia mezclada, no muta el original.
-function mezclar<T>(arr: T[]): T[] {
-  const copia = [...arr];
-  for (let i = copia.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copia[i], copia[j]] = [copia[j], copia[i]];
-  }
-  return copia;
-}
-
-export function BannerLogosSocias() {
-  const [empresas, setEmpresas] = useState<EmpresaSocia[]>([]);
-  const [cargando, setCargando] = useState(true);
-
-  useEffect(() => {
-    const fetchEmpresas = async () => {
-      const supabase = createClient();
-      // Usamos la vista pública (no la tabla) para que funcione sin auth.
-      // La vista solo expone 4 columnas de empresas aprobadas — la tabla
-      // empresas sigue bloqueada para anon por RLS.
-      const { data, error } = await supabase
-        .from("empresas_publicas_logos")
-        .select("id, razon_social, bucket_logo, ruta_logo");
-
-      if (error || !data) {
-        setCargando(false);
-        return;
-      }
-
-      const mapped: EmpresaSocia[] = data
-        .map((e: any) => ({
-          id: e.id,
-          nombre: e.razon_social,
-          slug: crearSlug(e.razon_social),
-          logoUrl:
-            e.bucket_logo && e.ruta_logo
-              ? supabase.storage.from(e.bucket_logo).getPublicUrl(e.ruta_logo).data.publicUrl
-              : null,
-        }))
-        // Solo logos reales: si una empresa no tiene imagen no la mostramos como
-        // texto (queda feo junto a los logos). Aparecerá cuando cargue su logo.
-        // La UIAB queda afuera: creó la plataforma, no es una socia participante.
-        .filter((e: EmpresaSocia) => !!e.logoUrl && !esEmpresaInstitucional(e.id));
-
-      setEmpresas(mapped);
-      setCargando(false);
-    };
-
-    fetchEmpresas();
-  }, []);
-
-  if (cargando) {
-    return (
-      <div className="relative overflow-hidden">
-        <div className="flex gap-16 px-8">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex-shrink-0 w-[220px] h-[90px] bg-slate-100/60 rounded-sm animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
+/**
+ * Marquee de logos de las socias.
+ *
+ * ANTES traía los datos con un useEffect contra `empresas_publicas_logos`, así
+ * que sus ~50 `<Link href="/empresas/{slug}">` sólo existían después de
+ * hidratar: el HTML de la home que recibía Googlebot tenía CERO enlaces a
+ * fichas. El comentario del componente decía que el marquee servía "para que
+ * Google indexe y posicione las fichas" — hacía justo lo contrario.
+ *
+ * AHORA la consulta vive en `src/lib/datos/socias-logos.ts` y la resuelven los
+ * Server Components (src/app/page.tsx y src/app/empresas/page.tsx), que pasan
+ * el array por props. Este archivo quedó como presentación pura.
+ *
+ * Ojo con el orden: el barajado dejó de ser `Math.random()` en el cliente y
+ * pasó a hacerse en el servidor con semilla del día. Con la mezcla en el
+ * cliente el HTML del servidor y el primer render no coincidían.
+ */
+export function BannerLogosSocias({ empresas }: { empresas: SociaConLogo[] }) {
   if (empresas.length === 0) return null;
-
   return <MarqueeEmpresas empresas={empresas} />;
 }
 
-function MarqueeEmpresas({ empresas }: { empresas: EmpresaSocia[] }) {
-  // Cada "pasada" es una mezcla independiente del set completo de empresas,
-  // así nunca se repite una empresa dentro de una misma pasada. Encadenamos
-  // varias pasadas distintas para que el recorrido no se sienta siempre
-  // igual, y además nos aseguramos de que la mitad del track sea más ancha
-  // que la pantalla (si no, el loop se ve "saltar" al resetear).
+function MarqueeEmpresas({ empresas }: { empresas: SociaConLogo[] }) {
+  // El orden ya viene barajado del servidor con la semilla del día, así que acá
+  // sólo se encadenan pasadas para que la mitad del track sea más ancha que la
+  // pantalla (si no, el loop "salta" al resetear). Nada de Math.random(): el
+  // HTML del servidor y el primer render del cliente tienen que coincidir.
   const minItems = 8;
   const pasadas = Math.max(4, Math.ceil(minItems / empresas.length));
-  const itemsBase = useMemo(
-    () => Array.from({ length: pasadas }, () => mezclar(empresas)).flat(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [empresas]
-  );
-  // Duplicamos el set para que translateX(-50%) cierre el loop sin salto.
-  const items = [...itemsBase, ...itemsBase];
+  const items = Array.from({ length: pasadas * 2 }, () => empresas).flat();
 
   return (
     <div
@@ -138,7 +73,7 @@ function formatearWordmark(nombre: string): string {
     .toUpperCase();
 }
 
-function LogoSocia({ empresa }: { empresa: EmpresaSocia }) {
+function LogoSocia({ empresa }: { empresa: SociaConLogo }) {
   const [errorLogo, setErrorLogo] = useState(false);
   const mostrarFallback = !empresa.logoUrl || errorLogo;
   const wordmark = formatearWordmark(empresa.nombre);
@@ -162,7 +97,7 @@ function LogoSocia({ empresa }: { empresa: EmpresaSocia }) {
         </span>
       ) : (
         <Image
-          src={empresa.logoUrl!}
+          src={empresa.logoUrl}
           alt={`Logo de ${empresa.nombre} — empresa socia de la UIAB`}
           width={200}
           height={90}

@@ -27,10 +27,12 @@ import {
   Megaphone,
   Monitor,
   LayoutGrid,
+  type LucideIcon,
 } from "lucide-react";
 import { LandingProfileCard } from "@/components/ui/directorio/tarjeta-perfil-landing";
 import { BannerLogosSocias } from "@/components/ui/directorio/banner-logos-socias";
-import { getEmpresas } from "@/lib/datos/directorio";
+import type { Entidad } from "@/lib/datos/directorio";
+import type { SociaConLogo } from "@/lib/datos/socias-logos";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Button } from "@/components/ui/button";
 
@@ -60,20 +62,34 @@ const scaleIn = {
 };
 
 /* ─── Data ─── */
-const sectores = [
-  { nombre: "Metalúrgica", total: 18, icon: Factory },
-  { nombre: "Química", total: 15, icon: Zap },
-  { nombre: "Automotriz", total: 12, icon: TrendingUp },
-  { nombre: "Alimentaria", total: 14, icon: Globe },
-  { nombre: "Electrónica", total: 10, icon: BarChart3 },
-  { nombre: "Textil", total: 8, icon: FileText },
-  { nombre: "Gastronomía", total: 22, icon: Users },
-  { nombre: "Logística", total: 9, icon: TrendingUp },
-  { nombre: "Salud", total: 11, icon: Shield },
-  { nombre: "Comercio", total: 31, icon: Building2 },
-  { nombre: "Construcción", total: 16, icon: Factory },
-  { nombre: "Servicios Prof.", total: 20, icon: BadgeCheck },
-];
+
+/**
+ * Ícono por rubro. Los NOMBRES y los CONTEOS ya no viven acá: llegan por props
+ * desde el servidor, calculados sobre la base.
+ *
+ * Lo que había antes era una lista inventada —"Gastronomía 22", "Comercio 31",
+ * "Salud 11", "Metalúrgica 18"— publicada en el sitio de una cámara empresaria
+ * y servida a Google en el HTML. Los números reales no se le parecen (Química
+ * 13, Construcción 11, Metalúrgica 13) y tres de esos rubros directamente no
+ * tienen una sola socia. Un dato hardcodeado en un componente de presentación
+ * envejece mal por definición; derivarlo de la base es lo único que evita que
+ * el problema vuelva.
+ */
+const ICONO_POR_RUBRO: Record<string, LucideIcon> = {
+  "metalurgica-y-metalmecanica": Factory,
+  quimica: Zap,
+  construccion: Factory,
+  "packaging-y-embalaje": Building2,
+  plasticos: Globe,
+  "grafica-e-impresion": FileText,
+  "automatizacion-y-electricidad": Zap,
+  "pinturas-y-recubrimientos": BarChart3,
+  "autopartes-y-automotriz": TrendingUp,
+  "informatica-industrial": BarChart3,
+  "ingenieria-y-consultoria": BadgeCheck,
+  "seguridad-e-higiene-industrial": Shield,
+  "alimentos-y-bebidas": Globe,
+};
 
 const valueProps = [
   {
@@ -102,9 +118,9 @@ const journey = [
   {
     step: "01",
     title: "Registro y Verificación",
-    description: "Complete el formulario con los datos de su empresa y sector. Nuestro equipo valida la información y la documentación.",
+    description: "Complete el formulario con los datos de su empresa y sector. La UIAB contrasta el CUIT contra su padrón de socias y revisa la información antes de publicar la ficha.",
     icon: FileText,
-    detail: "Proceso 100% digital • Respuesta en 48hs",
+    detail: "Proceso 100% digital • Con aprobación de la UIAB",
   },
   {
     step: "02",
@@ -118,14 +134,36 @@ const journey = [
     title: "Conexión con la Red",
     description: "Comience a recibir oportunidades, conecte con otras empresas y proveedores de servicios. Acceda al ecosistema completo de herramientas B2B.",
     icon: Users,
-    detail: "Red activa • +60 empresas",
+    detail: "Red activa • Empresas socias de la UIAB",
   },
 ];
 
 /* ─── Component ─── */
-export function PublicEmpresasLanding() {
+export function PublicEmpresasLanding({
+  empresasPreview = [],
+  sectores = [],
+  totalEmpresas = 0,
+  sociasLogos = [],
+}: {
+  /** Logos de las socias, resueltos en el servidor. Ver socias-logos.ts. */
+  sociasLogos?: SociaConLogo[];
+  /** Rubros REALES con su conteo y su landing. Ver ICONO_POR_RUBRO. */
+  sectores?: { slug: string; nombre: string; total: number }[];
+  /** Socias aprobadas en la base. Antes decía "+60" a mano. */
+  totalEmpresas?: number;
+  /**
+   * Socias REALES, resueltas en el servidor por src/app/empresas/page.tsx.
+   *
+   * Antes esto era `getEmpresas().slice(0, 3)`, o sea tres empresas del array
+   * mock de src/lib/datos/directorio.ts: "MetalTech Industrial SA",
+   * "QuímicaPro Solutions" y "MaquinariasPrecision" — razones sociales
+   * inventadas, con rating y reseñas inventados, publicadas en el sitio de una
+   * cámara empresaria y servidas a Google en el HTML. Además las tarjetas
+   * apuntaban a `href="#"`, así que ni siquiera enlazaban.
+   */
+  empresasPreview?: Entidad[];
+}) {
   const { openAuthModal } = useAuth();
-  const empresasPreview = getEmpresas().slice(0, 3);
 
   return (
     <div className="bg-[#f7f9fb] overflow-x-hidden">
@@ -215,11 +253,17 @@ export function PublicEmpresasLanding() {
             variants={stagger}
             className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
           >
+            {/*
+              Cifras derivadas de la base, no escritas a mano.
+              Se cayeron dos de las cuatro que había: "50+ Proveedores Activos"
+              (hay 0 prestadores aprobados) y "+600 Conexiones B2B" (no existe
+              ninguna métrica que sostenga ese número). Tres tarjetas con datos
+              ciertos valen más que cuatro con dos inventadas.
+            */}
             {[
-              { val: "+60", label: "Empresas Registradas" },
-              { val: "50+", label: "Proveedores Activos" },
-              { val: "26", label: "Sectores Comerciales" },
-              { val: "+600", label: "Conexiones B2B" },
+              { val: String(totalEmpresas), label: "Empresas socias verificadas" },
+              { val: String(sectores.length), label: "Rubros industriales" },
+              { val: "100%", label: "Perfiles validados por la UIAB" },
             ].map((s, i) => (
               <motion.div
                 key={s.label}
@@ -228,7 +272,7 @@ export function PublicEmpresasLanding() {
                 className="bg-[#00213f]/70 rounded-xl px-5 py-5 border border-white/20 shadow-xl shadow-black/10 hover:bg-[#00213f]/85 transition-colors duration-300 group"
               >
                 <div className="text-xl lg:text-3xl font-bold text-white mb-0.5 tracking-tight group-hover:text-primary-200 transition-colors uppercase">{s.val}</div>
-                <div className="text-[10px] lg:text-[11px] text-white font-bold tracking-wider uppercase">{s.label}</div>
+                <div className="text-[11px] sm:text-[10px] lg:text-[11px] text-white font-bold tracking-wider uppercase">{s.label}</div>
               </motion.div>
             ))}
           </motion.div>
@@ -252,7 +296,7 @@ export function PublicEmpresasLanding() {
             </span>
           </motion.div>
         </div>
-        <BannerLogosSocias />
+        <BannerLogosSocias empresas={sociasLogos} />
       </section>
 
       {/* ═══════════════════════════════════════════
@@ -317,7 +361,7 @@ export function PublicEmpresasLanding() {
                         </div>
                       ))}
                     </div>
-                    <span className="text-[11px] font-bold text-[#191c1e] uppercase tracking-widest">+60 EMPRESAS</span>
+                    <span className="text-[11px] font-bold text-[#191c1e] uppercase tracking-widest">EMPRESAS SOCIAS</span>
                   </div>
                 </div>
               </div>
@@ -408,7 +452,7 @@ export function PublicEmpresasLanding() {
                 className="text-3xl lg:text-4xl font-bold text-[#191c1e] tracking-tight"
                 style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
               >
-                26 sectores comerciales e industriales
+                {sectores.length} rubros industriales con socias en el directorio
               </motion.h2>
             </div>
             <motion.p variants={fadeUp} custom={2} className="text-[14px] text-slate-500 max-w-sm">
@@ -423,21 +467,31 @@ export function PublicEmpresasLanding() {
             variants={stagger}
             className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
           >
+            {/*
+              Cada tarjeta es un <Link> a su landing de rubro. Eran <div> con
+              `cursor-default`: doce bloques de anchor text perfecto
+              ("Metalúrgica", "Química", "Packaging") que no llevaban a ningún
+              lado. Ahora son la vía de rastreo hacia /rubros/[slug].
+            */}
             {sectores.map((sector, i) => {
-              const Icon = sector.icon;
+              const Icon = ICONO_POR_RUBRO[sector.slug] ?? Factory;
               return (
-                <motion.div
-                  key={sector.nombre}
-                  variants={fadeUp}
-                  custom={i}
-                  className="bg-white rounded-sm p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-400 group cursor-default"
-                  style={{ boxShadow: "0 1px 2px rgba(0,33,63,0.04)" }}
-                >
-                  <div className="w-10 h-10 rounded-sm bg-[#f7f9fb] flex items-center justify-center mb-4 group-hover:bg-primary-50 transition-colors">
-                    <Icon className="w-5 h-5 text-slate-400 group-hover:text-primary-600 transition-colors" />
-                  </div>
-                  <p className="text-[14px] font-bold text-[#191c1e] mb-1">{sector.nombre}</p>
-                  <p className="text-[12px] text-slate-400">{sector.total} empresas</p>
+                <motion.div key={sector.slug} variants={fadeUp} custom={i}>
+                  <Link
+                    href={`/rubros/${sector.slug}`}
+                    className="block h-full bg-white rounded-sm p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-400 group"
+                    style={{ boxShadow: "0 1px 2px rgba(0,33,63,0.04)" }}
+                  >
+                    <div className="w-10 h-10 rounded-sm bg-[#f7f9fb] flex items-center justify-center mb-4 group-hover:bg-primary-50 transition-colors">
+                      <Icon className="w-5 h-5 text-slate-400 group-hover:text-primary-600 transition-colors" />
+                    </div>
+                    <p className="text-[14px] font-bold text-[#191c1e] mb-1 group-hover:text-primary-600 transition-colors">
+                      {sector.nombre}
+                    </p>
+                    <p className="text-[12px] text-slate-400">
+                      {sector.total} {sector.total === 1 ? "empresa" : "empresas"}
+                    </p>
+                  </Link>
                 </motion.div>
               );
             })}
@@ -608,7 +662,7 @@ export function PublicEmpresasLanding() {
                   />
                 </div>
                 <div className="h-[1px] w-6 bg-primary-600/30" />
-                <span className="text-[10px] font-bold text-primary-600 tracking-[0.25em] uppercase">
+                <span className="text-[11px] sm:text-[10px] font-bold text-primary-600 tracking-[0.25em] uppercase">
                   Membresía Corporativa
                 </span>
               </motion.div>
@@ -662,7 +716,7 @@ export function PublicEmpresasLanding() {
                   />
                 </div>
 
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none text-center">
+                <span className="text-[11px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none text-center">
                   Sector <br /> Industrial
                 </span>
               </div>
@@ -686,10 +740,10 @@ export function PublicEmpresasLanding() {
                 </div>
                 <h3 className="text-2xl lg:text-3xl font-bold mb-4" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Directorio Industrial Completo</h3>
                 <p className="text-primary-100/70 text-base lg:text-lg leading-relaxed max-w-xl mb-10">
-                  Acceso a la base de datos de +60 empresas e industrias verificadas del partido. Busque proveedores de servicios por sector o servicio y contacte de forma directa.
+                  Acceso a la base de datos de empresas e industrias verificadas del partido. Busque proveedores de servicios por sector o servicio y contacte de forma directa.
                 </p>
                 <div className="flex flex-wrap gap-2 mt-auto">
-                  {["Base de Datos +60", "Filtros Técnicos", "Contacto Sin Intermediarios"].map((tag) => (
+                  {["Base de Datos Verificada", "Filtros Técnicos", "Contacto Sin Intermediarios"].map((tag) => (
                     <span key={tag} className="text-[11px] font-bold text-white/50 bg-white/[0.04] border border-white/5 rounded-sm px-3 py-1.5 uppercase tracking-wider">{tag}</span>
                   ))}
                 </div>
@@ -770,7 +824,7 @@ export function PublicEmpresasLanding() {
                   Conozca algunas de nuestras empresas
                 </motion.h2>
                 <motion.p variants={fadeUp} custom={2} className="text-[15px] text-slate-500 leading-relaxed">
-                  Esta es solo una muestra. El directorio completo incluye +60 empresas radicadas con perfiles verificados.
+                  Esta es solo una muestra. El directorio completo incluye a todas las empresas socias radicadas en el partido, con perfiles verificados.
                 </motion.p>
               </div>
 

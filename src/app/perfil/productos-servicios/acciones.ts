@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/servidor";
 import { revalidatePath } from "next/cache";
+import { exigirSuscripcion } from "@/lib/autenticacion/exigir-suscripcion";
 
 export type EnlaceItem = {
   tipo: "web" | "video" | "ficha" | "catalogo" | "otro";
@@ -86,6 +87,9 @@ export async function createItem(
   entityId: string,
   payload: ItemPayload
 ) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const supabase = await createClient();
   const foreignKey = role === "company" ? { empresa_id: entityId } : { proveedor_id: entityId };
 
@@ -127,6 +131,9 @@ export async function createItemsBulk(
   entityId: string,
   items: ItemPayload[]
 ) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const supabase = await createClient();
   const foreignKey = role === "company" ? { empresa_id: entityId } : { proveedor_id: entityId };
 
@@ -164,6 +171,9 @@ export async function createItemsBulk(
 }
 
 export async function updateItem(id: string, payload: ItemPayload) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -196,6 +206,9 @@ export async function updateItem(id: string, payload: ItemPayload) {
 }
 
 export async function deleteItem(id: string) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const supabase = await createClient();
 
   // Borramos las imágenes del bucket antes de borrar el ítem.
@@ -234,6 +247,9 @@ export async function registrarImagenItem(args: {
   texto_alternativo?: string;
   orden?: number;
 }) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("imagenes_item")
@@ -260,6 +276,9 @@ export async function registrarImagenItem(args: {
 }
 
 export async function eliminarImagenItem(imagen_id: string) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const supabase = await createClient();
 
   const { data: img, error: errSel } = await supabase
@@ -282,6 +301,9 @@ export async function eliminarImagenItem(imagen_id: string) {
 }
 
 export async function reordenarImagenesItem(ordenes: { id: string; orden: number }[]) {
+  const sinSuscripcion = await exigirSuscripcion();
+  if (sinSuscripcion) return sinSuscripcion;
+
   const supabase = await createClient();
   for (const o of ordenes) {
     await supabase.from("imagenes_item").update({ orden: o.orden }).eq("id", o.id);

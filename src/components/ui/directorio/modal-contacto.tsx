@@ -71,7 +71,7 @@ function FilaDato({ dato, scheme }: { dato: DatoContacto; scheme: ColorScheme })
     <li className="flex items-center gap-3 px-4 py-3 rounded-md border border-slate-200 bg-white">
       <Icono className={`w-4 h-4 shrink-0 ${colores.icono}`} />
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">
+        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">
           {dato.label}
         </p>
         <p className="text-slate-700 font-semibold text-[14px] leading-snug break-all">
@@ -156,7 +156,7 @@ export function ModalContacto({
           <div className="relative w-full max-w-md bg-white rounded-lg shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-slate-200 bg-slate-50/60">
               <div className="min-w-0">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">
+                <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">
                   Datos de contacto
                 </p>
                 <h3 className="font-manrope text-lg font-bold text-[#00213f] leading-tight truncate">

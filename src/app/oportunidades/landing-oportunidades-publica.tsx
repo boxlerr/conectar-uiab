@@ -36,42 +36,25 @@ const slideInRight = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
-const MOCK_PREVIEW = [
-  {
-    id: "mock1",
-    titulo: "Provisión de Tableros Eléctricos Industriales",
-    descripcion: "Se busca empresa o taller certificado para la provisión armada de 4 tableros generales de baja tensión para ampliación de planta.",
-    estado: "abierta",
-    localidad: "Burzaco",
-    categoria: { nombre: "Electricidad" },
-    empresa: { razon_social: "Industria Metalúrgica" }
-  },
-  {
-    id: "mock2",
-    titulo: "Servicio Mensual de Mantenimiento HVAC",
-    descripcion: "Requerimos particular especialista en equipos de climatización industrial para mantenimiento preventivo en 2 naves.",
-    estado: "abierta",
-    localidad: "Adrogué",
-    categoria: { nombre: "Mantenimiento" },
-    empresa: { razon_social: "Laboratorio Farmacéutico" }
-  },
-  {
-    id: "mock3",
-    titulo: "Desarrollo de Software de Trazabilidad",
-    descripcion: "Buscamos consultora informática para el desarrollo e implementación de un módulo de trazabilidad de stock y despacho.",
-    estado: "abierta",
-    localidad: "Longchamps",
-    categoria: { nombre: "Sistemas" },
-    empresa: { razon_social: "Distribuidora Logística" }
-  }
-];
+/*
+  Acá vivían tres oportunidades inventadas —"Provisión de Tableros Eléctricos
+  Industriales" de una "Industria Metalúrgica", un mantenimiento HVAC de un
+  "Laboratorio Farmacéutico"— servidas con `estado: "abierta"` cuando la
+  cartelera tiene 0 oportunidades reales. Un visitante (y Google) leía pedidos
+  de cotización que no existen, atribuidos a empresas que tampoco.
+
+  Sin datos, la respuesta correcta no es rellenar: es explicar cómo funciona la
+  cartelera. Eso además arregla el otro problema de esta página, que servía 156
+  palabras y un único H2 que decía "0 oportunidades disponibles".
+*/
+
 
 export function PublicOportunidadesLanding({ oportunidades, loading }: { oportunidades: Oportunidad[], loading: boolean }) {
   const { openAuthModal } = useAuth();
   
-  const displayItems = oportunidades.length > 0 ? oportunidades : (MOCK_PREVIEW as any);
-  const previewItems = displayItems.slice(0, 3);
-  const totalCount = oportunidades.length > 0 ? oportunidades.length : 145;
+  const previewItems = oportunidades.slice(0, 3);
+  const totalCount = oportunidades.length;
+  const hayOportunidades = totalCount > 0;
 
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -187,7 +170,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                        <Briefcase className="w-6 h-6 text-emerald-400" />
                     </div>
                     <div>
-                       <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-0.5">Nueva Solicitud</p>
+                       <p className="text-[11px] sm:text-[10px] font-bold text-white/40 uppercase tracking-widest mb-0.5">Nueva Solicitud</p>
                        <p className="text-sm font-black text-white">Aserradero Los Robles S.A.</p>
                     </div>
                   </motion.div>
@@ -318,7 +301,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                       <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center">
                          <Building2 className="w-5 h-5 text-primary-600" />
                       </div>
-                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 font-bold text-[10px] uppercase">Aprobada</Badge>
+                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] sm:text-[10px] uppercase">Aprobada</Badge>
                    </div>
                    <p className="font-bold text-[#00213f] text-sm leading-tight mb-2">Presupuesto aceptado</p>
                    <p className="text-xs text-slate-500 leading-relaxed">Empezá a trabajar directamente con tu nuevo cliente.</p>
@@ -391,7 +374,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           
           <div className="text-center mb-12">
-            <Badge className="bg-emerald-100 text-emerald-800 border-none px-4 py-1.5 font-bold mb-4 uppercase tracking-widest text-[10px]">Licitaciones Abiertas</Badge>
+            <Badge className="bg-emerald-100 text-emerald-800 border-none px-4 py-1.5 font-bold mb-4 uppercase tracking-widest text-[11px] sm:text-[10px]">Licitaciones Abiertas</Badge>
             <h2 
               className="text-3xl lg:text-4xl font-black tracking-tight text-[#00213f]"
               style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
@@ -425,7 +408,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                       <CardContent className="p-8 sm:p-10">
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5">
                           <div>
-                            <div className="flex items-center gap-2 mb-3 font-bold text-[10px] uppercase tracking-widest text-primary-600">
+                            <div className="flex items-center gap-2 mb-3 font-bold text-[11px] sm:text-[10px] uppercase tracking-widest text-primary-600">
                               <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                               {op.categoria?.nombre || "General"}
                             </div>
@@ -474,8 +457,47 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                   </motion.div>
                 ))
               ) : (
-                <Card className="p-12 text-center border-dashed border-2">
-                  <p className="text-slate-500 font-medium">Oportunidades cargando...</p>
+                /*
+                  Estado vacío honesto. Antes decía "Oportunidades cargando..."
+                  para siempre —cuando en realidad no hay ninguna— y arriba se
+                  mostraban tres inventadas. Explicar cómo funciona la cartelera
+                  es más útil para el visitante y le da a esta página contenido
+                  propio: servía 156 palabras y un único H2 que decía "0
+                  oportunidades disponibles".
+                */
+                <Card className="p-8 sm:p-10 border border-slate-200 rounded-2xl bg-white text-left">
+                  <h3
+                    className="text-xl font-black text-[#00213f] mb-3"
+                    style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                  >
+                    Todavía no hay pedidos publicados
+                  </h3>
+                  <div className="space-y-3 text-slate-600 text-[15px] leading-relaxed">
+                    <p>
+                      La cartelera de oportunidades es donde las empresas socias de la UIAB
+                      publican lo que necesitan comprar o contratar: provisión de materiales,
+                      trabajos de mantenimiento, servicios de terceros o desarrollos a medida.
+                      Cuando alguien publica un pedido, la plataforma lo cruza con los rubros y
+                      las etiquetas de cada socia y le avisa a las que coinciden.
+                    </p>
+                    <p>
+                      Es el circuito inverso al del directorio: en vez de que te busquen, el
+                      pedido te llega. Publicar no tiene costo adicional para las socias y las
+                      respuestas van directo a la empresa que publicó, sin intermediarios ni
+                      comisiones.
+                    </p>
+                    <p>
+                      Mientras tanto, podés{" "}
+                      <Link href="/directorio" className="font-semibold text-primary-600 hover:underline">
+                        buscar proveedores en el directorio
+                      </Link>{" "}
+                      o{" "}
+                      <Link href="/rubros" className="font-semibold text-primary-600 hover:underline">
+                        explorar por rubro
+                      </Link>
+                      .
+                    </p>
+                  </div>
                 </Card>
               )}
             </div>
@@ -495,13 +517,17 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                     className="text-3xl font-black text-[#00213f] mb-4"
                     style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
                   >
-                     Desbloqueá {totalCount > 3 ? totalCount - 3 : '+60'} Licitaciones Más
+                     {totalCount > 3
+                       ? `Desbloqueá ${totalCount - 3} oportunidades más`
+                       : "Enterate apenas se publique una"}
                   </h3>
                   <p 
                     className="text-slate-500 mb-8 text-[15px] leading-relaxed max-w-md mx-auto"
                     style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
                   >
-                    Creá tu cuenta en menos de 2 minutos para acceder al listado completo de oportunidades y enviar tus presupuestos de manera directa.
+                    {hayOportunidades
+                      ? "Creá tu cuenta para acceder al listado completo de oportunidades y enviar tus presupuestos de forma directa."
+                      : "Creá tu cuenta y recibí un aviso cuando una empresa socia publique un pedido que coincida con tus rubros y etiquetas."}
                   </p>
                   <Button asChild className="w-full h-14 bg-[#00213f] text-white font-bold text-lg rounded-xl shadow-xl shadow-[#00213f]/20 hover:bg-black active:scale-[0.98] transition-all cursor-pointer">
                     <Link href="/register">

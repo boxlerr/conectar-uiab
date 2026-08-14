@@ -21,6 +21,14 @@ const nextConfig: NextConfig = {
      */
     deviceSizes: [640, 828, 1200, 1920],
     imageSizes: [64, 128, 256, 384],
+    /**
+     * Next 16 dejó de aceptar cualquier `quality`: sólo sirve lo que esté
+     * declarado acá, y lo que no está en la lista se ignora con un warning en
+     * consola. La foto del hero de las 59 fichas pide `quality={60}` a
+     * propósito —queda debajo de tres velos y es la candidata a LCP—, así que
+     * sin esta línea volvía a servirse al 75 y la optimización no existía.
+     */
+    qualities: [60, 75],
     remotePatterns: supabaseHost
       ? [
           {

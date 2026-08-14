@@ -19,6 +19,8 @@ const RUTAS_PUBLICAS: Array<{ ruta: string; archivo: string[] }> = [
   { ruta: '/cooperativas',              archivo: ['cooperativas', 'layout.tsx'] },
   { ruta: '/instituciones-bancarias',   archivo: ['instituciones-bancarias', 'layout.tsx'] },
   { ruta: '/instituciones-educativas',  archivo: ['instituciones-educativas', 'layout.tsx'] },
+  { ruta: '/nosotros',                  archivo: ['nosotros', 'page.tsx'] },
+  { ruta: '/rubros',                    archivo: ['rubros', 'page.tsx'] },
   { ruta: '/sumate',                    archivo: ['sumate', 'page.tsx'] },
   { ruta: '/contacto',                  archivo: ['contacto', 'page.tsx'] },
   { ruta: '/terminos',                  archivo: ['terminos', 'page.tsx'] },

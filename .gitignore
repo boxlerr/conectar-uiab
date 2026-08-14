@@ -43,3 +43,6 @@ next-env.d.ts
 # antigravity
 .agents/
 
+
+# Respaldos de migraciones de datos puntuales (contienen datos de socias)
+herramientas/respaldo-*.json

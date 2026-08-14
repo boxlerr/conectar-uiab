@@ -7,14 +7,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { LogoutButton } from '@/components/autenticacion/boton-cerrar-sesion';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { obtenerPreapproval } from '@/lib/mercadopago/cliente';
-import { sumarUnMes } from '@/lib/mercadopago/suscripciones';
-import { enviarEmail, emailAdmin } from '@/lib/email/cliente';
-import {
-  plantillaPagoConfirmado,
-  plantillaPagoConfirmadoAdmin,
-} from '@/lib/email/plantillas-suscripciones';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,112 +81,6 @@ async function obtenerContexto() {
   return { rol, estadoEntidad, motivoRechazo, nombre: perfil.nombre_completo, subscriptionEstado, entityId };
 }
 
-/**
- * When the user returns from Mercado Pago (?mp=ok), we proactively check
- * the preapproval status against the MP API and update the subscription
- * in our DB. This solves the webhook-can't-reach-localhost problem during
- * development, and also serves as a fallback in production.
- */
-async function verificarPagoConMP(entityId: string, rol: string) {
-  const adminDb = createAdminClient();
-  const fk = rol === 'company' ? 'empresa_id' : 'proveedor_id';
-
-  const { data: sus } = await adminDb
-    .from('suscripciones')
-    .select('id, estado, mercado_pago_preapproval_id, monto, moneda, nombre_plan, empresa_id, proveedor_id')
-    .eq(fk, entityId)
-    .order('creado_en', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!sus || sus.estado === 'activa' || !sus.mercado_pago_preapproval_id) {
-    return sus?.estado ?? null;
-  }
-
-  try {
-    const pre = await obtenerPreapproval(sus.mercado_pago_preapproval_id);
-    if (pre.status === 'authorized') {
-      const ahora = new Date();
-      const proximo = sumarUnMes(ahora).toISOString();
-
-      await adminDb
-        .from('suscripciones')
-        .update({
-          estado: 'activa',
-          inicia_en: ahora.toISOString(),
-          proximo_cobro_en: pre.next_payment_date || proximo,
-          gracia_hasta: null,
-          actualizado_en: ahora.toISOString(),
-        })
-        .eq('id', sus.id);
-
-      // Send confirmation emails (best-effort)
-      try {
-        await enviarEmailsConfirmacionVerificacion(adminDb, sus, pre, proximo);
-      } catch (e) {
-        console.error('[pendiente-aprobacion] error enviando emails:', e);
-      }
-
-      return 'activa';
-    }
-    return sus.estado;
-  } catch (err) {
-    console.error('[pendiente-aprobacion] error verificando con MP:', err);
-    return sus.estado;
-  }
-}
-
-async function enviarEmailsConfirmacionVerificacion(
-  adminDb: ReturnType<typeof createAdminClient>,
-  sus: { empresa_id: string | null; proveedor_id: string | null; monto: number; nombre_plan: string | null },
-  preapproval: any,
-  proximo: string
-) {
-  let nombre = '';
-  let email = '';
-  let entidad: 'empresa' | 'particular' = 'empresa';
-
-  if (sus.empresa_id) {
-    const { data } = await adminDb.from('empresas').select('razon_social, email').eq('id', sus.empresa_id).maybeSingle();
-    nombre = data?.razon_social || 'Empresa';
-    email = data?.email || '';
-    entidad = 'empresa';
-  } else if (sus.proveedor_id) {
-    const { data } = await adminDb.from('proveedores').select('nombre, apellido, email').eq('id', sus.proveedor_id).maybeSingle();
-    nombre = [data?.nombre, data?.apellido].filter(Boolean).join(' ') || 'Particular';
-    email = data?.email || '';
-    entidad = 'particular';
-  }
-
-  const ahora = new Date().toISOString();
-
-  // Email al suscriptor
-  if (email) {
-    const plantilla = plantillaPagoConfirmado({
-      nombre, email,
-      plan: sus.nombre_plan || 'UIAB Conecta',
-      monto: Number(sus.monto),
-      pagadoEn: ahora,
-      proximoCobro: proximo,
-      metodoPago: 'mercadopago',
-      referenciaPago: preapproval.id,
-      entidad,
-    });
-    await enviarEmail({ para: email, asunto: plantilla.asunto, html: plantilla.html, texto: plantilla.texto });
-  }
-
-  // Email al admin
-  const plantillaAdmin = plantillaPagoConfirmadoAdmin({
-    nombre, email,
-    plan: sus.nombre_plan || 'UIAB Conecta',
-    monto: Number(sus.monto),
-    pagadoEn: ahora,
-    referenciaPago: preapproval.id,
-    entidad,
-  });
-  await enviarEmail({ para: emailAdmin(), asunto: plantillaAdmin.asunto, html: plantillaAdmin.html, texto: plantillaAdmin.texto });
-}
-
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
 function Stepper({ pasoActual }: { pasoActual: 1 | 2 | 3 }) {
@@ -219,7 +105,7 @@ function Stepper({ pasoActual }: { pasoActual: 1 | 2 | 3 }) {
                 {hecho ? <CheckCircle2 className="w-4 h-4" /> : paso.n}
               </div>
               <span
-                className={`text-[10px] font-black tracking-[0.15em] uppercase whitespace-nowrap
+                className={`text-[11px] sm:text-[10px] font-black tracking-[0.15em] uppercase whitespace-nowrap
                   ${hecho ? 'text-emerald-600' : actual ? 'text-[#00213f]' : 'text-slate-400'}`}
               >
                 {paso.label}
@@ -244,8 +130,7 @@ export default async function PendienteAprobacionPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const params = await searchParams;
-  const mpOk = params.mp === 'ok';
+  await searchParams;
   const ctx = await obtenerContexto();
   if (!ctx) redirect('/login');
 
@@ -258,16 +143,12 @@ export default async function PendienteAprobacionPage({
   const esRechazado =
     ctx.estadoEntidad === 'rechazado' || ctx.estadoEntidad === 'rechazada';
 
-  // When returning from Mercado Pago, proactively verify the payment status
-  let subscriptionEstadoActual = ctx.subscriptionEstado;
-  if (mpOk && ctx.entityId && subscriptionEstadoActual !== 'activa') {
-    subscriptionEstadoActual = await verificarPagoConMP(ctx.entityId, ctx.rol) ?? subscriptionEstadoActual;
-  }
-
+  // Sin pasarela automática, el estado de la suscripción es el que dejó el
+  // admin al registrar el cobro: no hay nada que "verificar" al volver de
+  // ningún lado. `pendiente_pago` significa que todavía no entró la plata.
+  const subscriptionEstadoActual = ctx.subscriptionEstado;
   const haPagado =
-    subscriptionEstadoActual === 'activa' ||
-    mpOk ||
-    (subscriptionEstadoActual !== null && subscriptionEstadoActual !== 'pendiente_pago');
+    subscriptionEstadoActual !== null && subscriptionEstadoActual !== 'pendiente_pago';
 
   // Rejected state
   if (esRechazado) {
@@ -278,7 +159,7 @@ export default async function PendienteAprobacionPage({
           <div className="flex justify-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-200">
               <XCircle className="w-3.5 h-3.5 text-rose-500" />
-              <span className="text-[10px] font-black tracking-[0.25em] uppercase text-rose-600">
+              <span className="text-[11px] sm:text-[10px] font-black tracking-[0.25em] uppercase text-rose-600">
                 Cuenta rechazada
               </span>
             </div>
@@ -329,7 +210,7 @@ export default async function PendienteAprobacionPage({
         <div className="w-full max-w-lg mb-10 text-center">
           <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-emerald-50 border border-emerald-200">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="text-[10px] font-black tracking-[0.25em] uppercase text-emerald-600">
+            <span className="text-[11px] sm:text-[10px] font-black tracking-[0.25em] uppercase text-emerald-600">
               Registro exitoso
             </span>
           </div>
@@ -359,7 +240,7 @@ export default async function PendienteAprobacionPage({
                   <CreditCard className="w-7 h-7 text-[#00213f]" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-1">
+                  <p className="text-[11px] sm:text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-1">
                     Paso 2 de 3
                   </p>
                   <h2
@@ -422,7 +303,7 @@ export default async function PendienteAprobacionPage({
       <div className="w-full max-w-lg mb-10 text-center">
         <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-emerald-50 border border-emerald-200">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-          <span className="text-[10px] font-black tracking-[0.25em] uppercase text-emerald-600">
+          <span className="text-[11px] sm:text-[10px] font-black tracking-[0.25em] uppercase text-emerald-600">
             Pago confirmado
           </span>
         </div>
@@ -450,7 +331,7 @@ export default async function PendienteAprobacionPage({
                 <Clock className="w-7 h-7 text-amber-600" />
               </div>
               <div>
-                <p className="text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-1">
+                <p className="text-[11px] sm:text-[10px] font-black tracking-[0.2em] uppercase text-slate-400 mb-1">
                   Paso 3 de 3
                 </p>
                 <h2

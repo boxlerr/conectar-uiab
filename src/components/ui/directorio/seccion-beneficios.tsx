@@ -49,7 +49,7 @@ export function SeccionBeneficios() {
                 />
               </div>
               <div className="h-[1px] w-8 bg-primary-600/30" />
-              <span className="text-[10px] font-bold text-primary-600 tracking-[0.25em] uppercase">
+              <span className="text-[11px] sm:text-[10px] font-bold text-primary-600 tracking-[0.25em] uppercase">
                 Membresía Corporativa
               </span>
             </motion.div>
@@ -105,7 +105,7 @@ export function SeccionBeneficios() {
                 className="w-3/4 h-auto mx-auto opacity-65 hover:opacity-100 transition-opacity duration-500"
               />
 
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none text-center">
+              <span className="text-[11px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none text-center">
                 Sector Industrial
               </span>
             </div>
@@ -129,10 +129,10 @@ export function SeccionBeneficios() {
               </div>
               <h3 className="text-2xl lg:text-3xl font-bold mb-4" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>Directorio Industrial Completo</h3>
               <p className="text-primary-100/70 text-base lg:text-lg leading-relaxed max-w-xl mb-10">
-                Acceso a la base de datos de +60 empresas e industrias verificadas del partido. Busque proveedores de servicios por sector o servicio y contacte de forma directa.
+                Acceso a la base de datos de empresas e industrias verificadas del partido. Busque proveedores de servicios por sector o servicio y contacte de forma directa.
               </p>
               <div className="flex flex-wrap gap-2 mt-auto">
-                {["Base de Datos +60", "Filtros Técnicos", "Contacto Sin Intermediarios"].map((tag) => (
+                {["Base de Datos Verificada", "Filtros Técnicos", "Contacto Sin Intermediarios"].map((tag) => (
                   <span key={tag} className="text-[11px] font-bold text-white/50 bg-white/[0.04] border border-white/5 rounded-sm px-3 py-1.5 uppercase tracking-wider">{tag}</span>
                 ))}
               </div>

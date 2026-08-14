@@ -53,7 +53,7 @@ export default function AdminConfiguracionPage() {
                 <input 
                   type="text" 
                   defaultValue="UIAB Conecta"
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
                 />
               </div>
               <div className="space-y-2">
@@ -61,7 +61,7 @@ export default function AdminConfiguracionPage() {
                 <input 
                   type="email" 
                   defaultValue="info@uiab.org"
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
@@ -69,7 +69,7 @@ export default function AdminConfiguracionPage() {
                 <textarea 
                   rows={3}
                   defaultValue="Directorio Comercial de la Unión Industrial de Almirante Brown"
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
                 />
               </div>
             </div>

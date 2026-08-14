@@ -139,7 +139,7 @@ export function CampanaNotificaciones() {
       >
         <Bell className="w-4 h-4" />
         {sinLeer > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[11px] sm:text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
             {sinLeer > 9 ? "9+" : sinLeer}
           </span>
         )}

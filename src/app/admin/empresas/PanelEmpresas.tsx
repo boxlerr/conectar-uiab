@@ -136,7 +136,7 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre, CUIT o email..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
           />
         </div>
         <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200 w-full sm:w-auto overflow-x-auto">
@@ -345,7 +345,7 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
               </p>
               <textarea value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)}
                 placeholder="Ej: La documentación presentada está incompleta o vencida."
-                className="w-full border border-slate-200 rounded-xl p-3 text-sm h-28 resize-none focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                className="w-full border border-slate-200 rounded-xl p-3 text-base sm:text-sm h-28 resize-none focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
               <div className="flex gap-3 mt-4">
                 <Button variant="outline" className="flex-1" onClick={() => { setModalRechazo(null); setMotivoRechazo(""); }}>

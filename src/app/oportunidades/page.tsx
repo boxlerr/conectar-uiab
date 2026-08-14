@@ -1,264 +1,55 @@
-"use client";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Oportunidad } from "@/modulos/oportunidades/servicio-oportunidades";
+import { OportunidadesCliente } from "./oportunidades-cliente";
 
-import { useEffect, useState, useMemo } from "react";
-import { Briefcase, MapPin, Calendar, Clock, Filter, Search, PlusCircle, ArrowRight, Building2, Sparkles } from "lucide-react";
-import Link from "next/link";
-import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { oportunidadesService, Oportunidad, Match } from "@/modulos/oportunidades/servicio-oportunidades";
+/**
+ * `/oportunidades` pasó a Server Component por la misma razón que `/empresas`:
+ * el contenido existía sólo después de hidratar.
+ *
+ * La cartelera se armaba en el browser, así que Googlebot recibía el esqueleto
+ * —156 palabras, un único H2 que decía "0 oportunidades disponibles"— en una
+ * URL que el sitemap publica con prioridad 0.8. Y para que ese vacío no se
+ * notara, la landing pública rellenaba con tres pedidos de cotización
+ * inventados, atribuidos a empresas que tampoco existen.
+ *
+ * Ahora las abiertas se resuelven acá y bajan por props. Cuando no hay ninguna
+ * —que es el caso hoy— la landing explica cómo funciona la cartelera en vez de
+ * inventar contenido: es información cierta, útil para quien llega, y le da a
+ * la página texto propio.
+ *
+ * El listado completo con filtros y los matches siguen siendo del cliente y
+ * siguen dependiendo de la sesión: acá sólo se publica lo que ya es público.
+ */
+export const revalidate = 300;
 
-import { PublicOportunidadesLanding } from "./landing-oportunidades-publica";
-import { AccesoRequerido } from "@/components/ui/acceso-requerido";
-import { aTextoPlano } from "@/lib/utilidades";
-import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
-import { BotonReiniciarTour } from "@/modulos/onboarding/componentes/boton-reiniciar-tour";
-// Remove MOCK_OPORTUNIDADES
+// El canonical NO va acá: lo declara src/app/oportunidades/layout.tsx, que es
+// donde lo busca src/tests/seo/indexabilidad.test.ts. Declararlo en los dos
+// lados es una fuente de verdad de más esperando divergir.
 
+async function obtenerOportunidadesAbiertas(): Promise<Oportunidad[]> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("oportunidades")
+      .select(
+        `
+        *,
+        categoria:categorias(nombre),
+        empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
+      `
+      )
+      .eq("estado", "abierta")
+      .order("creado_en", { ascending: false });
 
-export default function OportunidadesPage() {
-  const { currentUser, loading: authLoading } = useAuth();
-  const [oportunidades, setOportunidades] = useState<Oportunidad[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  
-  const isEmpresa = esFichaDeEmpresa(currentUser);
-  const isProveedor = tipoEntidadDe(currentUser) === "provider";
-
-  useEffect(() => {
-    // Esperar a que auth termine de resolver antes de consultar.
-    // Si hacemos fetch con authLoading=true, la sesión de Supabase aún no está
-    // aplicada y RLS devuelve 0 filas (el bug de "no aparece hasta apretar F5").
-    if (authLoading) return;
-
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const ops = await oportunidadesService.getOportunidades();
-        setOportunidades(ops);
-
-        if (isProveedor && currentUser?.entityId) {
-          const m = await oportunidadesService.getMatchesForUser(currentUser.entityId, 'provider');
-          setMatches(m);
-        }
-      } catch (error) {
-        console.error("Error fetching opportunities:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [authLoading, isProveedor, currentUser?.entityId]);
-
-  const filtrados = useMemo(() => {
-    return oportunidades.filter(o => 
-      o.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.empresa?.razon_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.categoria?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, oportunidades]);
-
-  const recommendedIds = useMemo(() => new Set(matches.map(m => m.oportunidad_id)), [matches]);
-
-  if (!currentUser && !authLoading) {
-    return <PublicOportunidadesLanding oportunidades={oportunidades} loading={loading} />;
+    if (error || !data) return [];
+    return data as Oportunidad[];
+  } catch {
+    // La cartelera no puede tumbar la página: el cliente vuelve a intentar.
+    return [];
   }
+}
 
-  if (currentUser && currentUser.role !== 'admin' && currentUser.subscriptionEstado !== 'activa' && !authLoading) {
-    return (
-      <AccesoRequerido
-        estado={resolverEstadoGate(currentUser.subscriptionEstado ?? null, currentUser.isMember)}
-        className="min-h-svh"
-      />
-    );
-  }
-
-  return (
-    // El pt del wrapper lo cancela el margen negativo del hero, así que los dos
-    // escalan igual que el spacer del header (h-20 lg:h-24). Si no, queda una
-    // franja clara entre el header y el hero abajo de lg.
-    <div className="min-h-svh bg-slate-50 pt-20 lg:pt-24 pb-16">
-      {/* Hero / Header Section */}
-      <div data-tour="op-hero" className="bg-slate-900 text-white py-16 mb-12 -mt-20 lg:-mt-24 pt-28 lg:pt-32">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-600 mb-4 shadow-lg shadow-primary-900/50">
-                <Briefcase className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="font-manrope text-4xl md:text-5xl font-bold mb-4 tracking-tighter">Oportunidades de Trabajo</h1>
-              <p className="text-slate-400 text-lg font-inter">
-                Conectamos la demanda de las empresas del partido con la oferta de servicios profesionales y especialistas.
-              </p>
-            </div>
-            
-            {isEmpresa && (
-              <Link href="/oportunidades/nueva">
-                <Button size="lg" className="bg-[#00213f] hover:bg-[#10375c] h-14 px-8 rounded-sm font-bold transition-all hover:-translate-y-0.5 shadow-xl shadow-black/20 border-none">
-                  <PlusCircle className="mr-2 h-5 w-5" />
-                  Publicar Oportunidad
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Search and Filters Bar */}
-        <div data-tour="op-buscador" className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-            <Input 
-              placeholder="Buscar por título, empresa o especialidad..." 
-              className="pl-10 h-12 bg-white border-slate-200 rounded-xl focus:ring-primary-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Button variant="outline" className="h-12 px-6 rounded-xl border-slate-200 bg-white hover:bg-slate-50 font-semibold text-slate-700">
-            <Filter className="mr-2 h-5 w-5" />
-            Filtros
-          </Button>
-        </div>
-
-        {/* Content Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main List */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-manrope text-2xl font-bold text-slate-900 tracking-tight">
-                {filtrados.length} {filtrados.length === 1 ? "oportunidad disponible" : "oportunidades disponibles"}
-              </h2>
-              <BotonReiniciarTour tour="oportunidades" label="Ver tutorial" />
-            </div>
-
-            {loading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map(i => (
-                  <Card key={i} className="h-40 bg-white/50 animate-pulse border-none rounded-sm" />
-                ))}
-              </div>
-            ) : filtrados.length > 0 ? (
-              filtrados.map((op, idx) => {
-                const match = matches.find(m => m.oportunidad_id === op.id);
-                const isRecommended = !!match;
-
-                return (
-                  <Link key={op.id} href={`/oportunidades/${op.id}`} data-tour={idx === 0 ? "op-tarjeta" : undefined}>
-                    <Card className={`transition-all duration-300 rounded-sm overflow-hidden group mb-3 relative bg-white hover:shadow-md hover:-translate-y-0.5 ${
-                      isRecommended
-                        ? 'border border-primary-200 shadow-sm shadow-primary-900/5'
-                        : 'border border-slate-200/80 shadow-sm'
-                    }`}>
-                      {isRecommended && (
-                        <div className="absolute top-0 right-0 bg-[#00213f] text-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5 z-10">
-                          <Sparkles className="w-2.5 h-2.5" /> Recomendado ({Math.round(match.puntaje)}%)
-                        </div>
-                      )}
-                      <CardContent className="p-5">
-                        <div className="flex items-center gap-2 mb-1.5 text-primary-600 font-bold text-[10px] uppercase tracking-widest">
-                          <span className={`flex h-2 w-2 rounded-full ${op.estado === 'abierta' ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
-                          {op.estado}
-                        </div>
-                        <h3 className="text-lg font-manrope font-bold text-slate-900 group-hover:text-primary-600 transition-colors leading-snug">{op.titulo}</h3>
-                        <p className="text-xs font-inter text-slate-500 flex items-center mt-1 font-medium">
-                          <Building2 className="w-3.5 h-3.5 mr-1.5 opacity-60" />
-                          {op.empresa?.razon_social || "Empresa del parque"}
-                        </p>
-
-                        {/* La descripción se carga en un editor enriquecido, así que
-                            en la base es HTML. Acá va como texto, y sin pasarla a
-                            plano se veían las etiquetas: "<p>Necesitamos <b>500 kg…". */}
-                        <p className="text-slate-600 mt-3 mb-3 line-clamp-2 text-sm font-inter leading-relaxed">
-                          {aTextoPlano(op.descripcion)}
-                        </p>
-
-                        <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs font-inter text-slate-400">
-                          <div className="flex items-center gap-4 flex-wrap">
-                            {op.categoria && (
-                              <Badge className="bg-[#f2f4f6] text-[#10375c] hover:bg-slate-200 border-none px-2.5 py-0.5 rounded-sm font-bold text-[9px] uppercase tracking-wider">
-                                {op.categoria.nombre}
-                              </Badge>
-                            )}
-                            <span className="flex items-center gap-1.5 font-medium">
-                              <MapPin className="w-3.5 h-3.5 opacity-50" />
-                              {op.localidad}
-                            </span>
-                          </div>
-                          <span className="font-bold text-primary-600 flex items-center gap-1 transition-all group-hover:translate-x-1">
-                            Ver detalles <ArrowRight className="w-3.5 h-3.5" />
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })
-            ) : (
-              <Card className="p-12 text-center border-dashed border-2">
-                <CardContent>
-                  <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500 font-medium">No se encontraron oportunidades que coincidan con tu búsqueda.</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Sidebar / Info */}
-          <div className="lg:col-span-1 space-y-8">
-            <Card data-tour="op-sidebar-publicar" className="bg-[#00213f] text-white border-none shadow-2xl rounded-sm overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 -mr-16 -mt-16 rounded-full blur-2xl" />
-              <CardHeader className="p-8">
-                <CardTitle className="font-manrope text-2xl font-bold tracking-tight">¿Tienes una necesidad?</CardTitle>
-                <CardDescription className="text-slate-400 font-inter text-base mt-2">
-                  Publica tus requerimientos técnicos y nuestro algoritmo encontrará a los proveedores de servicios ideales.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-8 pt-0">
-                <ul className="space-y-4 text-sm font-inter">
-                  <li className="flex items-start gap-4">
-                    <div className="mt-1 flex-shrink-0 w-5 h-5 rounded-full bg-primary-100/10 flex items-center justify-center">
-                      <ArrowRight className="w-3 h-3 text-white" />
-                    </div>
-                    <span className="text-slate-300">Algoritmo de match inteligente</span>
-                  </li>
-                  <li className="flex items-start gap-4">
-                    <div className="mt-1 flex-shrink-0 w-5 h-5 rounded-full bg-primary-100/10 flex items-center justify-center">
-                      <ArrowRight className="w-3 h-3 text-white" />
-                    </div>
-                    <span className="text-slate-300">Proveedores de servicios auditados por UIAB</span>
-                  </li>
-                </ul>
-              </CardContent>
-              <CardFooter className="p-8 pt-0">
-                <Link href="/oportunidades/nueva" className="w-full">
-                  <Button className="w-full bg-white text-[#00213f] hover:bg-slate-100 font-bold border-none h-12 rounded-sm shadow-lg">
-                    Publicar ahora
-                  </Button>
-                </Link>
-              </CardFooter>
-            </Card>
-
-            <Card className="border-none bg-[#f2f4f6] rounded-sm p-8">
-              <CardHeader className="p-0 mb-6">
-                <CardTitle className="font-manrope text-lg font-bold text-slate-900 uppercase tracking-wider">Sectores Clave</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 flex flex-wrap gap-2">
-                {["Mantenimiento", "Metalurgia", "Logística", "Química", "Electricidad", "Sistemas"].map(cat => (
-                  <Badge key={cat} className="bg-white text-[#10375c] border-none shadow-sm px-4 py-2 rounded-sm font-bold text-[10px] uppercase tracking-widest hover:bg-white/80 transition-colors cursor-pointer">
-                    {cat}
-                  </Badge>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+export default async function OportunidadesPage() {
+  const oportunidades = await obtenerOportunidadesAbiertas();
+  return <OportunidadesCliente oportunidadesIniciales={oportunidades} />;
 }

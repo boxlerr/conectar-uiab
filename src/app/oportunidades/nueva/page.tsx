@@ -59,7 +59,7 @@ export default async function NuevaOportunidadPage() {
         <div className="relative z-10 w-full max-w-[1128px] mx-auto px-4 sm:px-6 lg:px-8 mt-12">
           <Link
             href="/oportunidades"
-            className="inline-flex items-center gap-2 mb-6 text-[10px] font-bold uppercase tracking-[0.22em] text-white/60 hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 mb-6 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.22em] text-white/60 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Volver a oportunidades

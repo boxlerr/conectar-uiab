@@ -274,7 +274,7 @@ export function ImportarExcelModal({ role, entityId, onClose, onSuccess }: Props
                               {c.header}
                             </code>
                             {c.requerido && (
-                              <span className="ml-2 text-[10px] font-bold text-rose-600 uppercase">
+                              <span className="ml-2 text-[11px] sm:text-[10px] font-bold text-rose-600 uppercase">
                                 requerido
                               </span>
                             )}

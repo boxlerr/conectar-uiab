@@ -10,15 +10,13 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { toast } from "sonner";
-import { PRECIO_MENSUAL, PRECIO_ANUAL, calcularTarifaPorEmpleados, type CicloSuscripcion } from "@/lib/mercadopago/suscripciones";
-
-// Rango de empleados por categoría (informativo: la tarifa es plana, pero
-// mostramos el tamaño de la empresa porque tenemos el dato).
-const RANGO_TARIFA: Record<number, string> = {
-  1: "hasta 30 empleados",
-  2: "31 a 99 empleados",
-  3: "100 o más empleados",
-};
+import {
+  PRECIO_MENSUAL,
+  PRECIO_ANUAL,
+  mesesGratis,
+  ahorroAnual,
+  type CicloSuscripcion,
+} from "@/lib/suscripciones/modelo";
 
 const formatARS = (n: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
@@ -107,10 +105,6 @@ export default function MiPerfilSuscripcionPage() {
     (suscripcion.monto != null && Number(suscripcion.monto) === 0)
   );
 
-  // Categoría por tamaño de la empresa (informativa; la tarifa es plana).
-  const categoria = esFichaDeEmpresa(currentUser) && empleados != null
-    ? calcularTarifaPorEmpleados(empleados)
-    : null;
 
   // Historial: pagos reales; si es socia de cortesía y no hay pagos, mostramos
   // un historial mensual en $0 (bonificado) para que la sección sea útil igual.
@@ -165,7 +159,7 @@ export default function MiPerfilSuscripcionPage() {
   async function cancelarSuscripcion() {
     setCancelando(true);
     try {
-      const res = await fetch('/api/mercadopago/cancelar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const res = await fetch('/api/suscripcion/cancelar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error cancelando');
       toast.success('Suscripción cancelada');
@@ -267,11 +261,6 @@ export default function MiPerfilSuscripcionPage() {
                   {suscripcion?.estado === 'cancelada' && suscripcion.finaliza_en && (
                     <Badge variant="outline" className="border-slate-700 bg-slate-800 text-slate-300">
                       Acceso hasta {new Date(suscripcion.finaliza_en).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
-                    </Badge>
-                  )}
-                  {categoria && (
-                    <Badge variant="outline" className="border-slate-700 bg-slate-800 text-slate-300">
-                      Categoría: Tarifa {categoria} · {RANGO_TARIFA[categoria]}
                     </Badge>
                   )}
                 </div>
@@ -383,7 +372,10 @@ export default function MiPerfilSuscripcionPage() {
           ) : (
             <Card className="p-6 border-slate-100 border-dashed bg-slate-50 relative overflow-hidden group">
                <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-2">¿Necesitas pausar?</h3>
-               <p className="text-xs text-slate-500 mb-4">Si cancelas, tu perfil dejará de ser público al finalizar el mes actual.</p>
+               <p className="text-xs text-slate-500 mb-4">
+                 Si cancelás, tu perfil deja de ser público cuando termine el período que ya pagaste
+                 {ciclo === 'anual' ? ' (el año en curso)' : ' (el mes en curso)'}.
+               </p>
                <Button
                  variant="ghost"
                  className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-semibold h-10 border border-transparent hover:border-rose-100"

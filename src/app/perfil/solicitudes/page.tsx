@@ -253,7 +253,7 @@ export default function BandejaEntradaPage() {
             {label}
             {count > 0 && (
               <span className={cn(
-                "ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                "ml-1 text-[11px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full",
                 seccion === k ? "bg-primary-100 text-primary-700" : "bg-slate-200 text-slate-600"
               )}>
                 {count}
@@ -438,7 +438,7 @@ function SolicitudCard({
             </div>
           </div>
         </div>
-        <Badge className={`${cfg.className} border-none px-3 py-1 font-semibold text-[10px] uppercase tracking-wider`}>{cfg.label}</Badge>
+        <Badge className={`${cfg.className} border-none px-3 py-1 font-semibold text-[11px] sm:text-[10px] uppercase tracking-wider`}>{cfg.label}</Badge>
       </div>
 
       {s.oportunidad && (
@@ -453,7 +453,7 @@ function SolicitudCard({
       )}
 
       <div className="bg-slate-50 rounded-lg p-4 mb-4">
-        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+        <div className="flex items-center gap-2 text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
           <MessageSquare className="w-3 h-3" />
           Mensaje
         </div>
@@ -553,7 +553,7 @@ function ResenaCard({ resena, modo }: { resena: Resena; modo: "recibida" | "envi
               </p>
               <h3 className="font-bold text-slate-900 text-base">{nombreMostrado}</h3>
             </div>
-            <Badge className="bg-emerald-50 text-emerald-700 border-none px-3 py-1 font-semibold text-[10px] uppercase tracking-wider shrink-0">
+            <Badge className="bg-emerald-50 text-emerald-700 border-none px-3 py-1 font-semibold text-[11px] sm:text-[10px] uppercase tracking-wider shrink-0">
               Publicada
             </Badge>
           </div>
