@@ -34,6 +34,11 @@ import { cn } from '@/lib/utilidades'
 
 const schema = z
   .object({
+    nombre: z
+      .string()
+      .trim()
+      .min(3, { message: 'Escribí tu nombre y apellido' })
+      .max(80, { message: 'Máximo 80 caracteres' }),
     password: z
       .string()
       .min(8, { message: 'Mínimo 8 caracteres' })
@@ -84,7 +89,7 @@ export function FormDefinirPassword({
 
   const form = useForm<Valores>({
     resolver: zodResolver(schema),
-    defaultValues: { password: '', confirmPassword: '' },
+    defaultValues: { nombre: '', password: '', confirmPassword: '' },
   })
 
   const password = form.watch('password')
@@ -97,7 +102,7 @@ export function FormDefinirPassword({
   async function onSubmit(values: Valores) {
     setIsLoading(true)
     try {
-      const res = await definirPasswordConInvitacion(token, values.password)
+      const res = await definirPasswordConInvitacion(token, values.password, values.nombre)
       if (!res.ok) {
         toast.error('No pudimos definir la contraseña', { description: res.error })
         if (/utilizado/i.test(res.error)) setEstadoLink('usado')
@@ -189,14 +194,38 @@ export function FormDefinirPassword({
                   Definí tu contraseña
                 </h1>
                 <p className="mt-2 text-sm leading-relaxed text-[#525b63]">
-                  Elegí una clave segura para{' '}
-                  {email ? <strong className="text-[#191c1e]">{email}</strong> : 'tu cuenta'}. La
-                  vas a usar para ingresar a Conectar UIAB.
+                  Decinos cómo te llamás y elegí una clave para{' '}
+                  {email ? <strong className="text-[#191c1e]">{email}</strong> : 'tu cuenta'}. Son
+                  los datos con los que vas a entrar a UIAB Conecta.
                 </p>
               </div>
 
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                  {/* El nombre se pide acá y no antes: es la primera vez que la
+                      persona toca la cuenta, y hasta ahora el perfil quedaba con
+                      lo que hubiera tipeado un admin. */}
+                  <FormField
+                    control={form.control}
+                    name="nombre"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[#191c1e]">Nombre y apellido</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder="Ej: María Fernández"
+                            className="bg-[#f2f4f6] focus:bg-white"
+                            autoComplete="name"
+                            autoFocus
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="password"

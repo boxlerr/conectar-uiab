@@ -123,11 +123,20 @@ export async function validarTokenCore(
  */
 export async function definirPasswordCore(
   token: string,
-  password: string
+  password: string,
+  nombre?: string
 ): Promise<{ ok: true; email: string } | { ok: false; error: string }> {
   const pass = passwordSchema.safeParse(password);
   if (!pass.success) {
     return { ok: false, error: pass.error.issues[0]?.message ?? "La contraseña no cumple los requisitos." };
+  }
+
+  // El nombre se pide en el mismo paso que la contraseña. Antes el perfil
+  // quedaba con lo que hubiera cargado el admin al crear la cuenta —o vacío—,
+  // y esa persona aparecía sin nombre en /admin/usuarios y en las novedades.
+  const nombreLimpio = (nombre ?? "").replace(/\s+/g, " ").trim();
+  if (nombre !== undefined && nombreLimpio.length < 3) {
+    return { ok: false, error: "Escribí tu nombre y apellido." };
   }
 
   const val = await validarTokenCore(token);
@@ -168,6 +177,18 @@ export async function definirPasswordCore(
     });
     if (banErr) {
       console.error("[invitaciones] No se pudo levantar el ban al definir la contraseña:", banErr.message);
+    }
+  }
+
+  if (nombreLimpio) {
+    const { error: nombreErr } = await db
+      .from("perfiles")
+      .update({ nombre_completo: nombreLimpio })
+      .eq("id", val.perfilId);
+    if (nombreErr) {
+      // No se corta por esto: la contraseña ya quedó puesta y dejarlo afuera
+      // sería peor que un perfil sin nombre.
+      console.error("[invitaciones] no se pudo guardar el nombre:", nombreErr.message);
     }
   }
 
