@@ -7,7 +7,7 @@ import { ArrowRight, Users, X, Check, KeyRound, UserX } from "lucide-react";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { marcarNovedadVista } from "./acciones";
-import { debeVerNovedad } from "./novedades";
+import { novedadPendiente } from "./novedades";
 import { llamarAccion, fallo } from "@/lib/accion-segura";
 
 /**
@@ -42,7 +42,9 @@ export function ModalNovedadUsuarios() {
   const pathname = usePathname();
   const [cerrado, setCerrado] = useState(false);
 
-  const leCorresponde = debeVerNovedad("usuarios_empresa", currentUser);
+  // `novedadPendiente` y no `debeVerNovedad`: a quien le tocan las dos se le
+  // muestra una sola. Dos modales encimados no se pueden cerrar.
+  const leCorresponde = novedadPendiente(currentUser) === "usuarios_empresa";
   // Sólo a quien administra una ficha: es la única que puede dar accesos.
   const tieneFicha = Boolean(tipoEntidadDe(currentUser));
   const enRutaDeAcceso = RUTAS_SIN_CARTEL.some((r) => pathname.startsWith(r));

@@ -6,7 +6,7 @@
  * una server action no existe del lado del cliente y rompe el import en tiempo
  * de build (la app entera devuelve 500).
  */
-export type NovedadId = "usuarios_empresa";
+export type NovedadId = "usuarios_empresa" | "perfil_directorio";
 
 /** Clave dentro de `perfiles.tutoriales_vistos`, que es un mapa jsonb libre. */
 export function claveNovedad(id: NovedadId): string {
@@ -24,7 +24,26 @@ export function claveNovedad(id: NovedadId): string {
 export const NOVEDAD_PUBLICADA_EL: Record<NovedadId, string> = {
   // Deploy de "cada socia da de alta a los usuarios de su empresa" (2026-08-04).
   usuarios_empresa: "2026-08-04T00:00:00-03:00",
+  // Rediseño de la ficha pública del directorio (2026-08-14).
+  perfil_directorio: "2026-08-14T00:00:00-03:00",
 };
+
+/**
+ * En qué orden se anuncian cuando a alguien le corresponden varias.
+ *
+ * Dos carteles modales encimados no se pueden cerrar: el de arriba tapa el de
+ * abajo y el `aria-modal` de los dos pelea por el foco. Se muestra una sola, la
+ * más nueva, y la otra queda para el próximo ingreso.
+ */
+export const NOVEDADES_POR_PRIORIDAD: NovedadId[] = [
+  "perfil_directorio",
+  "usuarios_empresa",
+];
+
+/** La novedad que toca mostrar ahora, o `null` si no hay ninguna pendiente. */
+export function novedadPendiente(perfil: PerfilParaNovedad): NovedadId | null {
+  return NOVEDADES_POR_PRIORIDAD.find((id) => debeVerNovedad(id, perfil)) ?? null;
+}
 
 type PerfilParaNovedad = {
   /** ISO de `perfiles.creado_en`. Si no lo sabemos, no bloqueamos el cartel. */
