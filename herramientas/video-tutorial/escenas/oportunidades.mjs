@@ -25,13 +25,14 @@ export async function escenaOportunidades({ page, BASE }) {
     id: "tablero",
     escala: 1,
     rotulo: "Oportunidades",
-    texto: "El tablero donde las empresas publican lo que necesitan.",
+    texto: "Lo que las empresas del parque necesitan.",
   }, () => dormir(1200));
 
   // ── 2. Una publicación ──────────────────────────────────────────
   await plano(page, {
     id: "publicacion",
     encuadre: TARJETA,
+    escala: 1.6,
     rotulo: "Cada pedido",
     texto: "Estado, empresa, rubro y fecha de un vistazo.",
   }, async () => {
@@ -47,6 +48,7 @@ export async function escenaOportunidades({ page, BASE }) {
   await plano(page, {
     id: "requerimiento",
     encuadre: '[data-tour="op-detalle-descripcion"]',
+    escala: 1.4,
     rotulo: "El requerimiento",
     texto: "Especificaciones, alcance y condiciones.",
   }, () => dormir(1250));
@@ -59,7 +61,7 @@ export async function escenaOportunidades({ page, BASE }) {
     id: "ficha-tecnica",
     encuadre: '[data-tour="op-detalle-ficha"]',
     rotulo: "Ficha técnica",
-    texto: "Cantidad, plazo y ubicación: lo que hace falta para cotizar.",
+    texto: "Cantidad, plazo y ubicación para cotizar.",
   }, () => dormir(1200));
 
   // ── 5. Postularse (se muestra, NO se envía) ─────────────────────
@@ -82,8 +84,9 @@ export async function escenaOportunidades({ page, BASE }) {
     await plano(page, {
       id: "postular",
       encuadre: `${MODAL} textarea`,
+      escala: 1.5,
       rotulo: "Postulate",
-      texto: "Le llega directo a quien publicó, sin intermediarios.",
+      texto: "Le llega directo a quien publicó.",
       velocidad: 1.3,
     }, async () => {
       await tipear(page, `${MODAL} textarea`,
@@ -130,8 +133,9 @@ export async function escenaOportunidades({ page, BASE }) {
     await plano(page, {
       id: "rubro",
       encuadre: 'div[role="listbox"][aria-label="Rubro"]',
+      escala: 1.45,
       rotulo: "Elegí el rubro",
-      texto: "192 rubros: el sistema lo usa para encontrar a quién le sirve.",
+      texto: "193 rubros, para que el match sea preciso.",
     }, async () => {
       await clickEn(page, "#categoria_id", { ms: 420 });
       await page.waitForSelector(OPCION, { timeout: 5000, state: "visible" });
@@ -199,7 +203,7 @@ export async function escenaOportunidades({ page, BASE }) {
     encuadre: hayForm ? FORM : null,
     escala: hayForm ? 1.35 : 1,
     rotulo: "Y listo",
-    texto: "El sistema se lo sugiere a los proveedores que matchean.",
+    texto: "Se lo sugiere a los proveedores que matchean.",
     sello: "Match",
   }, () => dormir(1500));
 }

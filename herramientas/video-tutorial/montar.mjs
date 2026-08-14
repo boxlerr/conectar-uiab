@@ -66,7 +66,15 @@ const LOGO_ANCHO = 820;
 // Ritmo de los movimientos de cámara.
 const PUNCH = 0.34;        // cuánto dura el acercamiento
 const DERIVA = 1.055;      // empuje lento de los planos generales
-const TEXTO = { entra: 0.16, sube: 30, sale: 0.30 };
+
+// El texto entra enseguida y se queda hasta el final del plano.
+//
+// Antes salía 0.30 s antes del corte y entraba recién a los 0.16 con un
+// fundido de 0.34: en un plano de 1.4 s eso deja la frase legible menos de un
+// segundo. La duración del plano ahora la fija el tiempo de lectura
+// (piloto.mjs, minimoLegible), así que acá lo único que hace falta es no
+// desperdiciar ese tiempo: entra rápido y se va justo en el corte.
+const TEXTO = { entra: 0.10, entrada: 0.28, sube: 24, sale: 0.14 };
 
 // Hasta dónde se puede recortar el sujeto para encuadrarlo. Un elemento de
 // 900 px de alto encuadrado ENTERO no deja acercarse nada; encuadrando su
@@ -152,7 +160,7 @@ function normalizarPasada(parte, i) {
  */
 function fotogramaClaqueta(archivo) {
   const crudo = execFileSync(FFMPEG, [
-    "-v", "error", "-i", archivo, "-t", "8",
+    "-v", "error", "-i", archivo, "-t", "12",
     "-vf", `fps=${FPS},scale=8:8`, "-f", "rawvideo", "-pix_fmt", "rgb24", "-",
   ], { maxBuffer: 1 << 26 });
 
@@ -287,7 +295,7 @@ function armarPlano(fuente, marca, { desde, dur }, salida) {
   ];
 
   const salidaTexto = Math.max(0.1, durSalida - TEXTO.sale);
-  const p = `clip((t-${TEXTO.entra})/0.34,0,1)`;
+  const p = `clip((t-${TEXTO.entra})/${TEXTO.entrada},0,1)`;
   const subir = `${TEXTO.sube}*pow(1-${p},3)`;
 
   const cadena = [
@@ -295,7 +303,7 @@ function armarPlano(fuente, marca, { desde, dur }, salida) {
     `color=c=${FONDO}:s=${W}x${H}:r=${FPS}[bg]`,
     `[bg][pant]overlay=${PANT.x}:${PANT.y}:shortest=1[conpant]`,
     marca.__texto
-      ? `[1:v]format=rgba,fade=t=in:st=${TEXTO.entra}:d=0.34:alpha=1,`
+      ? `[1:v]format=rgba,fade=t=in:st=${TEXTO.entra}:d=${TEXTO.entrada}:alpha=1,`
         + `fade=t=out:st=${salidaTexto.toFixed(2)}:d=${TEXTO.sale}:alpha=1[txt]`
       : null,
     marca.__texto

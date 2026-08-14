@@ -30,7 +30,7 @@ export async function escenaDirectorio({ page, BASE }) {
     id: "directorio",
     escala: 1,
     rotulo: "El directorio",
-    texto: "Todas las empresas socias y prestadores de la red UIAB.",
+    texto: "Todas las socias y prestadores de la red.",
   }, () => dormir(1200));
 
   // ── 2. Buscar ───────────────────────────────────────────────────
@@ -47,7 +47,7 @@ export async function escenaDirectorio({ page, BASE }) {
     encuadre: BUSCADOR,
     congelar: true,
     rotulo: "Buscá",
-    texto: "Un rubro, una especialidad o el nombre de una empresa.",
+    texto: "Un rubro, una especialidad o un nombre.",
     velocidad: 1.2,
   }, async () => {
     await tipear(page, BUSCADOR, "metal", { porChar: 72 });
@@ -58,26 +58,21 @@ export async function escenaDirectorio({ page, BASE }) {
   await scrollA(page, '[data-tour="directorio-toolbar"]', { offset: 150, ms: 520 });
   await dormir(320);
 
-  // ── 3. El contador responde ─────────────────────────────────────
-  await plano(page, {
-    id: "resultados",
-    // Sólo el contador, no la toolbar entera: la unión de los dos daba una
-    // caja de 1344 px de ancho y el plano salía casi general.
-    encuadre: '[data-tour="directorio-stats"]',
-    rotulo: "Resultados en vivo",
-    texto: "El contador se actualiza mientras escribís.",
-    sello: "Al instante",
-  }, () => dormir(1100));
+  // El plano del contador ("Resultados en vivo · El contador se actualiza
+  // mientras escribís") se sacó: no aportaba nada que no se viera ya en el
+  // plano de buscar, y encuadraba casi la misma zona que el de filtros, así
+  // que se leía como un zoom repetido en el mismo lugar.
 
-  // ── 4. Filtros ──────────────────────────────────────────────────
+  // ── 3. Filtros ──────────────────────────────────────────────────
   await scrollA(page, '[data-tour="directorio-sidebar"]', { offset: 130, ms: 520 });
   await dormir(300);
 
   await plano(page, {
     id: "filtros",
     encuadre: '[data-tour="directorio-sidebar"]',
+    escala: 1.45,
     rotulo: "Afiná",
-    texto: "Tipo de organización y rubro. Los filtros se combinan.",
+    texto: "Filtrá por tipo y por rubro.",
   }, async () => {
     const facetas = await page.locator(FACETA).count();
     if (facetas > 1) {
@@ -104,8 +99,9 @@ export async function escenaDirectorio({ page, BASE }) {
     id: "tarjetas",
     encuadre: TARJETA,
     idx: iFicha,
+    escala: 1.3,
     rotulo: "Cada tarjeta",
-    texto: "Rubro, ubicación y especialidades. Un click y estás en el perfil.",
+    texto: "Un click y estás en el perfil.",
   }, async () => {
     await moverAlSelector(page, TARJETA, { ms: 520, idx: iFicha });
     await dormir(700);
@@ -122,7 +118,7 @@ export async function escenaDirectorio({ page, BASE }) {
     id: "ficha",
     encuadre: '[data-tour="ficha-identidad"]',
     rotulo: "La ficha",
-    texto: "Logo, razón social, ubicación y rubro. Revisado por la UIAB.",
+    texto: "Razón social, ubicación y rubro.",
     sello: "Verificado",
   }, () => dormir(1250));
 
@@ -148,8 +144,9 @@ export async function escenaDirectorio({ page, BASE }) {
       id: "catalogo",
       encuadre: CATALOGO,
       idx: iCat,
+      escala: 1.25,
       rotulo: "El catálogo",
-      texto: "Servicios con foto, precio y ficha. No una lista de rubros.",
+      texto: "Servicios con foto y ficha, no una lista.",
     }, () => dormir(1300));
   }
 

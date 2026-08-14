@@ -178,11 +178,19 @@ async function pasada({ navegador, nombre, libreto, logueado, indice }) {
   const page = await ctx.newPage();
   page.on("pageerror", (e) => console.log(`    · error de página: ${e.message.slice(0, 120)}`));
 
+  // Un respiro antes de la claqueta: la grabación no empieza en el mismo
+  // instante en que se crea la página. En la segunda pasada el destello de
+  // 260 ms terminaba ANTES del primer fotograma capturado y el .webm arrancaba
+  // ya en blanco, así que el montaje se quedaba sin punto de sincronía y
+  // avisaba "no encontré la claqueta". Con 700 ms de espera y un destello más
+  // largo, entra siempre. Esto pasa fuera de todo plano: no cuesta video.
+  await dormir(700);
+
   // Claqueta ANTES de todo: marca en el .webm el instante en que arranca el
   // reloj del guion. Sin esto los planos caen corridos, porque entre que se
   // crea la página y sale el primer fotograma hay una demora variable.
   guion.reiniciar();
-  await claqueta(page);
+  await claqueta(page, 520);
 
   const t0 = Date.now();
   let fallo = null;

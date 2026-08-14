@@ -264,6 +264,29 @@ export async function claqueta(page, ms = 260) {
 }
 
 /**
+ * Cuánto tiene que durar un plano para que su texto se pueda leer.
+ *
+ * El criterio son 15 caracteres por segundo. Netflix admite hasta 17 cps en
+ * subtítulos, pero eso es un TECHO para diálogo que el espectador ya está
+ * siguiendo; acá el texto compite con una pantalla que se mueve y con
+ * contenido que el espectador está mirando por primera vez, así que se va más
+ * despacio. Se suman 0.55 s de arranque (el ojo tiene que ir hasta el texto y
+ * empezar) y el rótulo cuenta a medias, porque es corto y se reconoce de un
+ * vistazo más que leerse.
+ *
+ * `velocidad` es la aceleración que el montaje le aplica después al plano: si
+ * el plano se va a acelerar 1.3×, hay que grabarlo 1.3× más largo para que en
+ * la pieza terminada quede el tiempo de lectura real.
+ */
+export function minimoLegible({ rotulo = "", texto = "", velocidad = 1 } = {}) {
+  const caracteres = String(texto).length + String(rotulo).length * 0.5;
+  if (!caracteres) return 900;
+  const lectura = 0.55 + caracteres / 15;
+  const conAcercamiento = Math.min(4.4, Math.max(1.9, lectura)) + 0.3;
+  return Math.round(conAcercamiento * (velocidad || 1) * 1000);
+}
+
+/**
  * Escala automática: cuánto hay que acercarse para que el sujeto llene el
  * cuadro sin quedar apretado contra los bordes.
  */
@@ -337,6 +360,17 @@ export async function plano(page, opts, accion) {
     // puestos todos los planos que vienen después.
     if (congelar) await cast(page, "congelarScroll", false).catch(() => {});
   }
+
+  // El plano no puede terminar antes de que se alcance a LEER su texto.
+  //
+  // Antes la duración la fijaba la acción: un plano cuya acción tardaba 1.4 s
+  // mostraba una frase de nueve palabras durante menos de un segundo. La queja
+  // fue exactamente esa: "los textos aparecen muy rápido y se van muy rápido".
+  // Ahora el guion declara el texto y el tiempo sale de ahí, así que es
+  // imposible escribir un plano ilegible.
+  const faltante = minimoLegible({ rotulo, texto, velocidad }) - (Date.now() - tIn);
+  if (faltante > 0) await dormir(faltante);
+
   const tOut = Date.now();
 
   const mismaPantalla = page.url() === urlAntes;
