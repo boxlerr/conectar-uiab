@@ -4,9 +4,16 @@ import { createClient } from "@supabase/supabase-js";
 import { createClient as createClienteSSR } from "@/lib/supabase/servidor";
 import { revalidatePath } from "next/cache";
 import { NivelTarifa } from "@/tipos";
-import { crearSlug } from "@/lib/utilidades";
 import { exigirAdmin } from "@/lib/autenticacion/exigir-admin";
-import { limpiarNombreEtiqueta, slugEtiqueta } from "@/modulos/compartido/etiquetas";
+import {
+  limpiarNombreEtiqueta,
+  normalizarTexto,
+  slugEtiqueta,
+} from "@/modulos/compartido/etiquetas";
+import {
+  normalizarNombreServicio,
+  slugEspecialidad,
+} from "@/modulos/compartido/especialidades";
 import { appUrl, enviarEmail } from "@/lib/email/cliente";
 import {
   plantillaAccesoHabilitado,
@@ -656,31 +663,121 @@ export async function cambiarRolUsuario(perfilId: string, nuevoRol: string) {
 
 // ─── Servicios (Categorías) ──────────────────────────────────────────────────
 
-export async function crearCategoria(nombre: string, descripcion: string) {
-  const noAutorizado = await exigirAdmin();
-  if (noAutorizado) return noAutorizado;
+type CategoriaBreve = { id: string; nombre: string; slug: string };
 
-  const slug = crearSlug(nombre);
-  const { error } = await adminClient()
-    .from("categorias")
-    .insert({ nombre, slug, descripcion, activa: true });
-  if (error) return { error: error.message };
+export type ResultadoCategoria = {
+  error?: string;
+  success?: boolean;
+  /** Con quién choca el nombre. La UI ofrece fusionar en vez de dejar el duplicado. */
+  duplicado?: { id: string; nombre: string };
+  /** Cómo quedó guardado, cuando la normalización cambió lo que se mandó. */
+  nombreFinal?: string;
+};
+
+function revalidarServicios() {
   revalidatePath("/admin/servicios");
-  return { success: true };
+  revalidatePath("/perfil/servicios");
+  revalidatePath("/directorio");
+  revalidatePath("/empresas");
 }
 
-export async function editarCategoria(id: string, nombre: string, descripcion: string) {
+/** Límite laxo: el admin puede escribir nombres más largos que un socio. */
+function validarNombreServicio(nombre: string): string | null {
+  if (nombre.length < 3) return "El nombre es muy corto.";
+  if (nombre.length > 80) return "El nombre no puede tener más de 80 caracteres.";
+  return null;
+}
+
+/**
+ * La categoría que ya ocupa ese nombre, si existe.
+ *
+ * Compara por slug canónico y no por texto: "Alquiler de Andamios" y "alquiler
+ * autoelevador " son la misma entrada del catálogo. Sin esto, la unique de
+ * `slug` devuelve un 23505 crudo que en pantalla no dice nada.
+ */
+async function categoriaQueYaOcupa(
+  nombre: string,
+  exceptoId?: string
+): Promise<CategoriaBreve | null> {
+  const slug = slugEspecialidad(nombre);
+  if (!slug) return null;
+
+  const { data } = await adminClient().from("categorias").select("id, nombre, slug");
+  const candidatas = (data ?? []) as CategoriaBreve[];
+
+  return (
+    candidatas.find(
+      (c) =>
+        c.id !== exceptoId &&
+        (c.slug === slug ||
+          slugEspecialidad(c.slug) === slug ||
+          slugEspecialidad(c.nombre) === slug)
+    ) ?? null
+  );
+}
+
+export async function crearCategoria(
+  nombre: string,
+  descripcion: string
+): Promise<ResultadoCategoria> {
   const noAutorizado = await exigirAdmin();
   if (noAutorizado) return noAutorizado;
 
-  const slug = crearSlug(nombre);
+  const nombreFinal = normalizarNombreServicio(nombre);
+  const invalido = validarNombreServicio(nombreFinal);
+  if (invalido) return { error: invalido };
+
+  const duplicado = await categoriaQueYaOcupa(nombreFinal);
+  if (duplicado) {
+    return {
+      error: `Ya existe "${duplicado.nombre}" en el catálogo.`,
+      duplicado: { id: duplicado.id, nombre: duplicado.nombre },
+    };
+  }
+
+  const { error } = await adminClient().from("categorias").insert({
+    nombre: nombreFinal,
+    slug: slugEspecialidad(nombreFinal),
+    descripcion: descripcion?.trim() || null,
+    activa: true,
+    administrado_por_admin: true,
+  });
+  if (error) return { error: error.message };
+  revalidarServicios();
+  return { success: true, nombreFinal };
+}
+
+export async function editarCategoria(
+  id: string,
+  nombre: string,
+  descripcion: string
+): Promise<ResultadoCategoria> {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
+  const nombreFinal = normalizarNombreServicio(nombre);
+  const invalido = validarNombreServicio(nombreFinal);
+  if (invalido) return { error: invalido };
+
+  const duplicado = await categoriaQueYaOcupa(nombreFinal, id);
+  if (duplicado) {
+    return {
+      error: `Ya existe "${duplicado.nombre}" en el catálogo.`,
+      duplicado: { id: duplicado.id, nombre: duplicado.nombre },
+    };
+  }
+
   const { error } = await adminClient()
     .from("categorias")
-    .update({ nombre, slug, descripcion })
+    .update({
+      nombre: nombreFinal,
+      slug: slugEspecialidad(nombreFinal),
+      descripcion: descripcion?.trim() || null,
+    })
     .eq("id", id);
   if (error) return { error: error.message };
-  revalidatePath("/admin/servicios");
-  return { success: true };
+  revalidarServicios();
+  return { success: true, nombreFinal };
 }
 
 export async function toggleActivarCategoria(id: string, activa: boolean) {
@@ -692,7 +789,7 @@ export async function toggleActivarCategoria(id: string, activa: boolean) {
     .update({ activa })
     .eq("id", id);
   if (error) return { error: error.message };
-  revalidatePath("/admin/servicios");
+  revalidarServicios();
   return { success: true };
 }
 
@@ -700,19 +797,143 @@ export async function toggleActivarCategoria(id: string, activa: boolean) {
  * Sube una especialidad propuesta por un socio al catálogo oficial (o la baja
  * de vuelta). No toca los pivotes: quien ya la tenía elegida la conserva, sólo
  * cambia si el resto de los socios la ve en el picker de /perfil/servicios.
+ *
+ * Al subirla, el nombre se normaliza. Los socios escriben su rubro como les
+ * sale ("alquiler autoelevador", "…para uso industrial.") y hasta ahora eso
+ * entraba al catálogo tal cual, al lado de las entradas curadas. `nombreEditado`
+ * permite además corregirlo a mano en el mismo paso —tildes, sobre todo, que la
+ * normalización no inventa.
+ *
+ * Bajarla de nuevo a propuesta no toca el nombre: ya está curado.
  */
-export async function promoverCategoria(id: string, oficial: boolean) {
+export async function promoverCategoria(
+  id: string,
+  oficial: boolean,
+  nombreEditado?: string
+): Promise<ResultadoCategoria> {
   const noAutorizado = await exigirAdmin();
   if (noAutorizado) return noAutorizado;
 
-  const { error } = await adminClient()
-    .from("categorias")
-    .update({ administrado_por_admin: oficial })
-    .eq("id", id);
+  const cambios: Record<string, unknown> = { administrado_por_admin: oficial };
+  let nombreFinal: string | undefined;
+
+  if (oficial) {
+    const { data: actual } = await adminClient()
+      .from("categorias")
+      .select("nombre")
+      .eq("id", id)
+      .maybeSingle();
+    if (!actual) return { error: "No encontramos ese servicio." };
+
+    nombreFinal = normalizarNombreServicio(nombreEditado || (actual.nombre as string));
+    const invalido = validarNombreServicio(nombreFinal);
+    if (invalido) return { error: invalido };
+
+    const duplicado = await categoriaQueYaOcupa(nombreFinal, id);
+    if (duplicado) {
+      return {
+        error: `"${duplicado.nombre}" ya está en el catálogo. Fusionalos para no dejar dos entradas iguales.`,
+        duplicado: { id: duplicado.id, nombre: duplicado.nombre },
+      };
+    }
+
+    cambios.nombre = nombreFinal;
+    cambios.slug = slugEspecialidad(nombreFinal);
+    cambios.activa = true;
+  }
+
+  const { error } = await adminClient().from("categorias").update(cambios).eq("id", id);
   if (error) return { error: error.message };
-  revalidatePath("/admin/servicios");
-  revalidatePath("/perfil/servicios");
-  return { success: true };
+  revalidarServicios();
+  return { success: true, nombreFinal };
+}
+
+/**
+ * Une dos entradas del catálogo que son la misma cosa escrita distinto
+ * ("resina" y "Resinas"): todo lo que colgaba de `origenId` pasa a `destinoId`
+ * y el origen se borra.
+ *
+ * El nombre viejo queda como alias del destino, así el buscador del directorio
+ * lo sigue encontrando: fusionar no puede costarle visibilidad a la socia que
+ * había escrito la palabra "equivocada".
+ */
+export async function fusionarCategorias(
+  origenId: string,
+  destinoId: string
+): Promise<ResultadoCategoria> {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+  if (origenId === destinoId) return { error: "Son el mismo servicio." };
+
+  const db = adminClient();
+  const { data: extremos } = await db
+    .from("categorias")
+    .select("id, nombre")
+    .in("id", [origenId, destinoId]);
+
+  const origen = (extremos ?? []).find((c) => c.id === origenId);
+  const destino = (extremos ?? []).find((c) => c.id === destinoId);
+  if (!origen || !destino) return { error: "No encontramos alguno de los dos servicios." };
+
+  // Los pivotes tienen unique (entidad, categoría): si la socia ya tenía las dos,
+  // repuntar a ciegas choca. Se mueven sólo las que faltan y el resto se borra.
+  for (const [tabla, columna] of [
+    ["empresas_categorias", "empresa_id"],
+    ["proveedores_categorias", "proveedor_id"],
+  ] as const) {
+    const [{ data: enOrigen }, { data: enDestino }] = await Promise.all([
+      db.from(tabla).select(`id, ${columna}`).eq("categoria_id", origenId),
+      db.from(tabla).select(columna).eq("categoria_id", destinoId),
+    ]);
+
+    const yaTienen = new Set(
+      ((enDestino ?? []) as Record<string, string>[]).map((r) => r[columna])
+    );
+    const aMover = ((enOrigen ?? []) as Record<string, string>[]).filter(
+      (r) => !yaTienen.has(r[columna])
+    );
+
+    if (aMover.length > 0) {
+      const { error } = await db
+        .from(tabla)
+        .update({ categoria_id: destinoId })
+        .in("id", aMover.map((r) => r.id));
+      if (error) return { error: error.message };
+    }
+    await db.from(tabla).delete().eq("categoria_id", origenId);
+  }
+
+  // Lo que referencia la categoría sin unique: se repunta y listo.
+  await Promise.all([
+    db.from("items").update({ categoria_id: destinoId }).eq("categoria_id", origenId),
+    db.from("oportunidades").update({ categoria_id: destinoId }).eq("categoria_id", origenId),
+    db.from("categorias").update({ categoria_padre_id: destinoId }).eq("categoria_padre_id", origenId),
+    db.from("alias_categorias").update({ categoria_id: destinoId }).eq("categoria_id", origenId),
+  ]);
+
+  // El nombre viejo sobrevive como alias, para que el buscador lo siga tomando.
+  if (normalizarTexto(origen.nombre) !== normalizarTexto(destino.nombre)) {
+    await db
+      .from("alias_categorias")
+      .upsert(
+        { categoria_id: destinoId, alias: origen.nombre },
+        { onConflict: "categoria_id,alias", ignoreDuplicates: true }
+      );
+  }
+
+  const { error } = await db.from("categorias").delete().eq("id", origenId);
+  if (error) {
+    if (error.code === "23503" || /foreign key/i.test(error.message)) {
+      return {
+        error:
+          "Movimos todo pero no pudimos borrar el duplicado: algo más lo sigue referenciando. Desactivalo por ahora.",
+      };
+    }
+    return { error: error.message };
+  }
+
+  revalidarServicios();
+  return { success: true, nombreFinal: destino.nombre };
 }
 
 export async function eliminarCategoria(id: string) {

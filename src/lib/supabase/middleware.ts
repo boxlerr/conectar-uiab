@@ -105,11 +105,34 @@ export async function updateSession(request: NextRequest) {
   // borrando cookies a mano.
   let cuentaDesactivada = false;
   if (user && !userError) {
-    const { data: perfil } = await supabase
-      .from('perfiles')
-      .select('rol_sistema, activo')
-      .eq('id', user.id)
-      .maybeSingle();
+    // El perfil se lee con reintento porque de esta query cuelga TODO el gating
+    // de abajo, y cuando falla no devuelve "no sos admin": devuelve nada.
+    //
+    // Pasó el 2026-08-14 a las 9:51 con el admin real: la query a `perfiles`
+    // timeouteó a los 8s (`fetch-con-timeout`), `perfil` volvió null, `rol`
+    // quedó undefined y el middleware lo mandó a /403 — una pantalla que le
+    // decía que no tenía privilegios. Y como cada recarga volvía a fallar,
+    // quedó rebotando ahí. Un blip de red no puede leerse como "te degradamos
+    // el rol".
+    let perfil: { rol_sistema?: string | null; activo?: boolean | null } | null = null;
+    let perfilError: unknown = null;
+
+    for (let intento = 0; intento < 2; intento++) {
+      const r = await supabase
+        .from('perfiles')
+        .select('rol_sistema, activo')
+        .eq('id', user.id)
+        .maybeSingle();
+      perfil = r.data;
+      perfilError = r.error;
+      // Sin error, la respuesta es buena aunque venga vacía (usuario sin perfil).
+      if (!perfilError) break;
+      console.error('[middleware] no se pudo leer el perfil, reintento', intento + 1, perfilError);
+    }
+
+    // No es lo mismo "el perfil dice que no sos admin" que "no pudimos leer el
+    // perfil". Lo primero es una decisión; lo segundo, una falla nuestra.
+    const perfilIlegible = Boolean(perfilError);
 
     // Usuario desactivado (por su empresa o por la UIAB): el ban de Auth le
     // frena el login nuevo, pero si tenía la sesión abierta el access token
@@ -147,13 +170,25 @@ export async function updateSession(request: NextRequest) {
     //
     // El middleware es el único lugar que corta ANTES de renderizar, y cubre de
     // una todas las rutas y sus payloads RSC.
-    if (pathname.startsWith('/admin') && rol !== 'admin') {
+    //
+    // Con el perfil ilegible se corta igual —nunca se sirve /admin sin haber
+    // confirmado el rol— pero se avisa cuál de los dos casos fue, así el admin
+    // no se come un cartel de "no tenés permisos" por un timeout.
+    if (pathname.startsWith('/admin') && (perfilIlegible || rol !== 'admin')) {
       if (isApiRoute) {
-        return responderJson({ error: 'Solo para administradores' }, { status: 403 });
+        return responderJson(
+          {
+            error: perfilIlegible
+              ? 'No pudimos verificar tu sesión. Probá de nuevo.'
+              : 'Solo para administradores',
+          },
+          { status: perfilIlegible ? 503 : 403 }
+        );
       }
       const url = request.nextUrl.clone();
       url.pathname = '/403';
       url.search = '';
+      if (perfilIlegible) url.searchParams.set('motivo', 'sin-verificar');
       return redirigir(url);
     }
 
@@ -161,7 +196,14 @@ export async function updateSession(request: NextRequest) {
     // miembro. Ahora que una socia puede darle acceso a su gente, filtrar por
     // titular dejaba a esos usuarios sin membresía visible y el gate los
     // mandaba a /pendiente-aprobacion aunque la empresa estuviera aprobada.
-    if (rol === 'company') {
+    //
+    // El gate de aprobación, en cambio, con el perfil ilegible se deja pasar:
+    // no protege datos ajenos (para eso están las RLS y los guards de los
+    // actions), sólo elige a qué pantalla mandarte. Rebotar a una socia al día
+    // hasta /pendiente-aprobacion por un timeout es peor que dejarla seguir.
+    if (perfilIlegible) {
+      // isApproved queda en true.
+    } else if (rol === 'company') {
       const { data: m } = await supabase
         .from('miembros_empresa')
         .select('empresas(estado)')

@@ -138,15 +138,18 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
 
   // Conteos por tipo sobre el total (no sobre lo filtrado): el facet tiene que
   // mostrar cuántas hay de cada tipo aunque estés viendo otro.
+  //
+  // Se muestran TODOS los tipos, también los que hoy tienen cero. Antes se
+  // filtraban los vacíos y el directorio parecía ser sólo de empresas: no había
+  // forma de saber que la red también recibe bancos, escuelas y cooperativas
+  // hasta que hubiera una cargada. Es el pedido de Lucas del 2026-08-14.
   const conteosPorTipo = useMemo(() => {
     const mapa = new Map<TipoEntidad, number>();
     for (const e of entidades) {
       const t = e.tipoEntidad ?? "empresa";
       mapa.set(t, (mapa.get(t) ?? 0) + 1);
     }
-    return TIPOS_ENTIDAD.map((tipo) => ({ tipo, count: mapa.get(tipo) ?? 0 })).filter(
-      (c) => c.count > 0
-    );
+    return TIPOS_ENTIDAD.map((tipo) => ({ tipo, count: mapa.get(tipo) ?? 0 }));
   }, [entidades]);
 
   // Universo sobre el que se ofrecen sectores y se filtra: todo el directorio,
@@ -218,6 +221,13 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
 
   const metaTipo = tipoSeleccionado ? TIPOS_ENTIDAD_META[tipoSeleccionado] : null;
   const n = entidadesFiltradas.length;
+
+  // Ahora que los tipos vacíos también se muestran, se puede clickear uno que
+  // no tiene ninguna. Ahí "no encontramos con esos filtros" miente: no hay
+  // filtro que arreglarlo, todavía no se sumó ninguna.
+  const tipoVacioDelTodo = Boolean(
+    tipoSeleccionado && entidadesDelTipo.length === 0
+  );
 
   // "3 empresas socias encontradas" / "58 organizaciones encontradas".
   const rotuloResultados = metaTipo
@@ -404,6 +414,37 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
           <SliderLogosDirectorio logos={logosSocias} />
         </motion.div>
 
+        {/* ── Tipos de organización, arriba y a la vista ──
+            Estaba sólo en el rail lateral y filtrando los que tenían cero, así
+            que el directorio se leía como "acá hay empresas y nada más".
+            Bancos, escuelas y cooperativas forman parte de la red aunque
+            todavía no haya ninguna cargada, y esta fila lo dice. */}
+        <nav aria-label="Tipo de organización" className="mb-8">
+          <div className="flex flex-wrap items-center gap-2">
+            <ChipTipo
+              etiqueta="Todas"
+              count={entidades.length}
+              activo={tipoSeleccionado === null}
+              onClick={() => handleTipoChange(null)}
+            />
+            {conteosPorTipo.map(({ tipo, count }) => {
+              const meta = TIPOS_ENTIDAD_META[tipo];
+              const Icono = ICONO_TIPO[tipo];
+              return (
+                <ChipTipo
+                  key={tipo}
+                  etiqueta={meta.etiqueta}
+                  count={count}
+                  activo={tipoSeleccionado === tipo}
+                  icono={Icono}
+                  puntoClases={meta.puntoClases}
+                  onClick={() => handleTipoChange(tipoSeleccionado === tipo ? null : tipo)}
+                />
+              );
+            })}
+          </div>
+        </nav>
+
         {/* A partir de tab: (720px, cubre iPad mini) los filtros pasan a ser un
             rail angosto y pegajoso en vez de un bloque arriba de la grilla. */}
         <div className="flex flex-col tab:flex-row gap-8 tab:gap-6 lg:gap-14">
@@ -419,10 +460,8 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
               colorScheme="blue"
-              tipos={conteosPorTipo}
-              tipoSeleccionado={tipoSeleccionado}
-              onTipoChange={handleTipoChange}
-              totalTipos={entidades.length}
+              /* El tipo de organización ya vive arriba, abajo del banner: acá
+                 quedaba escondido al final del rail. */
             />
           </aside>
 
@@ -591,12 +630,16 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
                   <Search className="w-10 h-10 text-blue-300" />
                 </div>
                 <h3 className="font-manrope text-2xl font-bold text-slate-800 mb-3">
-                  No encontramos organizaciones con esos filtros
+                  {tipoVacioDelTodo
+                    ? `Todavía no hay ${metaTipo!.plural} en el directorio`
+                    : "No encontramos organizaciones con esos filtros"}
                 </h3>
                 <p className="text-slate-500 max-w-sm mx-auto mb-8 font-medium">
-                  {tipoSeleccionado
-                    ? "Probá buscar en todo el directorio: puede estar cargada con otro tipo de organización."
-                    : "Probá con otro término o quitá algún filtro."}
+                  {tipoVacioDelTodo
+                    ? "La red las recibe, pero por ahora ninguna se sumó. Si conocés alguna, invitala."
+                    : tipoSeleccionado
+                      ? "Probá buscar en todo el directorio: puede estar cargada con otro tipo de organización."
+                      : "Probá con otro término o quitá algún filtro."}
                 </p>
                 <button
                   onClick={limpiarFiltros}
@@ -744,5 +787,63 @@ function ChipFiltro({
         <X className="w-3.5 h-3.5" />
       </button>
     </span>
+  );
+}
+
+/**
+ * Chip de tipo de organización, arriba del listado.
+ *
+ * Los que tienen cero se muestran igual, apagados pero clickeables: la red
+ * recibe bancos, escuelas y cooperativas aunque hoy no haya ninguna, y
+ * esconderlos hacía parecer que el directorio era sólo de empresas.
+ */
+function ChipTipo({
+  etiqueta,
+  count,
+  activo,
+  onClick,
+  icono: Icono,
+  puntoClases,
+}: {
+  etiqueta: string;
+  count: number;
+  activo: boolean;
+  onClick: () => void;
+  icono?: LucideIcon;
+  puntoClases?: string;
+}) {
+  const vacio = count === 0;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={activo}
+      title={vacio ? `Todavía no hay ${etiqueta.toLowerCase()} en el directorio` : undefined}
+      className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-[13px] font-bold transition-all ${
+        activo
+          ? "bg-[#10375c] border-[#10375c] text-white shadow-sm"
+          : vacio
+            ? "bg-white/60 border-slate-200/70 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+            : "bg-white border-slate-200 text-slate-700 hover:border-[#10375c]/40 hover:text-[#10375c]"
+      }`}
+    >
+      {Icono ? (
+        <Icono className={`w-4 h-4 shrink-0 ${activo ? "text-white/80" : ""}`} />
+      ) : (
+        <span
+          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+            activo ? "bg-white/80" : puntoClases ?? "bg-slate-400"
+          }`}
+        />
+      )}
+      <span>{etiqueta}</span>
+      <span
+        className={`text-[11px] font-black tabular-nums ${
+          activo ? "text-white/70" : vacio ? "text-slate-300" : "text-slate-400"
+        }`}
+      >
+        {count}
+      </span>
+    </button>
   );
 }

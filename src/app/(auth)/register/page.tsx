@@ -27,6 +27,7 @@ import { cn, normalizarSitioWeb } from '@/lib/utilidades'
 import { LOCALIDADES_ALMIRANTE_BROWN, PROVINCIAS_AR } from '@/lib/datos/geografia-ar'
 import { useAuth } from '@/modulos/autenticacion/contexto-autenticacion'
 import { PRECIO_MENSUAL, PRECIO_ANUAL } from '@/lib/mercadopago/suscripciones'
+import { validarEspecialidadLibre } from '@/modulos/compartido/especialidades'
 
 // Mismo número que se muestra en la landing para el plan anual: comparar
 // siempre en $/mes es lo que hace evidente el descuento.
@@ -90,8 +91,12 @@ const registerSchema = z.object({
   descripcion: z.string().min(20, { message: 'Breve descripción obligatoria (Mín: 20 chars)' }),
 
   // -- Taxonomía --
-  sectorId: z.string().min(1, { message: 'Selecciona un rubro' }),
-  subSector: z.string().min(1, { message: 'Selecciona una especialidad' }),
+  // Obligatorio, pero por una de las dos vías: elegido del catálogo (`sectorId`)
+  // o escrito a mano (`servicioLibre`) cuando no está en la lista. La regla vive
+  // en el superRefine de abajo.
+  sectorId: z.string().optional(),
+  subSector: z.string().optional(),
+  servicioLibre: z.string().optional(),
   experience: z.string().optional(),
   size: z.string().optional(), // empresas: string numérico de empleados
 
@@ -125,6 +130,24 @@ const registerSchema = z.object({
     }
     if (!data.tipoProveedor) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "El Tipo de Prestador es obligatorio", path: ["tipoProveedor"] });
+    }
+  }
+
+  // El servicio es obligatorio para todos. Una ficha sin rubro no aparece en
+  // ninguna búsqueda del directorio: se publica invisible. Si no está en el
+  // catálogo se puede escribir, y queda como propuesta para que el admin la
+  // suba desde el panel.
+  const libre = (data.servicioLibre ?? '').trim();
+  if (!data.sectorId && !libre) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Elegí el servicio que ofrecés, o escribilo si no está en la lista",
+      path: ["sectorId"],
+    });
+  } else if (!data.sectorId) {
+    const invalido = validarEspecialidadLibre(libre);
+    if (invalido) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: invalido, path: ["servicioLibre"] });
     }
   }
 })
@@ -232,7 +255,7 @@ function RegisterContent() {
       razonSocial: '', nombre: '', apellido: '', nombreComercial: '',
       cuit: '', telefono: '', sitioWeb: '', tipoEmpresa: '', tipoProveedor: '',
       provincia: '', localidad: '', direccion: '', descripcion: '',
-      sectorId: '', subSector: '', experience: '', size: '',
+      sectorId: '', subSector: '', servicioLibre: '', experience: '', size: '',
       email: '', password: '', confirmPassword: '', plan: 'basic'
     },
   })
@@ -317,7 +340,7 @@ function RegisterContent() {
         : ['nombre', 'apellido', 'tipoProveedor', 'nombreComercial', 'cuit', 'telefono', 'sitioWeb']
     }
     else if (currentStep === 4) fieldsToValidate = ['provincia', 'localidad', 'direccion', 'descripcion']
-    else if (currentStep === 5) fieldsToValidate = ['sectorId', 'subSector', selectedRole === 'company' ? 'size' : 'experience']
+    else if (currentStep === 5) fieldsToValidate = ['sectorId', 'servicioLibre', selectedRole === 'company' ? 'size' : 'experience']
     else if (currentStep === 6) fieldsToValidate = ['email', 'password', 'confirmPassword']
 
     // Step 2 assumes read-only, Step 7 is final submission.
@@ -1143,20 +1166,49 @@ function RegisterContent() {
                           <div className="grid gap-4 bg-slate-50/50 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100">
                             <FormField control={form.control} name="sectorId" render={() => (
                               <FormItem>
-                                <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Categoría</FormLabel>
+                                <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Categoría *</FormLabel>
                                 <FormControl>
                                   <BuscadorJerarquico
                                     categorias={categorias}
-                                    value={form.watch('sectorId')}
+                                    value={form.watch('sectorId') ?? ''}
                                     onChange={(id, nombre) => {
                                       form.setValue('sectorId', id, { shouldValidate: true });
                                       form.setValue('subSector', nombre || 'general', { shouldValidate: true });
+                                      // Las dos vías son excluyentes: si eligió del
+                                      // catálogo, lo que hubiera escrito no va.
+                                      if (id) form.setValue('servicioLibre', '', { shouldValidate: true });
                                     }}
                                   />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )} />
+
+                            {/* Salida para el que no se encuentra en la lista. Sin
+                                esto, el rubro obligatorio deja afuera a cualquiera
+                                cuyo oficio todavía no esté en el catálogo. Entra
+                                como propuesta y el admin la sube al aprobarlo. */}
+                            {!form.watch('sectorId') && (
+                              <FormField control={form.control} name="servicioLibre" render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                                    ¿No está en la lista? Escribilo
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="Ej: Reparación de compresores"
+                                      className="h-12 font-semibold text-base border-slate-200 bg-white"
+                                      {...field}
+                                      value={field.value ?? ''}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                  <p className="text-[11px] sm:text-[10px] text-slate-400 font-inter mt-2 ml-1 leading-relaxed">
+                                    Lo revisamos y lo sumamos al catálogo de la red.
+                                  </p>
+                                </FormItem>
+                              )} />
+                            )}
 
                             {selectedRole === 'company' ? (
                               <FormField control={form.control} name="size" render={({ field }) => (

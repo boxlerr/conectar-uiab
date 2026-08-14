@@ -6,6 +6,24 @@ import { plantillaSuscripcionPendiente } from '@/lib/email/plantillas-suscripcio
 import { calcularMontoMensual, nombrePlan } from '@/lib/mercadopago/suscripciones'
 import { normalizarSitioWeb } from '@/lib/utilidades'
 import { buscarEnPadron, type EmpresaDelPadron } from '@/modulos/altas/buscar-en-padron'
+import {
+  interpretarServicioDelRegistro,
+  type ServicioDelRegistro,
+} from '@/modulos/registro/servicio-del-registro'
+import { slugEspecialidad } from '@/modulos/compartido/especialidades'
+
+/**
+ * El cliente con service role. Se arma en una función para que el tipo del
+ * parámetro de los helpers de abajo salga de la MISMA llamada: escribirlo a
+ * mano contra `SupabaseClient<...>` no matchea y termina en `never`.
+ */
+function clienteAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+type ClienteAdmin = ReturnType<typeof clienteAdmin>
 
 export async function POST(request: Request) {
   try {
@@ -20,7 +38,7 @@ export async function POST(request: Request) {
       razonSocial, nombre, apellido, nombreComercial, cuit,
       telefono, sitioWeb,
       pais, provincia, localidad, direccion, descripcion,
-      sectorId, subSector, size, experience,
+      sectorId, subSector, servicioLibre, size, experience,
       plan,
     } = payload
 
@@ -55,10 +73,27 @@ export async function POST(request: Request) {
       return Number.isFinite(n) && n >= 0 ? n : null
     })()
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabaseAdmin = clienteAdmin()
+
+    // 0.a El servicio que declara un particular es obligatorio, y se valida acá.
+    //
+    // El wizard ya lo pedía, pero esto es un endpoint público: sin el chequeo del
+    // servidor, un POST sin `sectorId` creaba igual la ficha —y una ficha sin
+    // rubro no aparece en ninguna búsqueda del directorio, así que se publica
+    // invisible. Se corta antes de crear nada; el usuario de Auth que dejó el
+    // signUp del browser se limpia igual que en el error de perfil.
+    let servicioDelParticular: ServicioDelRegistro | null = null
+    if (role === 'provider') {
+      servicioDelParticular = interpretarServicioDelRegistro(sectorId, servicioLibre)
+      if (servicioDelParticular.tipo === 'falta') {
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(instanceId)
+        } catch (err) {
+          console.error('[register-sync] quedó un usuario de Auth sin ficha:', instanceId, err)
+        }
+        return NextResponse.json({ error: servicioDelParticular.error }, { status: 400 })
+      }
+    }
 
     // 0. Control contra el padrón UIAB (item 1.3 del reporte de Lucas).
     //
@@ -259,11 +294,33 @@ export async function POST(request: Request) {
             es_principal: true
           })
 
-        if (sectorId) {
-          await supabaseAdmin.from('proveedores_categorias').insert({
-            proveedor_id: prov.id,
-            categoria_id: sectorId
-          })
+        // El rubro declarado. Ya se validó arriba que viene alguno; acá se
+        // resuelve contra la base y se engancha a la ficha.
+        const categoriaId = await resolverCategoriaDelParticular(
+          supabaseAdmin,
+          servicioDelParticular!,
+          instanceId,
+          prov.id
+        )
+
+        if (!categoriaId) {
+          console.error('[register-sync] no se pudo enganchar el servicio del particular:', email)
+          return NextResponse.json(
+            { error: 'No pudimos guardar el servicio que elegiste. Probá de nuevo.' },
+            { status: 500 }
+          )
+        }
+
+        const { error: pivoteError } = await supabaseAdmin
+          .from('proveedores_categorias')
+          .insert({ proveedor_id: prov.id, categoria_id: categoriaId })
+
+        if (pivoteError) {
+          console.error('[register-sync] falló el pivote de servicios:', pivoteError.message)
+          return NextResponse.json(
+            { error: 'No pudimos guardar el servicio que elegiste. Probá de nuevo.' },
+            { status: 500 }
+          )
         }
       } else {
         console.error("Error creating provider:", provError)
@@ -464,4 +521,70 @@ export async function POST(request: Request) {
     console.error('Registration API Error:', err)
     return NextResponse.json({ error: 'Error interno de backend al procesar la integración profunda.' }, { status: 500 })
   }
+}
+
+/**
+ * Devuelve el id de la categoría que declaró el particular, creándola si hace
+ * falta. `null` si no se pudo resolver.
+ *
+ * El texto libre se deduplica por slug contra TODO el catálogo (oficial y
+ * propuestas de otros socios) antes de crear nada: si dos personas escriben
+ * "reparación de compresores" con distinta puntuación, comparten la misma
+ * entrada en vez de generar dos casi iguales.
+ *
+ * Lo que se crea acá queda como propuesta, no como catálogo oficial: el nombre
+ * lo escribió alguien de afuera y todavía no lo miró nadie. El admin lo sube —y
+ * lo normaliza— desde /admin/proveedores o /admin/servicios.
+ */
+async function resolverCategoriaDelParticular(
+  supabaseAdmin: ClienteAdmin,
+  servicio: ServicioDelRegistro,
+  perfilId: string,
+  proveedorId: string
+): Promise<string | null> {
+  if (servicio.tipo === 'falta') return null
+
+  if (servicio.tipo === 'catalogo') {
+    const { data } = await supabaseAdmin
+      .from('categorias')
+      .select('id')
+      .eq('id', servicio.categoriaId)
+      .maybeSingle()
+    return (data?.id as string) ?? null
+  }
+
+  const { data: existentes } = await supabaseAdmin.from('categorias').select('id, nombre, slug')
+  const yaEsta = ((existentes ?? []) as { id: string; nombre: string; slug: string }[]).find(
+    (c) => c.slug === servicio.slug || slugEspecialidad(c.nombre) === servicio.slug
+  )
+  if (yaEsta) return yaEsta.id
+
+  const { data: creada, error } = await supabaseAdmin
+    .from('categorias')
+    .insert({
+      nombre: servicio.nombre,
+      slug: servicio.slug,
+      activa: true,
+      administrado_por_admin: false,
+      creado_por: perfilId,
+      creado_por_proveedor: proveedorId,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    // 23505: dos personas escribieron lo mismo a la vez. Gana la que entró.
+    if (error.code === '23505') {
+      const { data: ganadora } = await supabaseAdmin
+        .from('categorias')
+        .select('id')
+        .eq('slug', servicio.slug)
+        .maybeSingle()
+      return (ganadora?.id as string) ?? null
+    }
+    console.error('[register-sync] no se pudo crear la especialidad libre:', error.message)
+    return null
+  }
+
+  return (creada?.id as string) ?? null
 }
