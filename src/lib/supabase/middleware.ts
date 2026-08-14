@@ -114,13 +114,17 @@ export async function updateSession(request: NextRequest) {
     // decía que no tenía privilegios. Y como cada recarga volvía a fallar,
     // quedó rebotando ahí. Un blip de red no puede leerse como "te degradamos
     // el rol".
-    let perfil: { rol_sistema?: string | null; activo?: boolean | null } | null = null;
+    let perfil: {
+      rol_sistema?: string | null;
+      activo?: boolean | null;
+      debe_completar_cuenta?: boolean | null;
+    } | null = null;
     let perfilError: unknown = null;
 
     for (let intento = 0; intento < 2; intento++) {
       const r = await supabase
         .from('perfiles')
-        .select('rol_sistema, activo')
+        .select('rol_sistema, activo, debe_completar_cuenta')
         .eq('id', user.id)
         .maybeSingle();
       perfil = r.data;
@@ -157,6 +161,33 @@ export async function updateSession(request: NextRequest) {
     }
 
     const rol = perfil?.rol_sistema;
+
+    // 2.a Primer ingreso con clave provisoria.
+    //
+    // A quien la UIAB da de alta se le pasa una clave por mensaje: compartida,
+    // predecible y, en el caso de las cuentas de administración, la llave del
+    // panel entero. Mientras no elija una propia y diga cómo se llama, no se lo
+    // deja ir a ningún lado. Va acá, en el middleware, y no como un cartel en la
+    // página: un cartel se cierra, y las páginas de /admin ya mandaron sus datos
+    // para cuando el navegador lo dibuja.
+    if (perfil?.debe_completar_cuenta && !perfilIlegible) {
+      const permitido =
+        pathname === '/completar-cuenta' ||
+        pathname.startsWith('/api/auth/') ||
+        pathname === '/login';
+      if (!permitido) {
+        if (isApiRoute) {
+          return responderJson(
+            { error: 'Tenés que terminar de activar tu cuenta.' },
+            { status: 403 }
+          );
+        }
+        const url = request.nextUrl.clone();
+        url.pathname = '/completar-cuenta';
+        url.search = '';
+        return redirigir(url);
+      }
+    }
 
     // 2.b Corte de /admin por ROL, del lado del servidor.
     //
