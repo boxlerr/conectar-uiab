@@ -360,8 +360,14 @@ export function OportunidadesCliente({
   ];
 
   return (
-    <div className="min-h-svh bg-slate-50 pt-20 lg:pt-24 pb-16">
-      <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8 lg:pt-6">
+    /*
+      Sin `pt-20 lg:pt-24`: el Header ya emite su propio spacer de esa misma
+      altura (encabezado.tsx), así que repetirlo acá sumaba una franja en blanco
+      de 96px antes de la tarjeta. El hero viejo, que iba a sangre, lo
+      compensaba con un margen negativo; este no lo necesita.
+    */
+    <div className="min-h-svh bg-slate-50 pb-16">
+      <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
         {/* ═══ ENCABEZADO ═══════════════════════════════════════════════ */}
         <section
           data-tour="op-hero"
@@ -378,25 +384,25 @@ export function OportunidadesCliente({
           />
           <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-primary-500/25 blur-3xl" aria-hidden="true" />
 
-          <div className="relative grid gap-8 p-6 sm:p-9 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-10 lg:p-12">
+          <div className="relative grid gap-7 p-6 sm:px-9 sm:py-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-10 lg:px-10 lg:py-8">
             <div>
-              <span className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600 shadow-lg shadow-black/25">
+              <span className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600 shadow-lg shadow-black/25">
                 <Briefcase className="h-6 w-6" />
               </span>
 
               <h1
-                className="max-w-md text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl"
+                className="max-w-lg text-4xl font-black leading-[1.05] tracking-tight"
                 style={TIPOGRAFIA_TITULO}
               >
                 Oportunidades de Trabajo
               </h1>
 
-              <p className="mt-4 max-w-lg text-base leading-relaxed text-white/65" style={TIPOGRAFIA_TEXTO}>
+              <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-white/65" style={TIPOGRAFIA_TEXTO}>
                 Conectamos la demanda de las empresas del partido con la oferta de servicios
                 profesionales y especialistas.
               </p>
 
-              <div className="mt-7 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="mt-5 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
                 {totalEmpresas !== null && (
                   <TarjetaDato
                     icono={Building2}
@@ -420,7 +426,7 @@ export function OportunidadesCliente({
                 width={900}
                 height={760}
                 priority
-                className="hidden h-auto w-[260px] select-none xl:block 2xl:w-[320px]"
+                className="hidden h-auto w-[210px] select-none xl:block 2xl:w-[240px]"
               />
 
               <div className="w-full lg:w-[290px]">
