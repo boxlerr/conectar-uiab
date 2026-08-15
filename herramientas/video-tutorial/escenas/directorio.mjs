@@ -48,9 +48,13 @@ export async function escenaDirectorio({ page, BASE }) {
     congelar: true,
     rotulo: "Buscá",
     texto: "Un rubro, una especialidad o un nombre.",
-    velocidad: 1.2,
+    velocidad: 1.25,
   }, async () => {
-    await tipear(page, BUSCADOR, "metal", { porChar: 72 });
+    // La palabra ENTERA, no "metal". Cortada a la mitad el plano terminaba
+    // sin haber mostrado nunca un resultado, que es lo que la búsqueda tiene
+    // que probar.
+    await tipear(page, BUSCADOR, "metalurgica", { porChar: 58 });
+    await dormir(420);
   });
 
   // El viaje del hero a los resultados lo hacemos nosotros y fuera de plano.
@@ -58,12 +62,22 @@ export async function escenaDirectorio({ page, BASE }) {
   await scrollA(page, '[data-tour="directorio-toolbar"]', { offset: 150, ms: 520 });
   await dormir(320);
 
-  // El plano del contador ("Resultados en vivo · El contador se actualiza
-  // mientras escribís") se sacó: no aportaba nada que no se viera ya en el
-  // plano de buscar, y encuadraba casi la misma zona que el de filtros, así
-  // que se leía como un zoom repetido en el mismo lugar.
+  // ── 3. Los resultados ───────────────────────────────────────────
+  // Este plano volvió. La primera versión encuadraba el CONTADOR, que no
+  // muestra nada, y encima caía sobre la misma zona que el de filtros. Ahora
+  // encuadra la grilla: se ven las metalúrgicas que contestaron a la búsqueda.
+  await scrollA(page, '[data-tour="directorio-resultados"]', { offset: 150, ms: 620 });
+  await dormir(340);
 
-  // ── 3. Filtros ──────────────────────────────────────────────────
+  await plano(page, {
+    id: "resultados",
+    encuadre: '[data-tour="directorio-resultados"]',
+    escala: 1.15,
+    rotulo: "Al instante",
+    texto: "Las metalúrgicas del parque.",
+  }, () => dormir(400));
+
+  // ── 4. Filtros ──────────────────────────────────────────────────
   await scrollA(page, '[data-tour="directorio-sidebar"]', { offset: 130, ms: 520 });
   await dormir(300);
 
@@ -95,17 +109,22 @@ export async function escenaDirectorio({ page, BASE }) {
   const iFicha = Math.max(0, await indicePorTexto(page, TARJETA, /vaxler/i));
   const destino = await page.locator(TARJETA).nth(iFicha).getAttribute("href");
 
+  // El puntero llega a la tarjeta ANTES de que empiece el plano. Con
+  // `navega: true` la espera de lectura va primero, así que si el viaje del
+  // mouse quedaba adentro, el plano arrancaba con tres segundos de imagen
+  // completamente quieta y después recién se movía: se sentía congelado.
+  await moverAlSelector(page, TARJETA, { ms: 460, idx: iFicha });
+  await dormir(120);
+
   await plano(page, {
     id: "tarjetas",
     encuadre: TARJETA,
     idx: iFicha,
-    escala: 1.3,
+    escala: 1.5,
     navega: true,
     rotulo: "Cada tarjeta",
     texto: "Un click y estás en el perfil.",
   }, async () => {
-    await moverAlSelector(page, TARJETA, { ms: 420, idx: iFicha });
-    await dormir(180);
     await clickEn(page, TARJETA, { ms: 200, idx: iFicha });
   });
 

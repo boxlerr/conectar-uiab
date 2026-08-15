@@ -62,9 +62,33 @@ const api = async (ruta, opciones = {}) => {
 
 const EMPRESA_UIAB = "7221a1d7-006d-4587-b9e4-753c0c9a229d"; // UNIÓN INDUSTRIAL DE ALMIRANTE BROWN
 
+/** Busca una empresa por su razón social. */
+async function empresaPorNombre(patron) {
+  const [e] = await api(
+    `empresas?select=id,razon_social&razon_social=ilike.*${encodeURIComponent(patron)}*&limit=1`);
+  return e ?? null;
+}
+
 async function sembrar() {
   const [miembro] = await api(`miembros_empresa?select=perfil_id&empresa_id=eq.${EMPRESA_UIAB}&limit=1`);
   if (!miembro) throw new Error("La empresa de la UIAB no tiene miembros — no puedo setear creado_por.");
+
+  // Quién publica cada pedido.
+  //
+  // Los dos primeros salen a nombre de VAXLER, que es la empresa que el video
+  // recorre: el tablero se ve como lo que es —una socia pidiendo lo que
+  // necesita— y no como un aviso institucional.
+  //
+  // El tercero queda a nombre de la UIAB a propósito, y no es un olvido: el
+  // botón "Postularse" no se le muestra a quien publicó, y el video se filma
+  // con la cuenta de Vaxler. Si los tres fueran de Vaxler, el capítulo 2 se
+  // quedaría sin el tramo de postularse.
+  const vaxler = await empresaPorNombre("vaxler");
+  if (!vaxler) throw new Error("No encontré a Vaxler en empresas — no puedo publicar a su nombre.");
+  const [miembroVaxler] = await api(
+    `miembros_empresa?select=perfil_id&empresa_id=eq.${vaxler.id}&limit=1`);
+  const autorVaxler = miembroVaxler?.perfil_id ?? miembro.perfil_id;
+  console.log(`  · 2 pedidos a nombre de ${vaxler.razon_social}, 1 de la UIAB (para poder mostrar "Postularse")`);
 
   const cat = async (like) => {
     const [c] = await api(`categorias?select=id,nombre&nombre=ilike.*${encodeURIComponent(like)}*&limit=1`);
@@ -79,7 +103,7 @@ async function sembrar() {
 
   const filas = [
     {
-      empresa_solicitante_id: EMPRESA_UIAB,
+      empresa_solicitante_id: vaxler.id, creado_por: autorVaxler,
       categoria_id: metal?.id ?? null,
       titulo: "Provisión de 500 kg de chapa laminada en frío",
       descripcion:
@@ -91,7 +115,7 @@ async function sembrar() {
       fecha_necesidad: enDias(21), tipo_requerimiento: ["material"],
     },
     {
-      empresa_solicitante_id: EMPRESA_UIAB,
+      empresa_solicitante_id: vaxler.id, creado_por: autorVaxler,
       categoria_id: mant?.id ?? metal?.id ?? null,
       titulo: "Reparación y puesta a punto de torno CNC Fanuc",
       descripcion:
@@ -117,7 +141,7 @@ async function sembrar() {
       fecha_necesidad: enDias(30), tipo_requerimiento: ["servicio"],
     },
   ].map((f) => ({
-    ...f, estado: "abierta", visibilidad: "privada_parque", creado_por: miembro.perfil_id,
+    ...f, estado: "abierta", visibilidad: "privada_parque", creado_por: f.creado_por ?? miembro.perfil_id,
   }));
 
   const creadas = await api("oportunidades", { method: "POST", body: JSON.stringify(filas) });

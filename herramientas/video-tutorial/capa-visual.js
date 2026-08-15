@@ -144,50 +144,6 @@
     /** Durante un plano, la página la mueve el guion y nadie más. */
     congelarScroll(v) { congelado = !!v; },
 
-    /**
-     * Congela las animaciones DECORATIVAS del sitio mientras dura un plano.
-     *
-     * El directorio tiene una franja de logos de socias que se desplaza sola,
-     * en loop. Encuadrada debajo del cartel, esa cinta moviéndose se lee como
-     * si el video estuviera roto. Quieta se ve perfecto y se sigue entendiendo
-     * qué es. No toca las transiciones de la UI, que son cortas y responden a
-     * lo que hace el guion: sólo lo que se mueve solo, para siempre.
-     */
-    congelarAnimaciones(v) {
-      const id = "uiab-sin-animaciones";
-      const previo = document.getElementById(id);
-      if (!v) { previo?.remove(); return; }
-      if (previo) return;
-      const s = document.createElement("style");
-      s.id = id;
-      s.textContent = `*,*::before,*::after{
-        animation-play-state:paused !important;
-        animation-iteration-count:1 !important;
-      }`;
-      (document.head || document.documentElement).appendChild(s);
-    },
-
-    /**
-     * Claqueta de sincronía. Devuelve el reloj de pared del momento en que el
-     * verde YA está pintado; el montaje busca el primer fotograma verde del
-     * .webm y con esos dos datos ata el guion al video.
-     *
-     * Hace falta porque Playwright empieza a grabar cuando se crea la página,
-     * y entre ese instante y el primer fotograma real hay una demora que
-     * cambia en cada corrida.
-     */
-    async claqueta(ms = 300) {
-      montar();
-      const el = $("#uiab-claqueta");
-      el.classList.add("visible");
-      await pintado();
-      const t = Date.now();
-      await espera(ms);
-      el.classList.remove("visible");
-      await pintado();
-      return t;
-    },
-
     /** Scroll con easing propio: window.scrollTo({behavior:"smooth"}) va
      *  demasiado rápido y entrecortado para filmar. */
     async scrollSuave(y, ms = 1100) {

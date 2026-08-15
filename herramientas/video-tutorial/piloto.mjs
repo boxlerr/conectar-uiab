@@ -372,10 +372,9 @@ export async function plano(page, opts, accion) {
   const rectAntes = await medir();
 
   if (congelar) await cast(page, "congelarScroll", true);
-  // Las animaciones decorativas del sitio se congelan mientras dura el plano.
-  // La franja de logos del directorio se desplaza sola, y encuadrada debajo
-  // del cartel se veía como si el video estuviera roto.
-  await cast(page, "congelarAnimaciones", true).catch(() => {});
+  // Las animaciones del sitio corren libres: la franja de logos de socias se
+  // desplaza sola y ESO ES EL PRODUCTO. Congelarla se leía como que el slider
+  // no funciona, que es peor que el problema que quería resolver.
 
   const tIn = Date.now();
 
@@ -403,7 +402,6 @@ export async function plano(page, opts, accion) {
     // Sin el finally, un paso que falla deja la página congelada y se lleva
     // puestos todos los planos que vienen después.
     if (congelar) await cast(page, "congelarScroll", false).catch(() => {});
-    await cast(page, "congelarAnimaciones", false).catch(() => {});
   }
 
   const tOut = Date.now();
