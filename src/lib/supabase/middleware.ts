@@ -1,9 +1,26 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { rutaExigeSuscripcion, tieneAcceso } from '@/lib/suscripciones/modelo'
-import { fetchConTimeoutServidor } from './fetch-con-timeout'
+import { crearFetchConTimeout } from './fetch-con-timeout'
+
+/**
+ * Cuánto puede tardar, SUMADO, todo lo que este archivo le pregunta a Supabase.
+ *
+ * No es un tope por query: es el presupuesto de la cadena entera. Acá abajo hay
+ * hasta cinco llamadas seguidas (getUser, perfil con reintento, membresía,
+ * suscripción) y cada una con su propio tope de 8s daba 40s en el peor caso,
+ * cuando la plataforma corta el middleware a los 25s. Ver fetch-con-timeout.ts.
+ *
+ * 8s es ~20 veces lo que tarda esta cadena con la base sana (~400ms medidos en
+ * los logs del 15-ago), así que un pico de latencia normal no lo toca; lo que
+ * corta es una caída de verdad.
+ */
+export const PRESUPUESTO_SUPABASE_MIDDLEWARE_MS = 8_000
 
 export async function updateSession(request: NextRequest) {
+  // Instante absoluto: lo comparten todas las queries de ESTE request.
+  const deadline = Date.now() + PRESUPUESTO_SUPABASE_MIDDLEWARE_MS
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -17,7 +34,10 @@ export async function updateSession(request: NextRequest) {
       // El middleware corre en TODA navegación, incluidos los fetch RSC y los
       // prefetch de <Link>. Sin timeout, una query lenta cuelga la navegación
       // entera sin que el usuario vea ningún error — ver fetch-con-timeout.ts.
-      global: { fetch: fetchConTimeoutServidor },
+      //
+      // Con `deadline` en vez de un tope suelto: cada query espera lo que queda
+      // del presupuesto, no 8s cada una.
+      global: { fetch: crearFetchConTimeout({ deadline }) },
       cookies: {
         getAll() {
           return request.cookies.getAll()

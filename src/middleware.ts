@@ -13,14 +13,48 @@ function esRutaProtegida(pathname: string) {
   )
 }
 
+/**
+ * Tope DURO: pase lo que pase adentro, el middleware contesta antes de esto.
+ *
+ * Vercel mata la invocación del middleware a los 25s y devuelve
+ * MIDDLEWARE_INVOCATION_TIMEOUT — un 504 crudo, sin pasar por el catch de abajo,
+ * o sea sin el degradado que este archivo tiene escrito. Es lo que vieron las
+ * socias el 2026-08-15 con el Postgres caído.
+ *
+ * Los timeouts de las queries no alcanzaban para evitarlo. Aunque cada fetch se
+ * aborte, `@supabase/auth-js` reintenta el refresh del token por su cuenta con
+ * backoff exponencial (200, 400, 800, 1600… ms) durante ~30s: son SIESTAS, no
+ * esperas de red, así que ningún timeout de fetch las toca. La única forma de
+ * acotar "lo que tarda el middleware" es acotarlo desde afuera.
+ *
+ * 12s son 30 veces lo que tarda con la base sana. Un pico de latencia normal no
+ * lo activa; una caída sí, y en 12s en vez de 25 — con el usuario yendo al login
+ * en lugar de a una pantalla de error de la plataforma.
+ */
+const TOPE_DURO_MS = 12_000
+
 export async function middleware(request: NextRequest) {
+  let temporizador: ReturnType<typeof setTimeout> | undefined
+
   try {
-    return await updateSession(request)
+    // `Promise.race` no cancela a la perdedora: si gana el reloj, `updateSession`
+    // sigue corriendo hasta que la instancia se recicle. No importa —la respuesta
+    // ya salió— pero el `clearTimeout` del finally sí importa: un timer pendiente
+    // mantiene vivo el event loop y demoraría el retorno de la función.
+    return await Promise.race([
+      updateSession(request),
+      new Promise<never>((_, rechazar) => {
+        temporizador = setTimeout(
+          () => rechazar(new Error(`el middleware no contestó en ${TOPE_DURO_MS}ms`)),
+          TOPE_DURO_MS
+        )
+      }),
+    ])
   } catch (e) {
-    // Acá sólo se llega si Supabase no contestó a tiempo (el timeout de
-    // fetch-con-timeout.ts) o si se cayó la red. Antes esto no podía pasar
-    // porque no había timeout: la request quedaba colgada hasta el tope de la
-    // función y la navegación client-side se congelaba sin error visible.
+    // Acá se llega por tres caminos: Supabase no contestó a tiempo (el timeout
+    // de fetch-con-timeout.ts), se agotó el presupuesto compartido de la cadena
+    // de queries, o venció el TOPE_DURO_MS de arriba. Los tres son la misma
+    // situación para el usuario, y se resuelven igual.
     //
     // Fallamos CERRADO en lo privado y ABIERTO en lo público: mandar al login es
     // molesto pero recuperable; dejar pasar una ruta privada sin validar sesión,
@@ -35,6 +69,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
     return NextResponse.next({ request })
+  } finally {
+    clearTimeout(temporizador)
   }
 }
 
