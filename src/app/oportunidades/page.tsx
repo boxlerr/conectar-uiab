@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Oportunidad } from "@/modulos/oportunidades/servicio-oportunidades";
+import { SELECT_OPORTUNIDAD } from "@/modulos/oportunidades/solicitante";
 import { OportunidadesCliente } from "./oportunidades-cliente";
 
 /**
@@ -31,25 +32,53 @@ async function obtenerOportunidadesAbiertas(): Promise<Oportunidad[]> {
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("oportunidades")
-      .select(
-        `
-        *,
-        categoria:categorias(nombre),
-        empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
-      `
-      )
+      .select(SELECT_OPORTUNIDAD)
       .eq("estado", "abierta")
       .order("creado_en", { ascending: false });
 
     if (error || !data) return [];
-    return data as Oportunidad[];
+    return data as unknown as Oportunidad[];
   } catch {
     // La cartelera no puede tumbar la página: el cliente vuelve a intentar.
     return [];
   }
 }
 
+/**
+ * El único número que muestra el encabezado además del de la cartelera.
+ *
+ * Sale de la base a propósito: el mockup de esta pantalla traía "248 empresas
+ * activas" y "1.532 profesionales" escritos a mano, que en esta base son 59 y
+ * 0. Un contador falso en el sitio de una cámara empresaria no es un detalle de
+ * estilo — `src/tests/seo/sin-datos-inventados.test.ts` existe justamente por
+ * eso, y la salida que documenta es esta: buscá el número, pasalo por props.
+ */
+async function contarEmpresasVerificadas(): Promise<number | null> {
+  try {
+    const supabase = createAdminClient();
+    const { count, error } = await supabase
+      .from("empresas")
+      .select("id", { count: "exact", head: true })
+      .eq("estado", "aprobada");
+
+    if (error || count == null) return null;
+    return count;
+  } catch {
+    // Sin dato no se inventa uno: el encabezado esconde la tarjeta.
+    return null;
+  }
+}
+
 export default async function OportunidadesPage() {
-  const oportunidades = await obtenerOportunidadesAbiertas();
-  return <OportunidadesCliente oportunidadesIniciales={oportunidades} />;
+  const [oportunidades, totalEmpresas] = await Promise.all([
+    obtenerOportunidadesAbiertas(),
+    contarEmpresasVerificadas(),
+  ]);
+
+  return (
+    <OportunidadesCliente
+      oportunidadesIniciales={oportunidades}
+      totalEmpresas={totalEmpresas}
+    />
+  );
 }

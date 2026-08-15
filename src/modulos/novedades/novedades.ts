@@ -6,7 +6,7 @@
  * una server action no existe del lado del cliente y rompe el import en tiempo
  * de build (la app entera devuelve 500).
  */
-export type NovedadId = "usuarios_empresa" | "perfil_directorio";
+export type NovedadId = "usuarios_empresa" | "perfil_directorio" | "oportunidades_cartelera";
 
 /** Clave dentro de `perfiles.tutoriales_vistos`, que es un mapa jsonb libre. */
 export function claveNovedad(id: NovedadId): string {
@@ -26,6 +26,14 @@ export const NOVEDAD_PUBLICADA_EL: Record<NovedadId, string> = {
   usuarios_empresa: "2026-08-04T00:00:00-03:00",
   // Rediseño de la ficha pública del directorio (2026-08-14).
   perfil_directorio: "2026-08-14T00:00:00-03:00",
+  /**
+   * Rediseño de la cartelera de oportunidades (2026-08-14, de noche).
+   *
+   * La hora importa: `perfil_directorio` salió a las 00:00 del mismo día, así
+   * que si esta llevara la misma marca, a quien creó la cuenta hoy a la tarde
+   * no le saldría ninguna de las dos. Va la hora real del deploy.
+   */
+  oportunidades_cartelera: "2026-08-14T23:30:00-03:00",
 };
 
 /**
@@ -36,6 +44,7 @@ export const NOVEDAD_PUBLICADA_EL: Record<NovedadId, string> = {
  * más nueva, y la otra queda para el próximo ingreso.
  */
 export const NOVEDADES_POR_PRIORIDAD: NovedadId[] = [
+  "oportunidades_cartelera",
   "perfil_directorio",
   "usuarios_empresa",
 ];

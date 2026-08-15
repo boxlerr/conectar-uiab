@@ -9,6 +9,7 @@ import { AuthModal } from "@/modulos/autenticacion/componentes/modal-autenticaci
 import { RecordarSesionGuard } from "@/modulos/autenticacion/componentes/recordar-sesion-guard";
 import { ModalNovedadUsuarios } from "@/modulos/novedades/modal-novedad-usuarios";
 import { ModalNovedadPerfil } from "@/modulos/novedades/modal-novedad-perfil";
+import { ModalNovedadOportunidades } from "@/modulos/novedades/modal-novedad-oportunidades";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { currentUser, logout } = useAuth();
@@ -73,6 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           pantalla, porque se entra al sistema por muchas puertas distintas. */}
       <ModalNovedadUsuarios />
       <ModalNovedadPerfil />
+      <ModalNovedadOportunidades />
     </div>
   );
 }
