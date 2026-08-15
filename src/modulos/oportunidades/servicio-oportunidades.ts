@@ -1,4 +1,9 @@
 import { createClient, resetClient } from '@/lib/supabase/cliente';
+import {
+  SELECT_OPORTUNIDAD,
+  type EmpresaSolicitante,
+  type ProveedorSolicitante,
+} from './solicitante';
 
 export interface Oportunidad {
   id: string;
@@ -14,7 +19,9 @@ export interface Oportunidad {
   fecha_necesidad?: string | null;
   creado_en: string;
   categoria?: { nombre: string };
-  empresa?: { razon_social: string };
+  /** Trae las columnas del logo: la cartelera muestra la marca de quien publica. */
+  empresa?: EmpresaSolicitante | null;
+  proveedor?: ProveedorSolicitante | null;
   oportunidades_tags?: { tags: { nombre: string } | null }[] | null;
 }
 
@@ -87,11 +94,7 @@ export const oportunidadesService = {
     const { data, error } = await race(
       (async () => await supabase
         .from('oportunidades')
-        .select(`
-          *,
-          categoria:categorias(nombre),
-          empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
-        `)
+        .select(SELECT_OPORTUNIDAD)
         .eq('estado', 'abierta')
         .order('creado_en', { ascending: false }))(),
       10000,
@@ -108,9 +111,7 @@ export const oportunidadesService = {
       (async () => await supabase
         .from('oportunidades')
         .select(`
-          *,
-          categoria:categorias(nombre),
-          empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social),
+          ${SELECT_OPORTUNIDAD},
           oportunidades_tags ( tags ( nombre ) )
         `)
         .eq('id', id)
@@ -132,11 +133,7 @@ export const oportunidadesService = {
         .from('oportunidades_matches')
         .select(`
           *,
-          oportunidad:oportunidades(
-            *,
-            categoria:categorias(nombre),
-            empresa:empresas!oportunidades_empresa_solicitante_id_fkey(razon_social)
-          )
+          oportunidad:oportunidades(${SELECT_OPORTUNIDAD})
         `)
         .eq(column, userId)
         .order('puntaje', { ascending: false }))(),

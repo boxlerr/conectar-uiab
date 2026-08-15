@@ -6,7 +6,7 @@
  * una server action no existe del lado del cliente y rompe el import en tiempo
  * de build (la app entera devuelve 500).
  */
-export type NovedadId = "usuarios_empresa";
+export type NovedadId = "usuarios_empresa" | "perfil_directorio" | "oportunidades_cartelera";
 
 /** Clave dentro de `perfiles.tutoriales_vistos`, que es un mapa jsonb libre. */
 export function claveNovedad(id: NovedadId): string {
@@ -24,7 +24,38 @@ export function claveNovedad(id: NovedadId): string {
 export const NOVEDAD_PUBLICADA_EL: Record<NovedadId, string> = {
   // Deploy de "cada socia da de alta a los usuarios de su empresa" (2026-08-04).
   usuarios_empresa: "2026-08-04T00:00:00-03:00",
+  // Rediseño de la ficha pública del directorio (2026-08-14).
+  perfil_directorio: "2026-08-14T00:00:00-03:00",
+  /**
+   * Rediseño de la cartelera de oportunidades (2026-08-14, de noche).
+   *
+   * La hora importa: `perfil_directorio` salió a las 00:00 del mismo día, así
+   * que si esta llevara la misma marca, a quien creó la cuenta hoy a la tarde
+   * no le saldría ninguna de las dos. Va la hora real del deploy.
+   */
+  oportunidades_cartelera: "2026-08-14T23:30:00-03:00",
 };
+
+/**
+ * En qué orden se anuncian cuando a alguien le corresponden varias: primero la
+ * más nueva.
+ *
+ * Dos carteles modales ENCIMADOS no se pueden cerrar (el de arriba tapa al de
+ * abajo y los dos `aria-modal` pelean por el foco), así que se ven de a uno.
+ * Pero de a uno POR SESIÓN era peor: al que le tocaban dos, la segunda no la
+ * veía nunca. Se recorren en una pila con Siguiente / Atrás — ver
+ * `pila-novedades.tsx`.
+ */
+export const NOVEDADES_POR_PRIORIDAD: NovedadId[] = [
+  "oportunidades_cartelera",
+  "perfil_directorio",
+  "usuarios_empresa",
+];
+
+/** Todas las novedades pendientes, en orden de anuncio. Vacío si no hay. */
+export function novedadesPendientes(perfil: PerfilParaNovedad): NovedadId[] {
+  return NOVEDADES_POR_PRIORIDAD.filter((id) => debeVerNovedad(id, perfil));
+}
 
 type PerfilParaNovedad = {
   /** ISO de `perfiles.creado_en`. Si no lo sabemos, no bloqueamos el cartel. */

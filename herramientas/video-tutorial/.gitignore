@@ -16,3 +16,12 @@ demo-ids.json
 sonda.txt
 tmp-prueba/
 prueba-look.png
+# Placas de texto renderizadas por el montaje (t-<escena>-<paso>.png): son 18
+# PNG de 5,9 MB que se regeneran solos. Mismo criterio que tmp-montaje/.
+# Pruebas de look sueltas, para mirar un frame y seguir.
+prueba-*.png
+
+# La música pesa 4,4 MB y no cambia nunca: va por Drive con los .mp4 de
+# apertura y cierre. El resto de assets/ (logos y marco) sí está versionado
+# porque son livianos y sin ellos el montaje no arranca.
+assets/musica.mp3
