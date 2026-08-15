@@ -37,11 +37,14 @@ export const NOVEDAD_PUBLICADA_EL: Record<NovedadId, string> = {
 };
 
 /**
- * En qué orden se anuncian cuando a alguien le corresponden varias.
+ * En qué orden se anuncian cuando a alguien le corresponden varias: primero la
+ * más nueva.
  *
- * Dos carteles modales encimados no se pueden cerrar: el de arriba tapa el de
- * abajo y el `aria-modal` de los dos pelea por el foco. Se muestra una sola, la
- * más nueva, y la otra queda para el próximo ingreso.
+ * Dos carteles modales ENCIMADOS no se pueden cerrar (el de arriba tapa al de
+ * abajo y los dos `aria-modal` pelean por el foco), así que se ven de a uno.
+ * Pero de a uno POR SESIÓN era peor: al que le tocaban dos, la segunda no la
+ * veía nunca. Se recorren en una pila con Siguiente / Atrás — ver
+ * `pila-novedades.tsx`.
  */
 export const NOVEDADES_POR_PRIORIDAD: NovedadId[] = [
   "oportunidades_cartelera",
@@ -49,9 +52,9 @@ export const NOVEDADES_POR_PRIORIDAD: NovedadId[] = [
   "usuarios_empresa",
 ];
 
-/** La novedad que toca mostrar ahora, o `null` si no hay ninguna pendiente. */
-export function novedadPendiente(perfil: PerfilParaNovedad): NovedadId | null {
-  return NOVEDADES_POR_PRIORIDAD.find((id) => debeVerNovedad(id, perfil)) ?? null;
+/** Todas las novedades pendientes, en orden de anuncio. Vacío si no hay. */
+export function novedadesPendientes(perfil: PerfilParaNovedad): NovedadId[] {
+  return NOVEDADES_POR_PRIORIDAD.filter((id) => debeVerNovedad(id, perfil));
 }
 
 type PerfilParaNovedad = {

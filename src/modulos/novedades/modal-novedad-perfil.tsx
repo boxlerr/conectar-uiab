@@ -1,37 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
-  ArrowRight, X, Check, BadgeCheck, Phone, LayoutGrid, Sparkles,
+  X, Check, BadgeCheck, Phone, LayoutGrid, Sparkles,
 } from "lucide-react";
-import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
-import { marcarNovedadVista } from "./acciones";
-import { novedadPendiente } from "./novedades";
-import { llamarAccion, fallo } from "@/lib/accion-segura";
+import { PieNovedad, type PropsNovedad } from "./pie-novedad";
 
 /**
  * Cartel de novedad: "tu ficha del directorio se rediseñó".
  *
- * Mismo mecanismo que el de usuarios — se muestra una sola vez, se marca en
- * `perfiles.tutoriales_vistos` y no le sale a quien creó la cuenta después del
- * cambio, porque para esa persona la ficha siempre fue así.
- *
- * Sólo se muestra si es LA novedad que toca: `novedadPendiente` elige una sola
- * cuando corresponden varias. Dos modales encimados no se pueden cerrar.
+ * Quién lo ve y cuándo NO se decide acá: lo maneja `pila-novedades.tsx`, que
+ * junta los carteles pendientes, los muestra de a uno con Siguiente / Atrás y
+ * los marca en `perfiles.tutoriales_vistos`. Este archivo es sólo el contenido.
  */
-
-const RUTAS_SIN_CARTEL = [
-  "/login",
-  "/register",
-  "/recovery",
-  "/restablecer-password",
-  "/definir-password",
-  "/completar-cuenta",
-  "/suscripcion/checkout",
-];
 
 /** Lo que cambió de verdad en la ficha. Nada de esto es promesa a futuro. */
 const CAMBIOS = [
@@ -52,23 +32,8 @@ const CAMBIOS = [
   },
 ];
 
-export function ModalNovedadPerfil() {
-  const { currentUser, refreshUser } = useAuth();
-  const pathname = usePathname();
-  const [cerrado, setCerrado] = useState(false);
-
-  const leToca = novedadPendiente(currentUser) === "perfil_directorio";
-  // Sólo a quien administra una ficha: es de quien hablamos.
-  const tieneFicha = Boolean(tipoEntidadDe(currentUser));
-  const enRutaDeAcceso = RUTAS_SIN_CARTEL.some((r) => pathname.startsWith(r));
-
-  if (!currentUser || !tieneFicha || !leToca || cerrado || enRutaDeAcceso) return null;
-
-  async function cerrar() {
-    setCerrado(true);
-    const r = await llamarAccion(() => marcarNovedadVista("perfil_directorio"));
-    if (!fallo(r) && r.ok) refreshUser();
-  }
+export function ModalNovedadPerfil(props: PropsNovedad) {
+  const cerrar = props.onCerrar;
 
   return (
     <div
@@ -213,22 +178,7 @@ export function ModalNovedadPerfil() {
             </ul>
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:items-center gap-2 pt-5 pb-6 md:pb-0">
-            <button
-              onClick={cerrar}
-              className="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition"
-            >
-              Después
-            </button>
-            <Link
-              href="/perfil/datos"
-              onClick={cerrar}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition"
-            >
-              Revisar mi ficha
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+          <PieNovedad {...props} cta={{ href: "/perfil/datos", label: "Revisar mi ficha" }} />
         </div>
       </div>
     </div>

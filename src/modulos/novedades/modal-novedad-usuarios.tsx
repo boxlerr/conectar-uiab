@@ -1,63 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ArrowRight, Users, X, Check, KeyRound, UserX } from "lucide-react";
-import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
-import { marcarNovedadVista } from "./acciones";
-import { novedadPendiente } from "./novedades";
-import { llamarAccion, fallo } from "@/lib/accion-segura";
+import { Users, X, Check, KeyRound, UserX } from "lucide-react";
+import { PieNovedad, type PropsNovedad } from "./pie-novedad";
 
 /**
  * Cartel de novedad: "ahora podés dar acceso a tu equipo".
  *
- * Aparece centrado apenas la socia entra (o recarga estando logueada) y se
- * muestra UNA sola vez: al cerrarlo se marca en `perfiles.tutoriales_vistos`.
- * No usa localStorage a propósito — si no, volvería a aparecer en cada
- * dispositivo y en cada navegador.
- *
- * NO le sale a quien creó la cuenta después de que la novedad salió: para esa
- * persona los usuarios de la ficha siempre existieron, y la lista de errores
- * corregidos habla de problemas que nunca vio. A ella se lo explica el propio
- * formulario de registro.
- *
- * Se decide con el `currentUser` que ya vino del servidor, así que no hay
- * fetch extra ni parpadeo: o está en el primer render o no está.
+ * Quién lo ve y cuándo NO se decide acá: lo maneja `pila-novedades.tsx`, que
+ * junta los carteles pendientes, los muestra de a uno con Siguiente / Atrás y
+ * los marca en `perfiles.tutoriales_vistos` (nunca en localStorage: si no,
+ * volvería a aparecer en cada dispositivo y en cada navegador). Este archivo es
+ * sólo el contenido.
  */
 
-/** Rutas donde un cartel modal sólo estorba (formularios de acceso). */
-const RUTAS_SIN_CARTEL = [
-  "/login",
-  "/register",
-  "/recovery",
-  "/restablecer-password",
-  "/definir-password",
-  "/suscripcion/checkout",
-];
-
-export function ModalNovedadUsuarios() {
-  const { currentUser, refreshUser } = useAuth();
-  const pathname = usePathname();
-  const [cerrado, setCerrado] = useState(false);
-
-  // `novedadPendiente` y no `debeVerNovedad`: a quien le tocan las dos se le
-  // muestra una sola. Dos modales encimados no se pueden cerrar.
-  const leCorresponde = novedadPendiente(currentUser) === "usuarios_empresa";
-  // Sólo a quien administra una ficha: es la única que puede dar accesos.
-  const tieneFicha = Boolean(tipoEntidadDe(currentUser));
-  const enRutaDeAcceso = RUTAS_SIN_CARTEL.some((r) => pathname.startsWith(r));
-
-  if (!currentUser || !tieneFicha || !leCorresponde || cerrado || enRutaDeAcceso) return null;
-
-  async function cerrar() {
-    setCerrado(true);
-    const r = await llamarAccion(() => marcarNovedadVista("usuarios_empresa"));
-    // Refrescamos el perfil para que el mapa de vistos quede al día en el
-    // contexto; si falla, el cartel igual ya no molesta en esta sesión.
-    if (!fallo(r) && r.ok) refreshUser();
-  }
+export function ModalNovedadUsuarios(props: PropsNovedad) {
+  const cerrar = props.onCerrar;
 
   return (
     <div
@@ -214,22 +171,7 @@ export function ModalNovedadUsuarios() {
 
           {/* Los botones viven dentro de la columna derecha: si quedaran fuera
               de la grilla se irían al ancho completo, debajo del panel navy. */}
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:items-center gap-2 pt-5 pb-6 md:pb-0">
-            <button
-              onClick={cerrar}
-              className="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition"
-            >
-              Después
-            </button>
-            <Link
-              href="/perfil/usuarios"
-              onClick={cerrar}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition"
-            >
-              Configurar mis usuarios
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+          <PieNovedad {...props} cta={{ href: "/perfil/usuarios", label: "Configurar mis usuarios" }} />
         </div>
       </div>
     </div>
