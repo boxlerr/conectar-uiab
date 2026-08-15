@@ -49,7 +49,7 @@ const CSS_FUENTES = [
 
 const PILA = `Poppins, "Helvetica Neue", system-ui, sans-serif`;
 
-const { pantalla: P } = MARCO;
+const { pantalla: P } = MARCO;  // el marco; cartelHTML puede usar el cuadro entero
 
 const escapar = (s) => String(s ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -57,7 +57,12 @@ const escapar = (s) => String(s ?? "")
 // ── Cartel (lower third) ─────────────────────────────────────────────
 // Va por DEBAJO del marco en el montaje: si el degradado se derrama fuera de
 // la pantalla, el marco lo tapa. Por eso no hace falta recortarlo acá.
-const cartelHTML = ({ rotulo, texto, sello }) => `
+const cartelHTML = ({ rotulo, texto, sello, plena = false }) => {
+// Un cartel "pleno" va sobre un plano a sangre —el del catálogo, que no es una
+// pantalla— así que se ancla al borde del CUADRO y no al de la pantalla del
+// marco. Todo lo demás (velo, tipografía, ritmo) es idéntico.
+const P = plena ? { x: 0, y: 0, w: MARCO.ancho, h: MARCO.alto } : MARCO.pantalla;
+return `
 <style>
   ${CSS_FUENTES}
   *{margin:0;padding:0;box-sizing:border-box}
@@ -128,6 +133,7 @@ const cartelHTML = ({ rotulo, texto, sello }) => `
   </div>
   <div class="texto">${escapar(texto)}</div>
 </div>`;
+};
 
 // ── Placa (tarjeta de capítulo, a cuadro completo) ───────────────────
 const placaHTML = ({ rotulo, titulo, texto, logo }) => `
@@ -217,7 +223,9 @@ export async function rasterizar(piezas, { destino = join(AQUI, "tmp-texto") } =
         const t = document.querySelector(".texto");
         const cs = getComputedStyle(t);
         return Math.round(t.getBoundingClientRect().height / parseFloat(cs.lineHeight));
-      }, { abajo: P.y + P.h, minimo: P.y });
+      }, pieza.plena
+        ? { abajo: MARCO.alto, minimo: 0 }
+        : { abajo: P.y + P.h, minimo: P.y });
 
       // Un titular de dos renglones no es un error, pero conviene saberlo: se
       // lee peor y empuja el bloque hacia arriba. El techo real depende de qué

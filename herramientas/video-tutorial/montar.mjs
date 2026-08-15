@@ -69,6 +69,19 @@ const FONDO = "#061f33"; // el mismo navy del marco: los cortes no parpadean
 const APERTURA = { archivo: "assets/apertura.mp4", dur: 3.2, anclaje: "final" };
 const CIERRE = { archivo: "assets/cierre.mp4", dur: 4.0, anclaje: "inicio" };
 
+// ── Plano insertado ──────────────────────────────────────────────────
+// Va a sangre, sin el marco, en medio del capítulo 1. Rompe la seguidilla de
+// pantallas y dice de qué habla el sitio —productos y servicios reales del
+// parque— sin poner en cámara el catálogo de una socia concreta.
+// Generado con Higgsfield (ver assets.json: modelo, prompt y descarte).
+const INSERTO = {
+  archivo: "assets/catalogo.mp4",
+  despuesDe: "ficha",
+  dur: 4.0,
+  rotulo: "El catálogo",
+  texto: "Servicios con foto y ficha, no una lista.",
+};
+
 const LOGO = "assets/logo-blanco.png";
 const LOGO_ANCHO = 820;
 
@@ -303,6 +316,14 @@ const PLACAS = {
     dur: 2.2,
   },
 };
+if (existsSync(INSERTO.archivo)) {
+  INSERTO.__texto = "inserto-catalogo.png";
+  piezas.push({
+    tipo: "cartel", plena: true, archivo: INSERTO.__texto,
+    rotulo: INSERTO.rotulo, texto: INSERTO.texto,
+  });
+}
+
 piezas.push(...Object.values(PLACAS));
 
 console.log(`  · rasterizando ${piezas.length} textos`);
@@ -369,6 +390,31 @@ const fpsDe = (f) => {
     return Number.isFinite(fps) && fps > 0 ? fps : null;
   } catch { return null; }
 };
+
+/** Plano a sangre con su cartel: sin marco, porque no es una pantalla. */
+function armarInserto(salida) {
+  const fpsOrigen = fpsDe(INSERTO.archivo);
+  const factor = fpsOrigen && Math.abs(fpsOrigen - FPS) > 0.01 ? fpsOrigen / FPS : 1;
+  const retimar = factor !== 1 ? `setpts=PTS*${factor.toFixed(6)},` : "";
+  const total = duracion(INSERTO.archivo);
+  const dur = Math.min(INSERTO.dur, (total ?? INSERTO.dur) * factor);
+  const salidaTexto = Math.max(0.1, dur - TEXTO.sale);
+  const p = `clip((t-${TEXTO.entra})/${TEXTO.entrada},0,1)`;
+  const subir = `${TEXTO.sube}*pow(1-${p},3)`;
+
+  ff([
+    "-t", (dur / factor).toFixed(3), "-i", INSERTO.archivo,
+    "-loop", "1", "-framerate", String(FPS), "-i", join(TMP_TEXTO, INSERTO.__texto),
+    "-filter_complex",
+    `[0:v]${retimar}scale=${W}:${H}:force_original_aspect_ratio=increase:flags=lanczos,`
+    + `crop=${W}:${H},fps=${FPS},eq=brightness=-0.02:saturation=1.04[v];`
+    + `[1:v]format=rgba,fade=t=in:st=${TEXTO.entra}:d=${TEXTO.entrada}:alpha=1,`
+    + `fade=t=out:st=${salidaTexto.toFixed(2)}:d=${TEXTO.sale}:alpha=1[txt];`
+    + `[v][txt]overlay=0:'${subir}':shortest=1,format=yuv420p[o]`,
+    "-map", "[o]", "-t", dur.toFixed(3), "-an", ...X264, salida,
+  ]);
+  return dur;
+}
 
 /** Plano aéreo con el logo compuesto encima. */
 function armarBookend(plano, cual, salida) {
@@ -487,6 +533,13 @@ for (let i = 0; i < partes.length; i++) {
     const real = duracion(dst) ?? dur;
     segmentos.push({ archivo: dst, dur: real, cruce: primeroDelCapitulo ? CRUCE.placa : CRUCE.plano, nombre: m.id });
     primeroDelCapitulo = false;
+
+    if (!SOLO && INSERTO.__texto && m.id === INSERTO.despuesDe) {
+      const ins = join(TMP, `s${String(++n).padStart(3, "0")}-inserto.mp4`);
+      const d = armarInserto(ins);
+      segmentos.push({ archivo: ins, dur: d, cruce: CRUCE.placa, nombre: "inserto · catálogo" });
+      console.log(`  · ${"inserto".padEnd(14)} ${d.toFixed(1)}s  a sangre (Higgsfield)`);
+    }
     const enc = encuadreDe(m);
     console.log(`  · ${m.id.padEnd(14)} ${real.toFixed(1)}s  zoom ${enc.z.toFixed(2)}×`
       + (vel !== 1 ? `  ${vel.toFixed(2)}× rápido` : ""));

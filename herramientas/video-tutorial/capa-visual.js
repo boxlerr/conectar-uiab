@@ -144,6 +144,27 @@
     /** Durante un plano, la página la mueve el guion y nadie más. */
     congelarScroll(v) { congelado = !!v; },
 
+    /**
+     * Claqueta de sincronía. Devuelve el reloj de pared del momento en que el
+     * verde YA está pintado; el montaje busca el primer fotograma verde del
+     * .webm y con esos dos datos ata el guion al video.
+     *
+     * Hace falta porque Playwright empieza a grabar cuando se crea la página,
+     * y entre ese instante y el primer fotograma real hay una demora que
+     * cambia en cada corrida.
+     */
+    async claqueta(ms = 300) {
+      montar();
+      const el = $("#uiab-claqueta");
+      el.classList.add("visible");
+      await pintado();
+      const t = Date.now();
+      await espera(ms);
+      el.classList.remove("visible");
+      await pintado();
+      return t;
+    },
+
     /** Scroll con easing propio: window.scrollTo({behavior:"smooth"}) va
      *  demasiado rápido y entrecortado para filmar. */
     async scrollSuave(y, ms = 1100) {
