@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { crearOportunidad } from "./acciones";
@@ -14,7 +16,6 @@ import {
   Italic,
   List,
   ListOrdered,
-  ChevronDown,
   Target,
   Tag,
   ShieldCheck,
@@ -24,6 +25,8 @@ import {
   Wrench,
   Users,
   Shapes,
+  MapPin,
+  MessageCircle,
 } from "lucide-react";
 import { llamarAccion, fallo } from "@/lib/accion-segura";
 
@@ -32,16 +35,15 @@ import { llamarAccion, fallo } from "@/lib/accion-segura";
 const manrope = { fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" } as const;
 
 const inputCls =
-  "h-11 w-full rounded-sm border border-slate-200 bg-white px-3.5 " +
+  "h-12 w-full rounded-xl border border-slate-200 bg-white px-4 " +
   // text-base fijo: con `sm:text-sm` Safari iOS vuelve a hacer zoom al enfocar
   // (el iPhone apaisado ya entra en el breakpoint sm).
-  "text-base text-slate-900 placeholder:text-slate-400 shadow-sm " +
+  "text-base text-slate-900 placeholder:text-slate-400 " +
   "transition-colors hover:border-slate-300 " +
-  "focus:border-[#10375c] focus:outline-none focus:ring-2 focus:ring-[#10375c]/20 " +
+  "focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 " +
   "disabled:bg-slate-50 disabled:text-slate-400";
 
-const labelCls =
-  "block mb-2 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500";
+const labelCls = "block mb-2 text-sm font-semibold text-slate-700";
 
 /** Qué necesita quien publica. Los `valor` coinciden con el CHECK de
  *  `oportunidades.tipo_requerimiento` (text[]) en la base. */
@@ -55,28 +57,34 @@ const TIPOS_REQUERIMIENTO = [
 function EncabezadoSeccion({
   numero,
   titulo,
+  descripcion,
   badge,
 }: {
   numero: string;
   titulo: string;
+  /** Bajada de la sección: explica qué se espera antes de mostrar los campos. */
+  descripcion?: string;
   badge?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 mb-6">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-[#00213f] text-white text-[11px] sm:text-[10px] font-black tabular-nums">
-        {numero}
-      </span>
-      <h2
-        style={manrope}
-        className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#00213f]"
-      >
-        {titulo}
-      </h2>
-      <span className="flex-1 h-px bg-slate-200/60" />
-      {badge && (
-        <span className="shrink-0 rounded-sm bg-[#f2f4f6] px-2 py-0.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
-          {badge}
+    <div className="mb-5">
+      <div className="flex items-center gap-3">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-[11px] font-black tabular-nums text-white">
+          {numero}
         </span>
+        <h2 style={manrope} className="text-lg font-black tracking-tight text-[#00213f]">
+          {titulo}
+        </h2>
+        {badge && (
+          <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+            {badge}
+          </span>
+        )}
+      </div>
+      {descripcion && (
+        <p className="mt-2 max-w-prose pl-10 text-sm leading-relaxed text-slate-500">
+          {descripcion}
+        </p>
       )}
     </div>
   );
@@ -139,19 +147,19 @@ function RichTextEditor({
   };
 
   const botonCls = (activo: boolean) =>
-    `h-11 w-11 sm:h-9 sm:w-9 rounded-sm transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10375c]/40 ${
+    `h-11 w-11 sm:h-9 sm:w-9 rounded-lg transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 ${
       activo
-        ? "bg-[#00213f] text-white"
+        ? "bg-primary-600 text-white"
         : "text-slate-500 hover:bg-slate-200/70 hover:text-slate-800"
     }`;
 
   return (
     <div
-      className={`rounded-sm border bg-white shadow-sm overflow-hidden transition-colors focus-within:border-[#10375c] focus-within:ring-2 focus-within:ring-[#10375c]/20 ${
+      className={`rounded-xl border bg-white overflow-hidden transition-colors focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 ${
         invalido ? "border-red-300" : "border-slate-200"
       }`}
     >
-      <div className="bg-[#f7f9fb] border-b border-slate-200 px-2.5 py-2 flex items-center gap-1">
+      <div className="bg-slate-50/80 border-b border-slate-200 px-2.5 py-2 flex items-center gap-1">
         <button
           type="button"
           onMouseDown={(e) => exec("bold", e)}
@@ -311,11 +319,9 @@ export function FormularioOportunidad({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 mb-24 items-start">
       {/* Columna principal: formulario */}
-      <div className="lg:col-span-8 bg-white rounded-xl border border-slate-200/60 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_32px_-12px_rgba(15,23,42,0.08)]">
-        <div className="h-1 bg-[#00213f] rounded-t-xl" />
-
+      <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_32px_-12px_rgba(15,23,42,0.08)]">
         <form onSubmit={handleSubmit}>
-          <div className="p-6 sm:p-8 lg:p-10 space-y-12">
+          <div className="p-6 sm:p-8 lg:p-10 space-y-10">
             <input type="hidden" name="visibilidad" value="privada_parque" />
 
             {error && (
@@ -323,7 +329,7 @@ export function FormularioOportunidad({
                 ref={contenedorErrorRef}
                 role="alert"
                 tabIndex={-1}
-                className="rounded-sm border border-red-200 bg-red-50 p-4 flex items-start gap-3"
+                className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-start gap-3"
               >
                 <AlertCircle
                   className="w-5 h-5 text-red-500 shrink-0 mt-px"
@@ -333,21 +339,20 @@ export function FormularioOportunidad({
               </div>
             )}
 
-            {/* ── 01 · Requerimiento ── */}
+            {/* ── 01 · ¿Qué necesitás? ── */}
             <div>
-              <EncabezadoSeccion numero="01" titulo="Requerimiento" />
+              <EncabezadoSeccion
+                numero="01"
+                titulo="¿Qué necesitás?"
+                descripcion="Podés combinar más de uno: material, servicio, producto o personal."
+              />
 
-              {/* ¿Qué necesitás?: material / servicio / personal / otro */}
               <fieldset className="mb-6">
-                <legend className={labelCls}>¿Qué necesitás?</legend>
-                <p className="text-sm text-slate-500 leading-relaxed mb-3 max-w-prose">
-                  Marcá lo que estás buscando. Podés combinar más de uno: material,
-                  servicio, producto o personal.
-                </p>
+                <legend className="sr-only">¿Qué necesitás?</legend>
                 <div
                   role="group"
                   aria-label="¿Qué necesitás?"
-                  className="flex flex-wrap gap-2"
+                  className="grid grid-cols-2 gap-3 sm:grid-cols-4"
                 >
                   {TIPOS_REQUERIMIENTO.map(({ valor, label, icon: Icon }) => {
                     const activo = tiposReq.has(valor);
@@ -357,14 +362,14 @@ export function FormularioOportunidad({
                         type="button"
                         onClick={() => toggleTipo(valor)}
                         aria-pressed={activo}
-                        className={`inline-flex h-10 items-center gap-2 rounded-sm border px-3.5 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10375c]/40 ${
+                        className={`flex h-16 items-center justify-center gap-2.5 rounded-xl border-2 px-3 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 ${
                           activo
-                            ? "border-[#00213f] bg-[#00213f] text-white shadow-sm"
-                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800"
+                            ? "border-primary-500 bg-primary-50/70 text-primary-700 shadow-sm"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                         }`}
                       >
                         <Icon
-                          className={`w-4 h-4 ${activo ? "text-white" : "text-slate-400"}`}
+                          className={`h-5 w-5 shrink-0 ${activo ? "text-primary-600" : "text-slate-400"}`}
                           aria-hidden="true"
                         />
                         {label}
@@ -374,29 +379,37 @@ export function FormularioOportunidad({
                 </div>
               </fieldset>
 
-              <p className="text-xs text-slate-400 mb-5">
-                Los campos con <span className="text-red-500">*</span> son obligatorios.
-              </p>
+              <div>
+                <label htmlFor="titulo" className={labelCls}>
+                  Título del requerimiento
+                  <Obligatorio />
+                </label>
+                <input
+                  id="titulo"
+                  name="titulo"
+                  required
+                  maxLength={120}
+                  placeholder="Ej. Reparación de torno CNC · Provisión de chapa laminada"
+                  className={inputCls}
+                />
+                <p className="mt-2 text-xs text-slate-400">
+                  Es lo primero que se lee en la cartelera: que se entienda solo.
+                </p>
+              </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                <div className="sm:col-span-2">
-                  <label htmlFor="titulo" className={labelCls}>
-                    Título del requerimiento
-                    <Obligatorio />
-                  </label>
-                  <input
-                    id="titulo"
-                    name="titulo"
-                    required
-                    maxLength={120}
-                    placeholder="Ej. Reparación de torno CNC · Provisión de chapa laminada"
-                    className={inputCls}
-                  />
-                </div>
+            {/* ── 02 · Rubro y ubicación ── */}
+            <div>
+              <EncabezadoSeccion
+                numero="02"
+                titulo="Rubro y ubicación"
+                descripcion="Son los dos primeros filtros del cruce con los perfiles de la red."
+              />
 
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                 <div>
                   <label htmlFor="categoria_id" className={labelCls}>
-                    Rubro
+                    Rubro principal
                     <Obligatorio />
                   </label>
                   <SelectUIAB
@@ -405,7 +418,7 @@ export function FormularioOportunidad({
                     required
                     defaultValue=""
                     placeholder="Elegí el rubro…"
-                    ariaLabel="Rubro"
+                    ariaLabel="Rubro principal"
                     className={inputCls}
                     options={categorias.map((cat) => ({ value: cat.id, label: cat.nombre }))}
                   />
@@ -416,31 +429,38 @@ export function FormularioOportunidad({
                     Ubicación
                     <Obligatorio />
                   </label>
-                  <input
-                    id="localidad"
-                    name="localidad"
-                    required
-                    placeholder="Ej. Burzaco, Provincia de Buenos Aires"
-                    className={inputCls}
-                  />
+                  <div className="relative">
+                    <input
+                      id="localidad"
+                      name="localidad"
+                      required
+                      placeholder="Ej. Burzaco, Provincia de Buenos Aires"
+                      className={`${inputCls} pr-11`}
+                    />
+                    <MapPin
+                      className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                      aria-hidden="true"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* ── 02 · Descripción ── */}
+            {/* ── 03 · Descripción ── */}
             <div>
-              <EncabezadoSeccion numero="02" titulo="Descripción" />
+              <EncabezadoSeccion
+                numero="03"
+                titulo="Contanos más detalles"
+                descripcion="Describí el trabajo, especificaciones técnicas, cantidades, plazos y cualquier condición importante. Cuanto más concreto, mejores las respuestas."
+              />
 
               <span id="lbl-descripcion" className="sr-only">
                 Descripción del requerimiento (obligatorio)
               </span>
-              <p
-                id="ayuda-descripcion"
-                className="text-sm text-slate-500 leading-relaxed mb-4 max-w-prose"
-              >
-                Detallá el trabajo: qué hay que hacer, especificaciones técnicas, plazos y
-                condiciones. Cuanto más concreto, mejores las respuestas.
-              </p>
+              <span id="ayuda-descripcion" className="sr-only">
+                Describí el trabajo, especificaciones técnicas, cantidades, plazos y
+                condiciones.
+              </span>
               <RichTextEditor
                 name="descripcion"
                 invalido={descripcionVacia}
@@ -448,9 +468,14 @@ export function FormularioOportunidad({
               />
             </div>
 
-            {/* ── 03 · Detalles logísticos ── */}
+            {/* ── 04 · Detalles logísticos ── */}
             <div>
-              <EncabezadoSeccion numero="03" titulo="Detalles logísticos" badge="Opcional" />
+              <EncabezadoSeccion
+                numero="04"
+                titulo="Cantidades y plazos"
+                descripcion="Se muestran como datos sueltos en la tarjeta del pedido, sin que haya que abrirlo."
+                badge="Opcional"
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-5">
                 <div>
@@ -494,9 +519,9 @@ export function FormularioOportunidad({
               </div>
             </div>
 
-            {/* ── 04 · Etiquetas para el match ── */}
+            {/* ── 05 · Etiquetas para el match ── */}
             <div>
-              <EncabezadoSeccion numero="04" titulo="Etiquetas para el match" />
+              <EncabezadoSeccion numero="05" titulo="Etiquetas para el match" />
 
               <p className="text-sm text-slate-500 leading-relaxed mb-4 max-w-prose">
                 Escribí lo que necesitás —material, servicio, producto o personal— y elegí de
@@ -518,18 +543,28 @@ export function FormularioOportunidad({
           </div>
 
           {/* Footer de acciones: sticky dentro de la tarjeta */}
-          <div className="sticky bottom-0 z-20 rounded-b-xl border-t border-slate-200/70 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 shadow-[0_-8px_24px_-18px_rgba(15,23,42,0.25)]">
-            <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              Visible sólo para la red UIAB · {totalEtiquetas} etiqueta
-              {totalEtiquetas === 1 ? "" : "s"}
-            </p>
+          <div className="sticky bottom-0 z-20 rounded-b-2xl border-t border-slate-200/70 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 shadow-[0_-8px_24px_-18px_rgba(15,23,42,0.25)]">
+            <div className="flex items-start gap-2.5">
+              <ShieldCheck
+                className="h-5 w-5 shrink-0 text-emerald-500"
+                aria-hidden="true"
+              />
+              <p className="text-xs leading-snug text-slate-500">
+                <span className="font-semibold text-slate-700">
+                  Visible sólo para empresas socias y prestadores verificados de la UIAB.
+                </span>
+                <br />
+                Tu requerimiento no es público · {totalEtiquetas} etiqueta
+                {totalEtiquetas === 1 ? "" : "s"}
+              </p>
+            </div>
 
-            <div className="flex gap-3">
+            <div className="flex shrink-0 gap-3">
               <button
                 type="button"
                 onClick={() => router.back()}
                 disabled={loading}
-                className="h-11 px-6 rounded-sm border border-slate-200 bg-white text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10375c]/40 disabled:opacity-50 disabled:pointer-events-none"
+                className="h-12 shrink-0 px-6 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 disabled:opacity-50 disabled:pointer-events-none"
               >
                 Volver
               </button>
@@ -537,7 +572,7 @@ export function FormularioOportunidad({
               <button
                 type="submit"
                 disabled={loading}
-                className="group inline-flex items-center justify-center gap-2 h-11 px-8 rounded-sm bg-[#00213f] text-white text-sm font-extrabold shadow-lg shadow-[#00213f]/20 transition-all hover:bg-[#10375c] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#10375c]/40 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none"
+                className="group inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary-600 px-7 sm:whitespace-nowrap text-sm font-extrabold text-white shadow-lg shadow-primary-600/25 transition-all hover:bg-primary-700 hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none"
               >
                 {loading ? (
                   <>
@@ -560,15 +595,17 @@ export function FormularioOportunidad({
       </div>
 
       {/* Columna lateral */}
-      <aside className="lg:col-span-4 space-y-4 lg:sticky lg:top-24">
-        <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm p-6">
-          <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400 mb-4">
-            Cómo funciona el match
+      <aside className="lg:col-span-4 space-y-5 lg:sticky lg:top-28">
+        <div className="rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
+          <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+            ¿Cómo funciona el match?
           </p>
-          <ul className="space-y-3.5 text-sm text-slate-600 leading-relaxed">
+          <ul className="space-y-4 text-sm leading-relaxed text-slate-600">
             <li className="flex gap-3">
-              <Target className="w-4 h-4 text-[#10375c] shrink-0 mt-0.5" aria-hidden="true" />
-              <span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                <Target className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span className="pt-1.5">
                 Cruzamos{" "}
                 <strong className="font-semibold text-slate-800">
                   rubro, ubicación y etiquetas
@@ -577,28 +614,31 @@ export function FormularioOportunidad({
               </span>
             </li>
             <li className="flex gap-3">
-              <Tag className="w-4 h-4 text-[#10375c] shrink-0 mt-0.5" aria-hidden="true" />
-              <span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                <Tag className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span className="pt-1.5">
                 Cada etiqueta suma puntaje. Con{" "}
                 <strong className="font-semibold text-slate-800">5 o más</strong> aparecen más
                 candidatos.
               </span>
             </li>
             <li className="flex gap-3">
-              <ShieldCheck
-                className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"
-                aria-hidden="true"
-              />
-              <span>Sólo lo ven empresas socias y prestadores verificados. No es público.</span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span className="pt-1.5">
+                Sólo lo ven empresas socias y prestadores verificados. No es público.
+              </span>
             </li>
           </ul>
         </div>
 
-        <div className="bg-[#f2f4f6] rounded-xl p-6">
-          <p className="text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 mb-4">
+        <div className="rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
+          <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
             Antes de publicar
           </p>
-          <ul className="space-y-3 text-sm text-slate-600 leading-relaxed">
+          <ul className="space-y-3 text-sm leading-relaxed text-slate-600">
             {[
               "Especificá material, medidas y tolerancias si aplican.",
               "Aclará si el trabajo es en planta o en el taller del prestador.",
@@ -606,13 +646,52 @@ export function FormularioOportunidad({
             ].map((consejo) => (
               <li key={consejo} className="flex gap-3">
                 <CheckCircle2
-                  className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"
                   aria-hidden="true"
                 />
                 <span>{consejo}</span>
               </li>
             ))}
           </ul>
+        </div>
+
+        {/*
+          El mockup traía acá un "Ver tutorial" con un monitor y un play. No hay
+          video publicado —el de `herramientas/video-tutorial` todavía no salió— y
+          el tour de onboarding vive en /oportunidades: dispararlo desde este
+          formulario navegaría afuera y se llevaría puesto lo que la socia escribió.
+          Así que la tarjeta queda, pero mandando a donde hay alguien del otro lado.
+        */}
+        <div className="overflow-hidden rounded-2xl border border-primary-100 bg-primary-50/60 p-6">
+          <div className="flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <p
+                style={manrope}
+                className="text-base font-black tracking-tight text-[#00213f]"
+              >
+                ¿Dudas con el pedido?
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                Escribinos y te damos una mano para redactarlo, así le llega a las socias
+                indicadas.
+              </p>
+            </div>
+            <Image
+              src="/landing/ayuda-contacto.webp"
+              alt=""
+              aria-hidden="true"
+              width={600}
+              height={355}
+              className="hidden h-auto w-24 shrink-0 select-none sm:block"
+            />
+          </div>
+          <Link
+            href="/contacto"
+            className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-bold text-[#00213f] shadow-sm ring-1 ring-slate-200 transition-colors hover:bg-slate-50"
+          >
+            <MessageCircle className="h-4 w-4 text-primary-600" aria-hidden="true" />
+            Escribinos
+          </Link>
         </div>
       </aside>
     </div>
