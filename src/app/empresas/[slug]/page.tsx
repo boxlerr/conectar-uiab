@@ -1,6 +1,6 @@
 import { createClient as createServerClient } from "@/lib/supabase/servidor";
 import { createClient } from "@supabase/supabase-js";
-import { crearSlug, normalizarSitioWeb } from "@/lib/utilidades";
+import { crearSlug, normalizarSitioWeb, normalizarSitiosWeb } from "@/lib/utilidades";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
@@ -452,6 +452,16 @@ export async function generateMetadata({
 }
 
 /**
+ * Cómo se LEE una web en la ficha: sin esquema ni barra final.
+ * "https://www.metlongchamps.com/" → "www.metlongchamps.com"
+ *
+ * El href siempre lleva la URL completa; esto es sólo el texto.
+ */
+function textoDeWeb(url: string): string {
+  return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
+/**
  * JSON-LD Organization de la ficha: le dice a Google que ESTA página describe a
  * ESA empresa, y que la empresa es socia de la UIAB.
  *
@@ -475,6 +485,8 @@ function jsonLdOrganizacion(opts: {
   provincia: string | null;
   logoUrl: string | null;
   sitioWeb: string | null;
+  /** Webs extra de la ficha. Suman a `sameAs` junto con la principal. */
+  sitiosWebAdicionales?: readonly string[] | null;
   url: string;
   direccion?: string | null;
   codigoPostal?: string | number | null;
@@ -485,6 +497,14 @@ function jsonLdOrganizacion(opts: {
   const tel = telefonoE164(opts.telefono);
   const web = normalizarSitioWeb(opts.sitioWeb);
   const cp = opts.codigoPostal != null ? String(opts.codigoPostal).trim() : "";
+
+  // `sameAs` acepta varias: si la socia cargó la institucional y la tienda, las
+  // dos corroboran la misma entidad. `normalizarSitiosWeb` deduplica contra la
+  // principal, así que acá no puede repetirse.
+  const websSameAs = [
+    ...(web ? [web] : []),
+    ...(normalizarSitiosWeb(opts.sitiosWebAdicionales, opts.sitioWeb) ?? []),
+  ];
 
   // Sin localidad no hay PostalAddress que valga: `streetAddress` suelto no
   // ubica nada. Con localidad, sumamos todo lo que haya.
@@ -512,7 +532,7 @@ function jsonLdOrganizacion(opts: {
     // tiene la ficha: es el que le dice a Google de qué empresa estamos
     // hablando. 50 de las 59 lo tienen cargado; las 9 que no, difícilmente
     // aparezcan al buscar su nombre hasta que se les cargue.
-    ...(web ? { sameAs: [web] } : {}),
+    ...(websSameAs.length ? { sameAs: websSameAs } : {}),
     ...(address ? { address } : {}),
     ...(tel ? { telephone: tel } : {}),
     ...(opts.email?.trim() ? { email: opts.email.trim() } : {}),
@@ -698,6 +718,7 @@ export default async function EmpresaProfilePage({
         actividad,
         descripcion,
         sitio_web,
+        sitios_web_adicionales,
         email,
         email_compras,
         email_mantenimiento,
@@ -746,6 +767,7 @@ export default async function EmpresaProfilePage({
         provincia,
         descripcion,
         sitio_web,
+        sitios_web_adicionales,
         fecha_inicio_experiencia,
         bucket_logo,
         ruta_logo,
@@ -1004,7 +1026,9 @@ async function EmpresaProfile({
       // El contacto es público (se ve sin cuenta): ese es el valor de ser socio.
       telefono: empresaDb.telefono || "",
       whatsapp: empresaDb.whatsapp || empresaDb.telefono || "",
-      sitioWeb: empresaDb.sitio_web || ""
+      sitioWeb: empresaDb.sitio_web || "",
+      sitiosWebAdicionales:
+        normalizarSitiosWeb(empresaDb.sitios_web_adicionales, empresaDb.sitio_web) ?? [],
     }
   };
 
@@ -1023,7 +1047,12 @@ async function EmpresaProfile({
       : null;
 
   const webNormalizada = normalizarSitioWeb(empresa.contacto.sitioWeb);
-  const webVisible = empresa.contacto.sitioWeb.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const webVisible = webNormalizada ? textoDeWeb(webNormalizada) : "";
+  // La principal primero: es la que va en la cabecera y en el directorio.
+  const todasLasWebs = [
+    ...(webNormalizada ? [webNormalizada] : []),
+    ...empresa.contacto.sitiosWebAdicionales,
+  ];
   const emailReal = (empresaDb.email || "").trim();
 
   /**
@@ -1127,6 +1156,7 @@ async function EmpresaProfile({
                 provincia: empresaDb.provincia || null,
                 logoUrl: empresa.logoUrl,
                 sitioWeb: empresaDb.sitio_web || null,
+                sitiosWebAdicionales: empresaDb.sitios_web_adicionales,
                 url: `${SITE_URL}${currentPath}`,
                 direccion: empresaDb.direccion || null,
                 codigoPostal: empresaDb.codigo_postal ?? null,
@@ -1405,14 +1435,20 @@ async function EmpresaProfile({
                     </li>
                   )}
 
-                  {empresa.contacto.sitioWeb && (
+                  {todasLasWebs.length > 0 && (
                     <li className="flex items-start gap-3">
                       <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
-                        <a href={normalizarSitioWeb(empresa.contacto.sitioWeb) ?? "#"} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
-                          {empresa.contacto.sitioWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                        </a>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">
+                          {todasLasWebs.length > 1 ? "Sitios web" : "Sitio web"}
+                        </p>
+                        <div className="flex flex-col gap-1">
+                          {todasLasWebs.map((web) => (
+                            <a key={web} href={web} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold text-[14px] hover:text-blue-900 transition-colors break-all">
+                              {textoDeWeb(web)}
+                            </a>
+                          ))}
+                        </div>
                       </div>
                     </li>
                   )}
@@ -1590,6 +1626,8 @@ async function ProveedorProfile({
       emailMantenimiento: provDb.email_mantenimiento || "",
       telefono: provDb.telefono || "",
       sitioWeb: provDb.sitio_web || "",
+      sitiosWebAdicionales:
+        normalizarSitiosWeb(provDb.sitios_web_adicionales, provDb.sitio_web) ?? [],
     }
   };
 
@@ -1602,7 +1640,12 @@ async function ProveedorProfile({
       : null;
 
   const webNormalizada = normalizarSitioWeb(proveedor.contacto.sitioWeb);
-  const webVisible = proveedor.contacto.sitioWeb.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const webVisible = webNormalizada ? textoDeWeb(webNormalizada) : "";
+  // La principal primero: es la que va en la cabecera y en el directorio.
+  const todasLasWebs = [
+    ...(webNormalizada ? [webNormalizada] : []),
+    ...proveedor.contacto.sitiosWebAdicionales,
+  ];
   const emailReal = (provDb.email || "").trim();
 
   const datosCabecera: DatoCabecera[] = ([
@@ -1678,6 +1721,7 @@ async function ProveedorProfile({
               provincia: provDb.provincia || null,
               logoUrl: proveedor.logoUrl,
               sitioWeb: provDb.sitio_web || null,
+              sitiosWebAdicionales: provDb.sitios_web_adicionales,
               url: `${SITE_URL}${currentPath}`,
               telefono: provDb.telefono || null,
               email: provDb.email || null,
@@ -1857,14 +1901,20 @@ async function ProveedorProfile({
                     </li>
                   )}
 
-                  {webNormalizada && (
+                  {todasLasWebs.length > 0 && (
                     <li className="flex items-start gap-3">
                       <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">Sitio web</p>
-                        <a href={webNormalizada} target="_blank" rel="noopener noreferrer" className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
-                          {webVisible}
-                        </a>
+                        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-0.5">
+                          {todasLasWebs.length > 1 ? "Sitios web" : "Sitio web"}
+                        </p>
+                        <div className="flex flex-col gap-1">
+                          {todasLasWebs.map((web) => (
+                            <a key={web} href={web} target="_blank" rel="noopener noreferrer" className="text-[#bf7035] font-semibold text-[14px] hover:text-[#a0622c] transition-colors break-all">
+                              {textoDeWeb(web)}
+                            </a>
+                          ))}
+                        </div>
                       </div>
                     </li>
                   )}

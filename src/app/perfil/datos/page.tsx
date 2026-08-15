@@ -5,14 +5,20 @@ import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad
 import { Button } from "@/components/ui/button";
 import { SelectUIAB } from "@/components/ui/select-uiab";
 import { Card } from "@/components/ui/card";
-import { Save, User, Building, MapPin, Phone, Mail, Globe, FileText, Loader2, Users, Wrench } from "lucide-react";
+import { Save, User, Building, MapPin, Phone, Mail, Globe, FileText, Loader2, Users, Wrench, Plus, X } from "lucide-react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/cliente";
 import { updateCompanyOrProvider } from "../acciones";
 import { toast } from "sonner";
 import Image from "next/image";
 import { PROVINCIAS_AR, LOCALIDADES_ALMIRANTE_BROWN } from "@/lib/datos/geografia-ar";
-import { cn, normalizarSitioWeb, pareceEmail } from "@/lib/utilidades";
+import {
+  cn,
+  normalizarSitioWeb,
+  normalizarSitiosWeb,
+  pareceEmail,
+  MAX_SITIOS_WEB_ADICIONALES,
+} from "@/lib/utilidades";
 import { AvisoConflictosPadronAuto } from "@/modulos/altas/componentes/aviso-conflictos-padron-auto";
 import { llamarAccion, fallo } from "@/lib/accion-segura";
 
@@ -39,6 +45,9 @@ export default function MiPerfilDatosPage() {
     telefono: "",
     whatsapp: "",
     sitio_web: "",
+    // Webs extra además de la principal. Siempre array (nunca null) para que los
+    // inputs sean controlados de punta a punta; se convierte a null al guardar.
+    sitios_web_adicionales: [] as string[],
     pais: "Argentina",
     provincia: "Buenos Aires",
     localidad: "",
@@ -79,6 +88,9 @@ export default function MiPerfilDatosPage() {
           telefono: data.telefono || "",
           whatsapp: data.whatsapp || "",
           sitio_web: data.sitio_web || "",
+          sitios_web_adicionales: Array.isArray(data.sitios_web_adicionales)
+            ? data.sitios_web_adicionales.filter((s: unknown): s is string => typeof s === "string")
+            : [],
           pais: data.pais || "Argentina",
           provincia: data.provincia || "Buenos Aires",
           localidad: data.localidad || "",
@@ -243,6 +255,13 @@ export default function MiPerfilDatosPage() {
         ...comunes,
         // El socio puede haber mandado Enter sin pasar por el onBlur del campo.
         sitio_web: normalizarSitioWeb(formData.sitio_web),
+        // Deduplica contra la principal y devuelve null si no quedó ninguna: la
+        // columna es opcional y `[]` haría que la ficha se vea "con webs extra"
+        // en cualquier chequeo por longitud.
+        sitios_web_adicionales: normalizarSitiosWeb(
+          formData.sitios_web_adicionales,
+          formData.sitio_web
+        ),
       };
 
       if (esFichaDeEmpresa(currentUser)) {
@@ -276,6 +295,29 @@ export default function MiPerfilDatosPage() {
       setLoading(false);
     }
   };
+
+  // Webs adicionales: el estado guarda strings crudos (lo que el socio va
+  // tecleando) y la normalización corre al salir del campo y otra vez al
+  // guardar, igual que con la principal. Forma funcional de setFormData porque
+  // estas tres se pueden encadenar rápido (agregar y tipear sin soltar).
+  const cambiarWebAdicional = (indice: number, valor: string) =>
+    setFormData(f => ({
+      ...f,
+      sitios_web_adicionales: f.sitios_web_adicionales.map((w, i) => (i === indice ? valor : w)),
+    }));
+
+  const quitarWebAdicional = (indice: number) =>
+    setFormData(f => ({
+      ...f,
+      sitios_web_adicionales: f.sitios_web_adicionales.filter((_, i) => i !== indice),
+    }));
+
+  const agregarWebAdicional = () =>
+    setFormData(f =>
+      f.sitios_web_adicionales.length >= MAX_SITIOS_WEB_ADICIONALES
+        ? f
+        : { ...f, sitios_web_adicionales: [...f.sitios_web_adicionales, ""] }
+    );
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -520,6 +562,54 @@ export default function MiPerfilDatosPage() {
                 placeholder="www.miempresa.com"
               />
               <p className="text-xs text-slate-400">Podés escribirlo sin https://, lo completamos nosotros.</p>
+
+              {/* Webs adicionales. Van debajo de la principal y no al lado a
+                  propósito: la de arriba es la que sale en el directorio y en la
+                  cabecera de la ficha, las de acá sólo en el bloque de contacto.
+                  Puestas en la misma fila parecerían equivalentes. */}
+              {formData.sitios_web_adicionales.map((web, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    inputMode="url"
+                    aria-label={`Sitio web adicional ${i + 1}`}
+                    value={web}
+                    onChange={e => cambiarWebAdicional(i, e.target.value)}
+                    onBlur={e => cambiarWebAdicional(i, normalizarSitioWeb(e.target.value) ?? "")}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+                    placeholder="www.otra-web.com"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => quitarWebAdicional(i)}
+                    aria-label={`Quitar sitio web adicional ${i + 1}`}
+                    className="shrink-0 rounded-lg border border-slate-200 p-2 text-slate-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+
+              {formData.sitios_web_adicionales.length < MAX_SITIOS_WEB_ADICIONALES && (
+                <button
+                  type="button"
+                  onClick={agregarWebAdicional}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 transition-colors hover:text-primary-700"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {formData.sitios_web_adicionales.length === 0
+                    ? "Agregar otra web"
+                    : "Agregar una más"}
+                </button>
+              )}
+
+              {formData.sitios_web_adicionales.length > 0 && (
+                <p className="text-xs text-slate-400">
+                  Si tenés más de una (tienda, otra marca, otra unidad de negocio),
+                  todas aparecen en el contacto de tu ficha. La de arriba es la
+                  principal: es la que se muestra en el directorio.
+                </p>
+              )}
             </div>
 
             {/* Ubicación Agrupada */}
