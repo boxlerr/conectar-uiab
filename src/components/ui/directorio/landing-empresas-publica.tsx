@@ -263,7 +263,7 @@ export function PublicEmpresasLanding({
             {[
               { val: String(totalEmpresas), label: "Empresas socias verificadas" },
               { val: String(sectores.length), label: "Rubros industriales" },
-              { val: "100%", label: "Perfiles validados por la UIAB" },
+              { val: "Todos", label: "Perfiles validados por la UIAB" },
             ].map((s, i) => (
               <motion.div
                 key={s.label}

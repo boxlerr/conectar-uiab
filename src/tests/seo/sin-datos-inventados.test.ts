@@ -63,6 +63,11 @@ const INVENTADOS = [
   "Ingeniería Martín",
   "Distribuidora Logística",
   "Laboratorio Farmacéutico",
+  // 2026-08-13: el rediseño de /oportunidades volvió a inventar una empresa
+  // ("Nueva Solicitud — Aserradero Los Robles S.A.") con cero solicitudes
+  // reales. Esta lista atrapa reincidencias del nombre; la reincidencia de la
+  // CLASE la atrapa el describe de "cifras hardcodeadas" de abajo.
+  "Aserradero Los Robles",
 ];
 
 /**
@@ -79,6 +84,13 @@ const CIFRAS_SIN_RESPALDO = [
   "+60 Socios",
   "26 sectores",
   "Tiempo promedio de contacto",
+  // Segunda camada, 2026-08-13 (/oportunidades): "+140 Licitaciones Activas" y
+  // "20+ Nuevas / Semana" con cero oportunidades en la base, y "Hace 2 días"
+  // fijo en cada tarjeta. Las dos primeras las cubre también la regla general;
+  // el "Hace 2 días" va como cadena porque la edad se calcula (publicadaHace).
+  "+140",
+  "Nuevas / Semana",
+  "Hace 2 días",
 ];
 
 describe("no se publican datos inventados", () => {
@@ -121,6 +133,28 @@ describe("no se publican datos inventados", () => {
     expect(existe, "volver a poner loading.tsx hace que un slug inexistente devuelva 200").toBe(
       false
     );
+  });
+
+  /**
+   * La regla GENERAL detrás de las listas de arriba.
+   *
+   * Las listas negras de cadenas exactas perdieron dos veces: la purga del
+   * 04/08 baneó "145 licitaciones" y "+600", y el 13/08 volvió la misma clase
+   * de invento con cadenas nuevas ("+140", "20+") que pasaron el test en
+   * verde. El patrón común de todas las reincidencias fue una tarjeta de
+   * estadísticas con el número escrito a mano: `{ val: "20+", ... }`.
+   *
+   * Por eso acá se prohíbe el PATRÓN: ningún literal `val:` con dígitos en un
+   * componente. Un número real se busca en la base y baja por props como
+   * expresión (`val: String(totalEmpresas)`), que esta regex no matchea.
+   */
+  it("ninguna tarjeta de estadísticas tiene un número escrito a mano", () => {
+    const regla = /val:\s*["'`][^"'`\n]*\d/;
+    const culpables = FUENTES.filter((f) => regla.test(f.codigo)).map((f) => f.ruta);
+    expect(
+      culpables,
+      "hay un `val:` con dígitos hardcodeado: derivá el número de la base y pasalo por props"
+    ).toEqual([]);
   });
 
   it("no hay reseñas ni ratings inventados en el marcado", () => {

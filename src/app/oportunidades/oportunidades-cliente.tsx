@@ -122,7 +122,7 @@ type Orden = "recientes" | "antiguas" | "match";
  * servidor, y un "hace 5m" calculado en el SSR contra un "hace 6m" calculado al
  * hidratar es un mismatch de React por cruzar un borde de minuto.
  */
-function publicadaHace(iso: string): string {
+export function publicadaHace(iso: string): string {
   const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
   if (!Number.isFinite(dias) || dias < 0) return "Recién publicada";
   if (dias === 0) return "Publicada hoy";
