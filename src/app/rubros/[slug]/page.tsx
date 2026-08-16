@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ogPorRuta } from "@/lib/seo/og";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -43,14 +44,7 @@ export async function generateMetadata({
     title: rubro.title,
     description: rubro.description,
     alternates: { canonical: `/rubros/${rubro.slug}` },
-    openGraph: {
-      title: `${rubro.title} | UIAB Conecta`,
-      description: rubro.description,
-      url: `https://www.uiabconecta.com/rubros/${rubro.slug}`,
-      siteName: "UIAB Conecta",
-      locale: "es_AR",
-      type: "website",
-    },
+    ...ogPorRuta(rubro.title, rubro.description, `/rubros/${rubro.slug}`),
   };
 }
 

@@ -6,6 +6,7 @@ import { RUBROS_SEO } from "@/lib/datos/rubros-seo";
 import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
 import { Migas } from "@/components/ui/migas";
 import { ID_ORG_CONECTA, ID_ORG_UIAB, SITE_URL } from "@/lib/seo/entidad";
+import { ogPorRuta } from "@/lib/seo/og";
 
 /**
  * La página que contesta "qué es UIAB Conecta".
@@ -29,17 +30,13 @@ export const metadata: Metadata = {
   // El layout raíz agrega " | UIAB Conecta" por template: no lo repitas.
   title: "Qué es UIAB Conecta",
   description:
-    "UIAB Conecta es el directorio comercial B2B oficial de la Unión Industrial de Almirante Brown: cómo funciona, qué empresas lo integran, cómo se verifica cada ficha y en qué se diferencia del listado institucional de uiab.org.",
+    "Qué es UIAB Conecta, cómo se verifica cada ficha y en qué se diferencia del listado institucional de uiab.org: el directorio B2B oficial de la UIAB.",
   alternates: { canonical: "/nosotros" },
-  openGraph: {
-    title: "Qué es UIAB Conecta | UIAB Conecta",
-    description:
-      "El directorio comercial B2B oficial de la Unión Industrial de Almirante Brown. Cómo funciona y quiénes lo integran.",
-    url: `${SITE_URL}/nosotros`,
-    siteName: "UIAB Conecta",
-    locale: "es_AR",
-    type: "website",
-  },
+  ...ogPorRuta(
+    "Qué es UIAB Conecta",
+    "El directorio comercial B2B oficial de la Unión Industrial de Almirante Brown. Cómo funciona y quiénes lo integran.",
+    "/nosotros"
+  ),
 };
 
 const PREGUNTAS = [

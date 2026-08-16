@@ -21,6 +21,7 @@ import { RegistrarVisita } from "@/components/ui/registrar-visita";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { ID_ORG_UIAB, SITE_URL, telefonoE164 } from "@/lib/seo/entidad";
+import { tituloDeFicha } from "@/lib/seo/texto";
 import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
 import { landingDeCategoria, perteneceAlRubro, RUBROS_SEO } from "@/lib/datos/rubros-seo";
 import { Migas } from "@/components/ui/migas";
@@ -402,15 +403,21 @@ export async function generateMetadata({
     };
   }
   /**
-   * TITLE. Antes era `${nombre} — Empresa socia UIAB` y el template raíz le
-   * sumaba ` | UIAB Conecta`: 10 de las 59 pasaban los 60 caracteres y el
-   * máximo llegaba a 77, así que Google cortaba justo el sufijo de marca — la
-   * parte que más nos importa que se vea. Ahora el diferenciador es el rubro y
-   * la localidad, que además es lo que la persona está buscando.
+   * TITLE. Este cálculo ya se pasó de largo DOS veces: primero con
+   * `${nombre} — Empresa socia UIAB` (máximo 77), después con
+   * `${nombre} — ${categoria} en ${localidad}` sin tope (14 de 59 fichas
+   * arriba de 65, máximo ~100 — hay socias con razón social larga Y categoría
+   * larga). La fórmula vive ahora en `tituloDeFicha`: una cadena de candidatos
+   * de más contexto a menos, gana el primero que entra en el presupuesto, y el
+   * nombre no se recorta nunca. Lo fija indexabilidad.test.ts.
    */
-  const contexto = [d.categoria, d.localidad].filter(Boolean).join(" en ");
   const rolTitulo = d.esProveedor ? "Prestador verificado UIAB" : "Empresa socia UIAB";
-  const title = contexto ? `${d.nombre} — ${contexto}` : `${d.nombre} — ${rolTitulo}`;
+  const title = tituloDeFicha({
+    nombre: d.nombre,
+    categoria: d.categoria,
+    localidad: d.localidad,
+    rol: rolTitulo,
+  });
   const tituloCompleto = `${title} | UIAB Conecta`;
 
   /**

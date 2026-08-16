@@ -67,8 +67,11 @@ export const metadata: Metadata = {
   // description + H1 es casi la única señal de relevancia propia disponible;
   // antes esta línea empezaba por "Directorio comercial B2B de la Unión
   // Industrial…", o sea nombrando a la entidad que ya rankea y no a esta.
+  // ≤160 caracteres: más largo, Google la reescribe él. La enumeración larga
+  // ("entidades financieras y educativas y cooperativas…") vive ahora sólo en
+  // /directorio — home y directorio compartían casi la misma description.
   description:
-    "UIAB Conecta es el directorio comercial B2B de la Unión Industrial de Almirante Brown: empresas socias, prestadores de productos y servicios, entidades financieras y educativas y cooperativas verificadas de Almirante Brown.",
+    "UIAB Conecta es el directorio comercial B2B de la Unión Industrial de Almirante Brown: empresas socias, prestadores verificados y contacto directo.",
   applicationName: "UIAB Conecta",
   // OJO: acá NO va `alternates`. Los campos de metadata se heredan hacia abajo,
   // así que un `canonical: "/"` en la raíz se lo comía TODO el sitio: /directorio,

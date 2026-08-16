@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ogPorRuta } from "@/lib/seo/og";
 import { ShieldCheck, FileText, Mail, ChevronRight } from "lucide-react";
 
 // Sin "| UIAB Conecta": lo agrega el template del layout raíz.
@@ -7,6 +8,11 @@ export const metadata = {
   description:
     "Política de privacidad y tratamiento de datos personales conforme a la Ley 25.326 de Protección de los Datos Personales de la República Argentina.",
   alternates: { canonical: "/privacidad" },
+  ...ogPorRuta(
+    "Política de Privacidad",
+    "Tratamiento de datos personales en UIAB Conecta conforme a la Ley 25.326.",
+    "/privacidad"
+  ),
 };
 
 const secciones = [

@@ -1,14 +1,22 @@
 import Image from "next/image";
+import { ogPorRuta } from "@/lib/seo/og";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Building2, CheckCircle2, Users } from "lucide-react";
 import { FormularioAlta } from "./FormularioAlta";
 import { CATEGORIA_ALTA_LABEL } from "@/modulos/altas/constantes";
 
 export const metadata = {
-  title: "Alta de socios UIAB | Cargá los datos de tu empresa",
+  // Sin pipe adentro: el template raíz ya agrega " | UIAB Conecta" y el
+  // title salía con doble pipe y 66 caracteres.
+  title: "Sumate — Alta de socios UIAB",
   description:
     "Formulario exclusivo para organizaciones socias de la UIAB: verificamos tus datos contra el padrón y activamos el acceso de tu empresa a UIAB Conecta.",
   alternates: { canonical: "/sumate" },
+  ...ogPorRuta(
+    "Sumate — Alta de socios UIAB",
+    "Verificamos tus datos contra el padrón y activamos el acceso de tu empresa a UIAB Conecta.",
+    "/sumate"
+  ),
 };
 
 // El listado se actualiza a medida que las empresas completan el formulario.

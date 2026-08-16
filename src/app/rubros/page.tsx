@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ogPorRuta } from "@/lib/seo/og";
 import Link from "next/link";
 import { obtenerDirectorio } from "@/app/directorio/datos";
 import { RUBROS_SEO, perteneceAlRubro } from "@/lib/datos/rubros-seo";
@@ -10,17 +11,13 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Rubros industriales de Almirante Brown",
   description:
-    "Todos los rubros del directorio UIAB Conecta: metalúrgica, química, construcción, packaging, plásticos, automatización, gráfica y más. Empresas socias verificadas de Almirante Brown.",
+    "Los rubros del directorio UIAB Conecta: metalúrgica, química, construcción, packaging, automatización y más, con las socias verificadas de cada uno.",
   alternates: { canonical: "/rubros" },
-  openGraph: {
-    title: "Rubros industriales de Almirante Brown | UIAB Conecta",
-    description:
-      "Todos los rubros del directorio UIAB Conecta, con las empresas socias verificadas de cada uno.",
-    url: "https://www.uiabconecta.com/rubros",
-    siteName: "UIAB Conecta",
-    locale: "es_AR",
-    type: "website",
-  },
+  ...ogPorRuta(
+    "Rubros industriales de Almirante Brown",
+    "Todos los rubros del directorio UIAB Conecta, con las empresas socias verificadas de cada uno.",
+    "/rubros"
+  ),
 };
 
 export default async function RubrosPage() {
