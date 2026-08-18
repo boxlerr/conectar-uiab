@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ogPorRuta } from "@/lib/seo/og";
 import { obtenerDirectorio } from "./datos";
 import { DirectorioCliente } from "./directorio-cliente";
 import { ExplorarPorRubro } from "@/components/ui/directorio/explorar-por-rubro";
@@ -11,8 +12,13 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Directorio UIAB — Empresas y prestadores verificados",
   description:
-    "Directorio público de la Unión Industrial de Almirante Brown: empresas socias, prestadores de productos y servicios, entidades financieras y educativas, y cooperativas verificadas de la red. Buscá en toda la red desde un solo lugar.",
+    "Buscá en toda la red de la Unión Industrial de Almirante Brown desde un solo lugar: empresas socias, prestadores, bancos, universidades y cooperativas.",
   alternates: { canonical: "/directorio" },
+  ...ogPorRuta(
+    "Directorio UIAB — Empresas y prestadores verificados",
+    "Toda la red de la Unión Industrial de Almirante Brown en un solo buscador.",
+    "/directorio"
+  ),
 };
 
 export default async function DirectorioPage() {

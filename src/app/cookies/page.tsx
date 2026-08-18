@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ogPorRuta } from "@/lib/seo/og";
 import { Cookie, Settings2, ChevronRight, Mail } from "lucide-react";
 
 // Sin "| UIAB Conecta": lo agrega el template del layout raíz.
@@ -7,6 +8,11 @@ export const metadata = {
   description:
     "Información sobre el uso de cookies y tecnologías similares en UIAB Conecta, conforme a la Ley 25.326 de Protección de los Datos Personales.",
   alternates: { canonical: "/cookies" },
+  ...ogPorRuta(
+    "Política de Cookies",
+    "Uso de cookies y tecnologías similares en UIAB Conecta.",
+    "/cookies"
+  ),
 };
 
 const secciones = [

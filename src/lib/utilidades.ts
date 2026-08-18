@@ -82,6 +82,54 @@ export function normalizarSitioWeb(url: string | null | undefined): string | nul
   return /^[a-z][a-z0-9+.-]*:\/\//i.test(limpio) ? limpio : `https://${limpio}`;
 }
 
+/** Cuántos sitios web extra admite una ficha, además del principal. */
+export const MAX_SITIOS_WEB_ADICIONALES = 4;
+
+/**
+ * Limpia la lista de sitios web ADICIONALES de una ficha antes de guardarla.
+ *
+ * Algunas socias tienen dos webs (institucional + tienda, o una por marca), así
+ * que `sitio_web` guarda la principal y esta lista el resto. Devuelve `null` —no
+ * `[]`— cuando no queda ninguna, para que la columna quede NULL como el resto de
+ * los campos opcionales de la ficha.
+ *
+ * Hace tres cosas, y el orden importa:
+ *  1. normaliza cada una igual que la principal (así "www.x.com" y
+ *     "https://www.x.com" no conviven como si fueran dos sitios distintos);
+ *  2. descarta vacíos y repetidos, incluida la principal — si alguien pega la
+ *     misma URL arriba y abajo, la ficha mostraría el mismo link dos veces y el
+ *     `sameAs` del JSON-LD le declararía a Google un duplicado;
+ *  3. corta en MAX_SITIOS_WEB_ADICIONALES, que es el mismo tope que el CHECK de
+ *     la tabla (ver 20260815_sitios_web_adicionales.sql). Recortar acá evita que
+ *     un guardado de más rebote como error de base y el socio no entienda nada.
+ *
+ * La comparación para deduplicar ignora mayúsculas y la barra final, que no
+ * cambian el destino; lo guardado conserva lo que escribió el socio.
+ */
+export function normalizarSitiosWeb(
+  sitios: readonly (string | null | undefined)[] | null | undefined,
+  principal?: string | null
+): string[] | null {
+  if (!sitios?.length) return null;
+
+  const clave = (url: string) => url.toLowerCase().replace(/\/+$/, "");
+  const vistos = new Set<string>();
+
+  const principalNormalizada = normalizarSitioWeb(principal);
+  if (principalNormalizada) vistos.add(clave(principalNormalizada));
+
+  const limpios: string[] = [];
+  for (const crudo of sitios) {
+    const url = normalizarSitioWeb(crudo);
+    if (!url || vistos.has(clave(url))) continue;
+    vistos.add(clave(url));
+    limpios.push(url);
+    if (limpios.length === MAX_SITIOS_WEB_ADICIONALES) break;
+  }
+
+  return limpios.length ? limpios : null;
+}
+
 /**
  * ¿Tiene forma de correo? Deliberadamente permisiva: sólo descarta lo que
  * seguro no es un mail (sin arroba, sin dominio, con espacios). No intentamos

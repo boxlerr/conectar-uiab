@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ogPorRuta } from "@/lib/seo/og";
 import { Scale, FileText, Mail, ChevronRight } from "lucide-react";
 
 // Sin "| UIAB Conecta": lo agrega el template del layout raíz.
@@ -7,6 +8,11 @@ export const metadata = {
   description:
     "Términos y condiciones de uso de UIAB Conecta, la plataforma de vinculación comercial B2B de la Unión Industrial de Almirante Brown.",
   alternates: { canonical: "/terminos" },
+  ...ogPorRuta(
+    "Términos y Condiciones",
+    "Términos y condiciones de uso de UIAB Conecta.",
+    "/terminos"
+  ),
 };
 
 const secciones = [

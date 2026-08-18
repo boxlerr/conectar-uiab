@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Oportunidad } from "@/modulos/oportunidades/servicio-oportunidades";
-import { aTextoPlano } from "@/lib/utilidades";
+import { publicadaHace } from "./oportunidades-cliente";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -167,11 +167,13 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                     className="absolute -bottom-6 -left-6 z-20 bg-[#00182e]/70 backdrop-blur-xl border border-white/10 shadow-2xl rounded-xl p-4 pr-6 flex items-center gap-4"
                   >
                     <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center">
-                       <Briefcase className="w-6 h-6 text-emerald-400" />
+                       <Bell className="w-6 h-6 text-emerald-400" />
                     </div>
+                    {/* Ilustra el aviso por email (paso 02 de "cómo funciona"),
+                        sin inventar una empresa ni una solicitud que no existen. */}
                     <div>
-                       <p className="text-[11px] sm:text-[10px] font-bold text-white/40 uppercase tracking-widest mb-0.5">Nueva Solicitud</p>
-                       <p className="text-sm font-black text-white">Aserradero Los Robles S.A.</p>
+                       <p className="text-[11px] sm:text-[10px] font-bold text-white/40 uppercase tracking-widest mb-0.5">Aviso automático</p>
+                       <p className="text-sm font-black text-white">Un pedido coincide con tu rubro</p>
                     </div>
                   </motion.div>
                   
@@ -204,11 +206,19 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
           variants={stagger}
           className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
         >
+          {/*
+            Sólo afirmaciones ciertas, sin números escritos a mano. Acá vivieron
+            "+140 Licitaciones Activas" y "20+ Nuevas / Semana" con CERO
+            oportunidades reales en la base — la misma clase de dato inventado
+            que ya se purgó una vez del sitio entero. Un número real se deriva
+            de la base y baja por props (como `totalEmpresas` en el listado);
+            uno escrito acá lo caza sin-datos-inventados.test.ts.
+          */}
           {[
-            { val: "20+", label: "Nuevas / Semana" },
-            { val: "100%", label: "Directo, sin comisión" },
-            { val: "Verificadas", label: "Empresas reales" },
-            { val: "+140", label: "Licitaciones Activas" },
+            { val: "Directo", label: "Sin comisiones ni intermediarios" },
+            { val: "Verificadas", label: "Empresas reales del padrón" },
+            { val: "Privada", label: "Sólo la red UIAB" },
+            { val: "Con aval", label: "Respaldo institucional UIAB" },
           ].map((s, i) => (
             <motion.div
               key={s.label}
@@ -419,11 +429,13 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                               {op.titulo}
                             </h3>
                           </div>
-                          <Badge 
+                          {/* Fecha real de publicación — acá decía "Hace 2 días"
+                              fijo para toda oportunidad, exista hace lo que exista. */}
+                          <Badge
                             className="shrink-0 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
                             style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
                           >
-                            Hace 2 días
+                            {publicadaHace(op.creado_en)}
                           </Badge>
                         </div>
                         

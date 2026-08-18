@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import robots from '@/app/robots';
+import { tituloDeFicha, TOPE_TITLE_SIN_SUFIJO } from '@/lib/seo/texto';
 
 const APP = join(process.cwd(), 'src', 'app');
 const leer = (...tramos: string[]) => readFileSync(join(APP, ...tramos), 'utf8');
@@ -71,6 +72,88 @@ describe('canonical', () => {
   });
 });
 
+/**
+ * Las rutas dinámicas quedaron FUERA de RUTAS_PUBLICAS (que sólo lista
+ * estáticas) y ningún test fijaba su canonical/noindex — y son las que más
+ * URLs aportan: 59 fichas, 13 rubros y una por oportunidad abierta. El
+ * incidente del 09/08 enseñó lo que cuesta un canonical roto en silencio.
+ */
+describe('rutas dinámicas', () => {
+  it('/empresas/[slug] interpola su canonical y marca noindex al slug inexistente', () => {
+    const fuente = leer('empresas', '[slug]', 'page.tsx');
+    expect(fuente).toMatch(/canonical:\s*`\/empresas\/\$\{slug\}`/);
+    expect(fuente).toMatch(/robots:\s*\{[^}]*index:\s*false/);
+  });
+
+  it('/empresas/[slug] arma el title con tope (tituloDeFicha)', () => {
+    expect(leer('empresas', '[slug]', 'page.tsx')).toContain('tituloDeFicha(');
+  });
+
+  it('/rubros/[slug] da 404 real fuera del catálogo y canonical por slug', () => {
+    const fuente = leer('rubros', '[slug]', 'page.tsx');
+    expect(fuente).toMatch(/dynamicParams\s*=\s*false/);
+    expect(fuente).toMatch(/canonical:\s*`\/rubros\/\$\{rubro\.slug\}`/);
+  });
+
+  it('/oportunidades/[id] marca noindex a inexistentes y cerradas, con canonical propio', () => {
+    const fuente = leer('oportunidades', '[id]', 'layout.tsx');
+    expect(fuente).toMatch(/index:\s*false/);
+    expect(fuente).toMatch(/canonical:\s*`\/oportunidades\/\$\{id\}`/);
+    // Y las abiertas llevan title/description propios: sin esto todas
+    // compartían la metadata del listado.
+    expect(fuente).toContain('cortarEnPalabra');
+  });
+
+  it('/oportunidades/[id] resuelve la oportunidad en el servidor', () => {
+    // La página era "use client" con todo detrás de loading=true: Googlebot
+    // recibía "Cargando oportunidad..." en una URL sitemapeada e indexable.
+    const fuente = leer('oportunidades', '[id]', 'page.tsx');
+    expect(fuente).not.toContain('"use client"');
+    expect(fuente).toContain('estado');
+  });
+
+  it('/oportunidades/nueva es noindex (gate de login con redirect() de RSC)', () => {
+    expect(leer('oportunidades', 'nueva', 'layout.tsx')).toMatch(/index:\s*false/);
+  });
+});
+
+describe('title de ficha con tope', () => {
+  const rol = 'Empresa socia UIAB';
+
+  it('con nombre corto entra el contexto completo', () => {
+    expect(
+      tituloDeFicha({ nombre: 'TECZA', categoria: 'Informática', localidad: 'Burzaco', rol })
+    ).toBe('TECZA — Informática en Burzaco');
+  });
+
+  it('con nombre y categoría largos va soltando contexto', () => {
+    const nombre = 'SERVICIOS DEL PARQUE DE BURZACO DE ALTE. BROWN SRL';
+    const resultado = tituloDeFicha({
+      nombre,
+      categoria: 'Mantenimiento Industrial y Servicios Generales',
+      localidad: 'Burzaco',
+      rol,
+    });
+    // El nombre solo ya mide 50: no entra ningún candidato con contexto,
+    // pero el nombre jamás se recorta.
+    expect(resultado).toBe(nombre);
+  });
+
+  it('nunca supera el presupuesto salvo que el nombre solo ya lo supere', () => {
+    const casos = [
+      { nombre: 'ROGUANT S.R.L.', categoria: 'Elementos de Protección Personal para la Industria', localidad: 'Burzaco' },
+      { nombre: 'ALIMENTOS FRANSRO', categoria: 'Elaboración de Pastas', localidad: 'Burzaco' },
+      { nombre: 'A. D. BARBIERI S.A.', categoria: null, localidad: null },
+    ];
+    for (const c of casos) {
+      const titulo = tituloDeFicha({ ...c, rol });
+      const presupuesto = Math.max(TOPE_TITLE_SIN_SUFIJO, c.nombre.length);
+      expect(titulo.length, titulo).toBeLessThanOrEqual(presupuesto);
+      expect(titulo.startsWith(c.nombre), titulo).toBe(true);
+    }
+  });
+});
+
 describe('robots.txt', () => {
   const reglas = robots().rules as { allow?: string; disallow?: string[] };
 
@@ -113,7 +196,16 @@ describe('noindex', () => {
   it('las áreas privadas llevan X-Robots-Tag por cabecera', () => {
     const config = readFileSync(join(process.cwd(), 'next.config.ts'), 'utf8');
     expect(config).toContain('X-Robots-Tag');
-    for (const ruta of ['/admin/:path*', '/perfil/:path*', '/panel-de-control/:path*']) {
+    for (const ruta of [
+      '/admin/:path*',
+      '/perfil/:path*',
+      '/panel-de-control/:path*',
+      // Estas tres estaban en next.config.ts pero no acá: el test no se
+      // enteraba si alguien las sacaba.
+      '/suscripcion/:path*',
+      '/pendiente-aprobacion',
+      '/403',
+    ]) {
       expect(config).toContain(ruta);
     }
   });

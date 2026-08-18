@@ -24,7 +24,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AvisoEtiquetasPrecargadas } from "@/components/ui/aviso-etiquetas-precargadas";
 import { createClient } from "@/lib/supabase/cliente";
-import { cn, normalizarSitioWeb } from "@/lib/utilidades";
+import { cn, normalizarSitioWeb, normalizarSitiosWeb } from "@/lib/utilidades";
 
 interface Resena {
   id: string;
@@ -163,6 +163,13 @@ export default function MiPerfilPage() {
     ? resenas.reduce((acc, r) => acc + r.calificacion, 0) / resenas.length
     : null;
 
+  // La principal primero y después las adicionales, ya normalizadas y sin
+  // repetirla.
+  const websDelPerfil = [
+    ...(normalizarSitioWeb(profileDetails.sitio_web) ? [normalizarSitioWeb(profileDetails.sitio_web)!] : []),
+    ...(normalizarSitiosWeb(profileDetails.sitios_web_adicionales, profileDetails.sitio_web) ?? []),
+  ];
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <AvisoEtiquetasPrecargadas />
@@ -235,20 +242,27 @@ export default function MiPerfilPage() {
               </div>
             </div>
 
-            {/* Sitio web */}
-            {profileDetails.sitio_web && (
+            {/* Sitios web. Se listan TODOS —no sólo el principal— porque si la
+                socia carga una segunda web y en su propio perfil sigue viendo
+                una sola, lo natural es concluir que no se guardó. */}
+            {websDelPerfil.length > 0 && (
               <div className="flex items-start gap-2.5">
                 <Globe className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Sitio web</p>
-                  <a
-                    href={normalizarSitioWeb(profileDetails.sitio_web) ?? "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium text-primary-600 hover:underline truncate block"
-                  >
-                    {profileDetails.sitio_web.replace(/^https?:\/\//, "")}
-                  </a>
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                    {websDelPerfil.length > 1 ? "Sitios web" : "Sitio web"}
+                  </p>
+                  {websDelPerfil.map((web) => (
+                    <a
+                      key={web}
+                      href={web}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-primary-600 hover:underline truncate block"
+                    >
+                      {web.replace(/^https?:\/\//, "")}
+                    </a>
+                  ))}
                 </div>
               </div>
             )}

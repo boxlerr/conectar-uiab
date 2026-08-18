@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ogPorRuta } from "@/lib/seo/og";
 
 export const metadata: Metadata = {
   // default = título del listado /empresas; template = para las fichas hijas
@@ -8,17 +9,13 @@ export const metadata: Metadata = {
     template: "%s | UIAB Conecta",
   },
   description:
-    "Directorio de empresas industriales socias de la Unión Industrial de Almirante Brown: metalúrgicas, químicas, alimentarias, plásticos, autopartes y más. Perfiles verificados con contacto directo.",
+    "Empresas industriales socias de la Unión Industrial de Almirante Brown: metalúrgicas, químicas, alimentarias, plásticos, autopartes y más, con contacto directo.",
   alternates: { canonical: "/empresas" },
-  openGraph: {
-    title: "Empresas industriales socias de la UIAB | UIAB Conecta",
-    description:
-      "Empresas industriales socias de la Unión Industrial de Almirante Brown. Perfiles verificados con contacto directo.",
-    url: "https://www.uiabconecta.com/empresas",
-    type: "website",
-    siteName: "UIAB Conecta",
-    locale: "es_AR",
-  },
+  ...ogPorRuta(
+    "Empresas industriales socias de la UIAB",
+    "Empresas industriales socias de la Unión Industrial de Almirante Brown. Perfiles verificados con contacto directo.",
+    "/empresas"
+  ),
 };
 
 export default function EmpresasLayout({ children }: { children: React.ReactNode }) {

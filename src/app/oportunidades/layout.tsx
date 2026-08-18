@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { ogPorRuta } from "@/lib/seo/og";
 
 /**
  * Con `www`, igual que layout.tsx, robots.ts y sitemap.ts.
@@ -11,12 +12,17 @@ import type { ReactNode } from "react";
  * buena.
  */
 const SITE_URL = "https://www.uiabconecta.com";
-const LOGO_URL = `${SITE_URL}/logo-uiab-conecta-header.svg`;
+// PNG 1200×630, no el SVG del logo: WhatsApp/Facebook/X no renderizan SVG
+// como imagen de tarjeta, así que compartir /oportunidades salía sin imagen.
+const IMAGEN_URL = `${SITE_URL}/industrial-b2b-header.png`;
 
 export const metadata: Metadata = {
-  title: "Oportunidades y licitaciones B2B en Almirante Brown",
+  // "Licitaciones B2B en Almirante Brown" es además el title que Google ya
+  // elegía mostrar cuando el nuestro ("Oportunidades y licitaciones…") se
+  // pasaba del corte con el sufijo del template.
+  title: "Licitaciones B2B en Almirante Brown",
   description:
-    "Plataforma B2B de la Unión Industrial de Almirante Brown. Licitaciones verificadas, conexión directa entre empresas y proveedores de servicios de la región, sin comisiones.",
+    "Cartelera B2B de la Unión Industrial de Almirante Brown: pedidos de compra y contratación de empresas verificadas, con contacto directo y sin comisiones.",
   keywords: [
     "UIAB Conecta",
     "Unión Industrial Almirante Brown",
@@ -29,29 +35,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: `${SITE_URL}/oportunidades`,
   },
-  openGraph: {
-    type: "website",
-    url: `${SITE_URL}/oportunidades`,
-    title: "Oportunidades y licitaciones B2B en Almirante Brown | UIAB Conecta",
-    description:
-      "Red privada B2B con aval institucional UIAB. Acceso directo a licitaciones verificadas en Almirante Brown.",
-    siteName: "UIAB Conecta",
-    images: [
-      {
-        url: LOGO_URL,
-        width: 1612,
-        height: 279,
-        alt: "Logo UIAB Conecta — Plataforma de vinculación comercial B2B",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Oportunidades y licitaciones B2B en Almirante Brown | UIAB Conecta",
-    description:
-      "Licitaciones B2B verificadas por la Unión Industrial de Almirante Brown.",
-    images: [LOGO_URL],
-  },
+  ...ogPorRuta(
+    "Licitaciones B2B en Almirante Brown",
+    "Red privada B2B con aval institucional UIAB. Acceso directo a licitaciones verificadas en Almirante Brown.",
+    "/oportunidades"
+  ),
 };
 
 export default function OportunidadesLayout({ children }: { children: ReactNode }) {
@@ -78,7 +66,7 @@ export default function OportunidadesLayout({ children }: { children: ReactNode 
         inLanguage: "es-AR",
         primaryImageOfPage: {
           "@type": "ImageObject",
-          url: LOGO_URL,
+          url: IMAGEN_URL,
         },
         isPartOf: { "@id": `${SITE_URL}/#website` },
         about: { "@id": `${SITE_URL}/#organizacion` },

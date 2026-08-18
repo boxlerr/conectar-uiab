@@ -30,63 +30,84 @@ export default async function NuevaOportunidadPage() {
   ]);
 
   return (
-    <div className="min-h-svh bg-[#f7f9fb] pb-24">
-      {/* ─── Premium Header ─── */}
-      {/* min-h en vez de h: con alto fijo + overflow-hidden un título largo se recorta.
-          El margen negativo compensa el spacer del header (h-20 lg:h-24). */}
-      <div className="relative min-h-[320px] flex items-center overflow-hidden -mt-20 lg:-mt-24 pt-20 lg:pt-24 mb-12">
-        <div className="absolute inset-0 z-0">
-          <Image
-            src="/landing/hero-industrial.webp"
-            alt="Fondo Industrial"
-            fill
-            className="object-cover object-center opacity-[0.35]"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#00182e] via-[#00213f]/90 to-[#10375c]/80 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#00213f] to-transparent opacity-90" />
-          {/* Grilla fina: el textil visual de la casa sobre los heros oscuros. */}
+    /*
+      Sin `pt-20 lg:pt-24`: el Header ya emite su propio spacer de esa misma
+      altura (encabezado.tsx), así que repetirlo acá sumaba una franja en blanco
+      de 96px antes de la tarjeta. El viejo hero a sangre lo compensaba con un
+      margen negativo; este no lo necesita.
+    */
+    <div className="min-h-svh bg-slate-50 pb-16">
+      <div className="mx-auto max-w-[1180px] px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
+        {/*
+          Encabezado en tarjeta, igual que el de /oportunidades: las dos pantallas
+          son la misma sección y antes no se parecían en nada — esta abría con una
+          foto industrial a sangre de 320px de alto y la otra con una tarjeta navy.
+        */}
+        <section className="relative mb-8 overflow-hidden rounded-3xl bg-[#00213f] text-white shadow-[0_28px_60px_-32px_rgba(0,33,63,0.75)]">
           <div
-            className="absolute inset-0 opacity-[0.05]"
+            className="absolute inset-0 bg-gradient-to-br from-[#00213f] via-[#0b2d4d] to-[#123a63]"
+            aria-hidden="true"
+          />
+          <div
+            className="absolute inset-0 opacity-[0.06]"
+            aria-hidden="true"
             style={{
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)",
-              backgroundSize: "64px 64px",
+              backgroundImage: "radial-gradient(circle at 1px 1px, white 0.5px, transparent 0)",
+              backgroundSize: "28px 28px",
             }}
           />
-        </div>
+          <div
+            className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-primary-500/25 blur-3xl"
+            aria-hidden="true"
+          />
 
-        <div className="relative z-10 w-full max-w-[1128px] mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-          <Link
-            href="/oportunidades"
-            className="inline-flex items-center gap-2 mb-6 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.22em] text-white/60 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Volver a oportunidades
-          </Link>
-
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-white text-[#00213f] rounded-lg flex items-center justify-center shadow-md border border-white/10 shrink-0">
-              <Briefcase className="w-10 h-10 text-[#00213f]" />
-            </div>
+          <div className="relative grid items-center gap-6 p-6 sm:px-9 sm:py-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-10 lg:py-7">
             <div>
-              <h1
-                style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
-                className="text-3xl lg:text-4xl font-black text-white leading-tight tracking-tight drop-shadow-md"
+              <Link
+                href="/oportunidades"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-white/60 transition-colors hover:text-white"
               >
-                Publicar un requerimiento
-              </h1>
-              <p className="text-blue-100/90 mt-2 text-sm max-w-xl leading-relaxed">
-                Contanos qué material, servicio, producto o personal necesita tu
-                organización. Lo cruzamos con las empresas socias y los prestadores
-                verificados de la red.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+                <ArrowLeft className="h-4 w-4" />
+                Volver a oportunidades
+              </Link>
 
-      <div className="max-w-[1128px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 mt-[-40px]">
+              <div className="mt-4 flex items-start gap-4">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-600 shadow-lg shadow-black/25">
+                  <Briefcase className="h-6 w-6" />
+                </span>
+                <div>
+                  <h1
+                    style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+                    className="text-3xl font-black leading-tight tracking-tight"
+                  >
+                    Publicar un requerimiento
+                  </h1>
+                  <p
+                    className="mt-2 max-w-xl text-[15px] leading-relaxed text-white/65"
+                    style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+                  >
+                    Contanos qué material, servicio, producto o personal necesita tu
+                    organización. Lo cruzamos con las empresas socias y los prestadores
+                    verificados de la red.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* La ilustración es lo que fija el alto de la tarjeta: con 190px de
+                ancho la empujaba a ~300px. A 150 el bloque de texto manda. */}
+            <Image
+              src="/landing/nueva-oportunidad-hero.webp"
+              alt=""
+              aria-hidden="true"
+              width={820}
+              height={1125}
+              priority
+              className="hidden h-auto w-[150px] select-none justify-self-end xl:block"
+            />
+          </div>
+        </section>
+
         <FormularioOportunidad categorias={categorias || []} tags={tags || []} />
       </div>
     </div>

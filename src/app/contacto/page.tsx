@@ -1,4 +1,5 @@
 import { Mail, MapPin, Phone } from "lucide-react";
+import { ogPorRuta } from "@/lib/seo/og";
 import Image from "next/image";
 import { FormularioContacto } from "./FormularioContacto";
 
@@ -9,6 +10,11 @@ export const metadata = {
   description:
     "Contactá a la Unión Industrial de Almirante Brown: teléfono, correo y dirección de la sede en Burzaco, más el formulario para consultas sobre UIAB Conecta.",
   alternates: { canonical: "/contacto" },
+  ...ogPorRuta(
+    "Contacto",
+    "Teléfono, correo y dirección de la sede de la UIAB en Burzaco, y el formulario de consultas.",
+    "/contacto"
+  ),
 };
 
 export default function ContactoPage() {

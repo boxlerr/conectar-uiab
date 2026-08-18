@@ -159,6 +159,11 @@ titulo(3, "Marco de la pieza");
 correr("marco.mjs");
 
 titulo(4, "Grabar el screencast");
+// Antes de encender la cámara: dar por vistos los tours y las novedades de la
+// cuenta con la que se filma. Uno de esos modales ("Rediseñamos la cartelera
+// de oportunidades") se coló en una grabación y tapó media pantalla. El gate
+// vive en la base, no en localStorage, así que hay que tocarlo antes.
+correr("preparar-cuenta.mjs");
 // El sembrado escribe en la base de PRODUCCIÓN. El try/finally está para que
 // el borrado corra igual si la grabación se cae a la mitad: si no, quedan
 // oportunidades inventadas a la vista de las socias.
