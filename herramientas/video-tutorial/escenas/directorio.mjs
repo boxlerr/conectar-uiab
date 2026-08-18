@@ -33,28 +33,7 @@ export async function escenaDirectorio({ page, BASE }) {
     texto: "Todas las socias y prestadores de la red.",
   }, () => dormir(1200));
 
-  // ── 2. Filtros ──────────────────────────────────────────────────
-  await scrollA(page, '[data-tour="directorio-sidebar"]', { offset: 130, ms: 520 });
-  await dormir(300);
-
-  await plano(page, {
-    id: "filtros",
-    encuadre: '[data-tour="directorio-sidebar"]',
-    escala: 1.45,
-    rotulo: "Afiná",
-    texto: "Filtrá por tipo y por rubro.",
-  }, async () => {
-    const facetas = await page.locator(FACETA).count();
-    if (facetas > 1) {
-      await asegurarVisible(page, FACETA, 1);
-      await clickEn(page, FACETA, { ms: 420, idx: 1 });
-      await dormir(650);
-    } else {
-      await dormir(900);
-    }
-  });
-
-  // ── 3. Buscar ───────────────────────────────────────────────────
+  // ── 2. Buscar ───────────────────────────────────────────────────
   // Se encuadra el MISMO campo en el que se tipea, no el buscador de la barra
   // lateral: antes apuntaban a elementos distintos y el plano mostraba una
   // franja de logos mientras el texto se escribía fuera de cuadro.
@@ -86,7 +65,7 @@ export async function escenaDirectorio({ page, BASE }) {
   await scrollA(page, '[data-tour="directorio-toolbar"]', { offset: 150, ms: 520 });
   await dormir(320);
 
-  // ── 4. Los resultados ───────────────────────────────────────────
+  // ── 3. Los resultados ───────────────────────────────────────────
   // Este plano volvió. La primera versión encuadraba el CONTADOR, que no
   // muestra nada, y encima caía sobre la misma zona que el de filtros. Ahora
   // encuadra la grilla: se ven las metalúrgicas que contestaron a la búsqueda.
@@ -100,6 +79,27 @@ export async function escenaDirectorio({ page, BASE }) {
     rotulo: "Al instante",
     texto: "Quién hace eso en el parque.",
   }, () => dormir(400));
+
+  // ── 4. Filtros ──────────────────────────────────────────────────
+  await scrollA(page, '[data-tour="directorio-sidebar"]', { offset: 130, ms: 520 });
+  await dormir(300);
+
+  await plano(page, {
+    id: "filtros",
+    encuadre: '[data-tour="directorio-sidebar"]',
+    escala: 1.45,
+    rotulo: "Afiná",
+    texto: "Filtrá por tipo y por rubro.",
+  }, async () => {
+    const facetas = await page.locator(FACETA).count();
+    if (facetas > 1) {
+      await asegurarVisible(page, FACETA, 1);
+      await clickEn(page, FACETA, { ms: 420, idx: 1 });
+      await dormir(650);
+    } else {
+      await dormir(900);
+    }
+  });
 
   // ── 5. Las tarjetas ─────────────────────────────────────────────
   await scrollA(page, TARJETA, { offset: 190, ms: 560 });
@@ -149,13 +149,29 @@ export async function escenaDirectorio({ page, BASE }) {
     sello: "Verificado",
   }, () => dormir(1250));
 
-  // El catálogo de Vaxler ya no se filma. Mostrar el catálogo real de una
-  // socia concreta ponía su lista de servicios en el video institucional, y
-  // encima eran cuatro tarjetas quietas. En su lugar el montaje inserta un
-  // plano a sangre generado con Higgsfield (assets/catalogo.mp4): un taller
-  // del parque trabajando. Dice lo mismo —el sitio publica productos y
-  // servicios reales— sin exponer a nadie y rompiendo la seguidilla de
-  // pantallas.
+  // ── 7. El catálogo ──────────────────────────────────────────────
+  // Se filma el catálogo REAL de la ficha. Se probó reemplazarlo por un plano
+  // generado y no sirve: lo que hay que mostrar es el producto, no una
+  // ambientación.
+  const CATALOGO = "main section";
+  await page.waitForFunction(
+    () => [...document.querySelectorAll("main section")]
+      .some((e) => /productos y servicios/i.test(e.textContent || "")),
+    null, { timeout: 8000 },
+  ).catch(() => console.log("    · el catálogo no apareció en 8 s"));
+  const iCat = await indicePorTexto(page, CATALOGO, /productos y servicios/i);
+  if (iCat >= 0) {
+    await scrollA(page, CATALOGO, { offset: 150, ms: 620, idx: iCat });
+    await dormir(360);
+    await plano(page, {
+      id: "catalogo",
+      encuadre: CATALOGO,
+      idx: iCat,
+      escala: 1.25,
+      rotulo: "El catálogo",
+      texto: "Servicios con foto y ficha, no una lista.",
+    }, () => dormir(500));
+  }
 
   // ── 8. Contacto directo ─────────────────────────────────────────
   await scrollA(page, '[data-tour="ficha-sidebar-contacto"]', { offset: 170, ms: 560 });

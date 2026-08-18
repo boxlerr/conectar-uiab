@@ -75,7 +75,7 @@ const CIERRE = { archivo: "assets/cierre.mp4", dur: 4.0, anclaje: "inicio" };
 // parque— sin poner en cámara el catálogo de una socia concreta.
 // Generado con Higgsfield (ver assets.json: modelo, prompt y descarte).
 const INSERTO = {
-  archivo: "assets/catalogo.mp4",
+  archivo: null, // apagado: el catálogo se filma del sitio, no se genera
   despuesDe: "ficha",
   dur: 4.0,
   rotulo: "El catálogo",
