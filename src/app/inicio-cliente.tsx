@@ -467,7 +467,7 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                   {
                     icon: Briefcase,
                     title: "Empresas del Partido",
-                    desc: "Más de 60 empresas radicadas publican su perfil, buscan proveedores de servicios y acceden a oportunidades de negocio exclusivas.",
+                    desc: "Las empresas radicadas en el partido publican su perfil, buscan proveedores de servicios y acceden a oportunidades de negocio exclusivas.",
                     link: "/empresas",
                     linkLabel: "Ver directorio de empresas",
                   },

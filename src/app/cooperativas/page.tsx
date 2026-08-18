@@ -335,9 +335,9 @@ export default function CooperativasPage() {
                 custom={2}
                 className="text-slate-600 text-base md:text-lg leading-relaxed mb-8 max-w-lg"
               >
-                Conecta tu cooperativa de trabajo o producción con las empresas socias
-                UIAB y 50 proveedores de servicios verificados del Conurbano Sur.
-                Una red comercial curada, con respaldo institucional.
+                Conecta tu cooperativa de trabajo o producción con las empresas
+                socias de la UIAB en el Conurbano Sur. Una red comercial curada,
+                con respaldo institucional.
               </motion.p>
 
               {/* CTAs */}
@@ -958,8 +958,8 @@ export default function CooperativasPage() {
             </h2>
 
             <p className="text-slate-600 text-lg leading-relaxed max-w-2xl mx-auto mb-10">
-              Más de 60 socios UIAB y 50 proveedores de servicios verificados esperan conocer
-              la producción y los servicios de tu cooperativa. Sumarte es simple y la visibilidad es inmediata.
+              Las empresas socias de la UIAB esperan conocer la producción y los
+              servicios de tu cooperativa. Sumarte es simple y la visibilidad es inmediata.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

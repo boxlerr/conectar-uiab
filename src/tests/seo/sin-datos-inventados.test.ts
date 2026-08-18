@@ -148,6 +148,38 @@ describe("no se publican datos inventados", () => {
    * componente. Un número real se busca en la base y baja por props como
    * expresión (`val: String(totalEmpresas)`), que esta regex no matchea.
    */
+  /**
+   * La MISMA clase, en prosa.
+   *
+   * La regla del `val:` de abajo tapó las tarjetas de estadísticas, pero el
+   * 18/08 aparecieron siete afirmaciones más escondidas en párrafos de copy:
+   * "Más de 60 empresas radicadas publican su perfil" (son 59) y "50
+   * proveedores de servicios verificados" repetido en /cooperativas y
+   * /instituciones-bancarias — con CERO prestadores aprobados en la base.
+   *
+   * Un número pegado a un sustantivo del padrón es una afirmación sobre el
+   * padrón, esté en una tarjeta o en medio de una frase. Si el dato es real se
+   * interpola desde props (`{totalEmpresas} empresas`), y esta regla —que sólo
+   * mira literales— no lo ve.
+   */
+  it("ningún párrafo afirma un tamaño del padrón escrito a mano", () => {
+    const sustantivos =
+      "(?:empresas|socias|socios|proveedores|prestadores|profesionales|" +
+      "instituciones|conexiones|comercios|cooperativas|licitaciones|oportunidades)";
+    const regla = new RegExp(`(?:\\+\\s*)?\\d{2,4}\\s*\\+?\\s+${sustantivos}\\b`, "i");
+
+    const culpables = FUENTES.flatMap((f) => {
+      const hit = f.codigo.match(regla);
+      return hit ? [`${f.ruta} → "${hit[0]}"`] : [];
+    });
+
+    expect(
+      culpables,
+      "hay un tamaño del padrón escrito a mano. Si el número es real, derivalo de " +
+        "la base y pasalo por props; si no lo tenés, sacá la afirmación."
+    ).toEqual([]);
+  });
+
   it("ninguna tarjeta de estadísticas tiene un número escrito a mano", () => {
     const regla = /val:\s*["'`][^"'`\n]*\d/;
     const culpables = FUENTES.filter((f) => regla.test(f.codigo)).map((f) => f.ruta);

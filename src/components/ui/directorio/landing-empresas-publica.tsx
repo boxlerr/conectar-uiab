@@ -913,7 +913,7 @@ export function PublicEmpresasLanding({
               dentro del directorio comercial
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-lg text-primary-200/80 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Únase a las más de 60 empresas y comercios que ya operan dentro de UIAB Conecta. Visibilidad, oportunidades y una comunidad comercial activa en Almirante Brown.
+              Sumate a las empresas y comercios que ya operan dentro de UIAB Conecta. Visibilidad, oportunidades y una comunidad comercial activa en Almirante Brown.
             </motion.p>
             <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

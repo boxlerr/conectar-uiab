@@ -79,8 +79,8 @@ const beneficiosRed = [
   },
   {
     icon: Users,
-    titulo: "Red de proveedores de servicios verificados",
-    copy: "Mas de 50 proveedores de servicios auditados por la UIAB. Servicios profesionales, insumos industriales, logistica y mas.",
+    titulo: "Padrón verificado contra la UIAB",
+    copy: "Cada ficha se valida contra el padrón de socias de la cámara: industria, servicios profesionales, insumos y logística.",
   },
   {
     icon: Target,
@@ -354,9 +354,9 @@ export default function InstitucionesBancariasPage() {
                 custom={2}
                 className="text-slate-600 text-base md:text-lg leading-relaxed mb-8 max-w-lg"
               >
-                Suma tu banco al directorio de la UIAB y accede a las empresas socias
-                UIAB y 50 proveedores de servicios verificados del Conurbano Sur.
-                Una red comercial curada, con respaldo institucional.
+                Suma tu banco al directorio de la UIAB y accedé a las empresas
+                socias de la cámara en el Conurbano Sur. Una red comercial curada,
+                con respaldo institucional.
               </motion.p>
 
               {/* CTAs */}
@@ -977,8 +977,8 @@ export default function InstitucionesBancariasPage() {
             </h2>
 
             <p className="text-slate-600 text-lg leading-relaxed max-w-2xl mx-auto mb-10">
-              Más de 60 socios UIAB y 50 proveedores de servicios verificados esperan conocer
-              los servicios financieros de tu entidad. Sumarte es simple y la visibilidad es inmediata.
+              Las empresas socias de la UIAB esperan conocer los servicios financieros
+              de tu entidad. Sumarte es simple y la visibilidad es inmediata.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
