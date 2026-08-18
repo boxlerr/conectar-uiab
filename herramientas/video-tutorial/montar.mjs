@@ -20,7 +20,7 @@
  * movimiento es exacto y el sostenido queda a resolución plena.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync, readdirSync, copyFileSync } from "node:fs";
 import { join } from "node:path";
 import { createRequire } from "node:module";
 import { rasterizar } from "./tipografia.mjs";
@@ -626,6 +626,25 @@ if (MUSICA && existsSync(MUSICA)) {
 } else {
   ff(["-i", encadenado, "-an", ...comunes, SALIDA]);
   console.log("▸ Sin música (dejá un MP3 en assets/musica.mp3 y volvé a correr esto)");
+}
+
+// Copia fechada y versionada en el Escritorio.
+//
+// El mp4 vive dentro del worktree y está en .gitignore, así que era imposible
+// de encontrar si no sabías la ruta exacta — y no se puede pedir que alguien
+// se acuerde de dónde queda un worktree. Cada corrida deja su copia acá, con
+// fecha y número, sin pisar la anterior.
+try {
+  const escritorio = join(process.env.HOME ?? ".", "Desktop", "uiab-renders");
+  mkdirSync(escritorio, { recursive: true });
+  const hoy = new Date().toISOString().slice(0, 10);
+  const previas = readdirSync(escritorio)
+    .filter((n) => n.startsWith(`tutorial-uiab-${hoy}-v`)).length;
+  const copia = join(escritorio, `tutorial-uiab-${hoy}-v${previas + 1}.mp4`);
+  copyFileSync(SALIDA, copia);
+  console.log(`\n▸ Copia para mirar: ${copia}`);
+} catch (e) {
+  console.log(`  ⚠ no pude dejar la copia en el Escritorio: ${e.message}`);
 }
 
 rmSync(TMP, { recursive: true, force: true });

@@ -33,7 +33,28 @@ export async function escenaDirectorio({ page, BASE }) {
     texto: "Todas las socias y prestadores de la red.",
   }, () => dormir(1200));
 
-  // ── 2. Buscar ───────────────────────────────────────────────────
+  // ── 2. Filtros ──────────────────────────────────────────────────
+  await scrollA(page, '[data-tour="directorio-sidebar"]', { offset: 130, ms: 520 });
+  await dormir(300);
+
+  await plano(page, {
+    id: "filtros",
+    encuadre: '[data-tour="directorio-sidebar"]',
+    escala: 1.45,
+    rotulo: "Afiná",
+    texto: "Filtrá por tipo y por rubro.",
+  }, async () => {
+    const facetas = await page.locator(FACETA).count();
+    if (facetas > 1) {
+      await asegurarVisible(page, FACETA, 1);
+      await clickEn(page, FACETA, { ms: 420, idx: 1 });
+      await dormir(650);
+    } else {
+      await dormir(900);
+    }
+  });
+
+  // ── 3. Buscar ───────────────────────────────────────────────────
   // Se encuadra el MISMO campo en el que se tipea, no el buscador de la barra
   // lateral: antes apuntaban a elementos distintos y el plano mostraba una
   // franja de logos mientras el texto se escribía fuera de cuadro.
@@ -65,7 +86,7 @@ export async function escenaDirectorio({ page, BASE }) {
   await scrollA(page, '[data-tour="directorio-toolbar"]', { offset: 150, ms: 520 });
   await dormir(320);
 
-  // ── 3. Los resultados ───────────────────────────────────────────
+  // ── 4. Los resultados ───────────────────────────────────────────
   // Este plano volvió. La primera versión encuadraba el CONTADOR, que no
   // muestra nada, y encima caía sobre la misma zona que el de filtros. Ahora
   // encuadra la grilla: se ven las metalúrgicas que contestaron a la búsqueda.
@@ -79,27 +100,6 @@ export async function escenaDirectorio({ page, BASE }) {
     rotulo: "Al instante",
     texto: "Quién hace eso en el parque.",
   }, () => dormir(400));
-
-  // ── 4. Filtros ──────────────────────────────────────────────────
-  await scrollA(page, '[data-tour="directorio-sidebar"]', { offset: 130, ms: 520 });
-  await dormir(300);
-
-  await plano(page, {
-    id: "filtros",
-    encuadre: '[data-tour="directorio-sidebar"]',
-    escala: 1.45,
-    rotulo: "Afiná",
-    texto: "Filtrá por tipo y por rubro.",
-  }, async () => {
-    const facetas = await page.locator(FACETA).count();
-    if (facetas > 1) {
-      await asegurarVisible(page, FACETA, 1);
-      await clickEn(page, FACETA, { ms: 420, idx: 1 });
-      await dormir(650);
-    } else {
-      await dormir(900);
-    }
-  });
 
   // ── 5. Las tarjetas ─────────────────────────────────────────────
   await scrollA(page, TARJETA, { offset: 190, ms: 560 });
@@ -140,6 +140,10 @@ export async function escenaDirectorio({ page, BASE }) {
   await plano(page, {
     id: "ficha",
     encuadre: '[data-tour="ficha-identidad"]',
+    // Explícita: con "auto" el recorte del sujeto (980 px) cortaba el cuarto
+    // dato de la tira — "10 especialidades", que es justo lo que hace a esta
+    // ficha la más completa de la base.
+    escala: 1.15,
     rotulo: "La ficha",
     texto: "Productos, rubros y especialidades.",
     sello: "Verificado",
