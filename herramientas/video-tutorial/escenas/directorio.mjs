@@ -56,7 +56,10 @@ export async function escenaDirectorio({ page, BASE }) {
     // "software" y no "vaxler": buscar por el nombre propio de la empresa que
     // desarrolló el sitio queda auto-referencial, y además una búsqueda por
     // rubro muestra lo que el directorio hace de verdad — devolver varias.
-    await tipear(page, BUSCADOR, "software", { porChar: 66 });
+    await moverAlSelector(page, BUSCADOR, { ms: 440 });
+    await page.locator(BUSCADOR).click({ timeout: 5000 });
+    await dormir(160);
+    await tipear(page, BUSCADOR, "software", { porChar: 66, clickPrimero: false });
     await dormir(420);
   });
 
@@ -143,7 +146,7 @@ export async function escenaDirectorio({ page, BASE }) {
     // Explícita: con "auto" el recorte del sujeto (980 px) cortaba el cuarto
     // dato de la tira — "10 especialidades", que es justo lo que hace a esta
     // ficha la más completa de la base.
-    escala: 1.15,
+    escala: 1,
     rotulo: "La ficha",
     texto: "Productos, rubros y especialidades.",
     sello: "Verificado",
