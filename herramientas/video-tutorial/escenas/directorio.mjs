@@ -53,7 +53,7 @@ export async function escenaDirectorio({ page, BASE }) {
     // La palabra ENTERA, no "metal". Cortada a la mitad el plano terminaba
     // sin haber mostrado nunca un resultado, que es lo que la búsqueda tiene
     // que probar.
-    await tipear(page, BUSCADOR, "metalurgica", { porChar: 58 });
+    await tipear(page, BUSCADOR, "vaxler", { porChar: 68 });
     await dormir(420);
   });
 
@@ -74,7 +74,7 @@ export async function escenaDirectorio({ page, BASE }) {
     encuadre: '[data-tour="directorio-resultados"]',
     escala: 1.15,
     rotulo: "Al instante",
-    texto: "Las metalúrgicas del parque.",
+    texto: "El resultado, con su ficha lista.",
   }, () => dormir(400));
 
   // ── 4. Filtros ──────────────────────────────────────────────────
@@ -138,7 +138,7 @@ export async function escenaDirectorio({ page, BASE }) {
     id: "ficha",
     encuadre: '[data-tour="ficha-identidad"]',
     rotulo: "La ficha",
-    texto: "Razón social, ubicación y rubro.",
+    texto: "Productos, rubros y especialidades.",
     sello: "Verificado",
   }, () => dormir(1250));
 
