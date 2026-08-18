@@ -38,7 +38,17 @@ export async function escenaOportunidades({ page, BASE }) {
     texto: "Estado, empresa, rubro y fecha.",
   }, async () => {
     await dormir(180);
-    await clickEn(page, `${TARJETA} a[href^="/oportunidades/"]`, { ms: 420 })
+    // Se entra al pedido de la UIAB, no al primero de la lista.
+    //
+    // Dos de los tres pedidos de ejemplo son de Vaxler —que es la cuenta con
+    // la que se filma— y a quien publicó no se le muestra "Postularse". Si
+    // entramos al primero, el capítulo pierde su mejor tramo sin decir nada:
+    // el paso se saltea en silencio. El tablero igual muestra los de Vaxler,
+    // que es lo que se quería ver.
+    const AJENO = 'a[href^="/oportunidades/"]';
+    const i = await indicePorTexto(page, AJENO, /log.stica interna/i);
+    if (i >= 0) await clickEn(page, AJENO, { ms: 420, idx: i });
+    else await clickEn(page, `${TARJETA} a[href^="/oportunidades/"]`, { ms: 420 })
       .catch(() => clickEn(page, TARJETA, { ms: 420 }));
   });
 
@@ -129,11 +139,11 @@ export async function escenaOportunidades({ page, BASE }) {
   // ese scroll se llevaba el combobox a 585 px por encima del viewport — la
   // caja quedaba fuera de pantalla y el plano se caía a plano general. Lo que
   // hay para mostrar acá es el panel con los rubros, no el click.
-  const OPCION = 'div[role="listbox"][aria-label="Rubro"] div[role="option"]';
+  const OPCION = 'div[role="listbox"][aria-label^="Rubro"] div[role="option"]';
   await opcional("rubro", async () => {
     await plano(page, {
       id: "rubro",
-      encuadre: 'div[role="listbox"][aria-label="Rubro"]',
+      encuadre: 'div[role="listbox"][aria-label^="Rubro"]',
       escala: 1.45,
       rotulo: "Elegí el rubro",
       texto: "193 rubros para afinar el match.",
