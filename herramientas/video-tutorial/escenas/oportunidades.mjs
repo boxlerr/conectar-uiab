@@ -29,6 +29,9 @@ export async function escenaOportunidades({ page, BASE }) {
   }, () => dormir(1200));
 
   // ── 2. Una publicación ──────────────────────────────────────────
+  await scrollA(page, TARJETA, { offset: 170, ms: 560 });
+  await dormir(320);
+
   await plano(page, {
     id: "publicacion",
     encuadre: TARJETA,
@@ -45,11 +48,13 @@ export async function escenaOportunidades({ page, BASE }) {
     // entramos al primero, el capítulo pierde su mejor tramo sin decir nada:
     // el paso se saltea en silencio. El tablero igual muestra los de Vaxler,
     // que es lo que se quería ver.
-    const AJENO = 'a[href^="/oportunidades/"]';
+    // La tarjeta ES el enlace (data-tour="op-tarjeta" está sobre el <a>), así
+    // que buscar un <a> ADENTRO no matchea nada. Y hay que excluir
+    // /oportunidades/nueva, que también empieza igual.
+    const AJENO = 'a[href^="/oportunidades/"]:not([href$="/nueva"])';
     const i = await indicePorTexto(page, AJENO, /log.stica interna/i);
     if (i >= 0) await clickEn(page, AJENO, { ms: 420, idx: i });
-    else await clickEn(page, `${TARJETA} a[href^="/oportunidades/"]`, { ms: 420 })
-      .catch(() => clickEn(page, TARJETA, { ms: 420 }));
+    else await clickEn(page, TARJETA, { ms: 420 });
   });
 
   await page.waitForURL(/\/oportunidades\/[0-9a-f-]{20,}/, { timeout: 15_000 }).catch(() => {});

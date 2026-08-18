@@ -53,7 +53,10 @@ export async function escenaDirectorio({ page, BASE }) {
     // La palabra ENTERA, no "metal". Cortada a la mitad el plano terminaba
     // sin haber mostrado nunca un resultado, que es lo que la búsqueda tiene
     // que probar.
-    await tipear(page, BUSCADOR, "vaxler", { porChar: 68 });
+    // "software" y no "vaxler": buscar por el nombre propio de la empresa que
+    // desarrolló el sitio queda auto-referencial, y además una búsqueda por
+    // rubro muestra lo que el directorio hace de verdad — devolver varias.
+    await tipear(page, BUSCADOR, "software", { porChar: 66 });
     await dormir(420);
   });
 
@@ -74,7 +77,7 @@ export async function escenaDirectorio({ page, BASE }) {
     encuadre: '[data-tour="directorio-resultados"]',
     escala: 1.15,
     rotulo: "Al instante",
-    texto: "El resultado, con su ficha lista.",
+    texto: "Quién hace eso en el parque.",
   }, () => dormir(400));
 
   // ── 4. Filtros ──────────────────────────────────────────────────
