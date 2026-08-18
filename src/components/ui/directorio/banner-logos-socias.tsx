@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import type { SociaConLogo } from "@/lib/datos/socias-logos";
 
@@ -21,6 +20,21 @@ import type { SociaConLogo } from "@/lib/datos/socias-logos";
  * Ojo con el orden: el barajado dejó de ser `Math.random()` en el cliente y
  * pasó a hacerse en el servidor con semilla del día. Con la mezcla en el
  * cliente el HTML del servidor y el primer render no coincidían.
+ *
+ * POR QUÉ `<img>` NATIVO Y NO `next/image`
+ *
+ * Los logos tienen que cargar sí o sí (con `loading="lazy"` quedan en blanco:
+ * medido, con el marquee en pantalla y tres segundos de espera, los cuatro
+ * logos visibles seguían sin bajar — el observer del lazy no acompaña el
+ * `transform` del track). Pero `next/image` con `loading="eager"` no sólo baja
+ * la imagen: emite un `<link rel="preload" as="image">` por URL, y el track
+ * repite las 58 socias ocho veces. La home mandaba 58 preloads (~1,2 MB) que
+ * competían con el hero, que es el LCP.
+ *
+ * Un `<img>` nativo eager baja las mismas imágenes pero SIN preload: el
+ * navegador las pide con prioridad normal, detrás de lo crítico. Los logos
+ * pesan 21 KB de media (máximo 60), así que saltear el resize de `/_next/image`
+ * cuesta poco — y de paso no gasta transformaciones de Vercel.
  */
 export function BannerLogosSocias({ empresas }: { empresas: SociaConLogo[] }) {
   if (empresas.length === 0) return null;
@@ -96,16 +110,24 @@ function LogoSocia({ empresa }: { empresa: SociaConLogo }) {
           {wordmark}
         </span>
       ) : (
-        <Image
-          src={empresa.logoUrl}
-          alt={`Logo de ${empresa.nombre} — empresa socia de la UIAB`}
-          width={200}
-          height={90}
-          // eager: dentro del track animado (transform) el lazy loading nativo
-          // nunca se dispara y los logos quedan en blanco mientras scrollea.
-          loading="eager"
-          className="object-contain max-h-[90px] max-w-[200px] transition-transform duration-300"
-          onError={() => setErrorLogo(true)}
+        /*
+          El logo va como `background-image` y no como `<img>`.
+          Es la única variante que carga el logo de entrada SIN meter un
+          `<link rel="preload">` por socia en el `<head>` — ver el comentario
+          de arriba. El nombre de la empresa no se pierde para lectores de
+          pantalla ni para Google: ya viaja en el `aria-label` y el `title` del
+          enlace que envuelve esto, así que el `alt` sería redundante y este
+          nodo queda como decoración pura.
+        */
+        <span
+          aria-hidden="true"
+          className="block w-[200px] h-[90px] transition-transform duration-300"
+          style={{
+            backgroundImage: `url("${empresa.logoUrl}")`,
+            backgroundSize: "contain",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
         />
       )}
     </Link>
