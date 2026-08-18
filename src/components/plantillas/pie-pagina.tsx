@@ -20,12 +20,38 @@ function LinkedInIcon({ className }: { className?: string }) {
   );
 }
 
+/**
+ * El footer va en TODAS las páginas, así que cada entrada de acá es un enlace
+ * interno multiplicado por el sitio entero: es el lugar más barato para dirigir
+ * rastreo, y el más caro para desperdiciarlo.
+ *
+ * Salió `/empresas?categoria=proveedores`: sirve el mismo listado que
+ * `/empresas` y declara a `/empresas` como su canónica, así que gastaba un
+ * enlace site-wide en una URL que Google pliega (de hecho Search Console la
+ * reporta como "Página alternativa con etiqueta canónica adecuada").
+ *
+ * Entraron `/rubros` —la capa intermedia hacia las 13 landings— y `/nosotros`,
+ * que sólo recibía un enlace en todo el sitio.
+ */
 const quickLinks = [
   { label: "Inicio", href: "/" },
+  { label: "Directorio", href: "/directorio" },
   { label: "Empresas", href: "/empresas" },
-  { label: "Proveedores de servicios", href: "/empresas?categoria=proveedores" },
+  { label: "Rubros industriales", href: "/rubros" },
   { label: "Oportunidades", href: "/oportunidades" },
+  { label: "Qué es UIAB Conecta", href: "/nosotros" },
   { label: "Contacto", href: "/contacto" },
+];
+
+/**
+ * Las tres landings institucionales sólo se alcanzaban desde un dropdown del
+ * header que se monta al abrirlo: en el HTML servido no existía ni un `<a>`
+ * hacia ellas, así que estaban en el sitemap y huérfanas de enlazado.
+ */
+const institucionalLinks = [
+  { label: "Cooperativas", href: "/cooperativas" },
+  { label: "Entidades financieras", href: "/instituciones-bancarias" },
+  { label: "Entidades educativas", href: "/instituciones-educativas" },
 ];
 
 const legalLinks = [
@@ -98,6 +124,25 @@ export function Footer() {
             </h4>
             <ul className="space-y-2.5">
               {quickLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-[13px] text-slate-500 hover:text-white transition-colors duration-200 flex items-center gap-1.5 group"
+                  >
+                    <ChevronRight className="w-3 h-3 text-slate-700 group-hover:text-primary-400 transition-colors" />
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* La grilla ya reparte sus 12 columnas (4+2+3+3), así que la red
+                institucional va acá adentro en vez de abrirle una columna. */}
+            <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] mt-8 mb-5">
+              La red
+            </h4>
+            <ul className="space-y-2.5">
+              {institucionalLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

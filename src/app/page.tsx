@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Inicio from "./inicio-cliente";
 import { obtenerSociasConLogo } from "@/lib/datos/socias-logos";
+import { ExplorarPorRubro } from "@/components/ui/directorio/explorar-por-rubro";
 
 /**
  * La portada es un Server Component finito cuyo único trabajo es declarar la
@@ -26,5 +27,19 @@ export const metadata: Metadata = {
  */
 export default async function Page() {
   const sociasLogos = await obtenerSociasConLogo();
-  return <Inicio sociasLogos={sociasLogos} />;
+  return (
+    <>
+      <Inicio sociasLogos={sociasLogos} />
+      {/*
+        La portada no enlazaba NINGUNA de las 13 landings de rubro (medido con
+        curl: 0 href="/rubros/..."), así que colgaban sólo de /directorio y
+        /empresas. Es la página con más autoridad del sitio y la que Google
+        rastrea más seguido: dejarla sin salida hacia la capa intermedia
+        desperdicia el único enlazado interno que controlamos.
+
+        Sin `entidades` a propósito — ver el comentario del componente.
+      */}
+      <ExplorarPorRubro />
+    </>
+  );
 }

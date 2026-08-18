@@ -10,17 +10,25 @@ import type { Entidad } from "@/lib/datos/directorio";
  * bloque le da una capa jerárquica —hub → rubro → ficha— y, sobre todo, hace
  * que las 13 landings sean rastreables desde el día uno: sin él sólo existirían
  * en el sitemap, que es una sugerencia, no un camino de rastreo.
+ *
+ * `entidades` es OPCIONAL porque la home también monta este bloque. Con la
+ * lista, cada chip muestra cuántas socias tiene el rubro; sin ella se rinden
+ * los 13 chips igual, sin conteo. La distinción existe para no arrastrar
+ * `obtenerDirectorio()` —la query más cara del sitio, con categorías, tags y
+ * certificaciones anidadas— al TTFB de la portada sólo para imprimir números
+ * al lado de un enlace. Los enlaces, que son el punto, no dependen de la base:
+ * RUBROS_SEO es un array estático.
  */
-export function ExplorarPorRubro({ entidades }: { entidades: Entidad[] }) {
-  const socias = entidades.filter((e) => !esEmpresaInstitucional(e.id));
+export function ExplorarPorRubro({ entidades }: { entidades?: Entidad[] }) {
+  const socias = entidades?.filter((e) => !esEmpresaInstitucional(e.id));
 
   const rubros = RUBROS_SEO.map((r) => ({
     slug: r.slug,
     nombre: r.nombre,
-    total: socias.filter((e) => perteneceAlRubro(r, e)).length,
+    total: socias ? socias.filter((e) => perteneceAlRubro(r, e)).length : null,
   }))
-    .filter((r) => r.total > 0)
-    .sort((a, b) => b.total - a.total);
+    .filter((r) => r.total === null || r.total > 0)
+    .sort((a, b) => (b.total ?? 0) - (a.total ?? 0));
 
   if (rubros.length === 0) return null;
 
@@ -48,7 +56,9 @@ export function ExplorarPorRubro({ entidades }: { entidades: Entidad[] }) {
                 className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-full pl-4 pr-3 py-2 text-[13.5px] font-semibold text-slate-700 hover:border-primary-300 hover:text-primary-600 hover:bg-white transition-colors"
               >
                 {r.nombre}
-                <span className="text-[11px] font-bold text-slate-400">{r.total}</span>
+                {r.total !== null && (
+                  <span className="text-[11px] font-bold text-slate-400">{r.total}</span>
+                )}
               </Link>
             </li>
           ))}
