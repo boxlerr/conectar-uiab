@@ -103,13 +103,15 @@ export const metadata: Metadata = {
     description: "Directorio Comercial de la Unión Industrial de Almirante Brown",
     url: "https://www.uiabconecta.com",
     locale: "es_AR",
-    images: [{ url: "/industrial-b2b-header.png", width: 1200, height: 630, alt: "UIAB Conecta" }],
+    // 1200×630 REALES. `/industrial-b2b-header.png` es, pese a la extensión,
+    // un JPEG cuadrado de 1024×1024: se declaraba con medidas que no tenía.
+    images: [{ url: "/og-uiab-conecta.jpg", width: 1200, height: 630, alt: "UIAB Conecta" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "UIAB Conecta | Directorio Industrial",
     description: "Directorio Comercial de la Unión Industrial de Almirante Brown",
-    images: ["/industrial-b2b-header.png"],
+    images: ["/og-uiab-conecta.jpg"],
   },
 };
 

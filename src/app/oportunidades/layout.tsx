@@ -12,9 +12,10 @@ import { ogPorRuta } from "@/lib/seo/og";
  * buena.
  */
 const SITE_URL = "https://www.uiabconecta.com";
-// PNG 1200×630, no el SVG del logo: WhatsApp/Facebook/X no renderizan SVG
-// como imagen de tarjeta, así que compartir /oportunidades salía sin imagen.
-const IMAGEN_URL = `${SITE_URL}/industrial-b2b-header.png`;
+// JPEG de 1200×630 reales, no el SVG del logo: WhatsApp/Facebook/X no
+// renderizan SVG como imagen de tarjeta, así que compartir /oportunidades
+// salía sin imagen. Es el mismo asset que sirve ogPorRuta.
+const IMAGEN_URL = `${SITE_URL}/og-uiab-conecta.jpg`;
 
 export const metadata: Metadata = {
   // "Licitaciones B2B en Almirante Brown" es además el title que Google ya
