@@ -577,13 +577,38 @@ type EmpresaHermana = {
  * tres de electricidad— contra la MISMA landing.
  */
 function rubrosConLandingDe(empresaDb: any): RubroConLanding[] {
-  return (empresaDb.empresas_categorias || [])
+  const rubros: RubroConLanding[] = (empresaDb.empresas_categorias || [])
     .map((ec: any) => ec.categorias)
     .filter((c: any) => c?.nombre)
     .map((c: any) => {
       const landing = landingDeCategoria(c.slug);
-      return { nombre: c.nombre as string, href: landing ? `/rubros/${landing.slug}` : null };
+      /**
+       * Con landing, el chip toma el nombre de la LANDING y no el de la
+       * categoría de la base.
+       *
+       * El catálogo está fragmentado, así que varias categorías de la misma
+       * socia caen en la misma landing: Vaxler mostraba "Desarrollo de
+       * Software Industrial", "Informática, Sistemas y Soporte IT" y
+       * "Telecomunicaciones y Redes" como tres chips distintos que iban los
+       * tres a /rubros/informatica-industrial. Eran tres enlaces a la misma
+       * URL con anchors distintos en la misma página: reparten la señal en vez
+       * de sumarla, y ninguno coincidía con el H1 del destino.
+       *
+       * Con el nombre canónico, el anchor dice lo mismo que el título de la
+       * página a la que lleva, que es lo que hace que un enlace interno valga.
+       * Las categorías sin landing conservan su nombre: no hay a qué alinearse.
+       */
+      return landing
+        ? { nombre: landing.nombre, href: `/rubros/${landing.slug}` }
+        : { nombre: c.nombre as string, href: null };
     });
+
+  // Un destino, un chip.
+  const porDestino = new Map<string, RubroConLanding>();
+  for (const r of rubros) {
+    porDestino.set(r.href ?? `sin-landing:${r.nombre}`, r);
+  }
+  return [...porDestino.values()];
 }
 
 /**
@@ -1203,7 +1228,11 @@ async function EmpresaProfile({
             anchor text ya estaba escrito y se desperdiciaba en un <span>. */}
         <CabeceraFicha
           nombre={empresa.nombre}
-          rubroPrincipal={empresa.categoria}
+          /* El texto salía de `empresa.categoria` (la primera categoría cruda)
+             mientras el href salía de `rubrosConLanding[0]`: dos fuentes para
+             un mismo enlace, que se desalineaban apenas la socia tenía varias
+             categorías. Con landing mandan las dos cosas juntas. */
+          rubroPrincipal={rubrosConLanding[0]?.href ? rubrosConLanding[0].nombre : empresa.categoria}
           rubroPrincipalHref={rubrosConLanding[0]?.href ?? null}
           selloEstado={{ icono: CheckCircle2, texto: "Verificado UIAB", conSello: true }}
           logoUrl={empresa.logoUrl}
