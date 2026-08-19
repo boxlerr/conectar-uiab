@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ogPorRuta } from "@/lib/seo/og";
 import { cortarEnPalabra, TOPE_TITLE_SIN_SUFIJO } from "@/lib/seo/texto";
+import { textoPlanoDeHtml } from "@/modulos/oportunidades/texto";
 
 /**
  * Metadata por oportunidad.
@@ -83,10 +84,7 @@ export async function generateMetadata({
    * link por WhatsApp. La descripcion viene como HTML del editor: se aplana.
    */
   const titulo = cortarEnPalabra(op.titulo ?? "Oportunidad abierta", TOPE_TITLE_SIN_SUFIJO);
-  const textoPlano = (op.descripcion ?? "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&");
+  const textoPlano = textoPlanoDeHtml(op.descripcion);
   const contexto = [op.categoria?.nombre, op.localidad].filter(Boolean).join(", ");
   const description = cortarEnPalabra(
     `Pedido abierto en la cartelera UIAB${contexto ? ` (${contexto})` : ""}: ${textoPlano}`,

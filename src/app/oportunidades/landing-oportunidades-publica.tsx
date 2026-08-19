@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Oportunidad } from "@/modulos/oportunidades/servicio-oportunidades";
 import { publicadaHace } from "./oportunidades-cliente";
+import { textoPlanoDeHtml } from "@/modulos/oportunidades/texto";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -443,7 +444,7 @@ export function PublicOportunidadesLanding({ oportunidades, loading }: { oportun
                           className="text-slate-600 mb-8 line-clamp-2 text-[15px] leading-relaxed max-w-3xl"
                           style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
                         >
-                          {op.descripcion}
+                          {textoPlanoDeHtml(op.descripcion)}
                         </p>
 
                         <div 
