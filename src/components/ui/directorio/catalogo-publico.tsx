@@ -355,6 +355,18 @@ function CatalogoModal({
     setDetalleExpandido(false);
   }, [item.id]);
 
+  // Con el modal abierto, la rueda movía la ficha de atrás. Sólo el eje Y: el
+  // body lleva `overflow-x: clip` puesto a propósito y pisarlo con un `hidden`
+  // de los dos ejes rompería los `position: sticky` de la página.
+  useEffect(() => {
+    const { body } = document;
+    const previo = body.style.overflowY;
+    body.style.overflowY = "hidden";
+    return () => {
+      body.style.overflowY = previo;
+    };
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -397,13 +409,22 @@ function CatalogoModal({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20 sm:pt-24 lg:pt-32 pb-8 bg-slate-900/60 backdrop-blur-[2px] overflow-y-auto"
+      /* Centrado y con padding simétrico. Antes arrancaba pegado arriba con
+         `pt-32` para esquivar el header fijo, pero el header comparte el z-50 y
+         queda DEBAJO por orden del DOM, así que ese hueco sólo servía para
+         empujar el modal fuera de pantalla: en un portátil de 800px el panel
+         terminaba cortado abajo. `z-[60]` deja explícito que va por encima del
+         header sin depender del orden de renderizado. */
+      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-[2px]"
       onClick={onClose}
       style={{ backgroundColor: "rgba(25, 28, 30, 0.45)" }}
     >
-      {/* Flechas laterales entre ítems (md+). Van fijas a los bordes de la
-          pantalla, en navy, para no confundirse con las flechas blancas de la
-          galería de fotos que viven DENTRO de la imagen. */}
+      {/* Flechas laterales entre ítems. Van fijas a los bordes de la pantalla,
+          en navy, para no confundirse con las flechas blancas de la galería de
+          fotos que viven DENTRO de la imagen. Sólo en `xl`: el panel mide hasta
+          1024px, así que recién a partir de ~1190px de ancho queda margen para
+          ponerlas al costado sin que se monten sobre la imagen. Más abajo de
+          eso, las flechas viven en el toolbar. */}
       {total > 1 && (
         <>
           <button
@@ -411,7 +432,7 @@ function CatalogoModal({
               e.stopPropagation();
               onNavegar(-1);
             }}
-            className="hidden md:flex fixed left-4 lg:left-8 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-[#00213f]/90 backdrop-blur hover:bg-[#10375c] items-center justify-center text-white transition-colors"
+            className="hidden xl:flex fixed left-6 2xl:left-10 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-[#00213f]/90 backdrop-blur hover:bg-[#10375c] items-center justify-center text-white transition-colors"
             style={{ boxShadow: "0 4px 16px rgba(25, 28, 30, 0.25)" }}
             aria-label="Ítem anterior"
           >
@@ -422,7 +443,7 @@ function CatalogoModal({
               e.stopPropagation();
               onNavegar(1);
             }}
-            className="hidden md:flex fixed right-4 lg:right-8 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-[#00213f]/90 backdrop-blur hover:bg-[#10375c] items-center justify-center text-white transition-colors"
+            className="hidden xl:flex fixed right-6 2xl:right-10 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-[#00213f]/90 backdrop-blur hover:bg-[#10375c] items-center justify-center text-white transition-colors"
             style={{ boxShadow: "0 4px 16px rgba(25, 28, 30, 0.25)" }}
             aria-label="Ítem siguiente"
           >
@@ -435,38 +456,53 @@ function CatalogoModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as const }}
-        className="bg-white rounded-md w-full max-w-5xl max-h-[calc(100svh-7rem)] lg:max-h-[82svh] relative overflow-hidden flex flex-col"
+        /* El alto es "lo que quede de pantalla" en vez de un porcentaje fijo:
+           el 82svh de antes, sumado al padding de arriba, se pasaba del alto
+           disponible en monitores bajos. El scroll vive adentro. */
+        className="bg-white rounded-md w-full max-w-5xl max-h-[calc(100svh-1.5rem)] sm:max-h-[calc(100svh-3rem)] relative overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ boxShadow: "0 16px 48px rgba(25, 28, 30, 0.12), 0 2px 8px rgba(25, 28, 30, 0.04)" }}
       >
+        {/* Navegación entre ítems mientras no haya lugar al costado (debajo de
+            `xl`). Va a la IZQUIERDA para no amontonarse con la X sobre la misma
+            esquina de la imagen, que es justo donde las fichas suelen tener su
+            logo. */}
+        {total > 1 && (
+          <div className="absolute top-4 left-4 z-20 flex items-center gap-2 xl:hidden">
+            <button
+              onClick={() => onNavegar(-1)}
+              className="w-9 h-9 rounded-sm bg-white/95 backdrop-blur text-slate-700 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-colors"
+              style={{ boxShadow: "0 2px 8px rgba(25, 28, 30, 0.08)" }}
+              aria-label="Ítem anterior"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span
+              className="inline-flex h-9 items-center rounded-sm bg-white/95 px-2.5 font-mono text-[11px] font-semibold tabular-nums text-slate-600 backdrop-blur"
+              style={{ boxShadow: "0 2px 8px rgba(25, 28, 30, 0.08)" }}
+            >
+              {pos} / {total}
+            </span>
+            <button
+              onClick={() => onNavegar(1)}
+              className="w-9 h-9 rounded-sm bg-white/95 backdrop-blur text-slate-700 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-colors"
+              style={{ boxShadow: "0 2px 8px rgba(25, 28, 30, 0.08)" }}
+              aria-label="Ítem siguiente"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Toolbar flotante */}
         <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
           {total > 1 && (
-            <>
-              <span
-                className="hidden sm:inline-flex h-9 items-center rounded-sm bg-white/95 px-2.5 font-mono text-[11px] font-semibold tabular-nums text-slate-600 backdrop-blur"
-                style={{ boxShadow: "0 2px 8px rgba(25, 28, 30, 0.08)" }}
-              >
-                {pos} / {total}
-              </span>
-              {/* En pantallas chicas las flechas laterales no entran: van acá arriba */}
-              <button
-                onClick={() => onNavegar(-1)}
-                className="md:hidden w-9 h-9 rounded-sm bg-white/95 backdrop-blur text-slate-700 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-colors"
-                style={{ boxShadow: "0 2px 8px rgba(25, 28, 30, 0.08)" }}
-                aria-label="Ítem anterior"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => onNavegar(1)}
-                className="md:hidden w-9 h-9 rounded-sm bg-white/95 backdrop-blur text-slate-700 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-colors"
-                style={{ boxShadow: "0 2px 8px rgba(25, 28, 30, 0.08)" }}
-                aria-label="Ítem siguiente"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </>
+            <span
+              className="hidden xl:inline-flex h-9 items-center rounded-sm bg-white/95 px-2.5 font-mono text-[11px] font-semibold tabular-nums text-slate-600 backdrop-blur"
+              style={{ boxShadow: "0 2px 8px rgba(25, 28, 30, 0.08)" }}
+            >
+              {pos} / {total}
+            </span>
           )}
           <button
             onClick={onClose}
@@ -480,7 +516,9 @@ function CatalogoModal({
 
         <div className="grid grid-cols-1 md:grid-cols-[1.15fr_1fr] overflow-y-auto">
           {/* Imagen / Galería */}
-          <div className="relative bg-slate-100 md:min-h-[560px] aspect-[4/3] md:aspect-auto">
+          {/* El mínimo baja en pantallas de poco alto: 560px fijos obligaban a
+              scrollear adentro del modal en cualquier portátil de 800px. */}
+          <div className="relative bg-slate-100 md:min-h-[380px] lg:min-h-[460px] xl:min-h-[540px] aspect-[4/3] md:aspect-auto">
             {item.imagenes.length > 0 ? (
               <>
                 {/* object-contain, no cover: las imágenes del catálogo son 1:1
