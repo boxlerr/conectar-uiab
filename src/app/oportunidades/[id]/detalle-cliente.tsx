@@ -17,8 +17,11 @@ import {
   Image as ImageIcon,
   Info,
   Lock,
+  Mail,
   MapPin,
+  MessageCircle,
   Package,
+  Phone,
   PencilLine,
   Plus,
   Share2,
@@ -430,6 +433,8 @@ export default function OportunidadDetalleCliente({
                   icono={<Building2 className="h-3.5 w-3.5" aria-hidden="true" />}
                   etiqueta="Solicitante"
                   valor={solicitante.nombre ?? "Miembro de la red"}
+                  logoUrl={solicitante.logoUrl}
+                  inicial={solicitante.inicial}
                 />
                 <MetaHero
                   icono={<MapPin className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -850,10 +855,15 @@ function MetaHero({
   icono,
   etiqueta,
   valor,
+  logoUrl,
+  inicial,
 }: {
   icono: React.ReactNode;
   etiqueta: string;
   valor: string;
+  /** Sólo el solicitante: su marca al lado del nombre. */
+  logoUrl?: string | null;
+  inicial?: string;
 }) {
   return (
     <div className="min-w-0">
@@ -868,10 +878,26 @@ function MetaHero({
           nombres largos de rubro no entran en una sola y quedaban cortados. */}
       <dd
         style={inter}
-        className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug text-white"
+        className="mt-1.5 flex items-center gap-2 text-sm font-semibold leading-snug text-white"
         title={valor}
       >
-        {valor}
+        {inicial !== undefined &&
+          (logoUrl ? (
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
+              <Image
+                src={logoUrl}
+                alt=""
+                width={28}
+                height={28}
+                className="h-full w-full object-contain p-0.5"
+              />
+            </span>
+          ) : (
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-bold text-white/70">
+              {inicial}
+            </span>
+          ))}
+        <span className="line-clamp-2">{valor}</span>
       </dd>
     </div>
   );
@@ -999,33 +1025,64 @@ function TarjetaCandidato({
   else if (match.detalle_puntaje.categoria > 0) chips.push("Mismo rubro");
   if (match.detalle_puntaje.ubicacion > 0) chips.push("Misma zona");
 
+  // Contacto directo: lo que la ficha tenga cargado, sin inventar nada.
+  const contacto = esEmpresa ? match.empresa : match.proveedor;
+  const email = contacto?.email?.trim() || null;
+  const telefono = contacto?.telefono?.trim() || null;
+  const whatsapp = contacto?.whatsapp?.trim() || null;
+  const whatsappUrl = whatsapp
+    ? `https://wa.me/${whatsapp.replace(/[^\d]/g, "")}`
+    : null;
+
+  const puntaje = Math.round(match.puntaje);
+
   return (
-    <Card className="group flex flex-col items-center rounded-2xl border-slate-200/60 bg-white p-6 text-center shadow-sm transition-shadow hover:shadow-md">
-      {logoUrl ? (
-        <span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-slate-100 bg-white shadow-sm">
-          <Image
-            src={logoUrl}
-            alt=""
-            width={64}
-            height={64}
-            className="h-full w-full object-contain p-1.5"
-          />
-        </span>
-      ) : (
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#f2f4f6] text-slate-400">
-          {esEmpresa ? (
-            <Building2 className="h-7 w-7" aria-hidden="true" />
-          ) : (
-            <User className="h-7 w-7" aria-hidden="true" />
-          )}
-        </span>
-      )}
+    <Card className="group flex flex-col rounded-2xl border-slate-200/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+      {/* Encabezado: logo y, a la derecha, la compatibilidad. El número está a
+          la vista a propósito — es lo que empuja a completar el perfil para
+          subir en la lista. */}
+      <div className="flex items-start justify-between gap-3">
+        {logoUrl ? (
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-100 bg-white shadow-sm">
+            <Image
+              src={logoUrl}
+              alt=""
+              width={56}
+              height={56}
+              className="h-full w-full object-contain p-1.5"
+            />
+          </span>
+        ) : (
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#f2f4f6] text-slate-400">
+            {esEmpresa ? (
+              <Building2 className="h-6 w-6" aria-hidden="true" />
+            ) : (
+              <User className="h-6 w-6" aria-hidden="true" />
+            )}
+          </span>
+        )}
+
+        <div
+          className="flex shrink-0 flex-col items-center rounded-xl bg-[#00213f] px-3 py-1.5 text-white"
+          title={match.motivo_match}
+        >
+          <span style={manrope} className="text-xl font-black leading-none tabular-nums">
+            {puntaje}
+          </span>
+          <span
+            style={inter}
+            className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white/50"
+          >
+            puntos
+          </span>
+        </div>
+      </div>
 
       {/* El nombre va en dos líneas, no truncado: las razones sociales reales
           ("Simonetta Automatización S.A.") no entran en una sola columna. */}
       <p
         style={manrope}
-        className="mt-4 max-w-full text-base font-bold leading-snug text-[#00213f]"
+        className="mt-3 max-w-full text-base font-bold leading-snug text-[#00213f]"
       >
         <span className="line-clamp-2 [overflow-wrap:anywhere]">
           {nombre || "Sin nombre"}
@@ -1035,22 +1092,25 @@ function TarjetaCandidato({
           />
         </span>
       </p>
-      <p style={inter} className="mt-0.5 text-xs text-slate-400">
-        {esEmpresa ? "Empresa socia UIAB" : "Prestador verificado"}
-      </p>
 
-      {rating && rating.total > 0 && (
-        <p style={inter} className="mt-2 inline-flex items-center gap-1 text-sm">
-          <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-          <span className="font-bold text-[#00213f]">
-            {rating.promedio.toFixed(1).replace(".", ",")}
-          </span>
-          <span className="text-slate-400">({rating.total})</span>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <p style={inter} className="text-xs text-slate-400">
+          {esEmpresa ? "Empresa socia UIAB" : "Prestador verificado"}
         </p>
-      )}
+        {/* Estrellas sólo con reseñas aprobadas reales. */}
+        {rating && rating.total > 0 && (
+          <p style={inter} className="inline-flex items-center gap-1 text-xs">
+            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" aria-hidden="true" />
+            <span className="font-bold text-[#00213f]">
+              {rating.promedio.toFixed(1).replace(".", ",")}
+            </span>
+            <span className="text-slate-400">({rating.total})</span>
+          </p>
+        )}
+      </div>
 
       {chips.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {chips.map((chip) => (
             <span
               key={chip}
@@ -1063,19 +1123,76 @@ function TarjetaCandidato({
         </div>
       )}
 
-      {slug ? (
-        <Link href={`/empresas/${slug}`} className="mt-5 w-full">
-          <Button
-            variant="outline"
-            style={inter}
-            className="h-10 w-full rounded-xl border-slate-200 text-sm font-bold text-[#00213f] transition-colors hover:bg-[#00213f] hover:text-white"
+      {/* `flex-1` empuja las acciones al pie: si no, con motivos de largo
+          distinto los botones de cada tarjeta quedaban a distinta altura. */}
+      <p
+        style={inter}
+        className="mt-3 line-clamp-2 flex-1 text-xs leading-relaxed text-slate-500"
+      >
+        {match.motivo_match}
+      </p>
+
+      <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
+        {slug ? (
+          <Link href={`/empresas/${slug}`} className="min-w-0 flex-1">
+            <Button
+              variant="outline"
+              style={inter}
+              className="h-10 w-full rounded-xl border-slate-200 text-sm font-bold text-[#00213f] transition-colors hover:bg-[#00213f] hover:text-white"
+            >
+              Ver perfil
+            </Button>
+          </Link>
+        ) : (
+          <span className="flex-1" aria-hidden="true" />
+        )}
+
+        {/* Contacto directo, sin salir de la página. Cada botón aparece sólo si
+            la socia cargó ese dato. */}
+        {email && (
+          <AccionContacto href={`mailto:${email}`} etiqueta={`Escribir a ${nombre}`}>
+            <Mail className="h-4 w-4" aria-hidden="true" />
+          </AccionContacto>
+        )}
+        {telefono && (
+          <AccionContacto href={`tel:${telefono}`} etiqueta={`Llamar a ${nombre}`}>
+            <Phone className="h-4 w-4" aria-hidden="true" />
+          </AccionContacto>
+        )}
+        {whatsappUrl && (
+          <AccionContacto
+            href={whatsappUrl}
+            etiqueta={`WhatsApp de ${nombre}`}
+            externo
           >
-            Ver perfil
-          </Button>
-        </Link>
-      ) : (
-        <span className="mt-5 h-10 w-full" aria-hidden="true" />
-      )}
+            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+          </AccionContacto>
+        )}
+      </div>
     </Card>
+  );
+}
+
+function AccionContacto({
+  href,
+  etiqueta,
+  externo = false,
+  children,
+}: {
+  href: string;
+  etiqueta: string;
+  externo?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      title={etiqueta}
+      aria-label={etiqueta}
+      {...(externo ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-[#00213f] hover:bg-[#00213f] hover:text-white"
+    >
+      {children}
+    </a>
   );
 }

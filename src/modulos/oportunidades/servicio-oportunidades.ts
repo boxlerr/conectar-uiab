@@ -28,7 +28,14 @@ export interface Oportunidad {
   oportunidades_tags?: { tags: { nombre: string } | null }[] | null;
 }
 
-export interface MatchCandidateEmpresa {
+/** Datos de contacto que la tarjeta de candidato ofrece como acceso directo. */
+export interface ContactoCandidato {
+  email?: string | null;
+  telefono?: string | null;
+  whatsapp?: string | null;
+}
+
+export interface MatchCandidateEmpresa extends ContactoCandidato {
   razon_social: string;
   nombre_comercial?: string | null;
   localidad?: string | null;
@@ -37,7 +44,7 @@ export interface MatchCandidateEmpresa {
   empresas_tags?: { tags: { nombre: string } | null }[] | null;
 }
 
-export interface MatchCandidateProveedor {
+export interface MatchCandidateProveedor extends ContactoCandidato {
   nombre: string;
   nombre_comercial?: string | null;
   tipo_proveedor: string;
@@ -155,8 +162,8 @@ export const oportunidadesService = {
         .from('oportunidades_matches')
         .select(`
           *,
-          empresa:empresas!oportunidades_matches_empresa_candidata_id_fkey(razon_social, nombre_comercial, localidad, ruta_logo, bucket_logo, empresas_tags ( tags ( nombre ) )),
-          proveedor:proveedores!oportunidades_matches_proveedor_candidato_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, ruta_logo, bucket_logo, proveedores_tags ( tags ( nombre ) ))
+          empresa:empresas!oportunidades_matches_empresa_candidata_id_fkey(razon_social, nombre_comercial, localidad, ruta_logo, bucket_logo, email, telefono, whatsapp, empresas_tags ( tags ( nombre ) )),
+          proveedor:proveedores!oportunidades_matches_proveedor_candidato_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, ruta_logo, bucket_logo, email, telefono, whatsapp, proveedores_tags ( tags ( nombre ) ))
         `)
         .eq('oportunidad_id', oportunidadId)
         .order('puntaje', { ascending: false }))(),
