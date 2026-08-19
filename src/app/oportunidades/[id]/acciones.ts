@@ -9,6 +9,7 @@ import { oportunidadSiEsPropia } from "@/modulos/oportunidades/guard-duena";
 import { listarAdjuntosDeOportunidad } from "@/modulos/oportunidades/adjuntos-servidor";
 import { BUCKET_ADJUNTOS } from "@/modulos/oportunidades/adjuntos";
 import { SELECT_OPORTUNIDAD, solicitanteDe } from "@/modulos/oportunidades/solicitante";
+import { recalcularMatchesDeOportunidad } from "@/modulos/oportunidades/calcular-matches";
 
 export interface PostularseResult {
   success: boolean;
@@ -338,6 +339,9 @@ export async function duplicarOportunidad(
       console.error("[oportunidades] Tags de la copia no guardadas:", tagsError);
     }
   }
+
+  // La copia arma su propia lista de candidatos (después de las etiquetas).
+  await recalcularMatchesDeOportunidad(admin, copia.id);
 
   // Adjuntos: copia dentro del mismo bucket. Best effort — la copia ya existe
   // y el dueño puede resubir un archivo puntual que haya fallado.

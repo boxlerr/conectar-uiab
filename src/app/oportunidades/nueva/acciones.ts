@@ -9,6 +9,7 @@ import {
   filtrarEtiquetasLibres,
 } from "@/modulos/oportunidades/etiquetas-libres";
 import { parsearFormOportunidad } from "@/modulos/oportunidades/form-oportunidad";
+import { recalcularMatchesDeOportunidad } from "@/modulos/oportunidades/calcular-matches";
 
 export interface ResultadoCrearOportunidad {
   success: boolean;
@@ -124,6 +125,11 @@ export async function crearOportunidad(
       avisoTags = "La oportunidad se publicó, pero no se pudieron guardar las etiquetas.";
     }
   }
+
+  // Candidatos recomendados. Va DESPUÉS de las etiquetas a propósito: el
+  // trigger viejo de `oportunidades_tags` borra los matches al insertarlas, así
+  // que este recálculo tiene que ser lo último en tocar la tabla.
+  await recalcularMatchesDeOportunidad(createAdminClient(), newOp.id);
 
   // Revalidate cache paths
   revalidatePath("/oportunidades");

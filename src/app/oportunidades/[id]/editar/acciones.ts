@@ -9,6 +9,7 @@ import {
   filtrarEtiquetasLibres,
 } from "@/modulos/oportunidades/etiquetas-libres";
 import { parsearFormOportunidad } from "@/modulos/oportunidades/form-oportunidad";
+import { recalcularMatchesDeOportunidad } from "@/modulos/oportunidades/calcular-matches";
 
 export interface ResultadoEditarOportunidad {
   success: boolean;
@@ -125,6 +126,10 @@ export async function editarOportunidad(
       }
     }
   }
+
+  // Las etiquetas cambiaron: el cruce se rehace con el criterio nuevo (y de
+  // paso repone lo que el trigger viejo haya borrado al tocar la tabla).
+  await recalcularMatchesDeOportunidad(admin, oportunidadId);
 
   revalidatePath(`/oportunidades/${oportunidadId}`);
   revalidatePath("/oportunidades");

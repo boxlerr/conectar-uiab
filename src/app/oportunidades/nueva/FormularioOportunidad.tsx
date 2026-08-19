@@ -95,6 +95,84 @@ function EncabezadoSeccion({
   );
 }
 
+/**
+ * Los tres pasos del cruce, con las ilustraciones.
+ *
+ * Va justo debajo del selector de etiquetas porque es ahí donde lo que el
+ * usuario hace determina a quién le va a llegar el pedido: explicarlo en
+ * abstracto arriba de todo no cambia lo que elige, mostrarlo acá sí.
+ *
+ * Los tres criterios son los que aplica de verdad `calcular-matches.ts`,
+ * incluido que la cercanía suma pero no alcanza por sí sola.
+ */
+function ComoTeEncontramosCandidatos() {
+  const PASOS = [
+    {
+      imagen: "/oportunidades/match-etiquetas.webp",
+      titulo: "Cruzamos tus etiquetas",
+      texto:
+        "Cada término que elegís se compara con el perfil de las socias. Es la señal que más pesa.",
+    },
+    {
+      imagen: "/oportunidades/match-zona.webp",
+      titulo: "Sumamos rubro y cercanía",
+      texto:
+        "Trabajar en el mismo rubro suma, y estar en tu zona también — aunque estar cerca solo no alcanza.",
+    },
+    {
+      imagen: "/oportunidades/match-resultado.webp",
+      titulo: "Te mostramos quiénes son",
+      texto:
+        "Al publicar, tu oportunidad aparece con la lista de candidatos y el motivo de cada coincidencia.",
+    },
+  ];
+
+  return (
+    <div className="mt-8 overflow-hidden rounded-2xl border border-primary-100 bg-primary-50/50">
+      <div className="px-6 pt-6">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary-700">
+          Qué pasa cuando publicás
+        </p>
+        <p
+          style={manrope}
+          className="mt-2 text-lg font-black tracking-tight text-[#00213f]"
+        >
+          Buscamos candidatos por vos, automáticamente
+        </p>
+      </div>
+
+      <ol className="grid gap-4 p-6 sm:grid-cols-3">
+        {PASOS.map((paso, indice) => (
+          <li
+            key={paso.titulo}
+            className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200/70"
+          >
+            <Image
+              src={paso.imagen}
+              alt=""
+              aria-hidden="true"
+              width={440}
+              height={440}
+              className="h-24 w-full select-none object-cover"
+            />
+            <div className="p-4">
+              <p className="text-sm font-bold text-[#00213f]">
+                <span className="mr-1.5 tabular-nums text-primary-600">
+                  {indice + 1}.
+                </span>
+                {paso.titulo}
+              </p>
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+                {paso.texto}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 function Obligatorio() {
   return (
     <>
@@ -662,6 +740,8 @@ export function FormularioOportunidad({
                 nuevos={nuevasEtiquetas}
                 onNuevosCambian={setNuevasEtiquetas}
               />
+
+              <ComoTeEncontramosCandidatos />
             </div>
           </div>
 
@@ -723,42 +803,60 @@ export function FormularioOportunidad({
 
       {/* Columna lateral */}
       <aside className="lg:col-span-4 space-y-5 lg:sticky lg:top-28">
-        <div className="rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
-          <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-            ¿Cómo funciona el match?
-          </p>
-          <ul className="space-y-4 text-sm leading-relaxed text-slate-600">
-            <li className="flex gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
-                <Target className="h-4 w-4" aria-hidden="true" />
-              </span>
-              <span className="pt-1.5">
-                Cruzamos{" "}
-                <strong className="font-semibold text-slate-800">
-                  rubro, ubicación y etiquetas
-                </strong>{" "}
-                con los perfiles de la red.
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
-                <Tag className="h-4 w-4" aria-hidden="true" />
-              </span>
-              <span className="pt-1.5">
-                Cada etiqueta suma puntaje. Con{" "}
-                <strong className="font-semibold text-slate-800">5 o más</strong> aparecen más
-                candidatos.
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              </span>
-              <span className="pt-1.5">
-                Sólo lo ven empresas socias y prestadores verificados. No es público.
-              </span>
-            </li>
-          </ul>
+        <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+          {/* La ilustración trae su propio fondo celeste: va a sangre arriba. */}
+          <Image
+            src="/oportunidades/match-iman.webp"
+            alt=""
+            aria-hidden="true"
+            width={440}
+            height={440}
+            priority
+            className="h-32 w-full select-none object-cover"
+          />
+          <div className="p-6">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+              ¿Cómo funciona el match?
+            </p>
+            <p
+              style={manrope}
+              className="mt-2 mb-4 text-base font-black tracking-tight text-[#00213f]"
+            >
+              No tenés que buscar a nadie
+            </p>
+            <ul className="space-y-4 text-sm leading-relaxed text-slate-600">
+              <li className="flex gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                  <Target className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <span className="pt-1.5">
+                  Cruzamos{" "}
+                  <strong className="font-semibold text-slate-800">
+                    rubro, ubicación y etiquetas
+                  </strong>{" "}
+                  con los perfiles de la red.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                  <Tag className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <span className="pt-1.5">
+                  Cada etiqueta suma puntaje. Con{" "}
+                  <strong className="font-semibold text-slate-800">5 o más</strong> aparecen
+                  más candidatos.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                  <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <span className="pt-1.5">
+                  Sólo lo ven empresas socias y prestadores verificados. No es público.
+                </span>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
