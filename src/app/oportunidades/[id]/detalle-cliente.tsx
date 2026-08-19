@@ -47,6 +47,7 @@ import {
   Match,
 } from "@/modulos/oportunidades/servicio-oportunidades";
 import { solicitanteDe, urlPublicaDeLogo } from "@/modulos/oportunidades/solicitante";
+import { hrefFichaDeCandidato } from "@/modulos/compartido/ficha-publica";
 import {
   type AdjuntoOportunidad,
   etiquetaDeTipo,
@@ -1061,9 +1062,13 @@ function TarjetaCandidato({
     esEmpresa ? match.empresa?.ruta_logo : match.proveedor?.ruta_logo
   );
 
-  // La ficha pública resuelve por slug del nombre (nunca UUID — el link viejo
-  // con UUID no matcheaba ninguna ficha).
-  const slug = nombre ? crearSlug(nombre) : null;
+  // La ficha pública resuelve por slug (nunca UUID — el link viejo con UUID no
+  // matcheaba ninguna ficha), pero NO por el mismo campo que se muestra acá:
+  // para una socia busca por `razon_social`, y esta tarjeta rotula con
+  // `nombre_comercial`. Con 23 de las 28 socias que tienen nombre comercial
+  // distinto de la razón social, "Ver perfil" caía en un 404 —Simonetta,
+  // Ormazabal y Genrod incluidas—. El armado del link vive en un solo lugar.
+  const href = hrefFichaDeCandidato(match);
 
   // Reseñas REALES y aprobadas; sin reseñas no se inventa puntaje.
   const rating = match.empresa_candidata_id
@@ -1200,8 +1205,8 @@ function TarjetaCandidato({
           sola fila, con tres contactos el "Ver perfil" se comprimía hasta que
           el texto se salía del botón. */}
       <div className="mt-4 space-y-2.5 border-t border-slate-100 pt-4">
-        {slug && (
-          <Link href={`/empresas/${slug}`} className="block">
+        {href && (
+          <Link href={href} className="block">
             <Button
               variant="outline"
               style={inter}

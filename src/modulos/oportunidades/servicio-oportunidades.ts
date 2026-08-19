@@ -46,6 +46,9 @@ export interface MatchCandidateEmpresa extends ContactoCandidato {
 
 export interface MatchCandidateProveedor extends ContactoCandidato {
   nombre: string;
+  /** Hace falta para el slug de la ficha: `/empresas/[slug]` resuelve a los
+   *  prestadores por `nombre_comercial || nombre + apellido`. */
+  apellido?: string | null;
   nombre_comercial?: string | null;
   tipo_proveedor: string;
   localidad?: string | null;
@@ -163,7 +166,7 @@ export const oportunidadesService = {
         .select(`
           *,
           empresa:empresas!oportunidades_matches_empresa_candidata_id_fkey(razon_social, nombre_comercial, localidad, ruta_logo, bucket_logo, email, telefono, whatsapp, empresas_tags ( tags ( nombre ) )),
-          proveedor:proveedores!oportunidades_matches_proveedor_candidato_id_fkey(nombre, nombre_comercial, tipo_proveedor, localidad, ruta_logo, bucket_logo, email, telefono, whatsapp, proveedores_tags ( tags ( nombre ) ))
+          proveedor:proveedores!oportunidades_matches_proveedor_candidato_id_fkey(nombre, apellido, nombre_comercial, tipo_proveedor, localidad, ruta_logo, bucket_logo, email, telefono, whatsapp, proveedores_tags ( tags ( nombre ) ))
         `)
         .eq('oportunidad_id', oportunidadId)
         .order('puntaje', { ascending: false }))(),

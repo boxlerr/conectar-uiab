@@ -10,6 +10,8 @@ import { conflictosPendientes, type ConflictoPadron } from '@/modulos/altas/padr
 import { createAdminClient } from '@/lib/supabase/admin';
 import { resolverEntidadDePerfil } from '@/modulos/autenticacion/entidad-del-perfil';
 import { TarjetaVisitas } from '@/components/ui/tarjeta-visitas';
+import { hrefFichaDeCandidato } from '@/modulos/compartido/ficha-publica';
+import { urlPublicaDeLogo } from '@/modulos/oportunidades/solicitante';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -48,6 +50,7 @@ import {
   Mail,
   Link2,
   Phone,
+  Building2,
 } from 'lucide-react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -237,14 +240,26 @@ export default async function DashboardPage() {
   const fourthStatCount = (fourthStatRes as any)?.count ?? 0;
 
   // ── Matches ──
+  // Un candidato puede ser una SOCIA (`empresa_candidata_id`) o un prestador
+  // (`proveedor_candidato_id`) — nunca los dos. Traer sólo el join de
+  // `proveedores`, como se hacía antes, dejaba las tarjetas literalmente en
+  // blanco: hoy las seis candidatas de la única oportunidad abierta son socias
+  // y la tabla `proveedores` está vacía, así que `match.proveedor` venía null
+  // en el 100% de los casos y sólo se veía la insignia con el puntaje.
   let dashboardMatches: any[] = [];
+  let ultimaOportunidadId: string | null = null;
   if (isCompany && entityId) {
     const { data: latestOp } = await supabase.from('oportunidades').select('id')
       .eq('empresa_solicitante_id', entityId).eq('estado', 'abierta')
       .order('creado_en', { ascending: false }).limit(1).single();
     if (latestOp) {
+      ultimaOportunidadId = latestOp.id;
       const { data } = await supabase.from('oportunidades_matches')
-        .select('*, proveedor:proveedores(nombre_comercial, nombre, localidad)')
+        .select(`
+          *,
+          empresa:empresas!oportunidades_matches_empresa_candidata_id_fkey(razon_social, nombre_comercial, localidad, ruta_logo, bucket_logo),
+          proveedor:proveedores!oportunidades_matches_proveedor_candidato_id_fkey(nombre, apellido, nombre_comercial, localidad, ruta_logo, bucket_logo)
+        `)
         .eq('oportunidad_id', latestOp.id).order('puntaje', { ascending: false }).limit(3);
       dashboardMatches = data || [];
     }
@@ -580,10 +595,15 @@ export default async function DashboardPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-[3px] h-5 bg-gradient-to-b from-sky-500 to-blue-600 rounded-full" />
                     <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">
-                      {isCompany ? 'Proveedores de servicios Recomendados' : 'Oportunidades para Vos'}
+                      {isCompany ? 'Candidatos Recomendados' : 'Oportunidades para Vos'}
                     </h2>
                   </div>
-                  <Link href="/oportunidades" className="shrink-0 whitespace-nowrap text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors">
+                  {/* "Ver todo" tiene que llevar a donde está la lista completa
+                      —el detalle de la oportunidad—, no a la cartelera general. */}
+                  <Link
+                    href={isCompany && ultimaOportunidadId ? `/oportunidades/${ultimaOportunidadId}` : '/oportunidades'}
+                    className="shrink-0 whitespace-nowrap text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors"
+                  >
                     Ver todo <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -593,26 +613,65 @@ export default async function DashboardPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {dashboardMatches.map((match: any) => {
                         const score = Math.round(match.puntaje);
-                        return (
-                          <Link key={match.id} href={`/oportunidades/${match.oportunidad_id}`}>
-                            <div className="bg-[#f8fafc] hover:bg-slate-100/70 rounded-xl p-4 transition-all duration-200 group h-full flex flex-col border border-slate-100/80 hover:border-slate-200 hover:shadow-sm">
-                              <div className="flex items-center justify-between mb-3">
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] sm:text-[10px] font-black ${scoreColor(score)}`}>
-                                  <TrendingUp className="w-3 h-3" />{score}%
-                                </span>
-                                <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#00213f] transition-colors" />
-                              </div>
-                              <h4 className="font-poppins font-bold text-[#00213f] leading-snug text-sm flex-1">
-                                {isProvider ? match.oportunidad?.titulo : match.proveedor?.nombre_comercial || match.proveedor?.nombre}
-                              </h4>
-                              {(isProvider ? match.oportunidad?.localidad : match.proveedor?.localidad) && (
-                                <p className="text-[11px] sm:text-[10px] text-slate-400 flex items-center gap-1 mt-2.5">
-                                  <MapPin className="w-3 h-3" />
-                                  {isProvider ? match.oportunidad?.localidad : match.proveedor?.localidad}
-                                </p>
-                              )}
+
+                        // Como prestador, la tarjeta es la oportunidad que le
+                        // recomendamos; como socia, es la candidata sugerida
+                        // para SU pedido — y ahí el destino es la ficha de esa
+                        // candidata, no el pedido propio (el link viejo llevaba
+                        // siempre a la oportunidad que uno mismo publicó, que
+                        // es de donde ya venía el usuario).
+                        const candidato = match.empresa ?? match.proveedor ?? null;
+                        const nombre = isProvider
+                          ? match.oportunidad?.titulo
+                          : match.empresa?.nombre_comercial ||
+                            match.empresa?.razon_social ||
+                            match.proveedor?.nombre_comercial ||
+                            match.proveedor?.nombre;
+                        const localidad = isProvider
+                          ? match.oportunidad?.localidad
+                          : candidato?.localidad;
+                        const href = isProvider
+                          ? `/oportunidades/${match.oportunidad_id}`
+                          : hrefFichaDeCandidato(match);
+                        const logoUrl = isProvider
+                          ? null
+                          : urlPublicaDeLogo(candidato?.bucket_logo, candidato?.ruta_logo);
+
+                        const tarjeta = (
+                          <div className="bg-[#f8fafc] hover:bg-slate-100/70 rounded-xl p-4 transition-all duration-200 group h-full flex flex-col border border-slate-100/80 hover:border-slate-200 hover:shadow-sm">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] sm:text-[10px] font-black ${scoreColor(score)}`}>
+                                <TrendingUp className="w-3 h-3" />{score}%
+                              </span>
+                              {href && <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#00213f] transition-colors" />}
                             </div>
-                          </Link>
+                            {!isProvider && (
+                              <span className="mb-2.5 flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-slate-100">
+                                {logoUrl ? (
+                                  <Image src={logoUrl} alt="" width={44} height={44} className="h-full w-full object-contain p-1.5" />
+                                ) : (
+                                  <Building2 className="w-4 h-4 text-slate-300" />
+                                )}
+                              </span>
+                            )}
+                            <h4 className="font-poppins font-bold text-[#00213f] leading-snug text-sm flex-1 line-clamp-2 [overflow-wrap:anywhere]">
+                              {nombre || 'Sin nombre'}
+                            </h4>
+                            {localidad && (
+                              <p className="text-[11px] sm:text-[10px] text-slate-400 flex items-center gap-1 mt-2.5">
+                                <MapPin className="w-3 h-3" />
+                                {localidad}
+                              </p>
+                            )}
+                          </div>
+                        );
+
+                        // Sin destino no se pinta un link muerto: si el join no
+                        // trajo la contraparte (RLS) la tarjeta queda estática.
+                        return href ? (
+                          <Link key={match.id} href={href} className="h-full">{tarjeta}</Link>
+                        ) : (
+                          <div key={match.id} className="h-full">{tarjeta}</div>
                         );
                       })}
                     </div>
@@ -621,11 +680,32 @@ export default async function DashboardPage() {
                       <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4 border border-slate-100">
                         <Activity className="w-5 h-5 text-slate-300" />
                       </div>
+                      {/* Tres vacíos distintos, tres salidas distintas: sin
+                          pedido abierto hay que publicar; con pedido abierto y
+                          sin coincidencias lo que falta son etiquetas. */}
                       <p className="text-sm text-slate-400 max-w-xs mx-auto leading-relaxed">
-                        {isCompany ? 'Publicá una oportunidad para recibir proveedores de servicios recomendados.' : 'Completá tu perfil para recibir oportunidades relevantes.'}
+                        {!isCompany
+                          ? 'Completá tu perfil para recibir oportunidades relevantes.'
+                          : ultimaOportunidadId
+                          ? 'Todavía no hay socias con compatibilidad suficiente para tu pedido. Sumale etiquetas para ampliar la búsqueda.'
+                          : 'Publicá una oportunidad para recibir candidatos recomendados.'}
                       </p>
-                      <Link href={isCompany ? '/oportunidades' : '/perfil/datos'} className="inline-flex items-center gap-1 text-sm font-bold text-[#00213f] hover:underline mt-4 transition-colors">
-                        {isCompany ? 'Publicar oportunidad' : 'Completar perfil'} <ArrowRight className="w-3.5 h-3.5" />
+                      <Link
+                        href={
+                          !isCompany
+                            ? '/perfil/datos'
+                            : ultimaOportunidadId
+                            ? `/oportunidades/${ultimaOportunidadId}`
+                            : '/oportunidades/nueva'
+                        }
+                        className="inline-flex items-center gap-1 text-sm font-bold text-[#00213f] hover:underline mt-4 transition-colors"
+                      >
+                        {!isCompany
+                          ? 'Completar perfil'
+                          : ultimaOportunidadId
+                          ? 'Ver mi oportunidad'
+                          : 'Publicar oportunidad'}{' '}
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>
                   )}
