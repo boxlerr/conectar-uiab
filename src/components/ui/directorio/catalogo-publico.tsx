@@ -1,13 +1,15 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Package, Wrench, Star, ExternalLink, X,
   Globe, FileText, BookOpen, ChevronLeft, ChevronRight,
-  Youtube, Link as LinkIcon, ImageOff, ImagePlus,
+  Youtube, Link as LinkIcon, ImageOff, ImagePlus, Mail,
 } from "lucide-react";
+import { pareceEmail, whatsappLink } from "@/lib/utilidades";
+import { BotonWhatsApp } from "@/components/ui/boton-whatsapp";
 
 const DETALLE_MAX_H = 120;
 const DETALLE_MAX_H_EXPANDED = 320;
@@ -51,10 +53,18 @@ export type CatalogoItem = {
   palabras_clave: string[] | null;
 };
 
+/** Contacto de la ficha, para consultar por un ítem puntual desde el modal. */
+export type ContactoCatalogo = {
+  nombre: string;
+  email: string | null;
+  whatsapp: string | null;
+};
+
 interface CatalogoPublicoProps {
   items: CatalogoItem[];
   /** Color de acento del perfil (azul para socios, amber para particulares, emerald para proveedores) */
   colorScheme?: "blue" | "amber" | "emerald";
+  contacto?: ContactoCatalogo;
 }
 
 const ICONO_ENLACE = {
@@ -188,10 +198,15 @@ function TarjetaCompacta({
   );
 }
 
-export function CatalogoPublico({ items, colorScheme = "blue" }: CatalogoPublicoProps) {
+export function CatalogoPublico({ items, colorScheme = "blue", contacto }: CatalogoPublicoProps) {
   const c = COLORS[colorScheme];
   const [filtro, setFiltro] = useState<"todos" | "producto" | "servicio">("todos");
-  const [itemAbierto, setItemAbierto] = useState<CatalogoItem | null>(null);
+  // Índice dentro de itemsFiltrados, no el ítem suelto: el modal navega con
+  // flechas y necesita saber dónde está parado. Recorre TODO el filtrado, no
+  // sólo los que entran en la previa — `visibles` es un prefijo de esa lista,
+  // así que los índices coinciden y desde la grilla plegada se llega igual a
+  // los ítems de más abajo.
+  const [idxAbierto, setIdxAbierto] = useState<number | null>(null);
   const [verTodos, setVerTodos] = useState(false);
 
   const itemsFiltrados = useMemo(() => {
@@ -266,12 +281,12 @@ export function CatalogoPublico({ items, colorScheme = "blue" }: CatalogoPublico
         className="grid gap-3"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(12.5rem, 1fr))" }}
       >
-        {visibles.map((item) => (
+        {visibles.map((item, i) => (
           <TarjetaCompacta
             key={item.id}
             item={item}
             color={c}
-            onClick={() => setItemAbierto(item)}
+            onClick={() => setIdxAbierto(i)}
           />
         ))}
       </div>
@@ -289,11 +304,19 @@ export function CatalogoPublico({ items, colorScheme = "blue" }: CatalogoPublico
 
       {/* ─── Modal detalle ─── */}
       <AnimatePresence>
-        {itemAbierto && (
+        {idxAbierto !== null && itemsFiltrados[idxAbierto] && (
           <CatalogoModal
-            item={itemAbierto}
+            item={itemsFiltrados[idxAbierto]}
+            pos={idxAbierto + 1}
+            total={itemsFiltrados.length}
+            onNavegar={(delta) =>
+              setIdxAbierto((i) =>
+                i === null ? i : (i + delta + itemsFiltrados.length) % itemsFiltrados.length
+              )
+            }
+            contacto={contacto}
             color={c}
-            onClose={() => setItemAbierto(null)}
+            onClose={() => setIdxAbierto(null)}
           />
         )}
       </AnimatePresence>
@@ -304,26 +327,60 @@ export function CatalogoPublico({ items, colorScheme = "blue" }: CatalogoPublico
 // ─── Modal detalle ───────────────────────────────────────────────────────────
 function CatalogoModal({
   item,
+  pos,
+  total,
+  contacto,
   color,
   onClose,
+  onNavegar,
 }: {
   item: CatalogoItem;
+  /** Posición 1-based dentro del catálogo filtrado, para el contador. */
+  pos: number;
+  total: number;
+  contacto?: ContactoCatalogo;
   color: Color;
   onClose: () => void;
+  onNavegar: (delta: 1 | -1) => void;
 }) {
   const [idx, setIdx] = useState(0);
   const [detalleExpandido, setDetalleExpandido] = useState(false);
   const [detalleOverflow, setDetalleOverflow] = useState(false);
   const detalleRef = useRef<HTMLDivElement>(null);
 
-  useLayoutEffect(() => {
-    const el = detalleRef.current;
-    if (!el) return;
-    setDetalleOverflow(el.scrollHeight > DETALLE_MAX_H + 4);
-  }, [item?.descripcion_larga]);
+  // Al pasar a otro ítem con las flechas, la galería y el "leer más" del
+  // anterior no tienen que quedar arrastrados.
+  useEffect(() => {
+    setIdx(0);
+    setDetalleExpandido(false);
+  }, [item.id]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (total > 1 && e.key === "ArrowLeft") onNavegar(-1);
+      else if (total > 1 && e.key === "ArrowRight") onNavegar(1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [total, onNavegar, onClose]);
 
   const esServicio = item.tipo_item === "servicio";
   const TipoIcon = esServicio ? Wrench : Package;
+
+  // Consulta pre-escrita: mismo texto para WhatsApp y para el cuerpo del mail,
+  // con el ítem nombrado para que la empresa sepa por qué le escriben.
+  const mensajeConsulta = contacto
+    ? `Hola ${contacto.nombre}! Vi ${esServicio ? "el servicio" : "el producto"} "${item.nombre}" en UIAB Conecta y quiero hacer una consulta.`
+    : null;
+  const emailConsulta = contacto && pareceEmail(contacto.email) ? contacto.email!.trim() : null;
+  const mailtoConsulta =
+    emailConsulta && mensajeConsulta
+      ? `mailto:${emailConsulta}?subject=${encodeURIComponent(
+          `Consulta por ${item.nombre} (UIAB Conecta)`
+        )}&body=${encodeURIComponent(mensajeConsulta)}`
+      : null;
+  const tieneWhatsapp = !!contacto && whatsappLink(contacto.whatsapp) !== null;
 
   const precioTexto =
     item.precio_a_consultar || item.precio == null
@@ -344,6 +401,35 @@ function CatalogoModal({
       onClick={onClose}
       style={{ backgroundColor: "rgba(25, 28, 30, 0.45)" }}
     >
+      {/* Flechas laterales entre ítems (md+). Van fijas a los bordes de la
+          pantalla, en navy, para no confundirse con las flechas blancas de la
+          galería de fotos que viven DENTRO de la imagen. */}
+      {total > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavegar(-1);
+            }}
+            className="hidden md:flex fixed left-4 lg:left-8 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-[#00213f]/90 backdrop-blur hover:bg-[#10375c] items-center justify-center text-white transition-colors"
+            style={{ boxShadow: "0 4px 16px rgba(25, 28, 30, 0.25)" }}
+            aria-label="Ítem anterior"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavegar(1);
+            }}
+            className="hidden md:flex fixed right-4 lg:right-8 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-[#00213f]/90 backdrop-blur hover:bg-[#10375c] items-center justify-center text-white transition-colors"
+            style={{ boxShadow: "0 4px 16px rgba(25, 28, 30, 0.25)" }}
+            aria-label="Ítem siguiente"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </>
+      )}
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -355,6 +441,33 @@ function CatalogoModal({
       >
         {/* Toolbar flotante */}
         <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          {total > 1 && (
+            <>
+              <span
+                className="hidden sm:inline-flex h-9 items-center rounded-sm bg-white/95 px-2.5 font-mono text-[11px] font-semibold tabular-nums text-slate-600 backdrop-blur"
+                style={{ boxShadow: "0 2px 8px rgba(25, 28, 30, 0.08)" }}
+              >
+                {pos} / {total}
+              </span>
+              {/* En pantallas chicas las flechas laterales no entran: van acá arriba */}
+              <button
+                onClick={() => onNavegar(-1)}
+                className="md:hidden w-9 h-9 rounded-sm bg-white/95 backdrop-blur text-slate-700 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-colors"
+                style={{ boxShadow: "0 2px 8px rgba(25, 28, 30, 0.08)" }}
+                aria-label="Ítem anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onNavegar(1)}
+                className="md:hidden w-9 h-9 rounded-sm bg-white/95 backdrop-blur text-slate-700 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-colors"
+                style={{ boxShadow: "0 2px 8px rgba(25, 28, 30, 0.08)" }}
+                aria-label="Ítem siguiente"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </>
+          )}
           <button
             onClick={onClose}
             className="w-9 h-9 rounded-sm bg-white/95 backdrop-blur text-slate-700 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-colors"
@@ -370,13 +483,17 @@ function CatalogoModal({
           <div className="relative bg-slate-100 md:min-h-[560px] aspect-[4/3] md:aspect-auto">
             {item.imagenes.length > 0 ? (
               <>
+                {/* object-contain, no cover: las imágenes del catálogo son 1:1
+                    y el panel no; con cover se recortaban los bordes (chau
+                    logo de la esquina). La banda que sobra queda del gris del
+                    fondo y no molesta. */}
                 <Image
                   key={item.imagenes[idx].url}
                   src={item.imagenes[idx].url}
                   alt={item.imagenes[idx].alt || item.nombre}
                   fill
                   sizes="(min-width: 768px) 55vw, 100vw"
-                  className="object-cover"
+                  className="object-contain"
                 />
                 {item.imagenes.length > 1 && (
                   <>
@@ -475,6 +592,34 @@ function CatalogoModal({
                 )}
               </div>
             </div>
+
+            {/* Consulta directa: el mensaje ya nombra el ítem, así la empresa
+                sabe por qué le escriben sin que el interesado redacte nada. */}
+            {(tieneWhatsapp || mailtoConsulta) && (
+              <div>
+                <div className="text-[11px] sm:text-[10px] font-semibold tracking-[0.14em] uppercase text-slate-500 mb-2">
+                  Consultar por este {esServicio ? "servicio" : "producto"}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {tieneWhatsapp && (
+                    <BotonWhatsApp
+                      telefono={contacto!.whatsapp}
+                      texto={mensajeConsulta ?? undefined}
+                      className="sm:flex-1"
+                    />
+                  )}
+                  {mailtoConsulta && (
+                    <a
+                      href={mailtoConsulta}
+                      className={`sm:flex-1 flex items-center justify-center gap-2 px-5 py-3 text-xs font-bold rounded-sm border border-slate-200 transition-colors tracking-[0.15em] uppercase ${color.linkBtn}`}
+                    >
+                      <Mail className="w-4 h-4" />
+                      Consultar por email
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Descripción detallada */}
             {item.descripcion_larga && (

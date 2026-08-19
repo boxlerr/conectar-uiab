@@ -15,17 +15,20 @@ function IconoWhatsApp({ className }: { className?: string }) {
 export function BotonWhatsApp({
   telefono,
   nombre,
+  texto,
   className = "",
   variant = "full",
 }: {
   telefono: string | null | undefined;
   nombre?: string;
+  /** Mensaje pre-escrito propio (p. ej. mencionando un ítem del catálogo); pisa el saludo genérico. */
+  texto?: string;
   className?: string;
   variant?: "full" | "compact";
 }) {
   const href = whatsappLink(
     telefono,
-    nombre ? `Hola ${nombre}, los contacto desde UIAB Conecta.` : undefined
+    texto ?? (nombre ? `Hola ${nombre}, los contacto desde UIAB Conecta.` : undefined)
   );
   if (!href) return null;
 

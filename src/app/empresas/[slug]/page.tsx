@@ -1314,7 +1314,15 @@ async function EmpresaProfile({
             {isAuthenticated ? (
               <>
                 {catalogoItems.length > 0 && (
-                  <CatalogoPublico items={catalogoItems} colorScheme="blue" />
+                  <CatalogoPublico
+                    items={catalogoItems}
+                    colorScheme="blue"
+                    contacto={{
+                      nombre: empresa.nombre,
+                      email: empresaDb.email || null,
+                      whatsapp: empresa.contacto.whatsapp || null,
+                    }}
+                  />
                 )}
 
                 {oportunidadesActivas.length > 0 && (
@@ -1841,7 +1849,15 @@ async function ProveedorProfile({
             {/* Gated content — los prestadores no reciben reseñas, solo catálogo */}
             {isAuthenticated ? (
               catalogoItems.length > 0 && (
-                <CatalogoPublico items={catalogoItems} colorScheme="amber" />
+                <CatalogoPublico
+                  items={catalogoItems}
+                  colorScheme="amber"
+                  contacto={{
+                    nombre: proveedor.nombre,
+                    email: provDb.email || null,
+                    whatsapp: provDb.telefono || null,
+                  }}
+                />
               )
             ) : (
               totalItems > 0 && (
