@@ -1,51 +1,129 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
-  MapPin,
+  ArrowRight,
+  BadgeCheck,
   Building2,
   Briefcase,
-  Share2,
-  CheckCircle2,
-  User,
-  Sparkles,
-  TrendingUp,
-  Info,
-  Tag,
-  Package,
   CalendarDays,
+  Clock,
+  Download,
+  ExternalLink,
+  FileSpreadsheet,
+  FileText,
+  Hash,
+  Image as ImageIcon,
+  Info,
+  Lock,
+  MapPin,
+  Package,
+  PencilLine,
+  Plus,
+  Share2,
+  Sparkles,
+  Star,
+  Tag,
+  Target,
+  TrendingUp,
+  User,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { crearSlug } from "@/lib/utilidades";
 import {
   oportunidadesService,
   Oportunidad,
   Match,
 } from "@/modulos/oportunidades/servicio-oportunidades";
+import { solicitanteDe, urlPublicaDeLogo } from "@/modulos/oportunidades/solicitante";
+import {
+  type AdjuntoOportunidad,
+  etiquetaDeTipo,
+  tamanoLegible,
+} from "@/modulos/oportunidades/adjuntos";
+import { llamarAccion, fallo } from "@/lib/accion-segura";
 import DialogoPostularse from "./DialogoPostularse";
 import { miPostulacionEnOportunidad } from "./acciones";
+import { adjuntosDeOportunidadPropia } from "../adjuntos-acciones";
+import { GaleriaOportunidad } from "./GaleriaOportunidad";
+import { AccionesRapidas } from "./AccionesRapidas";
+
+/** Manrope/Inter no existen como clases de Tailwind (ver memoria): van por style. */
+const manrope = { fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" } as const;
+const inter = { fontFamily: "var(--font-inter, 'Inter', sans-serif)" } as const;
+
+/** Portadas genéricas (generadas) para oportunidades sin fotos: la elección es
+ *  determinística por id así el hero no cambia entre visitas. */
+const PORTADAS_FALLBACK = 4;
+function portadaDeFallback(id: string): string {
+  let suma = 0;
+  for (const caracter of id) suma = (suma + caracter.charCodeAt(0)) % 997;
+  return `/oportunidades/portada-${(suma % PORTADAS_FALLBACK) + 1}.webp`;
+}
+
+const ETIQUETA_VISIBILIDAD: Record<string, string> = {
+  privada_parque: "Sólo red verificada",
+};
+
+function textoPlano(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Recorta sin partir una palabra al medio ("…patchera" y no "…patch"). */
+function recortarEnPalabra(texto: string, maximo: number): string {
+  if (texto.length <= maximo) return texto;
+  const cortado = texto.slice(0, maximo);
+  const ultimoEspacio = cortado.lastIndexOf(" ");
+  const base = ultimoEspacio > maximo * 0.6 ? cortado.slice(0, ultimoEspacio) : cortado;
+  // Sin el saneo, un corte justo después de una coma queda como "24 bocas,…".
+  return `${base.replace(/[\s,;:.\-–—]+$/, "")}…`;
+}
+
+function fechaLarga(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const fecha = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
+  if (Number.isNaN(fecha.getTime())) return null;
+  return fecha.toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 /**
- * Toda la interacción del detalle (matches, postulación, vista del dueño).
+ * Detalle de una oportunidad, rediseño 2026-08.
+ *
+ * Dos variantes sobre el mismo esqueleto:
+ *  - DUEÑA: Editar / Ver perfil público en el hero, "Acciones rápidas"
+ *    (invitar, duplicar, cerrar, eliminar) y candidatos recomendados.
+ *  - TERCERO: Postularse + Compartir; nada de acciones de gestión.
  *
  * `inicial` es la oportunidad ABIERTA resuelta en el servidor por page.tsx:
- * con ella el HTML del primer render ya trae título, descripción y ficha
- * técnica — antes esta página era la ruta y Googlebot recibía únicamente el
- * spinner de "Cargando oportunidad...", en una URL que el sitemap publica.
- * Para cerradas o borradas llega `null` y el flujo con sesión sigue igual.
+ * el HTML del primer render ya trae título, descripción y ficha para
+ * Googlebot. `adjuntosIniciales` viene del mismo RSC (Storage, no depende de
+ * la sesión). Para cerradas o borradas llega `null` y el cliente la busca con
+ * sesión, como siempre.
  */
 export default function OportunidadDetalleCliente({
   id,
   inicial,
+  adjuntosIniciales = [],
 }: {
   id: string;
   inicial: Oportunidad | null;
+  adjuntosIniciales?: AdjuntoOportunidad[];
 }) {
   const { currentUser } = useAuth();
 
@@ -56,6 +134,11 @@ export default function OportunidadDetalleCliente({
     id: string;
     estado: string;
   } | null>(null);
+  const [resenas, setResenas] = useState<
+    Map<string, { promedio: number; total: number }>
+  >(new Map());
+  const [adjuntos, setAdjuntos] = useState<AdjuntoOportunidad[]>(adjuntosIniciales);
+  const [verTodosCandidatos, setVerTodosCandidatos] = useState(false);
   const [loading, setLoading] = useState(!inicial);
 
   const isOwner = Boolean(
@@ -85,9 +168,30 @@ export default function OportunidadDetalleCliente({
         const tasks: Promise<void>[] = [];
 
         if (esDueno) {
+          // Una oportunidad cerrada no viaja con sus adjuntos desde el servidor
+          // (serían legibles sin sesión): su dueña los pide acá.
+          if (adjuntosIniciales.length === 0) {
+            tasks.push(
+              llamarAccion(() => adjuntosDeOportunidadPropia(id)).then((propios) => {
+                if (isMounted && Array.isArray(propios)) setAdjuntos(propios);
+              })
+            );
+          }
+
           tasks.push(
-            oportunidadesService.getMatchesForOportunidad(id).then((m) => {
-              if (isMounted) setCandidates(m);
+            oportunidadesService.getMatchesForOportunidad(id).then(async (m) => {
+              if (!isMounted) return;
+              setCandidates(m);
+              // Reseñas reales de los candidatos (sólo se pintan si existen).
+              const empresaIds = m
+                .map((match) => match.empresa_candidata_id)
+                .filter((eid): eid is string => Boolean(eid));
+              try {
+                const mapa = await oportunidadesService.getResenasDeEmpresas(empresaIds);
+                if (isMounted) setResenas(mapa);
+              } catch {
+                /* sin reseñas: la tarjeta muestra etiquetas en común */
+              }
             })
           );
         }
@@ -100,16 +204,18 @@ export default function OportunidadDetalleCliente({
             oportunidadesService
               .getMatchesForUser(currentUser.entityId, tipoEntidadDe(currentUser)!)
               .then((all) => {
-                const found =
-                  all.find((m) => m.oportunidad_id === id) ?? null;
+                const found = all.find((m) => m.oportunidad_id === id) ?? null;
                 if (isMounted) setMyMatch(found);
               })
           );
 
           if (!esDueno) {
+            // Con `llamarAccion`: si el transporte falla (deploy skew) y esto
+            // rechazara, el Promise.all se cortaría y quien ya se postuló
+            // volvería a ver el botón de postularse.
             tasks.push(
-              miPostulacionEnOportunidad(id).then((p) => {
-                if (isMounted) setMiPostulacion(p);
+              llamarAccion(() => miPostulacionEnOportunidad(id)).then((p) => {
+                if (isMounted && p && !fallo(p)) setMiPostulacion(p);
               })
             );
           }
@@ -127,14 +233,19 @@ export default function OportunidadDetalleCliente({
     return () => {
       isMounted = false;
     };
-  }, [id, inicial, currentUser?.entityId, currentUser?.role]);
+  }, [id, inicial, adjuntosIniciales.length, currentUser?.entityId, currentUser?.role]);
+
+  const imagenes = useMemo(
+    () => adjuntos.filter((adjunto) => adjunto.esImagen),
+    [adjuntos]
+  );
 
   if (loading)
     return (
-      <div className="min-h-svh bg-[#f7f9fb] pt-24 flex items-center justify-center">
-        <div className="animate-pulse flex flex-col items-center">
-          <Briefcase className="w-12 h-12 text-slate-200 mb-4" />
-          <p className="text-slate-400 font-inter font-medium tracking-wide">
+      <div className="flex min-h-svh items-center justify-center bg-[#f7f9fb]">
+        <div className="flex animate-pulse flex-col items-center">
+          <Briefcase className="mb-4 h-12 w-12 text-slate-200" />
+          <p style={inter} className="font-medium tracking-wide text-slate-400">
             Cargando oportunidad...
           </p>
         </div>
@@ -143,14 +254,14 @@ export default function OportunidadDetalleCliente({
 
   if (!op)
     return (
-      <div className="min-h-svh bg-[#f7f9fb] pt-24 flex items-center justify-center px-4">
-        <Card className="max-w-md w-full p-8 border-none bg-white rounded-sm text-center shadow-lg">
-          <Info className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <h2 className="text-xl font-manrope font-bold text-slate-900 mb-2">
+      <div className="flex min-h-svh items-center justify-center bg-[#f7f9fb] px-4">
+        <Card className="w-full max-w-md rounded-2xl border-none bg-white p-8 text-center shadow-lg">
+          <Info className="mx-auto mb-4 h-12 w-12 text-slate-300" />
+          <h2 style={manrope} className="mb-2 text-xl font-bold text-slate-900">
             No se encontró la oportunidad
           </h2>
           <Link href="/oportunidades">
-            <Button className="mt-4 bg-[#00213f] rounded-sm h-12 px-8">
+            <Button className="mt-4 h-12 rounded-xl bg-[#00213f] px-8 hover:bg-[#10375c]">
               Volver al listado
             </Button>
           </Link>
@@ -158,597 +269,813 @@ export default function OportunidadDetalleCliente({
       </div>
     );
 
+  const abierta = op.estado === "abierta";
+  const folio = `#${op.id.slice(0, 6).toUpperCase()}`;
+  const solicitante = solicitanteDe(op);
+  const subtitulo = recortarEnPalabra(textoPlano(op.descripcion), 160);
+
+  const fechaNecesidad = fechaLarga(op.fecha_necesidad);
+  const fechaPublicada = fechaLarga(op.creado_en);
+  const visibilidad =
+    ETIQUETA_VISIBILIDAD[op.visibilidad ?? ""] ?? "Red UIAB Conecta";
+
   // Etiquetas de la oportunidad: se cruzan con las de cada candidato para
   // mostrar "qué tienen en común" en vez de puntajes crudos.
-  const opTags = (op?.oportunidades_tags ?? [])
+  const opTags = (op.oportunidades_tags ?? [])
     .map((ot) => ot.tags?.nombre)
     .filter((n): n is string => Boolean(n));
-
-  const empresasCandidatas = candidates.filter((m) => m.empresa_candidata_id);
-  const proveedoresCandidatos = candidates.filter(
-    (m) => m.proveedor_candidato_id
-  );
 
   const puedePostularse =
     !isOwner &&
     currentUser?.entityId &&
     (esFichaDeEmpresa(currentUser) || tipoEntidadDe(currentUser) === "provider") &&
-    op.estado === "abierta";
+    abierta;
 
-  const fechaFmt = op.fecha_necesidad
-    ? new Date(op.fecha_necesidad).toLocaleDateString("es-AR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      })
-    : null;
+  // Perfil público del solicitante (la ficha se resuelve por slug, nunca UUID).
+  const slugSolicitante = solicitante.nombre ? crearSlug(solicitante.nombre) : null;
+
+  const candidatosOrdenados = [...candidates].sort((a, b) => b.puntaje - a.puntaje);
+  const candidatosVisibles = verTodosCandidatos
+    ? candidatosOrdenados
+    : candidatosOrdenados.slice(0, 6);
+
+  const compartir = async () => {
+    const url = `${window.location.origin}/oportunidades/${op.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: op.titulo, url });
+        return;
+      }
+    } catch {
+      /* cancelado por el usuario: probamos el portapapeles */
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copiado al portapapeles");
+    } catch {
+      toast.error("No se pudo copiar el link.");
+    }
+  };
+
+  // Numeración de secciones de la columna principal (los adjuntos pueden no estar).
+  let numeroSeccion = 0;
+  const proximoNumero = () => String(++numeroSeccion).padStart(2, "0");
 
   return (
     <div className="min-h-svh bg-[#f7f9fb]">
-      {/* TOP NAV STRIP */}
+      {/* ── Franja de migas ── */}
       <div className="bg-[#00213f] text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
-          <nav className="flex items-center gap-2.5 text-[11px] sm:text-[10px] text-white/50 font-inter uppercase tracking-[0.22em] font-bold">
-            <Link href="/" className="hover:text-white transition-colors">UIAB</Link>
-            <span className="text-white/20">/</span>
-            <Link href="/oportunidades" className="hover:text-white transition-colors">Oportunidades</Link>
-            <span className="text-white/20">/</span>
-            <span className="text-white">Detalle</span>
+        <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <nav
+            style={inter}
+            aria-label="Migas de pan"
+            className="flex min-w-0 items-center gap-2.5 text-[11px] font-semibold text-white/50"
+          >
+            {isOwner ? (
+              <Link href="/panel-de-control" className="shrink-0 transition-colors hover:text-white">
+                Panel de Control
+              </Link>
+            ) : (
+              <Link href="/" className="shrink-0 transition-colors hover:text-white">
+                UIAB Conecta
+              </Link>
+            )}
+            <span className="text-white/25">›</span>
+            <Link href="/oportunidades" className="shrink-0 transition-colors hover:text-white">
+              Oportunidades
+            </Link>
+            <span className="text-white/25">›</span>
+            <span className="truncate text-white">Detalle</span>
           </nav>
           <Link
             href="/oportunidades"
-            className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors group font-inter text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.22em]"
+            style={inter}
+            className="group inline-flex shrink-0 items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white/80 transition-colors hover:bg-white/15 hover:text-white"
           >
-            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5 motion-reduce:group-hover:translate-x-0" />
             <span className="hidden sm:inline">Volver al listado</span>
+            <span className="sm:hidden">Volver</span>
           </Link>
         </div>
       </div>
 
-      {/* MASTHEAD — editorial */}
-      <header data-tour="op-detalle-hero" className="bg-[#00213f] text-white relative overflow-hidden border-t border-white/5">
+      {/* ── HERO ── */}
+      <header
+        data-tour="op-detalle-hero"
+        className="relative overflow-hidden border-t border-white/5 bg-[#00213f] text-white"
+      >
         <div
-          className="absolute inset-0 opacity-[0.06] pointer-events-none"
+          className="absolute inset-0 bg-gradient-to-br from-[#00213f] via-[#0b2d4d] to-[#123a63]"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute inset-0 opacity-[0.05]"
+          aria-hidden="true"
           style={{
-            backgroundImage:
-              "linear-gradient(135deg, #ffffff 1px, transparent 1px), linear-gradient(45deg, #ffffff 1px, transparent 1px)",
+            backgroundImage: "radial-gradient(circle at 1px 1px, white 0.5px, transparent 0)",
             backgroundSize: "28px 28px",
           }}
         />
-        {/* Vertical accent rule */}
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/10 hidden lg:block" />
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 lg:py-16 relative">
-          {/* Top meta line: folio · category · estado */}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-8 text-[11px] sm:text-[10px] font-inter font-bold uppercase tracking-[0.22em]">
-            <span className="text-white/40 tabular-nums">
-              Folio · #{op.id.slice(0, 6).toUpperCase()}
-            </span>
-            <span className="w-1 h-1 rounded-full bg-white/20" />
-            <span className="text-white/90">Oportunidad {op.estado}</span>
-            {op.categoria && (
-              <>
-                <span className="w-1 h-1 rounded-full bg-white/20" />
-                <span className="text-white/90">{op.categoria.nombre}</span>
-              </>
-            )}
-            {myMatch && !isOwner && (
-              <span className="ml-auto inline-flex items-center gap-1.5 text-emerald-300">
-                <TrendingUp className="w-3 h-3" />
-                Recomendado · {Math.round(myMatch.puntaje)} pts
-              </span>
-            )}
-          </div>
+        <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
+          <div className="grid items-stretch gap-8 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
+            <div className="min-w-0">
+              {/* Folio + estado */}
+              <div
+                style={inter}
+                className="flex flex-wrap items-center gap-3 text-[11px] font-bold uppercase tracking-[0.22em]"
+              >
+                <span className="text-white/40">
+                  Folio · <span className="tabular-nums text-white/70">{folio}</span>
+                </span>
+                <span
+                  className={`rounded-full px-3 py-1 text-[10px] ${
+                    abierta
+                      ? "bg-emerald-400/15 text-emerald-300"
+                      : "bg-white/10 text-white/60"
+                  }`}
+                >
+                  {abierta ? "Abierta" : "Cerrada"}
+                </span>
+                {myMatch && !isOwner && (
+                  <span className="inline-flex items-center gap-1.5 text-emerald-300">
+                    <TrendingUp className="h-3 w-3" aria-hidden="true" />
+                    Recomendado para tu ficha
+                  </span>
+                )}
+              </div>
 
-          {/* Title */}
-          <h1 className="text-4xl sm:text-5xl lg:text-[5.5rem] font-manrope font-bold text-white tracking-[-0.03em] leading-[0.92] max-w-5xl">
-            {op.titulo}
-          </h1>
+              {/* Título + bajada */}
+              <h1
+                style={manrope}
+                className="mt-5 max-w-3xl text-4xl font-extrabold leading-[1.04] tracking-[-0.02em] sm:text-5xl lg:text-[3.4rem]"
+              >
+                {op.titulo}
+              </h1>
+              {subtitulo && (
+                <p
+                  style={inter}
+                  className="mt-5 max-w-2xl text-[15px] leading-relaxed text-white/60"
+                >
+                  {subtitulo}
+                </p>
+              )}
 
-          {/* Meta row */}
-          <div data-tour="op-detalle-meta" className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-px bg-white/10 max-w-3xl">
-            <MetaCell
-              label="Solicitante"
-              value={op.empresa?.razon_social || "Miembro del Parque"}
-              icon={<Building2 className="w-4 h-4" />}
-              accent="amber"
-            />
-            <MetaCell
-              label="Ubicación"
-              value={op.localidad}
-              icon={<MapPin className="w-4 h-4" />}
-              accent="sky"
-            />
-            <MetaCell
-              label="Necesidad"
-              value={fechaFmt ?? "A coordinar"}
-              icon={<CalendarDays className="w-4 h-4" />}
-              accent="emerald"
-            />
+              {/* Meta de 4 columnas */}
+              <dl
+                data-tour="op-detalle-meta"
+                className="mt-9 grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-4"
+              >
+                <MetaHero
+                  icono={<Building2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                  etiqueta="Solicitante"
+                  valor={solicitante.nombre ?? "Miembro de la red"}
+                />
+                <MetaHero
+                  icono={<MapPin className="h-3.5 w-3.5" aria-hidden="true" />}
+                  etiqueta="Ubicación"
+                  valor={op.localidad}
+                />
+                <MetaHero
+                  icono={<CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />}
+                  etiqueta="Necesidad"
+                  valor={fechaNecesidad ?? "A coordinar"}
+                />
+                <MetaHero
+                  icono={<Tag className="h-3.5 w-3.5" aria-hidden="true" />}
+                  etiqueta="Categoría"
+                  valor={op.categoria?.nombre ?? "General"}
+                />
+              </dl>
+
+              {/* Acciones del hero */}
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+                {isOwner ? (
+                  <>
+                    <Link href={`/oportunidades/${op.id}/editar`} className="sm:shrink-0">
+                      <Button
+                        style={inter}
+                        className="h-12 w-full gap-2 rounded-xl bg-primary-600 px-6 text-sm font-bold text-white shadow-lg shadow-primary-900/30 transition-all hover:bg-primary-700 sm:w-auto"
+                      >
+                        <PencilLine className="h-4 w-4" aria-hidden="true" />
+                        Editar oportunidad
+                      </Button>
+                    </Link>
+                    {slugSolicitante && (
+                      <Link href={`/empresas/${slugSolicitante}`} className="sm:shrink-0">
+                        <Button
+                          variant="outline"
+                          style={inter}
+                          className="h-12 w-full gap-2 rounded-xl border-white/20 bg-white/5 px-6 text-sm font-bold text-white transition-colors hover:bg-white/10 hover:text-white sm:w-auto"
+                        >
+                          Ver perfil público
+                          <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </Link>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {puedePostularse && (
+                      <div data-tour="op-detalle-postular" className="sm:w-80">
+                        <DialogoPostularse
+                          oportunidadId={op.id}
+                          tituloOportunidad={op.titulo}
+                          sugerenciaCantidad={op.cantidad ?? null}
+                          sugerenciaUnidad={op.unidad ?? null}
+                          yaPostulado={miPostulacion}
+                          onPostulado={() =>
+                            setMiPostulacion({ id: "pending-refresh", estado: "enviada" })
+                          }
+                        />
+                      </div>
+                    )}
+                    {!abierta && (
+                      <span
+                        style={inter}
+                        className="inline-flex h-12 items-center gap-2 rounded-xl bg-white/10 px-5 text-sm font-bold text-white/70"
+                      >
+                        <Lock className="h-4 w-4" aria-hidden="true" />
+                        Esta oportunidad ya está cerrada
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={compartir}
+                      style={inter}
+                      className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 text-sm font-bold text-white transition-colors hover:bg-white/10"
+                    >
+                      <Share2 className="h-4 w-4" aria-hidden="true" />
+                      Compartir
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Galería: las fotos subidas al crear; clickeables a pantalla
+                completa y deslizables. Sin fotos → portada genérica del rubro. */}
+            <div className="h-56 sm:h-72 lg:h-auto lg:min-h-[340px]">
+              <GaleriaOportunidad
+                imagenes={imagenes}
+                portadaFallback={portadaDeFallback(op.id)}
+                titulo={op.titulo}
+              />
+            </div>
           </div>
         </div>
       </header>
 
-      {/* BODY — two-column ledger */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 lg:py-16">
-        <div className="grid grid-cols-12 gap-8 lg:gap-12">
-          {/* MAIN COLUMN */}
-          <main className="col-span-12 lg:col-span-8 space-y-12">
-            {/* Mobile-only CTA — pinned near top so it's not hidden */}
-            {puedePostularse && (
-              <div className="lg:hidden">
-                <DialogoPostularse
-                  oportunidadId={op.id}
-                  tituloOportunidad={op.titulo}
-                  sugerenciaCantidad={op.cantidad ?? null}
-                  sugerenciaUnidad={op.unidad ?? null}
-                  yaPostulado={miPostulacion}
-                  onPostulado={() =>
-                    setMiPostulacion({
-                      id: "pending-refresh",
-                      estado: "enviada",
-                    })
-                  }
-                />
-              </div>
-            )}
-
-            {/* Description block */}
+      {/* ── CUERPO ── */}
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
+        <div className="grid grid-cols-12 gap-8 lg:gap-10">
+          {/* Columna principal */}
+          <main className="col-span-12 space-y-10 lg:col-span-8">
+            {/* Descripción */}
             <section data-tour="op-detalle-descripcion">
-              <div className="flex items-baseline gap-4 mb-5">
-                <span className="text-[11px] sm:text-[10px] font-bold text-[#10375c] uppercase tracking-[0.22em] font-inter tabular-nums">
-                  01
-                </span>
-                <span className="text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em] font-inter">
-                  Descripción del requerimiento
-                </span>
-                <span className="flex-1 h-px bg-slate-200/60" />
-              </div>
-              <div className="bg-white p-8 lg:p-10 rounded-sm relative">
-                <div className="absolute top-0 left-0 w-12 h-1 bg-[#00213f]" />
+              <EncabezadoSeccion numero={proximoNumero()} titulo="Descripción del requerimiento" />
+              <div className="rounded-2xl border border-slate-200/60 bg-white p-7 shadow-sm sm:p-9">
                 <div
-                  className="text-base lg:text-lg text-slate-700 font-inter leading-[1.75] [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2 [&_p]:mb-4 [&_p:last-child]:mb-0 [&_strong]:text-[#00213f] [&_strong]:font-bold"
+                  style={inter}
+                  className="text-[15px] leading-[1.8] text-slate-700 sm:text-base [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2 [&_p]:mb-4 [&_p:last-child]:mb-0 [&_strong]:font-bold [&_strong]:text-[#00213f] [&_b]:font-bold [&_b]:text-[#00213f]"
                   dangerouslySetInnerHTML={{ __html: op.descripcion }}
                 />
+
+                {/* El presupuesto no es un campo de la publicación: se define
+                    cotización mediante — por eso siempre "A confirmar". */}
+                <div className="mt-8 flex items-center gap-4 rounded-xl border border-primary-100 bg-primary-50/70 p-5">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-primary-600 shadow-sm">
+                    <Wallet className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <p style={inter} className="text-sm font-bold text-slate-700">
+                      Presupuesto estimado
+                    </p>
+                    <p style={inter} className="text-sm font-bold text-primary-700">
+                      A confirmar
+                    </p>
+                  </div>
+                </div>
               </div>
             </section>
 
-            {/* Match recommendation */}
+            {/* Archivos adjuntos */}
+            {adjuntos.length > 0 && (
+              <section>
+                <EncabezadoSeccion numero={proximoNumero()} titulo="Archivos adjuntos" />
+                <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-sm">
+                  {adjuntos.map((adjunto) => (
+                    <FilaAdjunto key={adjunto.ruta} adjunto={adjunto} />
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {/* Por qué te recomendamos (tercero con match) */}
             {myMatch && !isOwner && (
               <section>
-                <div className="flex items-baseline gap-4 mb-6">
-                  <span className="text-[11px] sm:text-[10px] font-bold text-emerald-700 uppercase tracking-[0.22em] font-inter">
-                    02 — Por qué te recomendamos
-                  </span>
-                  <span className="flex-1 h-px bg-emerald-100" />
-                </div>
-                <div className="bg-white p-8 rounded-sm">
-                  <div className="flex items-start gap-4 mb-6">
-                    <div className="w-10 h-10 rounded-sm bg-emerald-50 flex items-center justify-center shrink-0">
-                      <Sparkles className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <p className="text-base text-slate-700 font-inter leading-relaxed flex-1">
+                <EncabezadoSeccion numero={proximoNumero()} titulo="Por qué te recomendamos" />
+                <div className="rounded-2xl border border-slate-200/60 bg-white p-7 shadow-sm sm:p-8">
+                  <div className="flex items-start gap-4">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
+                      <Sparkles className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+                    </span>
+                    <p style={inter} className="flex-1 text-[15px] leading-relaxed text-slate-700">
                       {myMatch.motivo_match}
                     </p>
                   </div>
-                  <div className="grid grid-cols-3 gap-px bg-slate-100 mt-6">
-                    <ScoreCell
-                      label="Categoría"
-                      value={myMatch.detalle_puntaje.categoria}
-                    />
-                    <ScoreCell
-                      label="Etiquetas"
-                      value={myMatch.detalle_puntaje.tags}
-                    />
-                    <ScoreCell
-                      label="Ubicación"
-                      value={myMatch.detalle_puntaje.ubicacion}
-                    />
-                  </div>
+                  <dl className="mt-6 grid grid-cols-3 gap-3">
+                    <PuntajeCelda etiqueta="Categoría" valor={myMatch.detalle_puntaje.categoria} />
+                    <PuntajeCelda etiqueta="Etiquetas" valor={myMatch.detalle_puntaje.tags} />
+                    <PuntajeCelda etiqueta="Ubicación" valor={myMatch.detalle_puntaje.ubicacion} />
+                  </dl>
                 </div>
+              </section>
+            )}
+
+            {/* Candidatos recomendados (dueña) */}
+            {isOwner && (
+              <section>
+                <div className="mb-5 flex items-baseline gap-4">
+                  <span
+                    style={inter}
+                    className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary-700 tabular-nums"
+                  >
+                    {proximoNumero()}
+                  </span>
+                  <h2
+                    style={inter}
+                    className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500"
+                  >
+                    Candidatos recomendados
+                  </h2>
+                  <span className="h-px flex-1 bg-slate-200/70" />
+                  {candidatosOrdenados.length > 6 && (
+                    <button
+                      type="button"
+                      onClick={() => setVerTodosCandidatos((previo) => !previo)}
+                      style={inter}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.18em] text-primary-700 transition-colors hover:text-primary-800"
+                    >
+                      {verTodosCandidatos ? "Ver menos" : "Ver todos"}
+                      <ArrowRight
+                        className={`h-3 w-3 transition-transform ${verTodosCandidatos ? "rotate-90" : ""}`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                  )}
+                </div>
+
+                {candidatosOrdenados.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-200/60 bg-white p-14 text-center shadow-sm">
+                    <Sparkles className="mx-auto mb-4 h-10 w-10 text-slate-200" />
+                    <p
+                      style={inter}
+                      className="mx-auto max-w-sm font-medium leading-relaxed text-slate-500"
+                    >
+                      Todavía no hay candidatos con compatibilidad suficiente.
+                      Cuantas más etiquetas tenga tu oportunidad, más
+                      coincidencias encontramos.
+                    </p>
+                    <Link href={`/oportunidades/${op.id}/editar`} className="mt-6 inline-block">
+                      <Button
+                        style={inter}
+                        className="h-11 rounded-xl bg-[#00213f] px-6 text-xs font-bold uppercase tracking-[0.14em] text-white hover:bg-[#10375c]"
+                      >
+                        Agregar etiquetas
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {candidatosVisibles.map((match) => (
+                      <TarjetaCandidato
+                        key={match.id}
+                        match={match}
+                        opTags={opTags}
+                        resenas={resenas}
+                      />
+                    ))}
+                  </div>
+                )}
               </section>
             )}
           </main>
 
-          {/* LEDGER SIDEBAR — sticky on desktop */}
+          {/* ── Sidebar ── */}
           <aside className="col-span-12 lg:col-span-4">
-            <div className="lg:sticky lg:top-24 space-y-3">
-              {/* Action card */}
-              {puedePostularse && (
-                <div data-tour="op-detalle-postular" className="hidden lg:block bg-white p-6 rounded-sm">
-                  <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.22em] mb-4 font-inter">
-                    Acción
-                  </p>
-                  <DialogoPostularse
-                    oportunidadId={op.id}
-                    tituloOportunidad={op.titulo}
-                    sugerenciaCantidad={op.cantidad ?? null}
-                    sugerenciaUnidad={op.unidad ?? null}
-                    yaPostulado={miPostulacion}
-                    onPostulado={() =>
-                      setMiPostulacion({
-                        id: "pending-refresh",
-                        estado: "enviada",
-                      })
-                    }
-                  />
-                  <button className="mt-3 w-full h-11 inline-flex items-center justify-center gap-2 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-[#00213f] transition-colors font-inter">
-                    <Share2 className="w-3.5 h-3.5" />
-                    Compartir oportunidad
-                  </button>
-                </div>
+            <div className="space-y-5 lg:sticky lg:top-28">
+              {/* Resumen */}
+              <div
+                data-tour="op-detalle-ficha"
+                className="rounded-2xl bg-[#00213f] p-6 text-white shadow-[0_24px_50px_-30px_rgba(0,33,63,0.8)]"
+              >
+                <p
+                  style={inter}
+                  className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-white/50"
+                >
+                  Resumen de la oportunidad
+                </p>
+                <dl style={inter} className="divide-y divide-white/10">
+                  <FilaResumen
+                    icono={<Clock className="h-3.5 w-3.5" aria-hidden="true" />}
+                    etiqueta="Estado"
+                  >
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] ${
+                        abierta
+                          ? "bg-emerald-400/15 text-emerald-300"
+                          : "bg-white/10 text-white/60"
+                      }`}
+                    >
+                      {abierta ? "Abierta" : "Cerrada"}
+                    </span>
+                  </FilaResumen>
+                  {fechaPublicada && (
+                    <FilaResumen
+                      icono={<CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />}
+                      etiqueta="Publicada el"
+                    >
+                      {fechaPublicada}
+                    </FilaResumen>
+                  )}
+                  {fechaNecesidad && (
+                    <FilaResumen
+                      icono={<CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />}
+                      etiqueta="Necesidad"
+                    >
+                      {fechaNecesidad}
+                    </FilaResumen>
+                  )}
+                  {op.cantidad != null && (
+                    <FilaResumen
+                      icono={<Package className="h-3.5 w-3.5" aria-hidden="true" />}
+                      etiqueta="Cantidad"
+                    >
+                      {op.cantidad}
+                      {op.unidad ? ` ${op.unidad}` : ""}
+                    </FilaResumen>
+                  )}
+                  {op.categoria && (
+                    <FilaResumen
+                      icono={<Tag className="h-3.5 w-3.5" aria-hidden="true" />}
+                      etiqueta="Categoría"
+                    >
+                      {op.categoria.nombre}
+                    </FilaResumen>
+                  )}
+                  <FilaResumen
+                    icono={<Lock className="h-3.5 w-3.5 text-amber-300" aria-hidden="true" />}
+                    etiqueta="Visibilidad"
+                  >
+                    {visibilidad}
+                  </FilaResumen>
+                  <FilaResumen
+                    icono={<Hash className="h-3.5 w-3.5" aria-hidden="true" />}
+                    etiqueta="ID de oportunidad"
+                  >
+                    <span className="tabular-nums">{folio}</span>
+                  </FilaResumen>
+                </dl>
+              </div>
+
+              {/* Acciones rápidas (sólo dueña) */}
+              {isOwner && (
+                <AccionesRapidas
+                  oportunidadId={op.id}
+                  estado={op.estado}
+                  candidatos={candidatosOrdenados}
+                  onCerrada={() => setOp((previa) => (previa ? { ...previa, estado: "cerrada" } : previa))}
+                />
               )}
 
-              {/* Ledger panel — facts stacked, separated by surface shift */}
-              <div data-tour="op-detalle-ficha" className="bg-white rounded-sm overflow-hidden">
-                <div className="bg-[#10375c] px-6 py-4">
-                  <p className="text-[11px] sm:text-[10px] font-bold text-white/60 uppercase tracking-[0.22em] font-inter">
-                    Ficha técnica
+              {/* Ayuda — el fondo es el mismo color de la ilustración */}
+              <div className="relative overflow-hidden rounded-2xl bg-[#d7e7fe] p-6">
+                <div className="relative z-10 max-w-[65%]">
+                  <p style={manrope} className="text-lg font-black tracking-tight text-[#00213f]">
+                    ¿Necesitás ayuda?
                   </p>
+                  <p style={inter} className="mt-2 text-sm leading-relaxed text-slate-600">
+                    Nuestro equipo está para acompañarte en cada paso.
+                  </p>
+                  <Link
+                    href="/contacto"
+                    style={inter}
+                    className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-[#00213f] shadow-sm ring-1 ring-slate-200/70 transition-colors hover:bg-slate-50"
+                  >
+                    Centro de ayuda
+                    <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Link>
                 </div>
-
-                <LedgerRow
-                  icon={<MapPin className="w-4 h-4" />}
-                  label="Ubicación"
-                  value={op.localidad}
-                  subtitle="Miembro UIAB"
+                <Image
+                  src="/oportunidades/ayuda-headset.webp"
+                  alt=""
+                  aria-hidden="true"
+                  width={480}
+                  height={480}
+                  className="absolute -right-4 top-1/2 w-32 -translate-y-1/2 select-none sm:w-36"
                 />
-                <LedgerRow
-                  icon={<Building2 className="w-4 h-4" />}
-                  label="Solicitante"
-                  value={op.empresa?.razon_social || "Miembro del Parque"}
-                  subtitle="Verificado UIAB"
-                  alt
-                />
-                {op.cantidad != null && (
-                  <LedgerRow
-                    icon={<Package className="w-4 h-4" />}
-                    label="Cantidad"
-                    value={`${op.cantidad}${op.unidad ? ` ${op.unidad}` : ""}`}
-                  />
-                )}
-                {fechaFmt && (
-                  <LedgerRow
-                    icon={<CalendarDays className="w-4 h-4" />}
-                    label="Fecha de necesidad"
-                    value={fechaFmt}
-                    alt
-                  />
-                )}
-                {op.categoria && (
-                  <LedgerRow
-                    icon={<Tag className="w-4 h-4" />}
-                    label="Categoría"
-                    value={op.categoria.nombre}
-                  />
-                )}
               </div>
             </div>
           </aside>
         </div>
 
-        {/* CANDIDATES — owner view */}
-        {isOwner && (
-          <section className="mt-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex items-baseline gap-4 mb-10">
-              <span className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.22em] font-inter">
-                03 — Candidatos recomendados
+        {/* ── CTA final ── */}
+        <section className="mt-14 overflow-hidden rounded-2xl bg-[#00213f] shadow-[0_28px_60px_-32px_rgba(0,33,63,0.75)]">
+          <div className="relative flex flex-col items-start gap-6 p-8 sm:flex-row sm:items-center sm:justify-between sm:p-10">
+            <div
+              className="absolute inset-0 bg-gradient-to-br from-[#00213f] via-[#0b2d4d] to-[#123a63]"
+              aria-hidden="true"
+            />
+            <div className="relative flex items-center gap-5">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/10 text-white">
+                <Target className="h-6 w-6" aria-hidden="true" />
               </span>
-              <span className="flex-1 h-px bg-slate-200/60" />
-              <span className="text-[11px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em] tabular-nums">
-                {String(candidates.length).padStart(2, "0")} resultados
-              </span>
-            </div>
-
-            {candidates.length === 0 ? (
-              <div className="bg-white p-16 text-center rounded-sm">
-                <Sparkles className="w-10 h-10 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-500 font-inter font-medium leading-relaxed max-w-sm mx-auto">
-                  Todavía no hay candidatos con compatibilidad suficiente. Cuantas
-                  más etiquetas tenga tu oportunidad, más coincidencias encontramos.
+              <div>
+                <h2 style={manrope} className="text-xl font-black tracking-tight text-white sm:text-2xl">
+                  ¿Tenés otra necesidad?
+                </h2>
+                <p style={inter} className="mt-1 max-w-md text-sm leading-relaxed text-white/60">
+                  Publicá una nueva oportunidad y conectá con los mejores
+                  proveedores de la red UIAB Conecta.
                 </p>
-                <Link href="/oportunidades/nueva" className="inline-block mt-6">
-                  <Button className="bg-[#00213f] hover:bg-[#10375c] text-white rounded-sm h-10 px-6 font-bold font-inter text-[11px] sm:text-[10px] uppercase tracking-[0.2em]">
-                    Publicar otra necesidad
-                  </Button>
-                </Link>
               </div>
-            ) : (
-              <div className="space-y-12">
-                {empresasCandidatas.length > 0 && (
-                  <CandidatosSection
-                    titulo="Empresas"
-                    icono={
-                      <Building2 className="w-4 h-4 text-[#10375c]" />
-                    }
-                    items={empresasCandidatas}
-                    tipo="empresa"
-                    opTags={opTags}
-                  />
-                )}
-                {proveedoresCandidatos.length > 0 && (
-                  <CandidatosSection
-                    titulo="Proveedores de servicios"
-                    icono={<User className="w-4 h-4 text-[#10375c]" />}
-                    items={proveedoresCandidatos}
-                    tipo="proveedor"
-                    opTags={opTags}
-                  />
-                )}
-              </div>
-            )}
-          </section>
-        )}
+            </div>
+            <Link href="/oportunidades/nueva" className="relative shrink-0">
+              <Button
+                style={inter}
+                className="h-12 gap-2 rounded-xl bg-white px-6 text-sm font-bold text-[#00213f] transition-colors hover:bg-slate-100"
+              >
+                Publicar nueva oportunidad
+                <Plus className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </Link>
+          </div>
+        </section>
 
-        <footer className="mt-24 text-center text-slate-300 text-[11px] sm:text-[10px] font-bold uppercase tracking-[0.3em] pb-4 font-inter">
-          © {new Date().getFullYear()} Conectar UIAB — Gestión de Oportunidades Industriales
+        <footer
+          style={inter}
+          className="mt-16 pb-4 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-slate-300"
+        >
+          © {new Date().getFullYear()} UIAB Conecta — Gestión de Oportunidades Industriales
         </footer>
       </div>
     </div>
   );
 }
 
-function MetaCell({
-  label,
-  value,
-  icon,
-  accent,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  accent: "amber" | "sky" | "emerald";
-}) {
-  const dot = {
-    amber: "bg-amber-300",
-    sky: "bg-sky-300",
-    emerald: "bg-emerald-300",
-  }[accent];
+/* ── Piezas ─────────────────────────────────────────────────────────────── */
 
-  const iconColor = {
-    amber: "text-amber-200/80",
-    sky: "text-sky-200/80",
-    emerald: "text-emerald-200/80",
-  }[accent];
-
+function EncabezadoSeccion({ numero, titulo }: { numero: string; titulo: string }) {
   return (
-    <div className="bg-[#00213f] px-5 py-5">
-      <div className="flex items-center gap-2 text-[11px] sm:text-[9px] font-bold uppercase tracking-[0.22em] font-inter text-white/40 mb-3">
-        <span className={`w-1 h-1 rounded-full ${dot}`} />
-        <span>{label}</span>
-      </div>
-      <div className="flex items-baseline gap-2.5">
-        <span className={`shrink-0 ${iconColor}`}>{icon}</span>
-        <p className="font-manrope font-bold text-white text-base leading-tight truncate">
-          {value}
-        </p>
-      </div>
+    <div className="mb-5 flex items-baseline gap-4">
+      <span
+        style={inter}
+        className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary-700 tabular-nums"
+      >
+        {numero}
+      </span>
+      <h2
+        style={inter}
+        className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500"
+      >
+        {titulo}
+      </h2>
+      <span className="h-px flex-1 bg-slate-200/70" />
     </div>
   );
 }
 
-function LedgerRow({
-  icon,
-  label,
-  value,
-  subtitle,
-  alt = false,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  subtitle?: string;
-  alt?: boolean;
-}) {
-  return (
-    <div
-      className={`px-6 py-5 flex items-start gap-4 ${
-        alt ? "bg-[#f2f4f6]" : "bg-white"
-      }`}
-    >
-      <div className="w-8 h-8 rounded-sm bg-white shadow-sm flex items-center justify-center text-[#10375c] shrink-0 mt-0.5">
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-[0.18em] mb-1 font-inter">
-          {label}
-        </p>
-        <p className="font-manrope font-bold text-[#00213f] text-base leading-tight break-words">
-          {value}
-        </p>
-        {subtitle && (
-          <p className="text-[11px] text-slate-400 font-inter mt-0.5">
-            {subtitle}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ScoreCell({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-white p-4">
-      <p className="text-[11px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] font-inter mb-1">
-        {label}
-      </p>
-      <p className="font-manrope font-bold text-[#00213f] text-2xl tabular-nums">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function CandidatosSection({
-  titulo,
+function MetaHero({
   icono,
-  items,
-  tipo,
-  opTags,
+  etiqueta,
+  valor,
 }: {
-  titulo: string;
   icono: React.ReactNode;
-  items: Match[];
-  tipo: "empresa" | "proveedor";
-  opTags: string[];
+  etiqueta: string;
+  valor: string;
 }) {
   return (
-    <section className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-sm bg-[#f2f4f6] flex items-center justify-center">
-          {icono}
-        </div>
-        <h3 className="text-base font-manrope font-bold text-[#00213f] tracking-tight">
-          {titulo}
-        </h3>
-        <span className="text-slate-400 text-[11px] sm:text-[10px] font-inter font-bold uppercase tracking-[0.22em]">
-          {items.length} resultado{items.length === 1 ? "" : "s"}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {items.map((match) => (
-          <MatchCard key={match.id} match={match} tipo={tipo} opTags={opTags} />
-        ))}
-      </div>
-    </section>
+    <div className="min-w-0">
+      <dt
+        style={inter}
+        className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40"
+      >
+        <span className="text-primary-300/80">{icono}</span>
+        {etiqueta}
+      </dt>
+      {/* Dos líneas, no `truncate`: "Burzaco, Provincia de Buenos Aires" y los
+          nombres largos de rubro no entran en una sola y quedaban cortados. */}
+      <dd
+        style={inter}
+        className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug text-white"
+        title={valor}
+      >
+        {valor}
+      </dd>
+    </div>
   );
 }
 
-function MatchCard({
+function FilaResumen({
+  icono,
+  etiqueta,
+  children,
+}: {
+  icono: React.ReactNode;
+  etiqueta: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+      <dt className="flex shrink-0 items-center gap-2.5 text-[13px] text-white/60">
+        <span className="text-white/35">{icono}</span>
+        {etiqueta}
+      </dt>
+      <dd className="min-w-0 text-right text-[13px] font-semibold text-white [overflow-wrap:anywhere]">
+        {children}
+      </dd>
+    </div>
+  );
+}
+
+function PuntajeCelda({ etiqueta, valor }: { etiqueta: string; valor: number }) {
+  return (
+    <div className="rounded-xl bg-[#f2f4f6] p-4">
+      <dt
+        style={inter}
+        className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400"
+      >
+        {etiqueta}
+      </dt>
+      <dd style={manrope} className="mt-1 text-2xl font-bold tabular-nums text-[#00213f]">
+        {valor}
+      </dd>
+    </div>
+  );
+}
+
+const ICONO_ADJUNTO: Record<string, { clase: string; Icono: typeof FileText }> = {
+  PDF: { clase: "bg-red-50 text-red-500", Icono: FileText },
+  DOC: { clase: "bg-primary-50 text-primary-600", Icono: FileText },
+  DOCX: { clase: "bg-primary-50 text-primary-600", Icono: FileText },
+  XLS: { clase: "bg-emerald-50 text-emerald-600", Icono: FileSpreadsheet },
+  XLSX: { clase: "bg-emerald-50 text-emerald-600", Icono: FileSpreadsheet },
+};
+
+function FilaAdjunto({ adjunto }: { adjunto: AdjuntoOportunidad }) {
+  const tipo = etiquetaDeTipo(adjunto.mime, adjunto.nombre);
+  const { clase, Icono } = adjunto.esImagen
+    ? { clase: "bg-emerald-50 text-emerald-600", Icono: ImageIcon }
+    : ICONO_ADJUNTO[tipo] ?? { clase: "bg-slate-100 text-slate-500", Icono: FileText };
+  const peso = tamanoLegible(adjunto.tamano);
+
+  return (
+    <li className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-slate-50/70 sm:px-6">
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${clase}`}>
+        <Icono className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p style={inter} className="truncate text-sm font-bold text-[#00213f]">
+          {adjunto.nombre}
+        </p>
+        <p style={inter} className="text-xs text-slate-400">
+          {tipo}
+          {peso ? ` · ${peso}` : ""}
+        </p>
+      </div>
+      <a
+        href={adjunto.url}
+        download={adjunto.nombre}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Descargar ${adjunto.nombre}`}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#00213f]"
+      >
+        <Download className="h-[18px] w-[18px]" aria-hidden="true" />
+      </a>
+    </li>
+  );
+}
+
+function TarjetaCandidato({
   match,
-  tipo,
   opTags,
+  resenas,
 }: {
   match: Match;
-  tipo: "empresa" | "proveedor";
   opTags: string[];
+  resenas: Map<string, { promedio: number; total: number }>;
 }) {
-  const nombre =
-    tipo === "empresa"
-      ? match.empresa?.nombre_comercial || match.empresa?.razon_social
-      : match.proveedor?.nombre_comercial || match.proveedor?.nombre;
-  const localidad =
-    tipo === "empresa" ? match.empresa?.localidad : match.proveedor?.localidad;
-  const subtitulo =
-    tipo === "empresa"
-      ? "Empresa verificada UIAB"
-      : `${match.proveedor?.tipo_proveedor ?? "Proveedor"} verificado`;
+  const esEmpresa = Boolean(match.empresa_candidata_id);
+  const nombre = esEmpresa
+    ? match.empresa?.nombre_comercial || match.empresa?.razon_social
+    : match.proveedor?.nombre_comercial || match.proveedor?.nombre;
 
-  const perfilHref =
-    tipo === "empresa"
-      ? `/empresas/${match.empresa_candidata_id}`
-      : `/proveedor/proveedores/${match.proveedor_candidato_id}`;
+  const logoUrl = urlPublicaDeLogo(
+    esEmpresa ? match.empresa?.bucket_logo : match.proveedor?.bucket_logo,
+    esEmpresa ? match.empresa?.ruta_logo : match.proveedor?.ruta_logo
+  );
 
-  // Logo real del candidato (bucket público de Supabase Storage).
-  const bucket =
-    tipo === "empresa" ? match.empresa?.bucket_logo : match.proveedor?.bucket_logo;
-  const ruta =
-    tipo === "empresa" ? match.empresa?.ruta_logo : match.proveedor?.ruta_logo;
-  const logoUrl =
-    bucket && ruta
-      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${ruta}`
-      : null;
+  // La ficha pública resuelve por slug del nombre (nunca UUID — el link viejo
+  // con UUID no matcheaba ninguna ficha).
+  const slug = nombre ? crearSlug(nombre) : null;
 
-  // Etiquetas que el candidato comparte con la oportunidad — el "por qué"
-  // del match en palabras, en vez de puntajes crudos.
+  // Reseñas REALES y aprobadas; sin reseñas no se inventa puntaje.
+  const rating = match.empresa_candidata_id
+    ? resenas.get(match.empresa_candidata_id)
+    : undefined;
+
   const tagsCandidato = (
-    (tipo === "empresa"
-      ? match.empresa?.empresas_tags
-      : match.proveedor?.proveedores_tags) ?? []
+    (esEmpresa ? match.empresa?.empresas_tags : match.proveedor?.proveedores_tags) ?? []
   )
     .map((t) => t.tags?.nombre)
     .filter((n): n is string => Boolean(n));
   const opTagsLower = opTags.map((t) => t.toLowerCase());
-  const compartidas = tagsCandidato.filter((n) =>
-    opTagsLower.includes(n.toLowerCase())
-  );
-  const compartidasVisibles = compartidas.slice(0, 3);
+  const compartidas = tagsCandidato.filter((n) => opTagsLower.includes(n.toLowerCase()));
+
+  const chips: string[] = [];
+  if (compartidas[0]) chips.push(compartidas[0]);
+  else if (match.detalle_puntaje.categoria > 0) chips.push("Mismo rubro");
+  if (match.detalle_puntaje.ubicacion > 0) chips.push("Misma zona");
 
   return (
-    <Card className="border-none bg-white p-6 rounded-sm shadow-sm hover:shadow-lg transition-all group overflow-hidden relative">
-      <div className="absolute top-0 left-0 h-1 w-full bg-[#00213f] opacity-0 group-hover:opacity-100 transition-opacity" />
-      <div className="flex flex-col h-full">
-        <div className="flex justify-between items-start mb-5">
-          {logoUrl ? (
-            <div className="w-12 h-12 bg-white border border-slate-100 rounded-sm flex items-center justify-center overflow-hidden">
-              <Image
-                src={logoUrl}
-                alt=""
-                width={48}
-                height={48}
-                className="w-full h-full object-contain p-1"
-              />
-            </div>
+    <Card className="group flex flex-col items-center rounded-2xl border-slate-200/60 bg-white p-6 text-center shadow-sm transition-shadow hover:shadow-md">
+      {logoUrl ? (
+        <span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-slate-100 bg-white shadow-sm">
+          <Image
+            src={logoUrl}
+            alt=""
+            width={64}
+            height={64}
+            className="h-full w-full object-contain p-1.5"
+          />
+        </span>
+      ) : (
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#f2f4f6] text-slate-400">
+          {esEmpresa ? (
+            <Building2 className="h-7 w-7" aria-hidden="true" />
           ) : (
-            <div className="w-12 h-12 bg-[#f2f4f6] rounded-sm flex items-center justify-center">
-              {tipo === "empresa" ? (
-                <Building2 className="w-6 h-6 text-slate-400" />
-              ) : (
-                <User className="w-6 h-6 text-slate-400" />
-              )}
-            </div>
+            <User className="h-7 w-7" aria-hidden="true" />
           )}
-          <div className="text-right">
-            <p className="text-[11px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-[0.18em] mb-0.5">
-              Match
-            </p>
-            <p className="font-manrope font-bold text-[#00213f] text-xl tabular-nums leading-none">
-              {Math.round(match.puntaje)}
-            </p>
-          </div>
-        </div>
+        </span>
+      )}
 
-        <h4 className="font-manrope font-bold text-lg text-[#00213f] mb-1.5 line-clamp-2 leading-tight">
+      {/* El nombre va en dos líneas, no truncado: las razones sociales reales
+          ("Simonetta Automatización S.A.") no entran en una sola columna. */}
+      <p
+        style={manrope}
+        className="mt-4 max-w-full text-base font-bold leading-snug text-[#00213f]"
+      >
+        <span className="line-clamp-2 [overflow-wrap:anywhere]">
           {nombre || "Sin nombre"}
-        </h4>
-        <div className="flex items-center gap-1.5 text-[11px] sm:text-[10px] font-inter text-slate-500 mb-2 font-bold uppercase tracking-[0.15em]">
-          <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-          {subtitulo}
-        </div>
-        {localidad && (
-          <div className="flex items-center gap-1.5 text-xs font-inter text-slate-500 mb-4">
-            <MapPin className="w-3 h-3" />
-            {localidad}
-          </div>
-        )}
+          <BadgeCheck
+            className="ml-1 inline h-4 w-4 shrink-0 align-[-3px] text-emerald-500"
+            aria-hidden="true"
+          />
+        </span>
+      </p>
+      <p style={inter} className="mt-0.5 text-xs text-slate-400">
+        {esEmpresa ? "Empresa socia UIAB" : "Prestador verificado"}
+      </p>
 
-        <div className="flex flex-wrap gap-1.5 mb-5">
-          {compartidasVisibles.map((tag) => (
+      {rating && rating.total > 0 && (
+        <p style={inter} className="mt-2 inline-flex items-center gap-1 text-sm">
+          <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
+          <span className="font-bold text-[#00213f]">
+            {rating.promedio.toFixed(1).replace(".", ",")}
+          </span>
+          <span className="text-slate-400">({rating.total})</span>
+        </p>
+      )}
+
+      {chips.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+          {chips.map((chip) => (
             <span
-              key={tag}
-              className="text-[11px] sm:text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 px-2 py-1 rounded-sm flex items-center gap-1"
+              key={chip}
+              style={inter}
+              className="rounded-md bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600"
             >
-              <Tag className="w-2.5 h-2.5" /> {tag}
+              {chip}
             </span>
           ))}
-          {compartidas.length > 3 && (
-            <span className="text-[11px] sm:text-[10px] font-bold text-slate-500 bg-[#f2f4f6] px-2 py-1 rounded-sm">
-              +{compartidas.length - 3} en común
-            </span>
-          )}
-          {match.detalle_puntaje.ubicacion > 0 && (
-            <span className="text-[11px] sm:text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-sm flex items-center gap-1">
-              <MapPin className="w-2.5 h-2.5" /> Misma zona
-            </span>
-          )}
-          {compartidasVisibles.length === 0 && match.detalle_puntaje.categoria > 0 && (
-            <span className="text-[11px] sm:text-[10px] font-bold text-slate-600 bg-[#f2f4f6] px-2 py-1 rounded-sm">
-              Mismo rubro
-            </span>
-          )}
         </div>
+      )}
 
-        <p className="text-sm text-slate-500 leading-relaxed font-inter mb-6 line-clamp-2 flex-1">
-          {match.motivo_match}
-        </p>
-
-        <Link href={perfilHref} className="mt-auto">
-          <Button className="w-full bg-[#f2f4f6] hover:bg-[#00213f] text-[#00213f] hover:text-white border-none rounded-sm h-10 font-bold font-inter text-[11px] sm:text-[10px] uppercase tracking-[0.2em] transition-all">
+      {slug ? (
+        <Link href={`/empresas/${slug}`} className="mt-5 w-full">
+          <Button
+            variant="outline"
+            style={inter}
+            className="h-10 w-full rounded-xl border-slate-200 text-sm font-bold text-[#00213f] transition-colors hover:bg-[#00213f] hover:text-white"
+          >
             Ver perfil
           </Button>
         </Link>
-      </div>
+      ) : (
+        <span className="mt-5 h-10 w-full" aria-hidden="true" />
+      )}
     </Card>
   );
 }

@@ -45,13 +45,16 @@ export default function DialogoPostularse({
   // Si ya se postuló, mostrar chip informativo en vez del botón
   if (yaPostulado) {
     return (
-      <div className="w-full sm:w-80 h-14 flex items-center gap-3 px-6 bg-emerald-50 border border-emerald-200 rounded-sm">
+      <div className="w-full h-14 flex items-center gap-3 px-6 bg-emerald-50 border border-emerald-200 rounded-xl">
         <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-[11px] sm:text-[10px] font-bold text-emerald-700 uppercase tracking-widest">
             Postulación
           </p>
-          <p className="text-sm font-manrope font-bold text-[#00213f] truncate">
+          <p
+            style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+            className="text-sm font-bold text-[#00213f] truncate"
+          >
             {ESTADO_LABEL[yaPostulado.estado] ?? yaPostulado.estado}
           </p>
         </div>
@@ -93,7 +96,8 @@ export default function DialogoPostularse({
     <>
       <Button
         onClick={() => setOpen(true)}
-        className="w-full bg-[#00213f] hover:bg-[#10375c] text-white font-bold h-14 rounded-sm shadow-xl shadow-primary-900/10 transition-all font-inter uppercase tracking-widest text-xs"
+        style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
+        className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold h-12 rounded-xl shadow-lg shadow-primary-900/30 transition-all text-sm"
       >
         Postularse a esta oportunidad
       </Button>

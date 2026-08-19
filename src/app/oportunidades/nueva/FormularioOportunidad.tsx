@@ -6,6 +6,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { crearOportunidad } from "./acciones";
+import { editarOportunidad } from "../[id]/editar/acciones";
+import { eliminarAdjuntoDeOportunidad } from "../adjuntos-acciones";
+import { CampoAdjuntos, type ArchivoLocal } from "./CampoAdjuntos";
+import { subirAdjuntosDeOportunidad } from "@/modulos/oportunidades/subir-adjuntos-cliente";
+import type { AdjuntoOportunidad } from "@/modulos/oportunidades/adjuntos";
 import { SelectorEtiquetas } from "@/components/ui/selector-etiquetas";
 import { SelectUIAB } from "@/components/ui/select-uiab";
 import type { TagOption } from "@/modulos/compartido/etiquetas";
@@ -105,13 +110,25 @@ function RichTextEditor({
   name,
   placeholder,
   invalido,
+  htmlInicial,
 }: {
   name: string;
   placeholder?: string;
   invalido?: boolean;
+  /** Contenido con el que arranca el editor (edición). */
+  htmlInicial?: string;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState(htmlInicial ?? "");
+
+  // El contentEditable no es controlado: el HTML inicial se inyecta una vez.
+  useEffect(() => {
+    if (htmlInicial && editorRef.current && !editorRef.current.innerHTML) {
+      editorRef.current.innerHTML = htmlInicial;
+    }
+    // Sólo al montar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [activeFormats, setActiveFormats] = useState({
     bold: false,
     italic: false,
@@ -232,22 +249,55 @@ interface Categoria {
   nombre: string;
 }
 
+/** Valores con los que arranca el formulario en modo edición. */
+export interface OportunidadInicial {
+  titulo: string;
+  descripcionHtml: string;
+  categoria_id: string;
+  localidad: string;
+  cantidad: number | null;
+  unidad: string | null;
+  fecha_necesidad: string | null;
+  tipoRequerimiento: string[];
+  tagIds: string[];
+}
+
 export function FormularioOportunidad({
   categorias,
   tags,
+  modo = "crear",
+  oportunidadId,
+  inicial,
+  adjuntosIniciales = [],
 }: {
   categorias: Categoria[];
   tags: TagOption[];
+  /** "editar" reutiliza el mismo formulario sobre una oportunidad existente. */
+  modo?: "crear" | "editar";
+  /** Obligatorio en modo edición. */
+  oportunidadId?: string;
+  inicial?: OportunidadInicial;
+  adjuntosIniciales?: AdjuntoOportunidad[];
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [subiendoAdjuntos, setSubiendoAdjuntos] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [descripcionVacia, setDescripcionVacia] = useState(false);
-  const [tiposReq, setTiposReq] = useState<Set<string>>(new Set());
-  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [tiposReq, setTiposReq] = useState<Set<string>>(
+    () => new Set(inicial?.tipoRequerimiento ?? [])
+  );
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(
+    () => new Set(inicial?.tagIds ?? [])
+  );
   /** Términos que el usuario escribió y no están en el catálogo. Se crean como
    *  etiquetas libres del lado del servidor al publicar. */
   const [nuevasEtiquetas, setNuevasEtiquetas] = useState<string[]>([]);
+  /** Fotos y documentos elegidos en esta sesión (se suben tras publicar). */
+  const [adjuntos, setAdjuntos] = useState<ArchivoLocal[]>([]);
+  /** Los ya subidos (sólo edición); borrar uno es inmediato. */
+  const [adjuntosExistentes, setAdjuntosExistentes] =
+    useState<AdjuntoOportunidad[]>(adjuntosIniciales);
   const contenedorErrorRef = useRef<HTMLDivElement>(null);
 
   const toggleTipo = (valor: string) => {
@@ -300,21 +350,69 @@ export function FormularioOportunidad({
     for (const tagId of selectedTags) formData.append("tag_ids", tagId);
     for (const termino of nuevasEtiquetas) formData.append("nuevas_etiquetas", termino);
 
-    const result = await llamarAccion(() => crearOportunidad(formData));
+    const result = await llamarAccion(() =>
+      modo === "editar" && oportunidadId
+        ? editarOportunidad(oportunidadId, formData)
+        : crearOportunidad(formData)
+    );
 
     if (fallo(result)) {
       setError(result.error);
       setLoading(false);
-    } else if (result.redirect) {
-      if (result.avisoTags) toast.warning(result.avisoTags);
-      router.push(result.redirect);
-      router.refresh();
-    } else {
+      return;
+    }
+
+    if (!result.redirect) {
       // Ni error ni redirect: sin esta rama el botón se quedaba en "Publicando…"
       // para siempre si el action devolvía una forma inesperada.
       setLoading(false);
+      return;
     }
+
+    // Adjuntos: la oportunidad ya existe; los archivos van directo del browser
+    // a Storage con URLs firmadas por el action (ver adjuntos.ts). Un archivo
+    // que falla no frena la publicación — se avisa y se puede resubir editando.
+    const idDeCreacion =
+      "oportunidadId" in result && typeof result.oportunidadId === "string"
+        ? result.oportunidadId
+        : undefined;
+    const idDestino = modo === "editar" ? oportunidadId : idDeCreacion;
+    if (adjuntos.length > 0 && idDestino) {
+      setSubiendoAdjuntos(true);
+      const subida = await subirAdjuntosDeOportunidad(
+        idDestino,
+        adjuntos.map((adjunto) => adjunto.file)
+      );
+      setSubiendoAdjuntos(false);
+      if (subida.error) {
+        toast.warning("Los archivos no se pudieron subir", {
+          description: subida.error,
+        });
+      } else if (subida.fallidos.length > 0) {
+        toast.warning(
+          `${subida.fallidos.length} archivo${subida.fallidos.length === 1 ? "" : "s"} no se pudo${subida.fallidos.length === 1 ? "" : "ieron"} subir`,
+          { description: subida.fallidos.join(", ") }
+        );
+      }
+    }
+
+    if (result.avisoTags) toast.warning(result.avisoTags);
+    router.push(result.redirect);
+    router.refresh();
   }
+
+  /** Borrado inmediato de un adjunto ya subido (sólo edición). */
+  const manejarEliminarExistente = async (adjunto: AdjuntoOportunidad) => {
+    if (!oportunidadId) return false;
+    const res = await llamarAccion(() =>
+      eliminarAdjuntoDeOportunidad(oportunidadId, adjunto.ruta)
+    );
+    if (fallo(res) || !res.success) return false;
+    setAdjuntosExistentes((previos) =>
+      previos.filter((existente) => existente.ruta !== adjunto.ruta)
+    );
+    return true;
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 mb-24 items-start">
@@ -389,6 +487,7 @@ export function FormularioOportunidad({
                   name="titulo"
                   required
                   maxLength={120}
+                  defaultValue={inicial?.titulo}
                   placeholder="Ej. Reparación de torno CNC · Provisión de chapa laminada"
                   className={inputCls}
                 />
@@ -416,7 +515,7 @@ export function FormularioOportunidad({
                     id="categoria_id"
                     name="categoria_id"
                     required
-                    defaultValue=""
+                    defaultValue={inicial?.categoria_id ?? ""}
                     placeholder="Elegí el rubro…"
                     ariaLabel="Rubro principal"
                     className={inputCls}
@@ -434,6 +533,7 @@ export function FormularioOportunidad({
                       id="localidad"
                       name="localidad"
                       required
+                      defaultValue={inicial?.localidad}
                       placeholder="Ej. Burzaco, Provincia de Buenos Aires"
                       className={`${inputCls} pr-11`}
                     />
@@ -464,6 +564,7 @@ export function FormularioOportunidad({
               <RichTextEditor
                 name="descripcion"
                 invalido={descripcionVacia}
+                htmlInicial={inicial?.descripcionHtml}
                 placeholder="Ej. Necesitamos reparar un torno CNC Fanuc, con diagnóstico previo en planta…"
               />
             </div>
@@ -488,6 +589,7 @@ export function FormularioOportunidad({
                     type="number"
                     min="0"
                     step="any"
+                    defaultValue={inicial?.cantidad ?? undefined}
                     placeholder="Ej. 20"
                     className={inputCls}
                   />
@@ -500,6 +602,7 @@ export function FormularioOportunidad({
                   <input
                     id="unidad"
                     name="unidad"
+                    defaultValue={inicial?.unidad ?? undefined}
                     placeholder="Ej. horas, unidades, m²"
                     className={inputCls}
                   />
@@ -513,15 +616,35 @@ export function FormularioOportunidad({
                     id="fecha_necesidad"
                     name="fecha_necesidad"
                     type="date"
+                    defaultValue={inicial?.fecha_necesidad ?? undefined}
                     className={inputCls}
                   />
                 </div>
               </div>
             </div>
 
-            {/* ── 05 · Etiquetas para el match ── */}
+            {/* ── 05 · Fotos y archivos ── */}
             <div>
-              <EncabezadoSeccion numero="05" titulo="Etiquetas para el match" />
+              <EncabezadoSeccion
+                numero="05"
+                titulo="Fotos y archivos"
+                descripcion="Fotos del estado actual, planos o especificaciones. Las imágenes se muestran en la publicación y ayudan a que los candidatos coticen mejor."
+                badge="Opcional"
+              />
+              <CampoAdjuntos
+                archivos={adjuntos}
+                onChange={setAdjuntos}
+                existentes={modo === "editar" ? adjuntosExistentes : []}
+                onEliminarExistente={
+                  modo === "editar" ? manejarEliminarExistente : undefined
+                }
+                deshabilitado={loading}
+              />
+            </div>
+
+            {/* ── 06 · Etiquetas para el match ── */}
+            <div>
+              <EncabezadoSeccion numero="06" titulo="Etiquetas para el match" />
 
               <p className="text-sm text-slate-500 leading-relaxed mb-4 max-w-prose">
                 Escribí lo que necesitás —material, servicio, producto o personal— y elegí de
@@ -577,11 +700,15 @@ export function FormularioOportunidad({
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                    Publicando…
+                    {subiendoAdjuntos
+                      ? "Subiendo archivos…"
+                      : modo === "editar"
+                        ? "Guardando…"
+                        : "Publicando…"}
                   </>
                 ) : (
                   <>
-                    Publicar requerimiento
+                    {modo === "editar" ? "Guardar cambios" : "Publicar requerimiento"}
                     <ArrowRight
                       className="w-4 h-4 transition-transform group-hover:translate-x-1 motion-reduce:group-hover:translate-x-0"
                       aria-hidden="true"

@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Oportunidad } from "@/modulos/oportunidades/servicio-oportunidades";
 import { SELECT_OPORTUNIDAD } from "@/modulos/oportunidades/solicitante";
+import { listarAdjuntosDeOportunidad } from "@/modulos/oportunidades/adjuntos-servidor";
 import OportunidadDetalleCliente from "./detalle-cliente";
 
 /**
@@ -48,5 +49,16 @@ export default async function OportunidadDetallePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <OportunidadDetalleCliente id={id} inicial={await oportunidadAbierta(id)} />;
+  const inicial = await oportunidadAbierta(id);
+
+  // Los adjuntos se resuelven acá SÓLO para una oportunidad abierta, que es
+  // pública por definición (está en el sitemap y su HTML se sirve sin sesión).
+  // Para el resto `inicial` es null y este payload viajaría igual al browser:
+  // los nombres y las URLs de los planos de una oportunidad CERRADA quedarían
+  // legibles con un curl al UUID. Esas las pide el cliente con sesión.
+  const adjuntos = inicial ? await listarAdjuntosDeOportunidad(id) : [];
+
+  return (
+    <OportunidadDetalleCliente id={id} inicial={inicial} adjuntosIniciales={adjuntos} />
+  );
 }

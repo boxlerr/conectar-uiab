@@ -18,6 +18,9 @@ export interface Oportunidad {
   unidad?: string | null;
   fecha_necesidad?: string | null;
   creado_en: string;
+  /** Llegan por el `*` del SELECT; el tipo las omitía. */
+  visibilidad?: string;
+  tipo_requerimiento?: string[] | null;
   categoria?: { nombre: string };
   /** Trae las columnas del logo: la cartelera muestra la marca de quien publica. */
   empresa?: EmpresaSolicitante | null;
@@ -163,5 +166,46 @@ export const oportunidadesService = {
 
     if (error) throw error;
     return data as Match[];
+  },
+
+  /**
+   * Promedio y cantidad de reseñas APROBADAS por empresa. Para las tarjetas de
+   * candidatos: sólo se pintan estrellas si hay reseñas reales — con la base
+   * casi sin reseñas esto devuelve un mapa vacío y la tarjeta muestra las
+   * etiquetas en común en su lugar (nunca un puntaje inventado).
+   */
+  async getResenasDeEmpresas(empresaIds: string[]) {
+    const resultado = new Map<string, { promedio: number; total: number }>();
+    if (empresaIds.length === 0) return resultado;
+
+    const supabase = createClient();
+    const { data, error } = await race(
+      (async () =>
+        await supabase
+          .from('resenas')
+          .select('empresa_resenada_id, calificacion')
+          .eq('estado', 'aprobada')
+          .in('empresa_resenada_id', empresaIds))(),
+      10000,
+      'getResenasDeEmpresas'
+    );
+
+    if (error || !data) return resultado;
+
+    const porEmpresa = new Map<string, number[]>();
+    for (const fila of data as { empresa_resenada_id: string; calificacion: number }[]) {
+      if (!fila.empresa_resenada_id || typeof fila.calificacion !== 'number') continue;
+      const lista = porEmpresa.get(fila.empresa_resenada_id) ?? [];
+      lista.push(fila.calificacion);
+      porEmpresa.set(fila.empresa_resenada_id, lista);
+    }
+    for (const [empresaId, calificaciones] of porEmpresa) {
+      const suma = calificaciones.reduce((total, valor) => total + valor, 0);
+      resultado.set(empresaId, {
+        promedio: Number((suma / calificaciones.length).toFixed(1)),
+        total: calificaciones.length,
+      });
+    }
+    return resultado;
   }
 };
