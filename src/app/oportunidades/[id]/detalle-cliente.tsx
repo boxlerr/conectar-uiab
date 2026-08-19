@@ -52,6 +52,7 @@ import {
   etiquetaDeTipo,
   tamanoLegible,
 } from "@/modulos/oportunidades/adjuntos";
+import { recortarEnPalabra, textoPlanoDeHtml } from "@/modulos/oportunidades/texto";
 import { llamarAccion, fallo } from "@/lib/accion-segura";
 import DialogoPostularse from "./DialogoPostularse";
 import { miPostulacionEnOportunidad } from "./acciones";
@@ -75,24 +76,6 @@ function portadaDeFallback(id: string): string {
 const ETIQUETA_VISIBILIDAD: Record<string, string> = {
   privada_parque: "Sólo red verificada",
 };
-
-function textoPlano(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/** Recorta sin partir una palabra al medio ("…patchera" y no "…patch"). */
-function recortarEnPalabra(texto: string, maximo: number): string {
-  if (texto.length <= maximo) return texto;
-  const cortado = texto.slice(0, maximo);
-  const ultimoEspacio = cortado.lastIndexOf(" ");
-  const base = ultimoEspacio > maximo * 0.6 ? cortado.slice(0, ultimoEspacio) : cortado;
-  // Sin el saneo, un corte justo después de una coma queda como "24 bocas,…".
-  return `${base.replace(/[\s,;:.\-–—]+$/, "")}…`;
-}
 
 function fechaLarga(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -142,6 +125,10 @@ export default function OportunidadDetalleCliente({
   >(new Map());
   const [adjuntos, setAdjuntos] = useState<AdjuntoOportunidad[]>(adjuntosIniciales);
   const [verTodosCandidatos, setVerTodosCandidatos] = useState(false);
+  /** "cargando" hasta que el cruce contesta; "error" si no pudo. Sin esto, un
+   *  fetch lento pinta "no hay candidatos" cuando en realidad hay. */
+  const [estadoCandidatos, setEstadoCandidatos] =
+    useState<"cargando" | "listo" | "error">("cargando");
   const [loading, setLoading] = useState(!inicial);
 
   const isOwner = Boolean(
@@ -156,11 +143,22 @@ export default function OportunidadDetalleCliente({
 
     const fetchData = async () => {
       try {
-        const data = await oportunidadesService.getOportunidadById(id);
+        // El refetch va en su PROPIO try: si falla (el singleton de Supabase
+        // suele venir tocado tras una navegación client-side), antes se llevaba
+        // puesto todo lo de abajo y los candidatos no se pedían nunca — el
+        // famoso "no aparece nada hasta que aprieto F5". El dato del servidor
+        // ya está en pantalla, así que seguimos con él.
+        let efectiva = inicial;
+        try {
+          const data = await oportunidadesService.getOportunidadById(id);
+          if (data) efectiva = data;
+        } catch (error) {
+          console.error(
+            "[OportunidadDetail] refetch falló, sigo con el del servidor:",
+            error
+          );
+        }
         if (!isMounted) return;
-        // Si el refetch con sesión falla (hipo de red), el dato del servidor
-        // ya está en pantalla: no lo pisamos con un "no se encontró".
-        const efectiva = data ?? inicial;
         setOp(efectiva);
 
         const esDueno =
@@ -182,20 +180,30 @@ export default function OportunidadDetalleCliente({
           }
 
           tasks.push(
-            oportunidadesService.getMatchesForOportunidad(id).then(async (m) => {
-              if (!isMounted) return;
-              setCandidates(m);
-              // Reseñas reales de los candidatos (sólo se pintan si existen).
-              const empresaIds = m
-                .map((match) => match.empresa_candidata_id)
-                .filter((eid): eid is string => Boolean(eid));
-              try {
-                const mapa = await oportunidadesService.getResenasDeEmpresas(empresaIds);
-                if (isMounted) setResenas(mapa);
-              } catch {
-                /* sin reseñas: la tarjeta muestra etiquetas en común */
-              }
-            })
+            oportunidadesService
+              .getMatchesForOportunidad(id)
+              .then(async (m) => {
+                if (!isMounted) return;
+                setCandidates(m);
+                setEstadoCandidatos("listo");
+                // Reseñas reales de los candidatos (sólo se pintan si existen).
+                const empresaIds = m
+                  .map((match) => match.empresa_candidata_id)
+                  .filter((eid): eid is string => Boolean(eid));
+                try {
+                  const mapa = await oportunidadesService.getResenasDeEmpresas(empresaIds);
+                  if (isMounted) setResenas(mapa);
+                } catch {
+                  /* sin reseñas: la tarjeta muestra etiquetas en común */
+                }
+              })
+              .catch((error) => {
+                console.error(
+                  "[OportunidadDetail] no se pudieron traer los candidatos:",
+                  error
+                );
+                if (isMounted) setEstadoCandidatos("error");
+              })
           );
         }
 
@@ -236,7 +244,16 @@ export default function OportunidadDetalleCliente({
     return () => {
       isMounted = false;
     };
-  }, [id, inicial, adjuntosIniciales.length, currentUser?.entityId, currentUser?.role]);
+    // `inicial` NO va en las deps: es un objeto nuevo en cada render del RSC y
+    // relanzaba el efecto entero sin que hubiera cambiado nada.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    id,
+    inicial?.id,
+    adjuntosIniciales.length,
+    currentUser?.entityId,
+    currentUser?.role,
+  ]);
 
   const imagenes = useMemo(
     () => adjuntos.filter((adjunto) => adjunto.esImagen),
@@ -275,7 +292,7 @@ export default function OportunidadDetalleCliente({
   const abierta = op.estado === "abierta";
   const folio = `#${op.id.slice(0, 6).toUpperCase()}`;
   const solicitante = solicitanteDe(op);
-  const subtitulo = recortarEnPalabra(textoPlano(op.descripcion), 160);
+  const subtitulo = recortarEnPalabra(textoPlanoDeHtml(op.descripcion), 160);
 
   const fechaNecesidad = fechaLarga(op.fecha_necesidad);
   const fechaPublicada = fechaLarga(op.creado_en);
@@ -300,7 +317,7 @@ export default function OportunidadDetalleCliente({
   const candidatosOrdenados = [...candidates].sort((a, b) => b.puntaje - a.puntaje);
   const candidatosVisibles = verTodosCandidatos
     ? candidatosOrdenados
-    : candidatosOrdenados.slice(0, 6);
+    : candidatosOrdenados.slice(0, 8);
 
   const compartir = async () => {
     const url = `${window.location.origin}/oportunidades/${op.id}`;
@@ -598,73 +615,6 @@ export default function OportunidadDetalleCliente({
               </section>
             )}
 
-            {/* Candidatos recomendados (dueña) */}
-            {isOwner && (
-              <section>
-                <div className="mb-5 flex items-baseline gap-4">
-                  <span
-                    style={inter}
-                    className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary-700 tabular-nums"
-                  >
-                    {proximoNumero()}
-                  </span>
-                  <h2
-                    style={inter}
-                    className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500"
-                  >
-                    Candidatos recomendados
-                  </h2>
-                  <span className="h-px flex-1 bg-slate-200/70" />
-                  {candidatosOrdenados.length > 6 && (
-                    <button
-                      type="button"
-                      onClick={() => setVerTodosCandidatos((previo) => !previo)}
-                      style={inter}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.18em] text-primary-700 transition-colors hover:text-primary-800"
-                    >
-                      {verTodosCandidatos ? "Ver menos" : "Ver todos"}
-                      <ArrowRight
-                        className={`h-3 w-3 transition-transform ${verTodosCandidatos ? "rotate-90" : ""}`}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  )}
-                </div>
-
-                {candidatosOrdenados.length === 0 ? (
-                  <div className="rounded-2xl border border-slate-200/60 bg-white p-14 text-center shadow-sm">
-                    <Sparkles className="mx-auto mb-4 h-10 w-10 text-slate-200" />
-                    <p
-                      style={inter}
-                      className="mx-auto max-w-sm font-medium leading-relaxed text-slate-500"
-                    >
-                      Todavía no hay candidatos con compatibilidad suficiente.
-                      Cuantas más etiquetas tenga tu oportunidad, más
-                      coincidencias encontramos.
-                    </p>
-                    <Link href={`/oportunidades/${op.id}/editar`} className="mt-6 inline-block">
-                      <Button
-                        style={inter}
-                        className="h-11 rounded-xl bg-[#00213f] px-6 text-xs font-bold uppercase tracking-[0.14em] text-white hover:bg-[#10375c]"
-                      >
-                        Agregar etiquetas
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {candidatosVisibles.map((match) => (
-                      <TarjetaCandidato
-                        key={match.id}
-                        match={match}
-                        opTags={opTags}
-                        resenas={resenas}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
-            )}
           </main>
 
           {/* ── Sidebar ── */}
@@ -785,6 +735,112 @@ export default function OportunidadDetalleCliente({
           </aside>
         </div>
 
+          {/* Candidatos recomendados (dueña).
+              Vive FUERA del grid de dos columnas: cuando el sidebar ya terminó,
+              usar sólo 8 de 12 columnas dejaba media pantalla en blanco y
+              apretaba las tarjetas hasta cortarles el texto. */}
+          {isOwner && (
+            <section className="mt-16">
+              <div className="mb-5 flex items-baseline gap-4">
+                <span
+                  style={inter}
+                  className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary-700 tabular-nums"
+                >
+                  {proximoNumero()}
+                </span>
+                <h2
+                  style={inter}
+                  className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500"
+                >
+                  Candidatos recomendados
+                </h2>
+                <span className="h-px flex-1 bg-slate-200/70" />
+                {candidatosOrdenados.length > 8 && (
+                  <button
+                    type="button"
+                    onClick={() => setVerTodosCandidatos((previo) => !previo)}
+                    style={inter}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.18em] text-primary-700 transition-colors hover:text-primary-800"
+                  >
+                    {verTodosCandidatos ? "Ver menos" : "Ver todos"}
+                    <ArrowRight
+                      className={`h-3 w-3 transition-transform ${verTodosCandidatos ? "rotate-90" : ""}`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                )}
+              </div>
+
+              {estadoCandidatos === "cargando" ? (
+                // Silueta de la tarjeta, no un bloque liso: `bg-slate-100` sobre
+                // el fondo #f7f9fb de la página no se distingue de "no hay nada",
+                // que es justo lo que este estado viene a evitar.
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="h-64 animate-pulse rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm"
+                    >
+                      <div className="h-6 w-16 rounded-full bg-slate-200" />
+                      <div className="mt-5 h-4 w-3/4 rounded bg-slate-200" />
+                      <div className="mt-2.5 h-3 w-1/2 rounded bg-slate-100" />
+                      <div className="mt-6 flex gap-2">
+                        <div className="h-5 w-20 rounded-full bg-slate-100" />
+                        <div className="h-5 w-16 rounded-full bg-slate-100" />
+                      </div>
+                      <div className="mt-6 h-9 rounded-xl bg-slate-100" />
+                    </div>
+                  ))}
+                </div>
+              ) : estadoCandidatos === "error" ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-10 text-center">
+                  <p style={inter} className="text-sm font-medium text-amber-900">
+                    No pudimos cargar los candidatos en este momento.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    style={inter}
+                    className="mt-4 inline-flex h-10 items-center rounded-xl bg-[#00213f] px-5 text-sm font-bold text-white transition-colors hover:bg-[#10375c]"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              ) : candidatosOrdenados.length === 0 ? (
+                <div className="rounded-2xl border border-slate-200/60 bg-white p-14 text-center shadow-sm">
+                  <Sparkles className="mx-auto mb-4 h-10 w-10 text-slate-200" />
+                  <p
+                    style={inter}
+                    className="mx-auto max-w-sm font-medium leading-relaxed text-slate-500"
+                  >
+                    Todavía no hay candidatos con compatibilidad suficiente.
+                    Cuantas más etiquetas tenga tu oportunidad, más
+                    coincidencias encontramos.
+                  </p>
+                  <Link href={`/oportunidades/${op.id}/editar`} className="mt-6 inline-block">
+                    <Button
+                      style={inter}
+                      className="h-11 rounded-xl bg-[#00213f] px-6 text-xs font-bold uppercase tracking-[0.14em] text-white hover:bg-[#10375c]"
+                    >
+                      Agregar etiquetas
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {candidatosVisibles.map((match) => (
+                    <TarjetaCandidato
+                      key={match.id}
+                      match={match}
+                      opTags={opTags}
+                      resenas={resenas}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
         {/* ── CTA final ── */}
         <section className="mt-14 overflow-hidden rounded-2xl bg-[#00213f] shadow-[0_28px_60px_-32px_rgba(0,33,63,0.75)]">
           <div className="relative flex flex-col items-start gap-6 p-8 sm:flex-row sm:items-center sm:justify-between sm:p-10">
@@ -878,26 +934,28 @@ function MetaHero({
           nombres largos de rubro no entran en una sola y quedaban cortados. */}
       <dd
         style={inter}
-        className="mt-1.5 flex items-center gap-2 text-sm font-semibold leading-snug text-white"
+        className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm font-semibold leading-snug text-white"
         title={valor}
       >
         {inicial !== undefined &&
           (logoUrl ? (
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
-              <Image
-                src={logoUrl}
-                alt=""
-                width={28}
-                height={28}
-                className="h-full w-full object-contain p-0.5"
-              />
-            </span>
+            // Suelto, sin círculo ni fondo: encerrarlo en 28px lo volvía
+            // ilegible. `object-contain` respeta el aspecto de cualquier logo.
+            <Image
+              src={logoUrl}
+              alt=""
+              width={96}
+              height={48}
+              className="h-10 w-auto max-w-full shrink-0 object-contain object-left"
+            />
           ) : (
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-bold text-white/70">
               {inicial}
             </span>
           ))}
-        <span className="line-clamp-2">{valor}</span>
+        {/* `flex-1` + un mínimo: en la columna angosta del hero el nombre baja
+            a su propia línea en vez de quedar cortado en "Vax". */}
+        <span className="line-clamp-2 min-w-[5.5rem] flex-1">{valor}</span>
       </dd>
     </div>
   );
@@ -1020,9 +1078,11 @@ function TarjetaCandidato({
   const opTagsLower = opTags.map((t) => t.toLowerCase());
   const compartidas = tagsCandidato.filter((n) => opTagsLower.includes(n.toLowerCase()));
 
-  const chips: string[] = [];
-  if (compartidas[0]) chips.push(compartidas[0]);
-  else if (match.detalle_puntaje.categoria > 0) chips.push("Mismo rubro");
+  // TODAS las etiquetas en común, no sólo la primera: son la explicación del
+  // puntaje, y mostrar una sola hacía que dos candidatas de 70 y 30 puntos se
+  // vieran igual de justificadas.
+  const chips: string[] = [...compartidas];
+  if (match.detalle_puntaje.categoria > 0) chips.push("Mismo rubro");
   if (match.detalle_puntaje.ubicacion > 0) chips.push("Misma zona");
 
   // Contacto directo: lo que la ficha tenga cargado, sin inventar nada.
@@ -1042,22 +1102,24 @@ function TarjetaCandidato({
           la vista a propósito — es lo que empuja a completar el perfil para
           subir en la lista. */}
       <div className="flex items-start justify-between gap-3">
+        {/* El logo flota en un círculo blanco con sombra: sobre el gris del
+            fondo, un logo chico y plano se perdía entre el resto de la ficha. */}
         {logoUrl ? (
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-100 bg-white shadow-sm">
+          <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_6px_18px_-6px_rgba(15,23,42,0.28)] ring-1 ring-slate-100">
             <Image
               src={logoUrl}
               alt=""
-              width={56}
-              height={56}
-              className="h-full w-full object-contain p-1.5"
+              width={80}
+              height={80}
+              className="h-full w-full object-contain p-2.5"
             />
           </span>
         ) : (
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#f2f4f6] text-slate-400">
+          <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-white text-slate-300 shadow-[0_6px_18px_-6px_rgba(15,23,42,0.28)] ring-1 ring-slate-100">
             {esEmpresa ? (
-              <Building2 className="h-6 w-6" aria-hidden="true" />
+              <Building2 className="h-8 w-8" aria-hidden="true" />
             ) : (
-              <User className="h-6 w-6" aria-hidden="true" />
+              <User className="h-8 w-8" aria-hidden="true" />
             )}
           </span>
         )}
@@ -1123,18 +1185,23 @@ function TarjetaCandidato({
         </div>
       )}
 
-      {/* `flex-1` empuja las acciones al pie: si no, con motivos de largo
-          distinto los botones de cada tarjeta quedaban a distinta altura. */}
+      {/* Sin recorte: el motivo termina nombrando las etiquetas que coinciden,
+          que es justo lo que un `line-clamp-2` se comía ("…Electricidad y…").
+          `flex-1` empuja las acciones al pie para que queden alineadas entre
+          tarjetas de distinto largo. */}
       <p
         style={inter}
-        className="mt-3 line-clamp-2 flex-1 text-xs leading-relaxed text-slate-500"
+        className="mt-3 flex-1 text-xs leading-relaxed text-slate-500"
       >
         {match.motivo_match}
       </p>
 
-      <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
-        {slug ? (
-          <Link href={`/empresas/${slug}`} className="min-w-0 flex-1">
+      {/* Dos filas: el botón manda solo y los contactos van debajo. En una
+          sola fila, con tres contactos el "Ver perfil" se comprimía hasta que
+          el texto se salía del botón. */}
+      <div className="mt-4 space-y-2.5 border-t border-slate-100 pt-4">
+        {slug && (
+          <Link href={`/empresas/${slug}`} className="block">
             <Button
               variant="outline"
               style={inter}
@@ -1143,30 +1210,35 @@ function TarjetaCandidato({
               Ver perfil
             </Button>
           </Link>
-        ) : (
-          <span className="flex-1" aria-hidden="true" />
         )}
 
         {/* Contacto directo, sin salir de la página. Cada botón aparece sólo si
             la socia cargó ese dato. */}
-        {email && (
-          <AccionContacto href={`mailto:${email}`} etiqueta={`Escribir a ${nombre}`}>
-            <Mail className="h-4 w-4" aria-hidden="true" />
-          </AccionContacto>
-        )}
-        {telefono && (
-          <AccionContacto href={`tel:${telefono}`} etiqueta={`Llamar a ${nombre}`}>
-            <Phone className="h-4 w-4" aria-hidden="true" />
-          </AccionContacto>
-        )}
-        {whatsappUrl && (
-          <AccionContacto
-            href={whatsappUrl}
-            etiqueta={`WhatsApp de ${nombre}`}
-            externo
-          >
-            <MessageCircle className="h-4 w-4" aria-hidden="true" />
-          </AccionContacto>
+        {(email || telefono || whatsappUrl) && (
+          <div className="flex items-center gap-2">
+            {email && (
+              <AccionContacto href={`mailto:${email}`} etiqueta={`Escribir a ${nombre}`}>
+                <Mail className="h-4 w-4" aria-hidden="true" />
+                Mail
+              </AccionContacto>
+            )}
+            {telefono && (
+              <AccionContacto href={`tel:${telefono}`} etiqueta={`Llamar a ${nombre}`}>
+                <Phone className="h-4 w-4" aria-hidden="true" />
+                Llamar
+              </AccionContacto>
+            )}
+            {whatsappUrl && (
+              <AccionContacto
+                href={whatsappUrl}
+                etiqueta={`WhatsApp de ${nombre}`}
+                externo
+              >
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                WhatsApp
+              </AccionContacto>
+            )}
+          </div>
         )}
       </div>
     </Card>
@@ -1190,7 +1262,8 @@ function AccionContacto({
       title={etiqueta}
       aria-label={etiqueta}
       {...(externo ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-[#00213f] hover:bg-[#00213f] hover:text-white"
+      style={inter}
+      className="inline-flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#f2f4f6] px-2 text-[11px] font-bold text-slate-600 transition-colors hover:bg-[#00213f] hover:text-white"
     >
       {children}
     </a>
