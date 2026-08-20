@@ -108,7 +108,12 @@ export default function DialogoPostularse({
           onClick={() => !isPending && setOpen(false)}
         >
           <div
-            className="bg-white rounded-sm shadow-2xl w-full max-w-xl max-h-[85svh] overflow-y-auto animate-in zoom-in-95 duration-200"
+            // text-slate-900 explícito y no heredado: este diálogo se monta como
+            // hijo del <header> del hero, que lleva `text-white`. Sin esto, el
+            // textarea del mensaje y los inputs de cantidad y unidad —ninguno
+            // declara color— escriben en BLANCO SOBRE BLANCO: quien redacta una
+            // postulación no ve una sola letra de lo que está tipeando.
+            className="bg-white text-slate-900 rounded-sm shadow-2xl w-full max-w-xl max-h-[85svh] overflow-y-auto animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

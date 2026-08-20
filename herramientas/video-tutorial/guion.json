@@ -1,6 +1,6 @@
 {
  "_leeme": "Fuente de verdad del video. estado:aprobado significa NO TOCAR. Actualizado el 2026-08-20: catálogo y remate vuelven a pendiente, entran los dos planos del match.",
- "render": "~/Desktop/uiab-renders/tutorial-uiab-2026-08-18-v3.mp4",
+ "render": "~/Desktop/uiab-renders/tutorial-uiab-2026-08-20-v3.mp4",
  "fps": 25,
  "ancho": 1920,
  "alto": 1080,
@@ -96,25 +96,6 @@
    "estado": "aprobado"
   },
   {
-   "id": "tarjetas",
-   "capitulo": 1,
-   "inicio": 15.9,
-   "duracion": 3.79,
-   "fuente": "captura",
-   "accion": null,
-   "encuadre": "medio",
-   "zoom": 1.5,
-   "recorte": [
-    191,
-    95,
-    1280,
-    720
-   ],
-   "texto": "Un click y estás en el perfil.",
-   "rotulo": "Cada tarjeta",
-   "estado": "aprobado"
-  },
-  {
    "id": "ficha",
    "capitulo": 1,
    "inicio": 19.51,
@@ -150,8 +131,8 @@
    ],
    "texto": "Servicios con foto y ficha, no una lista.",
    "rotulo": "El catálogo",
-   "estado": "pendiente",
-   "nota": "Se regraba con data-tour=ficha-catalogo. El selector viejo (main section + texto) encuadraba un contenedor padre, no el catálogo."
+   "estado": "aprobado",
+   "nota": "Verificado en frames el 20-ago: muestra los 6 servicios con foto. El selector es data-tour=ficha-catalogo y el scroll va con scrollA (offset 130), no con scrollIntoViewIfNeeded, que no scrolleaba porque el catálogo ya asomaba en y=757."
   },
   {
    "id": "contacto",
@@ -271,12 +252,12 @@
    "fuente": "captura",
    "accion": "scroll a [data-tour=op-detalle-match] en el detalle del pedido de la UIAB",
    "encuadre": "medio",
-   "zoom": 1.3,
+   "zoom": 1.45,
    "rotulo": "Por qué te llega",
    "texto": "Coincide con tu rubro y tus etiquetas.",
    "sello": "Match",
    "estado": "pendiente",
-   "nota": "Sólo se renderiza si la cuenta filmada es candidata y no dueña. Los datos los siembra demo-datos.mjs corriendo el cruce real (calcular-matches.ts): Vaxler, 90 pts."
+   "nota": "Verificado en frames el 20-ago. Datos reales: Vaxler, 90 pts (30 categoría + 60 etiquetas + 0 ubicación), motivo redactado por calcular-matches.ts. offset 300 para que la barra de navegación quede fuera del recorte."
   },
   {
    "id": "match-puntajes",
@@ -285,11 +266,11 @@
    "fuente": "captura",
    "accion": "recorte a [data-tour=op-detalle-puntajes]",
    "encuadre": "detalle",
-   "zoom": 1.7,
+   "zoom": 1.9,
    "rotulo": "Se puntúa",
    "texto": "Categoría, etiquetas y ubicación.",
    "estado": "pendiente",
-   "nota": "En cámara: 30 / 60 / 0. El 0 de ubicación es real —Vaxler está en CABA— y deja ver que el puntaje se calcula."
+   "nota": "Verificado en frames el 20-ago. 1.9 pasa el tope de 1.75 a propósito (una escala explícita lo saltea): con 1.7 este plano y el anterior mostraban casi lo mismo."
   },
   {
    "id": "postular",
@@ -308,7 +289,8 @@
    ],
    "texto": "Le llega directo a quien publicó.",
    "rotulo": "Postulate",
-   "estado": "pendiente"
+   "estado": "pendiente",
+   "nota": "El textarea salía vacío en cámara: el modal es hijo del <header> del hero, que lleva text-white, y los campos no declaran color. Se arregló en DialogoPostularse.tsx."
   },
   {
    "id": "publicar",

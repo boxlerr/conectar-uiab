@@ -130,7 +130,14 @@ const opt = (n, def) => {
 const bandera = (n) => args.includes(`--${n}`);
 
 const OBJETIVO = args.includes("--objetivo") ? Number(opt("objetivo", "0")) : null;
-const MUSICA = opt("musica", existsSync("assets/musica.mp3") ? "assets/musica.mp3" : null);
+// La pista elegida es `tmp-musica/c-embrace-soft.mp3`, y está versionada en el
+// repo. `assets/musica.mp3` es una copia local que el .gitignore excluye por
+// peso, así que en un checkout limpio no existe: sin este respaldo el montaje
+// salía mudo y había que acordarse de copiarla a mano. Se identificó por
+// correlación de envolvente contra los renders del 18-ago (0.995).
+const MUSICA_POR_DEFECTO = ["assets/musica.mp3", "tmp-musica/c-embrace-soft.mp3"]
+  .find((r) => existsSync(r)) ?? null;
+const MUSICA = opt("musica", MUSICA_POR_DEFECTO);
 const SIN_BOOKENDS = bandera("sin-bookends");
 const LUFS = Number(opt("lufs", "-16"));
 const SOLO = opt("solo", null);

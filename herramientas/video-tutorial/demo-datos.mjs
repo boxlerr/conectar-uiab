@@ -218,10 +218,42 @@ async function sembrar() {
   console.log(`\n  ids anotados en ${REGISTRO} — corré "node demo-datos.mjs limpiar" al terminar.`);
 }
 
+/**
+ * Los títulos que siembra este archivo. `limpiar` barre por acá ADEMÁS de por
+ * demo-ids.json, y no es redundancia: el 19-ago quedó una oportunidad de demo
+ * viva en producción durante un día entero —Vaxler pidiendo públicamente un
+ * cableado que no necesita— porque la sesión se cortó entre el alta y el
+ * borrado, y con ella se perdió el registro de ids. El archivo es el camino
+ * feliz; esto es la red.
+ */
+const TITULOS_DEMO = [
+  "Cableado estructurado y rack para sala de servidores",
+  "Tablero eléctrico y UPS para sala de servidores",
+  "Sistema web para gestionar capacitaciones y certificados",
+  // Títulos de versiones anteriores del sembrado, para que un barrido de hoy
+  // levante también lo que dejó una sesión vieja.
+  "Servicio de logística interna para el parque industrial",
+];
+
+/** Ids de todo lo que este archivo pudo haber creado alguna vez. */
+async function idsDeDemo() {
+  const vistos = new Set();
+  if (existsSync(REGISTRO)) {
+    for (const id of JSON.parse(readFileSync(REGISTRO, "utf8"))) vistos.add(id);
+  }
+  for (const t of TITULOS_DEMO) {
+    const filas = await api(`oportunidades?select=id&titulo=eq.${encodeURIComponent(t)}`);
+    for (const f of filas ?? []) vistos.add(f.id);
+  }
+  return [...vistos];
+}
+
 async function limpiar() {
-  if (!existsSync(REGISTRO)) { console.log("No hay demo-ids.json: nada que borrar."); return; }
-  const ids = JSON.parse(readFileSync(REGISTRO, "utf8"));
-  if (!ids.length) { console.log("Registro vacío."); return; }
+  const ids = await idsDeDemo();
+  if (!ids.length) { console.log("No quedó ninguna oportunidad de demo."); return; }
+  const sueltas = existsSync(REGISTRO)
+    ? ids.length - JSON.parse(readFileSync(REGISTRO, "utf8")).length : ids.length;
+  if (sueltas > 0) console.log(`  · ${sueltas} de otra sesión, encontradas por título`);
   const lista = `(${ids.join(",")})`;
   // Primero lo que cuelga de la oportunidad por FK, después la oportunidad.
   // La tabla de postulaciones se llama `solicitudes_presupuesto`, no

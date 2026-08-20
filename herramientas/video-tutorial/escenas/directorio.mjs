@@ -164,17 +164,24 @@ export async function escenaDirectorio({ page, BASE }) {
     .catch(() => { console.log("    · ⚠ no hay catálogo en la ficha: salteo el plano"); return false; });
 
   if (hayCatalogo) {
-    // scrollIntoViewIfNeeded de Playwright, no el del DOM: la capa visual
-    // parchea Element.prototype.scrollIntoView para poder congelar el scroll
-    // durante un plano, así que llamarlo desde la página puede ser un no-op.
-    await page.locator(CATALOGO).first().scrollIntoViewIfNeeded({ timeout: 8000 }).catch(() => {});
-    await dormir(700);
+    // scrollA y NO scrollIntoViewIfNeeded, que es lo que había y por qué el
+    // plano seguía mostrando la descripción con el catálogo asomando abajo:
+    // "IfNeeded" no hace nada si el elemento ya está parcialmente en pantalla,
+    // y el catálogo empieza en y≈757 —dentro del viewport de 1080, pero contra
+    // el borde de abajo—. Playwright lo daba por visible y no scrolleaba, así
+    // que el encuadre caía sobre "Sobre la empresa" y el cartel del catálogo
+    // terminaba tapando las tarjetas que tenía que mostrar.
+    //
+    // scrollA lo lleva a una distancia FIJA del borde superior, esté donde
+    // esté, que es lo que hace el resto de los planos de esta escena.
+    await scrollA(page, CATALOGO, { offset: 130, ms: 640 });
+    await dormir(560);
 
     // Comprobación ruidosa: si el catálogo no quedó arriba, el plano va a
     // mostrar otra cosa y el cartel va a mentir. Mejor enterarse en el log.
     const yCat = await caja(page, CATALOGO, 0);
     console.log(`    · catálogo en y=${Math.round(yCat?.y ?? -9999)}`
-      + (yCat && yCat.y >= 0 && yCat.y < 420 ? " ✓" : " ⚠ no quedó en cuadro"));
+      + (yCat && yCat.y >= 0 && yCat.y < 260 ? " ✓" : " ⚠ no quedó arriba: el plano va a mostrar otra cosa"));
 
     await plano(page, {
       id: "catalogo",

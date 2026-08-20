@@ -99,26 +99,35 @@ export async function escenaOportunidades({ page, BASE }) {
     const MATCH = '[data-tour="op-detalle-match"]';
     const PUNTAJES = '[data-tour="op-detalle-puntajes"]';
     await page.waitForSelector(MATCH, { timeout: 8000, state: "visible" });
-    await scrollA(page, MATCH, { offset: 170, ms: 560 });
+    // offset generoso a propósito: con 170 la sección quedaba tan arriba que
+    // el recorte arrancaba en y=0 y metía la barra de navegación adentro del
+    // plano. Bajándola, el encuadre entra limpio.
+    await scrollA(page, MATCH, { offset: 300, ms: 600 });
     await dormir(320);
 
     await plano(page, {
       id: "match-motivo",
       encuadre: MATCH,
-      escala: 1.3,
+      escala: 1.45,
       rotulo: "Por qué te llega",
       texto: "Coincide con tu rubro y tus etiquetas.",
       sello: "Match",
     }, () => dormir(1250));
 
-    // Y ahora el detalle: la grilla de tres celdas, recortada al elemento.
-    // Es el mismo bloque que el plano anterior, pero el recorte es muy
-    // distinto —una tira de 3 celdas contra la sección entera— así que no
-    // repite encuadre.
+    // Y ahora el detalle: la grilla de tres celdas.
+    //
+    // La distancia entre las dos escalas es a propósito y es lo que hace que
+    // no se lea como "zoom de vuelta en el mismo lugar": 1.45 encuadra la
+    // sección con su título, 1.9 recorta a los tres números. Con 1.3 y 1.7,
+    // que es lo que había, los dos planos mostraban casi lo mismo.
+    //
+    // 1.9 pasa el tope del montaje (1.75), y se puede: una escala explícita lo
+    // saltea. Más que esto sí se ablanda —la captura es 1920x1080 real— pero
+    // acá lo que se agranda son tres números en negrita, que aguantan.
     await plano(page, {
       id: "match-puntajes",
       encuadre: PUNTAJES,
-      escala: 1.7,
+      escala: 1.9,
       rotulo: "Se puntúa",
       texto: "Categoría, etiquetas y ubicación.",
     }, () => dormir(1150));
@@ -149,14 +158,28 @@ export async function escenaOportunidades({ page, BASE }) {
       texto: "Le llega directo a quien publicó.",
       velocidad: 1.3,
     }, async () => {
+      // Enfocar con el locator y tipear con clickPrimero:false, igual que el
+      // buscador del capítulo 1. Con el click por coordenadas el foco quedaba
+      // afuera del textarea: el texto no entraba en ningún lado y el plano
+      // mostraba la caja vacía —se ve en los frames del render anterior—.
+      // Peor: ese click caía sobre el fondo del modal, que lo cierra, y por eso
+      // el paso terminaba con "no hay ningún botón que diga cancelar".
+      await page.locator(`${MODAL} textarea`).click({ timeout: 5000 });
+      await dormir(140);
       await tipear(page, `${MODAL} textarea`,
-        "Lo trabajamos hace 20 años. Entrega en 10 días.",
-        { porChar: 24 });
+        "Lo hacemos hace 20 años. Propuesta en 48 horas.",
+        { porChar: 24, clickPrimero: false });
       await dormir(500);
     });
 
-    // Salimos por Cancelar: nada se envía.
-    await clickPorTexto(page, `${MODAL} button`, /cancelar/, { ms: 400 });
+    // Salimos por Cancelar: nada se envía. Con red de contención, porque este
+    // paso está DESPUÉS del plano: si falla, el plano ya se filmó bien y sería
+    // absurdo perder el capítulo entero por no poder cerrar un modal.
+    await clickPorTexto(page, `${MODAL} button`, /cancelar/, { ms: 400 })
+      .catch(async () => {
+        console.log("    · no encontré Cancelar: cierro con Escape");
+        await page.keyboard.press("Escape").catch(() => {});
+      });
     await dormir(400);
   });
 
