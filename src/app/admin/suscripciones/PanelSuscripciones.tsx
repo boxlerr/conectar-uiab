@@ -4,9 +4,10 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Banknote, Building, Wrench, Search, Pencil, Check, X, Gift,
-  AlertTriangle, CalendarClock, Wallet, TrendingUp,
+  AlertTriangle, CalendarClock, Wallet, TrendingUp, RefreshCw,
 } from "lucide-react";
 import { ModalPagoManual } from "./ModalPagoManual";
+import { ModalConciliarSipago } from "./ModalConciliarSipago";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -111,6 +112,7 @@ export function PanelSuscripciones({
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [modalPago, setModalPago] = useState(false);
+  const [modalConciliar, setModalConciliar] = useState(false);
   const [editandoPrecio, setEditandoPrecio] = useState(false);
   const [mensualDraft, setMensualDraft] = useState(String(precios.mensual));
   const [anualDraft, setAnualDraft] = useState(String(precios.anual));
@@ -246,11 +248,19 @@ export function PanelSuscripciones({
             año. Las socias de la UIAB tienen acceso sin cargo.
           </p>
         </div>
-        <Button className="gap-2" onClick={() => setModalPago(true)}>
-          <Banknote className="w-4 h-4" />
-          Registrar pago
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setModalConciliar(true)}>
+            <RefreshCw className="w-4 h-4" />
+            Conciliar Sipago
+          </Button>
+          <Button className="gap-2" onClick={() => setModalPago(true)}>
+            <Banknote className="w-4 h-4" />
+            Registrar pago
+          </Button>
+        </div>
       </div>
+
+      {modalConciliar && <ModalConciliarSipago onClose={() => setModalConciliar(false)} />}
 
       {modalPago && (
         <ModalPagoManual
