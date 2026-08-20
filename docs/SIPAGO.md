@@ -74,7 +74,12 @@ https, y le manda el aviso del pago a lo que le hayamos dicho. En local
 (`http://localhost:3000`) el cliente las omite solas para que igual se pueda
 crear la orden y probar el checkout.
 
-> **El dominio productivo es `https://uiabconecta.com`.** Hasta el 2026-08-20 esta
+> **El dominio productivo es `https://www.uiabconecta.com`, CON www.** El apex
+> (`uiabconecta.com`) contesta 307 y redirige ahí, y un webhook que responde 307
+> depende de que Sipago siga redirects en un POST — cosa que no está garantizada.
+> Si no lo sigue, el socio paga y la suscripción no se activa nunca.
+>
+> Hasta el 2026-08-20 esta
 > variable decía `https://conectar-uiab.vercel.app`, que devuelve 404
 > (`DEPLOYMENT_NOT_FOUND`). Con ese valor, un socio que pagara terminaba en una
 > página inexistente y el webhook de Sipago moría contra un 404: el pago existía
@@ -226,14 +231,18 @@ rechazo no tumbe una suscripción que ya estaba paga.
 
 En <https://portal.sipago.coop> → **Suscripciones** está el plan
 **"UIAB Conecta - Mensual"**: $50.000, mensual, monto fijo, duración ilimitada,
-con redirección a `uiabconecta.com/suscripcion/resultado?ref=ok`.
+con redirección a `www.uiabconecta.com/suscripcion/resultado?ref=ok`.
 
 Su link es el que va en `SIPAGO_PLAN_MENSUAL_URL`.
 
-**No hay plan anual, y es a propósito.** El plan anual de Sipago cobra en un
-**mes y día fijos para todos** (no en el aniversario de cada socio), lo que
-obliga a decidir qué pasa con el que se suscribe en octubre. Mientras eso no se
-resuelva, el anual se paga con Checkout — que además se acredita solo.
+También está **"UIAB Conecta - Anual"**: $500.000, cobro **todos los 10 de enero**
+con **prorrateo activado**. El prorrateo ajusta el primer cobro a los días que
+faltan hasta esa fecha, así el que se suscribe en octubre no paga un año entero
+por tres meses.
+
+> Consecuencia para la conciliación: ese primer cobro **no va a coincidir** con
+> los $500.000 y se marca como *monto no coincide* para que un humano lo mire.
+> Es lo correcto — mejor que se frene y alguien decida.
 
 ### Por qué hay que conciliar
 
@@ -287,12 +296,12 @@ puede hacer.
 - [ ] Cargar `SIPAGO_CLIENT_ID` y `SIPAGO_CLIENT_SECRET` productivas en Vercel.
 - [ ] `SIPAGO_ENTORNO=prod`.
 - [ ] `SIPAGO_WEBHOOK_TOKEN` generado (`openssl rand -hex 24`) y cargado en Vercel.
-- [ ] `NEXT_PUBLIC_APP_URL=https://uiabconecta.com` en Vercel (hoy dice conectar-uiab.vercel.app, que da 404).
-- [ ] `CRON_SECRET` definida en Vercel — sin ella el cron no corre (falla cerrado a propósito).
-- [ ] Borrar de Vercel las 7 variables `MP_*` / `NEXT_PUBLIC_MP_PUBLIC_KEY`: ya no las lee nadie.
+- [x] `NEXT_PUBLIC_APP_URL=https://www.uiabconecta.com` en Vercel (con www: el apex redirige).
+- [x] `CRON_SECRET` definida en Vercel — sin ella el cron no corre (falla cerrado a propósito).
+- [x] Borrar de Vercel las variables `MP_*` / `NEXT_PUBLIC_MP_PUBLIC_KEY`: ya no las lee nadie.
 - [ ] Correr `20260820_sipago_integracion.sql` en la base de producción.
 - [ ] Verificar que `ADMIN_NOTIFICATION_EMAIL` sea el mail real que se mira.
-- [ ] Cargar `SIPAGO_PLAN_MENSUAL_URL` con el link del plan del portal.
+- [x] Cargar `SIPAGO_PLAN_MENSUAL_URL` y `SIPAGO_PLAN_ANUAL_URL` con los links de los planes.
 - [ ] Hacer un pago real de monto bajo y confirmar que la suscripción queda activa.
       (Ojo: montos de $1 los rechaza el emisor con código 13, "importe inválido".)
 - [ ] Confirmar que llegaron los dos mails (socio y admin).
