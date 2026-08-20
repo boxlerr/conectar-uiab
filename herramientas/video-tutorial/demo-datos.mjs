@@ -123,7 +123,8 @@ async function sembrar() {
         "<p>Se solicita cotización con materiales y mano de obra, y plazo de ejecución en firme.</p>",
       cantidad: 24, unidad: "bocas", localidad: "Burzaco, Provincia de Buenos Aires",
       fecha_necesidad: enDias(21), tipo_requerimiento: ["material"],
-      etiquetas: ["Cableado industrial", "Redes industriales"],
+      etiquetas: ["Cableado industrial", "Redes industriales",
+                  "Electricidad y tableros", "Electricidad industrial"],
     },
     {
       empresa_solicitante_id: vaxler.id, creado_por: autorVaxler,
@@ -165,8 +166,10 @@ async function sembrar() {
       fecha_necesidad: enDias(30), tipo_requerimiento: ["servicio"],
       etiquetas: ["Desarrollo de software", "Aplicaciones web y móviles", "Sistemas de gestión (ERP)"],
     },
-  ].map((f) => ({
+  ].map((f, i, todas) => ({
     ...f, estado: "abierta", visibilidad: "privada_parque", creado_por: f.creado_por ?? miembro.perfil_id,
+    // El primero del array es el más nuevo, así encabeza el tablero.
+    creado_en: new Date(Date.now() - i * 90_000).toISOString(),
   }));
 
   // `etiquetas` no es una columna de `oportunidades`: viaja acá al lado para

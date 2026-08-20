@@ -1,6 +1,6 @@
 {
  "_leeme": "Fuente de verdad del video. estado:aprobado significa NO TOCAR. Actualizado el 2026-08-20: catálogo y remate vuelven a pendiente, entran los dos planos del match.",
- "render": "~/Desktop/uiab-renders/tutorial-uiab-2026-08-20-v3.mp4",
+ "render": "~/Desktop/uiab-renders/tutorial-uiab-2026-08-20-v6.mp4",
  "fps": 25,
  "ancho": 1920,
  "alto": 1080,
@@ -205,7 +205,21 @@
    ],
    "texto": "Estado, empresa, rubro y fecha.",
    "rotulo": "Cada pedido",
-   "estado": "pendiente"
+   "estado": "pendiente",
+   "nota": "Entra a la PRIMERA tarjeta, sin recorrer la lista. demo-datos.mjs escalona creado_en para que la primera sea siempre la misma y sea de Vaxler: entrando a un pedido propio se puede filmar la sección de candidatos."
+  },
+  {
+   "id": "oportunidad",
+   "capitulo": 2,
+   "duracion": 3.8,
+   "fuente": "captura",
+   "encuadre": "general",
+   "zoom": 1,
+   "accion": "scrollSuave(0) al llegar al detalle",
+   "rotulo": "El pedido",
+   "texto": "Quién pide, qué necesita y para cuándo.",
+   "estado": "pendiente",
+   "nota": "Primer vistazo del pedido, entero y sin recortar: antes se llegaba con la página a media altura y el encabezado entraba partido."
   },
   {
    "id": "requerimiento",
@@ -246,51 +260,31 @@
    "estado": "pendiente"
   },
   {
-   "id": "match-motivo",
+   "id": "candidatos",
    "capitulo": 2,
-   "duracion": 3.4,
+   "duracion": 4.2,
    "fuente": "captura",
-   "accion": "scroll a [data-tour=op-detalle-match] en el detalle del pedido de la UIAB",
    "encuadre": "medio",
-   "zoom": 1.45,
-   "rotulo": "Por qué te llega",
-   "texto": "Coincide con tu rubro y tus etiquetas.",
+   "zoom": 1.15,
+   "accion": "scroll a [data-tour=op-detalle-candidatos]",
+   "rotulo": "Quién puede hacerlo",
+   "texto": "La red cruza tu pedido con toda la base.",
    "sello": "Match",
    "estado": "pendiente",
-   "nota": "Verificado en frames el 20-ago. Datos reales: Vaxler, 90 pts (30 categoría + 60 etiquetas + 0 ubicación), motivo redactado por calcular-matches.ts. offset 300 para que la barra de navegación quede fuera del recorte."
+   "nota": "Sólo lo ve quien publicó (isOwner). 4 socias reales: 70/50/30/30 puntos."
   },
   {
-   "id": "match-puntajes",
+   "id": "candidato",
    "capitulo": 2,
-   "duracion": 3.1,
+   "duracion": 3.7,
    "fuente": "captura",
-   "accion": "recorte a [data-tour=op-detalle-puntajes]",
    "encuadre": "detalle",
-   "zoom": 1.9,
-   "rotulo": "Se puntúa",
-   "texto": "Categoría, etiquetas y ubicación.",
+   "zoom": 1.55,
+   "accion": "recorte a [data-tour=op-candidato]",
+   "rotulo": "El puntaje",
+   "texto": "Etiquetas en común, rubro y cercanía.",
    "estado": "pendiente",
-   "nota": "Verificado en frames el 20-ago. 1.9 pasa el tope de 1.75 a propósito (una escala explícita lo saltea): con 1.7 este plano y el anterior mostraban casi lo mismo."
-  },
-  {
-   "id": "postular",
-   "capitulo": 2,
-   "inicio": 46.91,
-   "duracion": 3.35,
-   "fuente": "captura",
-   "accion": null,
-   "encuadre": "medio",
-   "zoom": 1.5,
-   "recorte": [
-    320,
-    214,
-    1280,
-    720
-   ],
-   "texto": "Le llega directo a quien publicó.",
-   "rotulo": "Postulate",
-   "estado": "pendiente",
-   "nota": "El textarea salía vacío en cámara: el modal es hijo del <header> del hero, que lleva text-white, y los campos no declaran color. Se arregló en DialogoPostularse.tsx."
+   "nota": "Se leen los chips y el motivo de cada tarjeta: es la explicación del puntaje."
   },
   {
    "id": "publicar",
@@ -331,24 +325,18 @@
    "estado": "pendiente"
   },
   {
-   "id": "match",
+   "id": "como-funciona",
    "capitulo": 2,
-   "inicio": 56.49,
-   "duracion": 3.48,
+   "duracion": 3.8,
    "fuente": "captura",
-   "accion": null,
    "encuadre": "medio",
-   "zoom": 1.35,
-   "recorte": [
-    56,
-    0,
-    1422,
-    800
-   ],
-   "texto": "Va derecho a quien puede hacerlo.",
-   "rotulo": "Y listo",
+   "zoom": 1.6,
+   "accion": "scroll a [data-tour=form-como-funciona] en /oportunidades/nueva",
+   "rotulo": "Cómo funciona",
+   "texto": "Cada etiqueta suma. No buscás a nadie.",
+   "sello": "Match",
    "estado": "pendiente",
-   "nota": "Sin sello. El de Match pasó a los planos donde el bloque real se muestra."
+   "nota": "Reemplaza al remate 'Y listo' sobre main form, que recortaba una franja del medio de un formulario altísimo y no mostraba nada. El panel explica el cruce con las palabras del propio producto."
   }
  ]
 }

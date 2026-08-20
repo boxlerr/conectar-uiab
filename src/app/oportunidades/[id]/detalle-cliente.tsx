@@ -741,7 +741,7 @@ export default function OportunidadDetalleCliente({
               usar sólo 8 de 12 columnas dejaba media pantalla en blanco y
               apretaba las tarjetas hasta cortarles el texto. */}
           {isOwner && (
-            <section className="mt-16">
+            <section data-tour="op-detalle-candidatos" className="mt-16">
               <div className="mb-5 flex items-baseline gap-4">
                 <span
                   style={inter}
@@ -1102,7 +1102,10 @@ function TarjetaCandidato({
   const puntaje = Math.round(match.puntaje);
 
   return (
-    <Card className="group flex flex-col rounded-2xl border-slate-200/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+    <Card
+      data-tour="op-candidato"
+      className="group flex flex-col rounded-2xl border-slate-200/60 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+    >
       {/* Encabezado: logo y, a la derecha, la compatibilidad. El número está a
           la vista a propósito — es lo que empuja a completar el perfil para
           subir en la lista. */}

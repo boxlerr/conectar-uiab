@@ -163,6 +163,10 @@ titulo(3, "Marco de la pieza");
 correr("marco.mjs");
 
 titulo(4, "Grabar el screencast");
+// Chequeo estático primero: es instantáneo y evita el fallo más caro de todos
+// —una escena que usa un ayudante sin importarlo—, que corta la pasada a mitad
+// de camino y deja medio capítulo afuera sin que salte ningún error visible.
+correr("verificar-escenas.mjs");
 // Antes de encender la cámara: dar por vistos los tours y las novedades de la
 // cuenta con la que se filma. Uno de esos modales ("Rediseñamos la cartelera
 // de oportunidades") se coló en una grabación y tapó media pantalla. El gate

@@ -803,7 +803,10 @@ export function FormularioOportunidad({
 
       {/* Columna lateral */}
       <aside className="lg:col-span-4 space-y-5 lg:sticky lg:top-28">
-        <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+        <div
+          data-tour="form-como-funciona"
+          className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm"
+        >
           {/* La ilustración trae su propio fondo celeste: va a sangre arriba. */}
           <Image
             src="/oportunidades/match-iman.webp"
