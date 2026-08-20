@@ -1,0 +1,343 @@
+{
+  "_leeme": "Fuente de verdad del video. estado:aprobado significa NO TOCAR. Generado desde el render del 2026-08-18 (v3).",
+  "render": "~/Desktop/uiab-renders/tutorial-uiab-2026-08-18-v3.mp4",
+  "fps": 25,
+  "ancho": 1920,
+  "alto": 1080,
+  "bookends": [
+    {
+      "id": "apertura",
+      "fuente": "higgsfield",
+      "duracion": 3.2,
+      "estado": "aprobado"
+    },
+    {
+      "id": "cierre",
+      "fuente": "higgsfield",
+      "duracion": 4,
+      "estado": "pendiente"
+    }
+  ],
+  "planos": [
+    {
+      "id": "directorio",
+      "capitulo": 1,
+      "inicio": 3.02,
+      "duracion": 4.02,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "general",
+      "zoom": 1,
+      "recorte": [
+        0,
+        0,
+        1920,
+        1080
+      ],
+      "texto": "Todas las socias y prestadores de la red.",
+      "rotulo": "El directorio",
+      "estado": "aprobado"
+    },
+    {
+      "id": "buscar",
+      "capitulo": 1,
+      "inicio": 6.86,
+      "duracion": 3.62,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "detalle",
+      "zoom": 1.75,
+      "recorte": [
+        405,
+        59,
+        1097,
+        617
+      ],
+      "texto": "Un rubro, una especialidad o un nombre.",
+      "rotulo": "Buscá",
+      "estado": "aprobado"
+    },
+    {
+      "id": "resultados",
+      "capitulo": 1,
+      "inicio": 10.3,
+      "duracion": 3.08,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "medio",
+      "zoom": 1.15,
+      "recorte": [
+        250,
+        0,
+        1670,
+        939
+      ],
+      "texto": "Quién hace eso en el parque.",
+      "rotulo": "Al instante",
+      "estado": "aprobado"
+    },
+    {
+      "id": "filtros",
+      "capitulo": 1,
+      "inicio": 13.2,
+      "duracion": 2.88,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "medio",
+      "zoom": 1.45,
+      "recorte": [
+        0,
+        25,
+        1324,
+        745
+      ],
+      "texto": "Filtrá por tipo y por rubro.",
+      "rotulo": "Afiná",
+      "estado": "aprobado"
+    },
+    {
+      "id": "tarjetas",
+      "capitulo": 1,
+      "inicio": 15.9,
+      "duracion": 3.79,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "medio",
+      "zoom": 1.5,
+      "recorte": [
+        191,
+        95,
+        1280,
+        720
+      ],
+      "texto": "Un click y estás en el perfil.",
+      "rotulo": "Cada tarjeta",
+      "estado": "aprobado"
+    },
+    {
+      "id": "ficha",
+      "capitulo": 1,
+      "inicio": 19.51,
+      "duracion": 3.45,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "medio",
+      "zoom": 1.15,
+      "recorte": [
+        0,
+        0,
+        1670,
+        939
+      ],
+      "texto": "Productos, rubros y especialidades.",
+      "rotulo": "La ficha",
+      "estado": "aprobado"
+    },
+    {
+      "id": "catalogo",
+      "capitulo": 1,
+      "inicio": 22.78,
+      "duracion": 3.95,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "medio",
+      "zoom": 1.25,
+      "recorte": [
+        0,
+        0,
+        1536,
+        864
+      ],
+      "texto": "Servicios con foto y ficha, no una lista.",
+      "rotulo": "El catálogo",
+      "estado": "aprobado"
+    },
+    {
+      "id": "contacto",
+      "capitulo": 1,
+      "inicio": 26.55,
+      "duracion": 4.12,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "detalle",
+      "zoom": 1.75,
+      "recorte": [
+        823,
+        112,
+        1097,
+        617
+      ],
+      "texto": "Mail, teléfono y web. Sin intermediarios.",
+      "rotulo": "Contacto directo",
+      "estado": "aprobado"
+    },
+    {
+      "id": "placa-cap2",
+      "capitulo": 2,
+      "inicio": 30.49,
+      "duracion": 1.5,
+      "fuente": "codigo",
+      "encuadre": "general",
+      "recorte": [
+        0,
+        0,
+        1920,
+        1080
+      ],
+      "texto": "Oportunidades",
+      "estado": "pendiente"
+    },
+    {
+      "id": "tablero",
+      "capitulo": 2,
+      "inicio": 31.81,
+      "duracion": 3.75,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "general",
+      "zoom": 1,
+      "recorte": [
+        0,
+        0,
+        1920,
+        1080
+      ],
+      "texto": "Lo que el parque necesita, publicado.",
+      "rotulo": "Oportunidades",
+      "estado": "pendiente"
+    },
+    {
+      "id": "publicacion",
+      "capitulo": 2,
+      "inicio": 35.38,
+      "duracion": 4.87,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "detalle",
+      "zoom": 1.6,
+      "recorte": [
+        0,
+        0,
+        1920,
+        1080
+      ],
+      "texto": "Estado, empresa, rubro y fecha.",
+      "rotulo": "Cada pedido",
+      "estado": "pendiente"
+    },
+    {
+      "id": "requerimiento",
+      "capitulo": 2,
+      "inicio": 40.07,
+      "duracion": 4.05,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "medio",
+      "zoom": 1.4,
+      "recorte": [
+        82,
+        309,
+        1371,
+        771
+      ],
+      "texto": "Especificaciones, alcance y condiciones.",
+      "rotulo": "El requerimiento",
+      "estado": "pendiente"
+    },
+    {
+      "id": "ficha-tecnica",
+      "capitulo": 2,
+      "inicio": 43.94,
+      "duracion": 3.15,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "medio",
+      "zoom": 1.44,
+      "recorte": [
+        582,
+        72,
+        1338,
+        753
+      ],
+      "texto": "Cantidad, plazo y ubicación.",
+      "rotulo": "Ficha técnica",
+      "estado": "pendiente"
+    },
+    {
+      "id": "postular",
+      "capitulo": 2,
+      "inicio": 46.91,
+      "duracion": 3.35,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "medio",
+      "zoom": 1.5,
+      "recorte": [
+        320,
+        214,
+        1280,
+        720
+      ],
+      "texto": "Le llega directo a quien publicó.",
+      "rotulo": "Postulate",
+      "estado": "pendiente"
+    },
+    {
+      "id": "publicar",
+      "capitulo": 2,
+      "inicio": 50.08,
+      "duracion": 3.32,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "detalle",
+      "zoom": 1.75,
+      "recorte": [
+        219,
+        412,
+        1097,
+        617
+      ],
+      "texto": "Publicá el tuyo en un minuto.",
+      "rotulo": "¿Necesitás algo?",
+      "estado": "aprobado"
+    },
+    {
+      "id": "rubro",
+      "capitulo": 2,
+      "inicio": 53.22,
+      "duracion": 3.45,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "medio",
+      "zoom": 1.45,
+      "recorte": [
+        0,
+        335,
+        1324,
+        745
+      ],
+      "texto": "193 rubros para afinar el match.",
+      "rotulo": "Elegí el rubro",
+      "estado": "pendiente"
+    },
+    {
+      "id": "match",
+      "capitulo": 2,
+      "inicio": 56.49,
+      "duracion": 3.48,
+      "fuente": "captura",
+      "accion": null,
+      "encuadre": "medio",
+      "zoom": 1.35,
+      "recorte": [
+        56,
+        0,
+        1422,
+        800
+      ],
+      "texto": "Se lo sugiere a quien puede hacerlo.",
+      "rotulo": "Y listo",
+      "estado": "pendiente"
+    }
+  ]
+}

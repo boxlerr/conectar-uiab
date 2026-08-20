@@ -37,7 +37,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SelectUIAB } from "@/components/ui/select-uiab";
 import { oportunidadesService, Oportunidad, Match } from "@/modulos/oportunidades/servicio-oportunidades";
-import { textoPlanoDeHtml } from "@/modulos/oportunidades/texto";
 import { solicitanteDe, type Solicitante } from "@/modulos/oportunidades/solicitante";
 import { RUBROS_SEO } from "@/lib/datos/rubros-seo";
 
@@ -45,6 +44,7 @@ import { PublicOportunidadesLanding } from "./landing-oportunidades-publica";
 import { AccesoRequerido } from "@/components/ui/acceso-requerido";
 import { resolverEstadoGate } from "@/components/ui/gate-suscripcion";
 import { BotonReiniciarTour } from "@/modulos/onboarding/componentes/boton-reiniciar-tour";
+import { aTextoPlano } from "@/lib/utilidades";
 
 /**
  * Vista de oportunidades. Sigue siendo client (el gate de suscripción y los
@@ -303,7 +303,7 @@ export function OportunidadesCliente({
           o.titulo.toLowerCase().includes(termino) ||
           o.empresa?.razon_social?.toLowerCase().includes(termino) ||
           o.categoria?.nombre?.toLowerCase().includes(termino) ||
-          textoPlanoDeHtml(o.descripcion).toLowerCase().includes(termino);
+          o.descripcion?.toLowerCase().includes(termino);
         if (!enTexto) return false;
       }
       if (rubro && o.categoria?.nombre !== rubro) return false;
@@ -679,7 +679,7 @@ export function OportunidadesCliente({
                               className="mt-3 line-clamp-2 text-sm leading-relaxed text-slate-600"
                               style={TIPOGRAFIA_TEXTO}
                             >
-                              {textoPlanoDeHtml(op.descripcion)}
+                              {aTextoPlano(op.descripcion)}
                             </p>
 
                             <div className="mt-4 flex justify-end border-t border-slate-100 pt-3">

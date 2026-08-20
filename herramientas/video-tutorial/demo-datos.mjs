@@ -12,14 +12,38 @@
  * no son visibles para el público anónimo.
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const env = Object.fromEntries(
-  readFileSync("/Users/julianboxler/Documents/GitHub/conectar-uiab/.env", "utf8")
-    .split("\n").filter((l) => l.includes("=") && !l.trim().startsWith("#"))
-    .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; })
-);
-const U = env.NEXT_PUBLIC_SUPABASE_URL;
-const K = env.SUPABASE_SERVICE_ROLE_KEY;
+const AQUI = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Busca el .env en la raíz del repo, relativo a este archivo. Antes era una
+ * ruta absoluta a un Documents/GitHub concreto, así que esto sólo corría en
+ * una máquina. Las variables de entorno, si están, le ganan al archivo.
+ */
+const leerEnv = () => {
+  for (const nombre of [".env.local", ".env"]) {
+    const ruta = resolve(AQUI, "../..", nombre);
+    if (!existsSync(ruta)) continue;
+    return Object.fromEntries(
+      readFileSync(ruta, "utf8")
+        .split("\n").filter((l) => l.includes("=") && !l.trim().startsWith("#"))
+        .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; })
+    );
+  }
+  return {};
+};
+
+const env = leerEnv();
+const U = process.env.NEXT_PUBLIC_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
+const K = process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+if (!U || !K) {
+  throw new Error(
+    "Faltan NEXT_PUBLIC_SUPABASE_URL y/o SUPABASE_SERVICE_ROLE_KEY.\n"
+    + "Ponelas en el .env de la raíz del repo o pasalas como variables de entorno."
+  );
+}
 const REGISTRO = "demo-ids.json";
 
 const api = async (ruta, opciones = {}) => {
@@ -38,45 +62,71 @@ const api = async (ruta, opciones = {}) => {
 
 const EMPRESA_UIAB = "7221a1d7-006d-4587-b9e4-753c0c9a229d"; // UNIÓN INDUSTRIAL DE ALMIRANTE BROWN
 
+/** Busca una empresa por su razón social. */
+async function empresaPorNombre(patron) {
+  const [e] = await api(
+    `empresas?select=id,razon_social&razon_social=ilike.*${encodeURIComponent(patron)}*&limit=1`);
+  return e ?? null;
+}
+
 async function sembrar() {
   const [miembro] = await api(`miembros_empresa?select=perfil_id&empresa_id=eq.${EMPRESA_UIAB}&limit=1`);
   if (!miembro) throw new Error("La empresa de la UIAB no tiene miembros — no puedo setear creado_por.");
+
+  // Quién publica cada pedido.
+  //
+  // Los dos primeros salen a nombre de VAXLER, que es la empresa que el video
+  // recorre: el tablero se ve como lo que es —una socia pidiendo lo que
+  // necesita— y no como un aviso institucional.
+  //
+  // El tercero queda a nombre de la UIAB a propósito, y no es un olvido: el
+  // botón "Postularse" no se le muestra a quien publicó, y el video se filma
+  // con la cuenta de Vaxler. Si los tres fueran de Vaxler, el capítulo 2 se
+  // quedaría sin el tramo de postularse.
+  const vaxler = await empresaPorNombre("vaxler");
+  if (!vaxler) throw new Error("No encontré a Vaxler en empresas — no puedo publicar a su nombre.");
+  const [miembroVaxler] = await api(
+    `miembros_empresa?select=perfil_id&empresa_id=eq.${vaxler.id}&limit=1`);
+  const autorVaxler = miembroVaxler?.perfil_id ?? miembro.perfil_id;
+  console.log(`  · 2 pedidos a nombre de ${vaxler.razon_social}, 1 de la UIAB (para poder mostrar "Postularse")`);
 
   const cat = async (like) => {
     const [c] = await api(`categorias?select=id,nombre&nombre=ilike.*${encodeURIComponent(like)}*&limit=1`);
     return c;
   };
-  const metal = await cat("Metal");
+  // Exactas: con patrones flojos ("Metal", "Mantenimiento") caía en cosas como
+  // "Cursos de Mantenimiento de Grúas", que en cámara no tiene nada que ver
+  // con el pedido.
+  const redes = await cat("Telecomunicaciones y Redes");
+  const electr = await cat("Electricidad");
   const transp = await cat("Transporte");
-  const mant = await cat("Mantenimiento");
 
   const hoy = new Date("2026-07-31");
   const enDias = (d) => new Date(hoy.getTime() + d * 864e5).toISOString().slice(0, 10);
 
   const filas = [
     {
-      empresa_solicitante_id: EMPRESA_UIAB,
-      categoria_id: metal?.id ?? null,
-      titulo: "Provisión de 500 kg de chapa laminada en frío",
+      empresa_solicitante_id: vaxler.id, creado_por: autorVaxler,
+      categoria_id: redes?.id ?? null,
+      titulo: "Cableado estructurado y rack para sala de servidores",
       descripcion:
-        "<p>Necesitamos <b>500 kg de chapa laminada en frío</b> calidad SAE 1010, espesor 1,2 mm, " +
-        "en formato de 1000 x 2000 mm.</p><p>Requisitos: certificado de colada por lote, superficie sin " +
-        "óxido ni marcas de manipuleo, y entrega en planta de Burzaco en un plazo máximo de 15 días.</p>" +
-        "<p>Se solicita cotización con precio por kilo, condiciones de pago y plazo de entrega en firme.</p>",
-      cantidad: 500, unidad: "kg", localidad: "Burzaco, Provincia de Buenos Aires",
+        "<p>Necesitamos <b>cableado estructurado categoría 6A</b> y un rack de 42U para la sala de " +
+        "servidores de nuestra oficina en Burzaco.</p><p>Alcance: tendido de 24 bocas, patchera, " +
+        "bandejas, certificación de cada enlace y etiquetado. Incluye rack, PDU y organizadores.</p>" +
+        "<p>Se solicita cotización con materiales y mano de obra, y plazo de ejecución en firme.</p>",
+      cantidad: 24, unidad: "bocas", localidad: "Burzaco, Provincia de Buenos Aires",
       fecha_necesidad: enDias(21), tipo_requerimiento: ["material"],
     },
     {
-      empresa_solicitante_id: EMPRESA_UIAB,
-      categoria_id: mant?.id ?? metal?.id ?? null,
-      titulo: "Reparación y puesta a punto de torno CNC Fanuc",
+      empresa_solicitante_id: vaxler.id, creado_por: autorVaxler,
+      categoria_id: electr?.id ?? redes?.id ?? null,
+      titulo: "Tablero eléctrico y UPS para sala de servidores",
       descripcion:
-        "<p>Buscamos taller o técnico especializado para la <b>reparación de un torno CNC con control " +
-        "Fanuc 0i-TD</b>. La máquina presenta error de eje X y pérdida de repetibilidad.</p>" +
-        "<p>Alcance: diagnóstico en planta, reemplazo de guías y husillo si hiciera falta, calibración " +
-        "final y protocolo de mediciones.</p><p>Valoramos experiencia comprobable en Fanuc y " +
-        "disponibilidad para trabajar durante la parada de planta.</p>",
-      cantidad: 1, unidad: "servicio", localidad: "Longchamps, Provincia de Buenos Aires",
+        "<p>Buscamos instalador matriculado para el <b>tablero eléctrico dedicado y la UPS</b> de la " +
+        "sala de servidores.</p><p>Alcance: tablero con protecciones diferenciales y termomagnéticas, " +
+        "puesta a tierra medida, y UPS online de 6 kVA con autonomía de 30 minutos.</p>" +
+        "<p>Se pide memoria técnica, certificado de puesta a tierra y garantía por escrito.</p>",
+      cantidad: 1, unidad: "servicio", localidad: "Burzaco, Provincia de Buenos Aires",
       fecha_necesidad: enDias(12), tipo_requerimiento: ["servicio"],
     },
     {
@@ -93,7 +143,7 @@ async function sembrar() {
       fecha_necesidad: enDias(30), tipo_requerimiento: ["servicio"],
     },
   ].map((f) => ({
-    ...f, estado: "abierta", visibilidad: "privada_parque", creado_por: miembro.perfil_id,
+    ...f, estado: "abierta", visibilidad: "privada_parque", creado_por: f.creado_por ?? miembro.perfil_id,
   }));
 
   const creadas = await api("oportunidades", { method: "POST", body: JSON.stringify(filas) });

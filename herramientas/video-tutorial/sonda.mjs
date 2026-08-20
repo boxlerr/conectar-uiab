@@ -3,10 +3,35 @@
  * Leer el JSX no alcanza (hay ramas por rol, por sesión y por datos).
  */
 import { chromium } from "playwright";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const BASE = process.env.BASE_URL || "http://localhost:51400";
-const EMAIL = "boxlerjulian+empresatest@hotmail.com";
-const PASS = "UiabPrueba.2026!";
+const BASE = process.env.BASE_URL || "http://localhost:3000";
+
+// Del .env de la raíz, igual que grabar.mjs. Acá también había un usuario y
+// una contraseña escritos en el archivo.
+const AQUI = dirname(fileURLToPath(import.meta.url));
+const leerEnv = () => {
+  for (const nombre of [".env.local", ".env"]) {
+    const ruta = resolve(AQUI, "../..", nombre);
+    if (!existsSync(ruta)) continue;
+    return Object.fromEntries(
+      readFileSync(ruta, "utf8")
+        .split("\n").filter((l) => l.includes("=") && !l.trim().startsWith("#"))
+        .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; })
+    );
+  }
+  return {};
+};
+const env = leerEnv();
+const EMAIL = process.env.UIAB_EMAIL || env.UIAB_EMAIL;
+const PASS = process.env.UIAB_PASSWORD || env.UIAB_PASSWORD;
+
+if (!EMAIL || !PASS) {
+  console.error("Falta UIAB_EMAIL / UIAB_PASSWORD en el .env de la raíz del repo.");
+  process.exit(1);
+}
 
 const RUTAS = ["/empresas", "/directorio", "/oportunidades", "/oportunidades/nueva"];
 
@@ -38,7 +63,9 @@ const inspeccionar = () => {
   };
 };
 
-const navegador = await chromium.launch();
+const navegador = await chromium.launch(
+  process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}
+);
 const ctx = await navegador.newContext({ viewport: { width: 1440, height: 810 }, locale: "es-AR" });
 const page = await ctx.newPage();
 

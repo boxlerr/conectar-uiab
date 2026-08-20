@@ -7,14 +7,22 @@
 -- auth.users y luego crea su perfil con rol 'admin'.
 -- Después de ejecutarlo, el usuario puede iniciar sesión
 -- normalmente desde /login con estas credenciales.
+--
+-- ANTES DE EJECUTAR: completá las dos líneas de abajo con el mail y la
+-- contraseña que quieras. Se completan EN EL EDITOR, no acá: este archivo
+-- está versionado, y una contraseña que entra a git queda en la historia
+-- para siempre aunque después se borre. Ya pasó una vez.
 -- ============================================================
 
 DO $$
 DECLARE
   nuevo_id uuid := gen_random_uuid();
-  email_admin text := 'julianboxler@vaxler.com.ar';
-  password_admin text := 'GamesHD32';
+  email_admin text := 'COMPLETAR-EMAIL';
+  password_admin text := 'COMPLETAR-CONTRASEÑA';
 BEGIN
+  IF email_admin = 'COMPLETAR-EMAIL' OR password_admin = 'COMPLETAR-CONTRASEÑA' THEN
+    RAISE EXCEPTION 'Completá email_admin y password_admin antes de ejecutar.';
+  END IF;
 
   -- Verificar que no exista ya un usuario con ese email
   IF EXISTS (SELECT 1 FROM auth.users WHERE email = email_admin) THEN

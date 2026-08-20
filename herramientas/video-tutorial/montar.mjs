@@ -1,110 +1,653 @@
 /**
- * Montaje final: toma los .webm crudos de Playwright y arma el MP4.
+ * Montaje: acá vive la dirección de la pieza.
  *
- *   node montar.mjs [--velocidad 1.15] [--musica assets/musica.mp3]
+ *   node montar.mjs [--objetivo 45] [--musica assets/musica.mp3]
+ *                   [--sin-bookends] [--solo <id-de-plano>]
  *
- * Pasos: normalizar cada parte a 1080p30 → encadenar con disolvencia →
- * (opcional) mezclar música con fades → H.264 apto para WhatsApp/web.
+ * Playwright entrega material CRUDO: el sitio usándose, sin carteles, sin
+ * recuadros, y una lista de planos (grabaciones/partes.json) que dice, para
+ * cada uno, entre qué milisegundos pasa, a quién encuadra y qué texto lo
+ * acompaña. Todo lo demás se decide acá:
+ *
+ *   · Se tira lo que quedó ENTRE planos: navegar, scrollear, esperar a que
+ *     Next compile una ruta. Antes eso era la mitad del video.
+ *   · Cada plano entra con un punch-in sobre su sujeto, no en plano general.
+ *   · El texto se compone sincronizado con ese acercamiento.
+ *   · La pantalla va montada en un marco de marca con los dos logos.
+ *
+ * Por qué en post y no en el navegador: animar la página con CSS mientras se
+ * graba da tirones y Chromium rasteriza borroso durante la animación. Acá el
+ * movimiento es exacto y el sostenido queda a resolución plena.
  */
 import { execFileSync } from "node:child_process";
-import { readdirSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync, readdirSync, copyFileSync } from "node:fs";
 import { join } from "node:path";
+import { createRequire } from "node:module";
+import { rasterizar } from "./tipografia.mjs";
+import { MARCO } from "./marco.mjs";
+
+// ffmpeg y ffprobe vienen como dependencias npm: así `npm install` deja todo
+// listo y no hay que instalar nada a mano en la máquina. Si alguien prefiere
+// los del sistema, FFMPEG=/ruta y FFPROBE=/ruta los pisan.
+const require_ = createRequire(import.meta.url);
+const binario = (paquete, fallback) => {
+  try {
+    const p = require_(paquete);
+    return typeof p === "string" ? p : p.path;
+  } catch {
+    return fallback;
+  }
+};
+const FFMPEG = process.env.FFMPEG || binario("ffmpeg-static", "ffmpeg");
+const FFPROBE = process.env.FFPROBE || binario("@ffprobe-installer/ffprobe", "ffprobe");
 
 const CRUDO = join(process.cwd(), "grabaciones");
 const TMP = join(process.cwd(), "tmp-montaje");
+const TMP_TEXTO = join(process.cwd(), "tmp-texto");
 const SALIDA = join(process.cwd(), "tutorial-uiab-conecta.mp4");
 
-const DISOLVENCIA = 0.7; // segundos de cruce entre partes
+// 25 y no 30. Playwright graba a 25 fps CONSTANTES (medido: 911 intervalos de
+// 0.0400 s exactos en 01-directorio.webm, sin una sola excepción). Forzar 30
+// es un pulldown 5:6: uno de cada cinco cuadros es una repetición del
+// anterior, o sea SEIS tirones por segundo durante todo el video. Ésa es la
+// sensación de "se traba" — no es el codec ni el reproductor.
+//
+// Ojo con el instinto de subir a 60 "porque es más fluido": 60 no es múltiplo
+// de 25 y el reparto queda 12:5, peor que 30. Si algún día se quiere línea de
+// tiempo alta, va 50, que es 25×2 exacto (y ahí hay que subir el -level).
+const FPS = 25;
+const { pantalla: PANT, ancho: W, alto: H } = MARCO;
+const FONDO = "#061f33"; // el mismo navy del marco: los cortes no parpadean
+
+// ── Planos cinematográficos (Higgsfield) ─────────────────────────────
+// Se bajan con `node traer-assets.mjs`. Si no están, la pieza se arma igual.
+// El recorte se ancla a un extremo y se calcula con la duración REAL medida:
+// los planos pueden venir de 4 s o de 5 s y un número a mano deja de caer
+// donde se quería en cuanto se regenera uno.
+//   apertura → los últimos N s: el dron acelera, el pico está al final.
+//   cierre   → los primeros N s: el retroceso abre el plano enseguida.
+const APERTURA = { archivo: "assets/apertura.mp4", dur: 3.2, anclaje: "final" };
+const CIERRE = { archivo: "assets/cierre.mp4", dur: 4.0, anclaje: "inicio" };
+
+// ── Plano insertado ──────────────────────────────────────────────────
+// Va a sangre, sin el marco, en medio del capítulo 1. Rompe la seguidilla de
+// pantallas y dice de qué habla el sitio —productos y servicios reales del
+// parque— sin poner en cámara el catálogo de una socia concreta.
+// Generado con Higgsfield (ver assets.json: modelo, prompt y descarte).
+const INSERTO = {
+  archivo: null, // apagado: el catálogo se filma del sitio, no se genera
+  despuesDe: "ficha",
+  dur: 4.0,
+  rotulo: "El catálogo",
+  texto: "Servicios con foto y ficha, no una lista.",
+};
+
+const LOGO = "assets/logo-blanco.png";
+const LOGO_ANCHO = 820;
+
+// Ritmo de los movimientos de cámara.
+const PUNCH = 0.34;        // cuánto dura el acercamiento
+const DERIVA = 1.055;      // empuje lento de los planos generales
+
+// zoompan recorta en píxel ENTERO. En un movimiento lento eso significa que la
+// imagen se queda quieta dos o tres cuadros y después pega un salto: es el
+// temblor de las derivas. Ampliando ×2 antes, cada píxel del recorte vale medio
+// píxel de la fuente y el salto se parte al medio. Medido sobre una deriva real
+// (z 1→1.055 en 3 s): sin esto, 2 de 73 cuadros congelados y la energía entre
+// cuadros va de 0.0068 a 5.8144; con esto, 0 de 73 y el rango baja a 79×.
+// ×4 no: cuesta seis veces más y encima PIERDE nitidez.
+const SOBREMUESTREO = 2;
+
+// Duración de las disolvencias entre segmentos.
+const CRUCE = { plano: 0.18, placa: 0.06 };
+
+// El texto entra enseguida y se queda hasta el final del plano.
+//
+// Antes salía 0.30 s antes del corte y entraba recién a los 0.16 con un
+// fundido de 0.34: en un plano de 1.4 s eso deja la frase legible menos de un
+// segundo. La duración del plano ahora la fija el tiempo de lectura
+// (piloto.mjs, minimoLegible), así que acá lo único que hace falta es no
+// desperdiciar ese tiempo: entra rápido y se va justo en el corte.
+const TEXTO = { entra: 0.10, entrada: 0.28, sube: 24, sale: 0.20 };
+
+// Hasta dónde se puede recortar el sujeto para encuadrarlo. Un elemento de
+// 900 px de alto encuadrado ENTERO no deja acercarse nada; encuadrando su
+// parte de arriba —que es donde está lo que importa— sí. Con 620 de alto los
+// planos de la barra lateral y del contacto salían a 1.2×, o sea casi plano
+// general: 430 los deja en 1.7×, que es lo que se pidió.
+const SUJETO = { ancho: 980, alto: 430 };
+
+// El sujeto no va al centro exacto sino un poco arriba: abajo a la izquierda
+// entra el cartel, y con el sujeto centrado el texto le pasaba por encima.
+const ALTURA_SUJETO = 0.43;
+const TOPE_ESCALA = 1.75;  // más que esto y el upscale desde 1920 se nota
 
 const args = process.argv.slice(2);
 const opt = (n, def) => {
   const i = args.indexOf(`--${n}`);
   return i >= 0 && args[i + 1] ? args[i + 1] : def;
 };
-const VELOCIDAD = Number(opt("velocidad", "1"));
-const MUSICA = opt("musica", existsSync("assets/musica.mp3") ? "assets/musica.mp3" : null);
+const bandera = (n) => args.includes(`--${n}`);
 
-const ff = (a) => execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", ...a], { stdio: "inherit" });
-const duracion = (f) =>
-  Number(execFileSync("ffprobe", [
-    "-v", "error", "-show_entries", "format=duration",
-    "-of", "default=nw=1:nk=1", f,
-  ]).toString().trim());
+const OBJETIVO = args.includes("--objetivo") ? Number(opt("objetivo", "0")) : null;
+const MUSICA = opt("musica", existsSync("assets/musica.mp3") ? "assets/musica.mp3" : null);
+const SIN_BOOKENDS = bandera("sin-bookends");
+const LUFS = Number(opt("lufs", "-16"));
+const SOLO = opt("solo", null);
+const DONDE_LOGO = existsSync(LOGO) ? opt("logo", "ambos") : "no";
+
+const ff = (a) => execFileSync(FFMPEG, ["-hide_banner", "-loglevel", "error", "-y", ...a], { stdio: "inherit" });
+
+/** Duración en segundos, o null. Los .webm de Playwright son VFR y a veces no
+ *  traen duración en el contenedor: por eso el segundo intento por stream. */
+const duracion = (f) => {
+  for (const entrada of ["format=duration", "stream=duration"]) {
+    try {
+      const sel = entrada.startsWith("stream") ? ["-select_streams", "v:0"] : [];
+      const v = Number(execFileSync(FFPROBE, [
+        "-v", "error", ...sel, "-show_entries", entrada,
+        "-of", "default=nw=1:nk=1", f,
+      ]).toString().trim().split("\n")[0]);
+      if (Number.isFinite(v) && v > 0) return v;
+    } catch {}
+  }
+  return null;
+};
+
+// Ésta es ahora la única compresión con pérdida de la cadena (la normalización
+// va sin pérdida y el empaquetado final copia), así que puede permitirse ser
+// buena: antes el contenido pasaba por cuatro encodes encadenados.
+const X264 = ["-c:v", "libx264", "-preset", "slow", "-crf", "16",
+              "-pix_fmt", "yuv420p", "-profile:v", "high", "-level", "4.1",
+              "-r", String(FPS)];
 
 rmSync(TMP, { recursive: true, force: true });
 mkdirSync(TMP, { recursive: true });
 
-const partes = readdirSync(CRUDO).filter((f) => f.endsWith(".webm")).sort();
-if (!partes.length) throw new Error(`No hay .webm en ${CRUDO} — corré grabar.mjs primero.`);
+// ── 1. El material y su libreto ──────────────────────────────────────
+const manifiesto = join(CRUDO, "partes.json");
+if (!existsSync(manifiesto)) {
+  throw new Error(`No hay ${manifiesto} — corré grabar.mjs primero.`);
+}
+const partes = JSON.parse(readFileSync(manifiesto, "utf8"))
+  .filter((p) => p.archivo && existsSync(p.archivo) && p.planos?.length);
+if (!partes.length) throw new Error("Ninguna pasada dejó planos utilizables.");
 
-console.log(`▸ ${partes.length} partes`);
+console.log(`▸ ${partes.length} pasada(s) · ${partes.reduce((a, p) => a + p.planos.length, 0)} planos`);
 
-// ── 1. Normalizar ────────────────────────────────────────────────────
-// Playwright entrega VP8 con framerate variable; para xfade y para que el
-// resultado sea reproducible en cualquier lado hay que fijar todo.
-const normalizadas = partes.map((p, i) => {
-  const dst = join(TMP, `n${i}.mp4`);
-  const filtros = [
-    VELOCIDAD !== 1 ? `setpts=${(1 / VELOCIDAD).toFixed(4)}*PTS` : null,
-    "scale=1920:1080:flags=lanczos",
-    "fps=30",
-    "format=yuv420p",
-  ].filter(Boolean).join(",");
-  ff(["-i", join(CRUDO, p), "-vf", filtros, "-an",
-      "-c:v", "libx264", "-preset", "slow", "-crf", "18", dst]);
-  const d = duracion(dst);
-  console.log(`  · ${p} → ${d.toFixed(1)}s`);
-  return { archivo: dst, dur: d };
+// ── 2. Normalizar y encontrar la claqueta ────────────────────────────
+/**
+ * El .webm de Playwright es VFR. Antes de cortar nada se lo pasa a 30 fps
+ * constantes: así el número de fotograma ES el tiempo, y el corte cae donde
+ * se lo pide.
+ */
+function normalizarPasada(parte, i) {
+  const dst = join(TMP, `pase-${i}.mp4`);
+  console.log(`  · normalizando ${parte.nombre}`);
+  ff(["-i", parte.archivo, "-vf", `fps=${FPS},format=yuv420p`, "-an",
+      "-c:v", "libx264", "-preset", "ultrafast", "-qp", "0", dst]);
+  return dst;
+}
+
+/**
+ * Busca el primer fotograma verde: es la claqueta que dejó la grabación.
+ *
+ * Se decodifican los primeros segundos a 8x8 en crudo (192 bytes por
+ * fotograma) y se mira el promedio. No hace falta ninguna librería de
+ * imágenes ni escribir PNGs.
+ */
+function fotogramaClaqueta(archivo) {
+  const crudo = execFileSync(FFMPEG, [
+    "-v", "error", "-i", archivo, "-t", "12",
+    "-vf", `fps=${FPS},scale=8:8`, "-f", "rawvideo", "-pix_fmt", "rgb24", "-",
+  ], { maxBuffer: 1 << 26 });
+
+  const porFotograma = 8 * 8 * 3;
+  for (let f = 0; f * porFotograma < crudo.length; f++) {
+    let r = 0, g = 0, b = 0;
+    for (let p = 0; p < 64; p++) {
+      const o = f * porFotograma + p * 3;
+      r += crudo[o]; g += crudo[o + 1]; b += crudo[o + 2];
+    }
+    r /= 64; g /= 64; b /= 64;
+    if (g > 170 && r < 110 && b < 110) return f;
+  }
+  return null;
+}
+
+// ── 3. Encuadre ──────────────────────────────────────────────────────
+/**
+ * De la caja del sujeto al recorte de cámara.
+ *
+ * Devuelve {z, x, y}: z es cuánto se acerca (1 = cuadro entero) y (x,y) la
+ * esquina superior izquierda de la ventana, en coordenadas del .webm.
+ */
+function encuadreDe(marca) {
+  if (!marca.rect) return { z: 1, x: 0, y: 0 };
+
+  // 1. La caja, recortada a lo que de verdad se ve.
+  const x0 = Math.max(0, marca.rect.x);
+  const y0 = Math.max(0, marca.rect.y);
+  const x1 = Math.min(W, marca.rect.x + marca.rect.w);
+  const y1 = Math.min(H, marca.rect.y + marca.rect.h);
+  if (x1 - x0 < 40 || y1 - y0 < 24) return { z: 1, x: 0, y: 0 };
+
+  // 2. El sujeto: si es enorme, se encuadra su parte de arriba a la
+  //    izquierda, que es por donde se lee.
+  const sw = Math.min(x1 - x0, SUJETO.ancho);
+  const sh = Math.min(y1 - y0, SUJETO.alto);
+  const cx = x0 + sw / 2;
+  const cy = y0 + sh / 2;
+
+  // 3. Cuánto acercarse para que entre con aire.
+  const pedida = typeof marca.escalaPedida === "number" ? marca.escalaPedida : null;
+  const z = pedida ?? Math.max(1, Math.min(TOPE_ESCALA,
+    Math.min(W / Math.max(120, sw * 1.34), H / Math.max(90, sh * 1.45))));
+
+  const vw = W / z, vh = H / z;
+  return {
+    z,
+    x: Math.round(Math.max(0, Math.min(W - vw, cx - vw / 2))),
+    y: Math.round(Math.max(0, Math.min(H - vh, cy - vh * ALTURA_SUJETO))),
+  };
+}
+
+/** Interpolación suave (smoothstep) sobre los fotogramas de salida. */
+const suave = (fotogramas) => {
+  const p = `clip(on/${Math.max(1, Math.round(fotogramas))},0,1)`;
+  return `(${p}*${p}*(3-2*${p}))`;
+};
+
+/**
+ * El movimiento de cámara del plano, como expresiones de zoompan.
+ *
+ * Acercamiento rápido (0.34 s) y después quieto: así se lee como un corte con
+ * intención y no como una animación. Un movimiento lento y largo, además,
+ * delata el salto de píxel entero que hace zoompan.
+ */
+function movimiento({ z, x, y }, dur, sobremuestreo = 1) {
+  if (z <= 1.001) {
+    // Plano general: empuje lento durante todo el plano. Sin esto la pieza
+    // tiene planos completamente muertos, que es de lo que se quejaba.
+    const e = suave(dur * FPS);
+    const zexp = `1+${(DERIVA - 1).toFixed(4)}*${e}`;
+    return { z: zexp, x: `(iw-iw/zoom)/2`, y: `(ih-ih/zoom)/2` };
+  }
+  const zIni = Math.max(1, z / 1.11);
+  const e = suave(PUNCH * FPS);
+  const zexp = `${zIni.toFixed(4)}+${(z - zIni).toFixed(4)}*${e}`;
+  // El centro se mantiene fijo y la ventana crece/decrece alrededor.
+  // Va multiplicado por el sobremuestreo porque zoompan trabaja sobre la
+  // imagen YA ampliada: las cajas se midieron en el viewport de 1920x1080.
+  const cx = ((x + (W / z) / 2) * sobremuestreo).toFixed(1);
+  const cy = ((y + (H / z) / 2) * sobremuestreo).toFixed(1);
+  return {
+    z: zexp,
+    x: `max(0,min(iw-iw/zoom,${cx}-(iw/zoom)/2))`,
+    y: `max(0,min(ih-ih/zoom,${cy}-(ih/zoom)/2))`,
+  };
+}
+
+// ── 4. Los textos ────────────────────────────────────────────────────
+rmSync(TMP_TEXTO, { recursive: true, force: true });
+
+const piezas = [];
+partes.forEach((parte, i) => {
+  parte.planos.forEach((m, j) => {
+    if (!m.rotulo && !m.texto) return;
+    m.__texto = `t-${i}-${j}.png`;
+    piezas.push({ tipo: "cartel", archivo: m.__texto, rotulo: m.rotulo, texto: m.texto, sello: m.sello });
+  });
 });
 
-// ── 2. Encadenar con disolvencia ─────────────────────────────────────
-let video = normalizadas[0].archivo;
-let total = normalizadas[0].dur;
+// Placas: la de capítulo 2 y el cierre. La de apertura no va — el plano aéreo
+// con el logo ya abre, y dos pantallas de título seguidas matan el arranque.
+const PLACAS = {
+  capitulo2: {
+    tipo: "placa", archivo: "placa-cap2.png", rotulo: "Capítulo 2",
+    titulo: "Oportunidades",
+    texto: "El tablero donde las empresas publican lo que necesitan.",
+    dur: 1.5,
+  },
+  cierre: {
+    tipo: "placa", archivo: "placa-cierre.png", rotulo: "UIAB Conecta",
+    titulo: "Ya sabés moverte",
+    texto: "Entrá, buscá y conectá con el parque industrial de Almirante Brown.",
+    dur: 2.2,
+  },
+};
+if (existsSync(INSERTO.archivo)) {
+  INSERTO.__texto = "inserto-catalogo.png";
+  piezas.push({
+    tipo: "cartel", plena: true, archivo: INSERTO.__texto,
+    rotulo: INSERTO.rotulo, texto: INSERTO.texto,
+  });
+}
 
-if (normalizadas.length > 1) {
-  const entradas = normalizadas.flatMap((n) => ["-i", n.archivo]);
+piezas.push(...Object.values(PLACAS));
+
+console.log(`  · rasterizando ${piezas.length} textos`);
+await rasterizar(piezas, { destino: TMP_TEXTO });
+
+// ── 5. Armar cada plano ──────────────────────────────────────────────
+/** Un plano ya compuesto: pantalla encuadrada + texto + marco. */
+function armarPlano(fuente, marca, { desde, bruto, dur, vel = 1 }, salida) {
+  const enc = encuadreDe(marca);
+  const mov = movimiento(enc, dur, SOBREMUESTREO);
+  const durSalida = dur; // el setpts ya se aplicó al recortar
+
+  const entradas = [
+    "-ss", desde.toFixed(3), "-t", (bruto ?? dur).toFixed(3), "-i", fuente,
+    "-loop", "1", "-framerate", String(FPS), "-i", join(TMP_TEXTO, marca.__texto ?? PLACAS.cierre.archivo),
+    "-loop", "1", "-framerate", String(FPS), "-i", "assets/marco.png",
+  ];
+
+  const salidaTexto = Math.max(0.1, durSalida - TEXTO.sale);
+  const p = `clip((t-${TEXTO.entra})/${TEXTO.entrada},0,1)`;
+  const subir = `${TEXTO.sube}*pow(1-${p},3)`;
+
+  const cadena = [
+    `[0:v]${vel !== 1 ? `setpts=PTS/${vel.toFixed(4)},` : ""}fps=${FPS},`
+      + `scale=${W * SOBREMUESTREO}:${H * SOBREMUESTREO}:flags=lanczos,`
+      + `zoompan=z='${mov.z}':x='${mov.x}':y='${mov.y}':d=1:`
+      + `s=${PANT.w * SOBREMUESTREO}x${PANT.h * SOBREMUESTREO}:fps=${FPS},`
+      + `scale=${PANT.w}:${PANT.h}:flags=lanczos,setsar=1[pant]`,
+    `color=c=${FONDO}:s=${W}x${H}:r=${FPS}[bg]`,
+    `[bg][pant]overlay=${PANT.x}:${PANT.y}:shortest=1[conpant]`,
+    marca.__texto
+      ? `[1:v]format=rgba,fade=t=in:st=${TEXTO.entra}:d=${TEXTO.entrada}:alpha=1,`
+        + `fade=t=out:st=${salidaTexto.toFixed(2)}:d=${TEXTO.sale}:alpha=1[txt]`
+      : null,
+    marca.__texto
+      ? `[conpant][txt]overlay=0:'${subir}':shortest=1[contxt]`
+      : null,
+    `[${marca.__texto ? "contxt" : "conpant"}][2:v]overlay=0:0:shortest=1,format=yuv420p[out]`,
+  ].filter(Boolean).join(";");
+
+  ff([...entradas, "-filter_complex", cadena, "-map", "[out]",
+      "-t", durSalida.toFixed(3), "-an", ...X264, salida]);
+}
+
+/** Placa a cuadro completo, con entrada y salida en fundido. */
+function armarPlaca(placa, salida) {
+  const d = placa.dur;
+  ff([
+    "-loop", "1", "-framerate", String(FPS), "-t", d.toFixed(2),
+    "-i", join(TMP_TEXTO, placa.archivo),
+    "-vf", `fade=t=in:st=0:d=0.3,fade=t=out:st=${(d - 0.3).toFixed(2)}:d=0.3,format=yuv420p`,
+    "-an", ...X264, salida,
+  ]);
+}
+
+/** Cuadros por segundo reales de un archivo, o null. */
+const fpsDe = (f) => {
+  try {
+    const v = execFileSync(FFPROBE, ["-v", "error", "-select_streams", "v:0",
+      "-show_entries", "stream=r_frame_rate", "-of", "default=nw=1:nk=1", f])
+      .toString().trim();
+    const [n, d] = v.split("/").map(Number);
+    const fps = d ? n / d : n;
+    return Number.isFinite(fps) && fps > 0 ? fps : null;
+  } catch { return null; }
+};
+
+/** Plano a sangre con su cartel: sin marco, porque no es una pantalla. */
+function armarInserto(salida) {
+  const fpsOrigen = fpsDe(INSERTO.archivo);
+  const factor = fpsOrigen && Math.abs(fpsOrigen - FPS) > 0.01 ? fpsOrigen / FPS : 1;
+  const retimar = factor !== 1 ? `setpts=PTS*${factor.toFixed(6)},` : "";
+  const total = duracion(INSERTO.archivo);
+  const dur = Math.min(INSERTO.dur, (total ?? INSERTO.dur) * factor);
+  const salidaTexto = Math.max(0.1, dur - TEXTO.sale);
+  const p = `clip((t-${TEXTO.entra})/${TEXTO.entrada},0,1)`;
+  const subir = `${TEXTO.sube}*pow(1-${p},3)`;
+
+  ff([
+    "-t", (dur / factor).toFixed(3), "-i", INSERTO.archivo,
+    "-loop", "1", "-framerate", String(FPS), "-i", join(TMP_TEXTO, INSERTO.__texto),
+    "-filter_complex",
+    `[0:v]${retimar}scale=${W}:${H}:force_original_aspect_ratio=increase:flags=lanczos,`
+    + `crop=${W}:${H},fps=${FPS},eq=brightness=-0.02:saturation=1.04[v];`
+    + `[1:v]format=rgba,fade=t=in:st=${TEXTO.entra}:d=${TEXTO.entrada}:alpha=1,`
+    + `fade=t=out:st=${salidaTexto.toFixed(2)}:d=${TEXTO.sale}:alpha=1[txt];`
+    + `[v][txt]overlay=0:'${subir}':shortest=1,format=yuv420p[o]`,
+    "-map", "[o]", "-t", dur.toFixed(3), "-an", ...X264, salida,
+  ]);
+  return dur;
+}
+
+/** Plano aéreo con el logo compuesto encima. */
+function armarBookend(plano, cual, salida) {
+  const total = duracion(plano.archivo);
+  const conLogo = ["ambos", cual].includes(DONDE_LOGO);
+
+  // Los planos de dron vienen a 24 fps (medido: 120 intervalos de 0.0417 s).
+  // Pasarlos por `fps=25` a secas repite un cuadro cada 25 — un pulldown de
+  // manual, y encima cae en los primeros segundos de la pieza, que es donde
+  // más se nota. Con setpts los 24 cuadros de origen entran uno a uno en los
+  // 25 de salida. Acelera el clip un 4%, que en un dron es imperceptible.
+  // OJO CON EL SIGNO: PTS*origen/FPS. Al revés sale peor.
+  const fpsOrigen = fpsDe(plano.archivo);
+  const retimar = fpsOrigen && Math.abs(fpsOrigen - FPS) > 0.01
+    ? `setpts=PTS*${(fpsOrigen / FPS).toFixed(6)},`
+    : "";
+  const factor = retimar ? fpsOrigen / FPS : 1;
+  const totalRetimado = total ? total * factor : null;
+
+  const dur = Math.min(plano.dur, totalRetimado ?? plano.dur);
+  const desde = plano.anclaje === "final" && totalRetimado
+    ? Math.max(0, (totalRetimado - dur) / factor)
+    : 0;
+
+  const base = `${retimar}scale=${W}:${H}:force_original_aspect_ratio=decrease:flags=lanczos,`
+    + `pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=${FONDO},fps=${FPS}`;
+
+  // El fundido a navy en el empalme con la pieza: como el marco TIENE ese
+  // fondo, el corte no parpadea. Antes se pasaba del cielo del dron a una
+  // pantalla blanca y quedaba un flash de casi un segundo.
+  const haciaLaPieza = cual === "apertura"
+    ? `,fade=t=out:st=${(dur - 0.4).toFixed(2)}:d=0.4:color=${FONDO}`
+    : `,fade=t=in:st=0:d=0.4:color=${FONDO}`;
+
+  // -t antes de -i cuenta tiempo de ENTRADA, y el setpts comprime: para que
+  // salgan `dur` segundos hay que pedir dur/factor de fuente.
+  const durEntrada = (dur / factor).toFixed(3);
+
+  if (!conLogo) {
+    ff(["-ss", String(desde), "-t", durEntrada, "-i", plano.archivo,
+        "-vf", `${base}${haciaLaPieza},format=yuv420p`, "-an", ...X264, salida]);
+    return dur;
+  }
+
+  // El logo se compone acá y NO se le pide al modelo: la IA deforma cualquier
+  // logotipo. Sale del SVG del sitio vía logo.mjs, así que es exactamente el
+  // mismo que usa la app.
+  const entra = cual === "apertura" ? 0.7 : 0.8;
+  const sale = cual === "apertura" ? `,fade=t=out:st=${(dur - 0.75).toFixed(2)}:d=0.4:alpha=1` : "";
+  ff([
+    "-ss", String(desde), "-t", durEntrada, "-i", plano.archivo,
+    "-framerate", String(FPS), "-loop", "1", "-i", LOGO,
+    "-filter_complex",
+    `[0:v]${base},eq=brightness=-0.06:saturation=1.05[v];`
+    + `[1:v]scale=${LOGO_ANCHO}:-1,format=rgba,`
+    + `fade=t=in:st=${entra}:d=0.5:alpha=1${sale}[l];`
+    + `[v][l]overlay=(W-w)/2:(H-h)/2:shortest=1${haciaLaPieza},format=yuv420p[o]`,
+    "-map", "[o]", "-t", String(dur), "-an", ...X264, salida,
+  ]);
+  return dur;
+}
+
+// ── 6. Recorrer el libreto ───────────────────────────────────────────
+const segmentos = [];
+
+// Velocidad global para llegar a un objetivo de duración, si se pidió.
+const brutoUtil = partes.reduce(
+  (a, p) => a + p.planos.reduce((b, m) => b + (m.tOut - m.tIn) / 1000 / (m.velocidad || 1), 0), 0);
+let ritmo = 1;
+if (OBJETIVO) {
+  const bookends = SIN_BOOKENDS ? 0 : APERTURA.dur + CIERRE.dur;
+  const placas = PLACAS.capitulo2.dur + PLACAS.cierre.dur;
+  ritmo = Math.max(1, Math.min(1.6, brutoUtil / Math.max(4, OBJETIVO - bookends - placas)));
+  console.log(`▸ Objetivo ${OBJETIVO}s · útil ${brutoUtil.toFixed(1)}s → ritmo ${ritmo.toFixed(2)}×`);
+}
+
+if (!SIN_BOOKENDS && existsSync(APERTURA.archivo)) {
+  const dst = join(TMP, "s000-apertura.mp4");
+  const d = armarBookend(APERTURA, "apertura", dst);
+  segmentos.push({ archivo: dst, dur: d, cruce: CRUCE.placa, nombre: "apertura (dron)" });
+  console.log(`  · apertura → ${d.toFixed(1)}s`);
+}
+
+let n = 0;
+for (let i = 0; i < partes.length; i++) {
+  const parte = partes[i];
+
+  if (i === 1) {
+    const dst = join(TMP, `s${String(++n).padStart(3, "0")}-placa2.mp4`);
+    armarPlaca(PLACAS.capitulo2, dst);
+    segmentos.push({ archivo: dst, dur: PLACAS.capitulo2.dur, cruce: CRUCE.placa, nombre: "placa · Oportunidades" });
+  }
+
+  const fuente = normalizarPasada(parte, i);
+  const fClaqueta = fotogramaClaqueta(fuente);
+  if (fClaqueta === null) {
+    console.log(`  ⚠ ${parte.nombre}: no encontré la claqueta. Uso el reloj crudo`);
+    console.log("     (los textos pueden entrar corridos: volvé a grabar).");
+  }
+  const t0 = (fClaqueta ?? 0) / FPS;
+  let primeroDelCapitulo = true;
+
+  for (const m of parte.planos) {
+    if (SOLO && m.id !== SOLO) continue;
+    const vel = (m.velocidad || 1) * ritmo;
+    const desde = t0 + (m.tIn - parte.claqueta) / 1000;
+    const bruto = (m.tOut - m.tIn) / 1000;
+    const dur = bruto / vel;
+
+    // El recorte, la aceleración y la composición van en UNA sola llamada.
+    // Antes el recorte era un paso aparte "porque zoompan y setpts se llevaban
+    // mal": no es cierto, y cada paso extra es una generación más de H.264
+    // encima del texto chico del sitio, que es justo lo que hay que salvar.
+    const dst = join(TMP, `s${String(++n).padStart(3, "0")}-${m.id}.mp4`);
+    armarPlano(fuente, m, { desde, bruto, dur, vel }, dst);
+    const real = duracion(dst) ?? dur;
+    segmentos.push({ archivo: dst, dur: real, cruce: primeroDelCapitulo ? CRUCE.placa : CRUCE.plano, nombre: m.id });
+    primeroDelCapitulo = false;
+
+    if (!SOLO && INSERTO.__texto && m.id === INSERTO.despuesDe) {
+      const ins = join(TMP, `s${String(++n).padStart(3, "0")}-inserto.mp4`);
+      const d = armarInserto(ins);
+      segmentos.push({ archivo: ins, dur: d, cruce: CRUCE.placa, nombre: "inserto · catálogo" });
+      console.log(`  · ${"inserto".padEnd(14)} ${d.toFixed(1)}s  a sangre (Higgsfield)`);
+    }
+    const enc = encuadreDe(m);
+    console.log(`  · ${m.id.padEnd(14)} ${real.toFixed(1)}s  zoom ${enc.z.toFixed(2)}×`
+      + (vel !== 1 ? `  ${vel.toFixed(2)}× rápido` : ""));
+  }
+}
+
+if (!SOLO) {
+  const dst = join(TMP, `s${String(++n).padStart(3, "0")}-placa-cierre.mp4`);
+  armarPlaca(PLACAS.cierre, dst);
+  segmentos.push({ archivo: dst, dur: PLACAS.cierre.dur, cruce: CRUCE.placa, nombre: "placa · cierre" });
+}
+
+if (!SIN_BOOKENDS && !SOLO && existsSync(CIERRE.archivo)) {
+  const dst = join(TMP, "s999-cierre.mp4");
+  const d = armarBookend(CIERRE, "cierre", dst);
+  segmentos.push({ archivo: dst, dur: d, cruce: CRUCE.placa, nombre: "cierre (dron)" });
+  console.log(`  · cierre → ${d.toFixed(1)}s`);
+}
+
+if (!segmentos.length) throw new Error("No quedó ningún segmento para montar.");
+
+// ── 7. Encadenar ─────────────────────────────────────────────────────
+// Disolvencias cortas entre planos en vez de cortes secos.
+//
+// Son 0.18 s: suficiente para que el cambio se sienta acompañado y no un salto,
+// y corto para que no baje el ritmo. Puede hacerse porque el cartel ya se fue
+// 0.20 s antes del corte y el siguiente entra 0.10 s después, así que nunca hay
+// dos textos superpuestos — que es lo que hace ilegible un fundido sobre una
+// pantalla llena de letras.
+//
+// En los empalmes con placas y planos aéreos la disolvencia baja a 0.06 s: esos
+// segmentos ya funden contra el navy por dentro, y encimar los dos fundidos
+// oscurecía el doble.
+const encadenado = join(TMP, "encadenado.mp4");
+let total;
+
+if (segmentos.length === 1) {
+  total = segmentos[0].dur;
+  ff(["-i", segmentos[0].archivo, "-c", "copy", encadenado]);
+} else {
+  const entradas = segmentos.flatMap((s) => ["-i", s.archivo]);
   const cadena = [];
   let etiqueta = "0:v";
-  let acumulado = normalizadas[0].dur;
-  for (let i = 1; i < normalizadas.length; i++) {
-    const salida = i === normalizadas.length - 1 ? "vfin" : `x${i}`;
-    const offset = (acumulado - DISOLVENCIA).toFixed(3);
-    cadena.push(`[${etiqueta}][${i}:v]xfade=transition=fade:duration=${DISOLVENCIA}:offset=${offset}[${salida}]`);
+  let acumulado = segmentos[0].dur;
+  for (let i = 1; i < segmentos.length; i++) {
+    const d = segmentos[i].cruce ?? CRUCE.plano;
+    const salida = i === segmentos.length - 1 ? "vfin" : `x${i}`;
+    const offset = (acumulado - d).toFixed(3);
+    cadena.push(`[${etiqueta}][${i}:v]xfade=transition=fade:duration=${d}:offset=${offset}[${salida}]`);
     etiqueta = salida;
-    acumulado += normalizadas[i].dur - DISOLVENCIA;
+    acumulado += segmentos[i].dur - d;
   }
-  const dst = join(TMP, "encadenado.mp4");
-  ff([...entradas, "-filter_complex", cadena.join(";"), "-map", "[vfin]",
-      "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p", dst]);
-  video = dst;
+  ff([...entradas, "-filter_complex", cadena.join(";"), "-map", "[vfin]", "-an", ...X264, encadenado]);
   total = acumulado;
 }
-console.log(`▸ Video encadenado: ${total.toFixed(1)}s`);
 
-// ── 3. Música + empaquetado ──────────────────────────────────────────
-const comunes = [
-  "-c:v", "libx264", "-preset", "slow", "-crf", "19",
-  "-pix_fmt", "yuv420p", "-profile:v", "high", "-level", "4.1",
-  "-movflags", "+faststart",
-];
+total = duracion(encadenado) ?? total;
+console.log(`▸ ${segmentos.length} segmentos → ${total.toFixed(1)}s`);
+
+// ── 8. Música y empaquetado ──────────────────────────────────────────
+// El video ya está codificado en cada segmento y el concat lo pega sin tocar:
+// acá sólo se le mete el audio. Reencodificarlo era una cuarta generación de
+// H.264 sobre el texto del sitio, y no aportaba nada.
+const comunes = ["-c:v", "copy", "-movflags", "+faststart"];
 
 if (MUSICA && existsSync(MUSICA)) {
   const salidaFade = Math.max(0, total - 2.5);
+  // loudnorm en vez de un volumen fijo: lleva cualquier MP3 al mismo loudness
+  // percibido (-16 LUFS, el estándar de video web) con el pico bajo control.
   ff([
-    "-i", video, "-stream_loop", "-1", "-i", MUSICA,
+    "-i", encadenado, "-stream_loop", "-1", "-i", MUSICA,
     "-filter_complex",
-    `[1:a]volume=0.16,afade=t=in:st=0:d=2,afade=t=out:st=${salidaFade.toFixed(2)}:d=2.5[a]`,
+    // `aformat` y no `aresample=48000`: con ffmpeg 7 el aresample pelado no
+    // logra negociar el layout de canales con el encoder y la corrida muere
+    // con "Cannot select channel layout ... Failed to inject frame into filter
+    // network". Acá se le dicen los tres parámetros de una.
+    `[1:a]loudnorm=I=${LUFS}:TP=-1.5:LRA=11,`
+    + `aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,`
+    + `afade=t=in:st=0:d=1.2,afade=t=out:st=${salidaFade.toFixed(2)}:d=2.5[a]`,
     "-map", "0:v", "-map", "[a]", "-shortest",
-    ...comunes, "-c:a", "aac", "-b:a", "160k", SALIDA,
+    ...comunes, "-c:a", "aac", "-b:a", "192k", "-ar", "48000", SALIDA,
   ]);
-  console.log(`▸ Música mezclada desde ${MUSICA}`);
+  console.log(`▸ Música: ${MUSICA} · normalizada a ${LUFS} LUFS`);
 } else {
-  ff(["-i", video, "-an", ...comunes, SALIDA]);
+  ff(["-i", encadenado, "-an", ...comunes, SALIDA]);
   console.log("▸ Sin música (dejá un MP3 en assets/musica.mp3 y volvé a correr esto)");
 }
 
+// Copia fechada y versionada en el Escritorio.
+//
+// El mp4 vive dentro del worktree y está en .gitignore, así que era imposible
+// de encontrar si no sabías la ruta exacta — y no se puede pedir que alguien
+// se acuerde de dónde queda un worktree. Cada corrida deja su copia acá, con
+// fecha y número, sin pisar la anterior.
+try {
+  const escritorio = join(process.env.HOME ?? ".", "Desktop", "uiab-renders");
+  mkdirSync(escritorio, { recursive: true });
+  const hoy = new Date().toISOString().slice(0, 10);
+  const previas = readdirSync(escritorio)
+    .filter((n) => n.startsWith(`tutorial-uiab-${hoy}-v`)).length;
+  const copia = join(escritorio, `tutorial-uiab-${hoy}-v${previas + 1}.mp4`);
+  copyFileSync(SALIDA, copia);
+  console.log(`\n▸ Copia para mirar: ${copia}`);
+} catch (e) {
+  console.log(`  ⚠ no pude dejar la copia en el Escritorio: ${e.message}`);
+}
+
 rmSync(TMP, { recursive: true, force: true });
-const dFinal = duracion(SALIDA);
+const dFinal = duracion(SALIDA) ?? total;
 console.log(`\n✓ ${SALIDA}`);
-console.log(`  ${dFinal.toFixed(1)}s · 1920x1080 · 30fps`);
-if (dFinal > 120) console.log(`  ⚠ pasa de 2 min: probá --velocidad ${(dFinal / 105).toFixed(2)}`);
+console.log(`  ${dFinal.toFixed(1)}s · ${W}x${H} · ${FPS}fps · marco + ${segmentos.length} segmentos`);

@@ -1,0 +1,56 @@
+{
+  "_comentario": [
+    "Planos cinematográficos generados con Higgsfield (seedance_2_0, 1920x1080,",
+    "16:9, 5 s, sin audio). Los MP4 no se versionan — se bajan con",
+    "`node traer-assets.mjs`. Si una URL caduca, regenerá el plano con el prompt",
+    "y las referencias de acá abajo, y actualizá el link.",
+    "",
+    "Los dos arrancan del primer fotograma de la foto aérea REAL del parque",
+    "(public/landing/hero-industrial-aereo.webp, la que usa el home), y usan los",
+    "dos clips de `referencias` como guía de movimiento de cámara y color."
+  ],
+  "origen": {
+    "primer_fotograma": "public/landing/hero-industrial-aereo.webp",
+    "url_publica": "https://www.uiabconecta.com/landing/hero-industrial-aereo.webp",
+    "modelo": "seedance_2_0"
+  },
+  "planos": [
+    {
+      "nombre": "apertura",
+      "destino": "assets/apertura.mp4",
+      "duracion": 5,
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39DWmsuAL4sm2RdSCFiMqD1gGlA/hf_20260812_163400_1d08fd04-5c8c-425e-8b3a-97535db73fb1.mp4",
+      "prompt": "Cinematic aerial drone push forward over this real industrial park in Almirante Brown, Buenos Aires. The camera accelerates smoothly forward and slightly downward over the warehouse roofs, loading docks and tree-lined streets. Thin luminous orange and cyan light trails ignite between the rooftops, linking the buildings into a glowing network as the camera pushes in. Rich cinematic color grade, deep navy shadows, warm highlights, volumetric haze. Photorealistic, faithful to the source photograph. No text, no logos, no people."
+    },
+    {
+      "nombre": "cierre",
+      "destino": "assets/cierre.mp4",
+      "duracion": 5,
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39DWmsuAL4sm2RdSCFiMqD1gGlA/hf_20260812_163400_2217d374-b52c-4a51-8408-fa321c112128.mp4",
+      "prompt": "Cinematic aerial drone slowly rising and pulling back from this real industrial park in Almirante Brown, Buenos Aires, drifting into golden hour. Warm low sun rakes across the warehouse roofs casting long shadows, while a soft grid of orange and cyan light trails links the rooftops and fades toward the horizon. Calm, majestic, wide. Deep navy sky, cinematic color grade, volumetric haze. Photorealistic, faithful to the source photograph. No text, no logos, no people."
+    },
+    {
+      "nombre": "catalogo",
+      "destino": "assets/catalogo.mp4",
+      "duracion": 5,
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39DWmsuAL4sm2RdSCFiMqD1gGlA/hf_20260815_030919_912824f4-67d5-4103-b4b6-f5a8c89f0d2f.mp4",
+      "modelo": "seedance_2_0",
+      "prompt": "Cinematic slow dolly-in through a working metalworking shop inside an Argentine industrial park, late golden hour. Foreground: a CNC press brake folding a bright steel sheet, fine sparks drifting. Midground: stacked steel coils, blue plastic crates and wooden pallets on a polished concrete floor. Background: a worker in a hi-vis vest and helmet walking across frame, low sun raking through tall factory windows. Warm amber key light against deep teal shadows, volumetric dust in the light beams, shallow depth of field, anamorphic 35mm lens, subtle handheld float, rich contrast, photoreal documentary look. No text, no logos, no graphics, no captions.",
+      "para": "El capítulo del catálogo. Va a sangre, sin el marco: rompe la seguidilla de pantallas y muestra de qué habla el sitio — productos y servicios reales del parque — sin exponer el catálogo de una socia concreta.",
+      "se_generaron": 2,
+      "descartado": "hf_20260815_030919_d42f07cc: arranca muy cerrado sobre la máquina y el paneo revela menos."
+    }
+  ],
+  "referencias": [
+    {
+      "nombre": "referencia-empuje",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39DWmsuAL4sm2RdSCFiMqD1gGlA/hf_20260812_162039_500ba4e5-0bb6-4196-833f-c7787319d665.mp4",
+      "para": "Movimiento de cámara: empuje hacia adelante que acelera."
+    },
+    {
+      "nombre": "referencia-retroceso",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_39DWmsuAL4sm2RdSCFiMqD1gGlA/hf_20260812_162039_caf7adf9-eb77-4da6-b2bd-65413d45891b.mp4",
+      "para": "Color y atmósfera: retroceso amplio, hora dorada, estelas de luz."
+    }
+  ]
+}

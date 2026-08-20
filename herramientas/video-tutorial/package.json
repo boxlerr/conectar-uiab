@@ -2,5 +2,15 @@
   "name": "uiab-video-tutorial",
   "private": true,
   "type": "module",
-  "dependencies": { "playwright": "^1.57.0" }
+  "scripts": {
+    "video": "node video.mjs",
+    "montar": "node montar.mjs",
+    "assets": "node traer-assets.mjs && node logo.mjs",
+    "prueba": "node prueba-look.mjs"
+  },
+  "dependencies": {
+    "@ffprobe-installer/ffprobe": "^2.1.2",
+    "ffmpeg-static": "^5.2.0",
+    "playwright": "^1.57.0"
+  }
 }

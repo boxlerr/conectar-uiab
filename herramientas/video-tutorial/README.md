@@ -1,65 +1,253 @@
 # Video tutorial de UIAB Conecta
 
-Screencast **real** del sitio, generado por script: Playwright maneja un Chromium
-de verdad (cursor visible, scroll con easing, tipeo con ritmo humano) mientras
-una capa inyectada dibuja los subtítulos y las placas con la identidad de la
-marca. Después ffmpeg encadena las partes y arma el MP4.
+Pieza dirigida sobre imágenes **reales** del sitio, generada por script.
+Playwright maneja un Chromium de verdad (cursor visible, scroll con easing,
+tipeo con ritmo humano) y entrega **material crudo y limpio**. Toda la
+dirección —encuadre, acercamientos, ritmo, tipografía, marco— la pone ffmpeg
+después. Los planos aéreos de apertura y cierre salen de Higgsfield, partiendo
+de la **foto real del parque** que usa el home.
 
-Resultado: `tutorial-uiab-conecta.mp4` — 1920x1080, 30 fps, ~100 s.
+Resultado: `tutorial-uiab-conecta.mp4` — 1920x1080, 30 fps.
 
-## Cómo volver a grabarlo
+---
+
+## Cómo está pensada
+
+La primera versión filmaba la pantalla entera a velocidad real y dibujaba los
+carteles **dentro** de la página. Eso da un screencast: recorrido lento, letra
+chica, tramos donde no pasa nada y globitos pegados encima.
+
+Ahora la cámara no es el navegador, es el montaje:
+
+| | Antes | Ahora |
+| --- | --- | --- |
+| Encuadre | El viewport entero, siempre | Punch-in sobre el elemento del que se habla |
+| Texto | Dibujado en la página, chico | PNG pre-renderizado, entra sincronizado con el zoom |
+| Resaltado | Recuadro naranja sobre el elemento | El encuadre **es** el resaltado |
+| Ritmo | Tiempo real, con esperas incluidas | Sólo los planos; navegar y scrollear no entran |
+| Presentación | Pantalla a sangre | Marco de marca con sombra y los dos logos |
+
+El guion (`escenas/*.mjs`) declara **planos**: qué se hace, a quién se encuadra
+y qué texto lo acompaña. Cada plano anota entre qué milisegundos ocurre. Lo que
+queda entre plano y plano —navegar, esperar a que Next compile una ruta,
+scrollear treinta tarjetas— se tira. Por eso el material crudo son ~20 s por
+capítulo y la pieza usa ~12.
+
+Para que los planos caigan clavados sobre el `.webm`, la grabación arranca con
+una **claqueta**: un destello verde a pantalla completa. El montaje busca el
+primer fotograma verde y con eso ata el reloj del guion al video. Sin eso los
+textos entran corridos, porque entre que Playwright crea la página y sale el
+primer fotograma hay una demora que cambia en cada corrida.
+
+---
+
+## Hacerlo (esto es todo)
+
+**Una vez**, para dejar la máquina lista:
 
 ```bash
-cd herramientas/video-tutorial && npm install && npx playwright install chromium
+cd herramientas/video-tutorial
+npm install
 ```
 
-Con el dev server levantado (anotá el puerto que informa):
+Eso ya trae ffmpeg y ffprobe — no hay que instalar nada más a mano.
+
+**Cada vez que quieras el video**, una sola terminal y un solo comando:
 
 ```bash
-BASE_URL=http://localhost:3000 node grabar.mjs && node montar.mjs --velocidad 1.1
+cd herramientas/video-tutorial
+npm run video
 ```
 
-`--velocidad` acelera todo de forma pareja; es la perilla para encajar en una
-duración objetivo sin volver a tocar los tiempos de cada escena.
+Listo. Cuando termina, el archivo queda en
+`herramientas/video-tutorial/tutorial-uiab-conecta.mp4`.
+
+`npm run video` hace todo solo: **levanta la app** si no está corriendo (y la
+baja al terminar), baja los planos aéreos, genera el logo, graba y monta. Si
+falta algo, te dice qué en castellano.
+
+> Si ya tenías la app corriendo en otra terminal, la usa y no la toca.
+
+**Si tenés otra sesión del proyecto abierta** (otra ventana, otro agente, otro
+worktree), lo más probable es que el 3000 ya esté tomado. Pedile un puerto
+propio y listo — lo usa tanto para levantar la app como para filmar:
+
+```bash
+BASE_URL=http://localhost:3005 npm run video
+```
+
+Si el puerto que elegiste también está ocupado, te lo dice enseguida en vez de
+quedarse esperando.
+
+### Lo único que hay que configurar
+
+El video se graba **con sesión iniciada** (sin ella la ficha de empresa muestra
+"Contenido exclusivo para miembros" y las Oportunidades ni se ven), así que el
+`.env` de la raíz del repo necesita con qué cuenta entrar:
+
+```
+UIAB_EMAIL=alguien@suempresa.com
+UIAB_PASSWORD=la-contraseña
+```
+
+Que **no sea la cuenta de la UIAB**: las oportunidades de demo se crean a
+nombre de la UIAB y el botón "Postularse" no se le muestra a quien publicó, así
+que esa parte del video no se podría filmar.
+
+Las claves de Supabase del mismo `.env` son las de siempre, no hay que tocar
+nada más.
+
+### Variantes
+
+```bash
+npm run video -- --objetivo 50    # más corto
+npm run video -- --logo ambos     # logo también en la apertura
+npm run video -- --con-demo       # con oportunidades de ejemplo (ver abajo)
+```
+
+Si ya grabaste y sólo querés recortar distinto o cambiar la música, **no hace
+falta volver a grabar**: `npm run montar -- --objetivo 55`.
+
+---
 
 ## Música
 
-Dejá un MP3 en `assets/musica.mp3` y volvé a correr **solo** el montaje (no hace
-falta regrabar): se mezcla al 16 % de volumen con fundido de entrada y salida.
+No viene ninguna incluida: hay que elegirla y es una decisión de marca. Bajás un
+MP3, lo dejás en `assets/musica.mp3` y volvés a correr **sólo el montaje**:
 
 ```bash
-node montar.mjs --velocidad 1.1
+npm run montar
 ```
+
+De dónde sacarla, gratis y sin problemas de licencia:
+
+| Dónde | Licencia |
+| --- | --- |
+| [pixabay.com/music](https://pixabay.com/music/) | Uso comercial libre, **sin atribución**. La opción más simple. |
+| YouTube Studio → Biblioteca de audio | Gratis; algunas piden atribución (lo aclara cada pista). |
+| [freemusicarchive.org](https://freemusicarchive.org) | Varía por pista — hay que mirar la licencia de cada una. |
+
+Buscá algo tipo *corporate uplifting*, *inspiring technology* o *upbeat
+corporate*, de 1 a 2 minutos.
+
+No hace falta que la pista dure lo mismo que el video ni que la ajustes de
+volumen: si es más corta se repite sola, y el montaje la lleva a **-16 LUFS**
+(el estándar de video web) con el pico controlado. O sea que cualquier MP3 que
+le tires queda al mismo nivel percibido, sin que una tape el video y la
+siguiente no se escuche. Para subirla o bajarla: `--lufs -14` (más fuerte),
+`--lufs -20` (más suave).
+
+---
+
+## Las perillas del montaje
+
+| Flag | Para qué |
+| --- | --- |
+| `--objetivo 40` | Duración buscada en segundos. Calcula solo cuánto acelerar. |
+| `--logo ambos` | Dónde va el logo del plano aéreo: `apertura`, `cierre`, `ambos` o `no`. |
+| `--lufs -16` | Volumen percibido de la música. |
+| `--sin-bookends` | Sin planos aéreos: sólo la pieza. |
+| `--musica ruta.mp3` | Otra pista, sin tocar `assets/`. |
+| `--solo buscar` | Monta **un solo plano**, por su `id`. Para ajustar un encuadre sin esperar el render entero. |
+
+`--objetivo` topea en 1.6×: más rápido que eso el tipeo parece adelantado. Si
+la pieza sigue quedando larga, hay que **sacar planos** en `escenas/`, no
+acelerar más.
+
+### Ajustar un encuadre sin volver a filmar
+
+El encuadre se calcula en el montaje a partir de la caja que anotó la
+grabación, así que se puede reajustar mirando el render y volviendo a montar
+—que tarda segundos— sin regrabar nada:
+
+```bash
+node montar.mjs --solo contacto
+```
+
+En `escenas/*.mjs`, cada plano acepta `escala` (un número fuerza el
+acercamiento; `"auto"` lo calcula), `velocidad` (acelera ese plano),
+`congelar` (le prohíbe a la app scrollear durante el plano) y `medirEn`
+(`"despues"` por defecto: sigue al elemento si la pantalla se movió).
+
+---
 
 ## Piezas
 
 | Archivo | Qué hace |
 | --- | --- |
+| `video.mjs` | El de arriba: encadena todo y revisa que estén las condiciones. |
 | `grabar.mjs` | Arnés: inicia sesión fuera de cámara y graba dos pasadas, una por capítulo. |
-| `escenas/*.mjs` | El guion de cada capítulo — acá se edita qué se muestra y qué dice. |
-| `piloto.mjs` | Conducción "humana": trayectorias con curva, tipeo irregular, encuadres. |
-| `capa-visual.js` | Se inyecta en la página: cursor, subtítulos, placas, resaltados. |
-| `montar.mjs` | ffmpeg: normaliza, encadena con disolvencia, mezcla música, exporta. |
-| `demo-datos.mjs` | Siembra y borra las oportunidades de ejemplo (ver abajo). |
+| `escenas/*.mjs` | El guion de cada capítulo, escrito como lista de **planos**. |
+| `piloto.mjs` | Conducción "humana" (curvas, tipeo irregular) y la dirección: `plano()`. |
+| `capa-visual.js` | Se inyecta en la página. Sólo cursor, onda del click y claqueta. |
+| `montar.mjs` | ffmpeg: corta los planos, hace los acercamientos, compone y exporta. |
+| `marco.mjs` | Dibuja `assets/marco.png`: fondo, pantalla con sombra y los dos logos. |
+| `tipografia.mjs` | Rasteriza los carteles y las placas de capítulo. |
+| `traer-assets.mjs` | Baja los planos aéreos a `assets/`. |
+| `logo.mjs` | Rasteriza el logo del sitio a PNG transparente (ffmpeg no lee SVG). |
+| `demo-datos.mjs` | Siembra y borra las oportunidades de ejemplo. |
 | `sonda.mjs` | Diagnóstico: lista lo que realmente renderiza cada ruta. |
+
+`assets/fuentes/` son las mismas Poppins que sirve el sitio (next/font las
+self-hostea en `.next/static/media`). Van versionadas porque no se bajan de
+ningún lado, y sin ellas los textos salen con la fuente del sistema.
+
+### Iterar sin credenciales
+
+```bash
+BASE_URL=http://localhost:3005 node grabar.mjs --sin-sesion
+```
+
+Filma sólo el Directorio público. **No sirve para la pieza final** —sin sesión
+la ficha tapa catálogo y contacto con "Contenido exclusivo para miembros"— pero
+alcanza para ajustar encuadres, tipografía y ritmo.
+
+Los scripts que abren un navegador aceptan `CHROMIUM=/ruta/al/chrome` para usar
+un binario ya instalado en vez del que baja Playwright.
+
+## Los planos aéreos
+
+`assets.json` guarda, por cada plano, la URL, **el prompt con el que se generó**
+y las referencias que se le pasaron. Los MP4 no se versionan (pesan y git se los
+queda para siempre): `traer-assets.mjs` los baja. Si una URL caduca, se regenera
+el plano en Higgsfield con esos mismos datos y se actualiza el link.
+
+Los dos planos arrancan del primer fotograma de
+`public/landing/hero-industrial-aereo.webp` — la foto aérea real del parque de
+Almirante Brown que ya usa el home— así que lo que se ve es el lugar de verdad,
+no un polígono industrial genérico. Encima de esa base van dos clips de
+referencia (los de `referencias` en `assets.json`): uno aporta el movimiento de
+cámara y el otro el color y la atmósfera.
+
+El recorte de cada plano se ancla a un extremo y se calcula midiendo el clip, no
+con un segundo fijo: la apertura toma los últimos 3 s (el dron acelera, así que
+el pico está al final) y el cierre los primeros 4 s. Si mañana se regenera un
+plano de otra duración, sigue cayendo donde tiene que caer.
+
+El logo **no** se lo pedimos al modelo: la IA deforma cualquier logotipo. Se
+compone con ffmpeg desde `logo-uiab-conecta.svg`, el mismo archivo que usa la
+app, así que sale idéntico.
 
 ## Datos de demostración
 
 La tabla `oportunidades` está vacía en producción, así que el capítulo 2 no
-tendría nada que mostrar. `demo-datos.mjs` crea tres pedidos de ejemplo a nombre
-de la UIAB (no de una socia real) y los borra después:
+tendría nada que mostrar. `--con-demo` crea tres pedidos de ejemplo a nombre de
+la UIAB (no de una socia real) y **los borra siempre al terminar**, aunque la
+grabación se caiga a la mitad:
 
 ```bash
-node demo-datos.mjs sembrar   # antes de grabar
-node demo-datos.mjs limpiar   # SIEMPRE al terminar
+npm run video -- --con-demo
 ```
 
 Van a nombre de la UIAB a propósito: el botón "Postularse" no se le muestra al
 dueño de la oportunidad, así que si las creara la misma cuenta con la que se
 filma, esa parte del video no existiría.
 
-> **Ojo:** el `.env` local apunta a la base de **producción**. `sembrar` escribe
-> ahí. Acordate de correr `limpiar`.
+> **Ojo:** el `.env` local apunta a la base de **producción**, así que esto
+> escribe ahí. Si por lo que sea el borrado no corre, se limpia a mano con
+> `node demo-datos.mjs limpiar`.
+
+Necesita `SUPABASE_SERVICE_ROLE_KEY` en el `.env` de la raíz del repo.
 
 ## Lo que el guion nunca aprieta
 
