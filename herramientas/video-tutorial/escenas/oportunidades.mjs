@@ -133,7 +133,7 @@ export async function escenaOportunidades({ page, BASE }) {
     velocidad: 1.35,
   }, async () => {
     await opcional("título", () =>
-      tipear(page, "#titulo", "Corte y plegado de chapa a medida", { porChar: 20 }));
+      tipear(page, "#titulo", "Mantenimiento de tablero eléctrico", { porChar: 20 }));
     await dormir(280);
   });
 
@@ -167,7 +167,7 @@ export async function escenaOportunidades({ page, BASE }) {
     // rubro quedaba sin elegir y el formulario se veía a medio llenar en el
     // plano final.
     let iRubro = -1;
-    for (const patron of [/^corte y plegado$/i, /^chapas$/i, /^metal.rgica$/i]) {
+    for (const patron of [/^electricidad$/i, /^telecomunicaciones y redes$/i]) {
       iRubro = await indicePorTexto(page, OPCION, patron);
       if (iRubro >= 0) break;
     }
@@ -196,7 +196,7 @@ export async function escenaOportunidades({ page, BASE }) {
     tipearDirecto(page, "#localidad", "Burzaco, Buenos Aires"));
   await opcional("descripción", () =>
     tipearDirecto(page, 'div[role="textbox"][aria-labelledby="lbl-descripcion"]',
-      "Corte láser y plegado de chapa de 2 mm, entrega en planta de Burzaco."));
+      "Revisión trimestral del tablero y la puesta a tierra de la oficina."));
   await dormir(300);
 
   // ── 7. El pico: el match ────────────────────────────────────────

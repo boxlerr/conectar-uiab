@@ -83,8 +83,12 @@ async function asegurarApp() {
   dev.stdout.on("data", (d) => { salida += d; });
   dev.stderr.on("data", (d) => { salida += d; });
 
-  // Hasta 90 s: la primera compilación de Next puede tardar.
-  for (let i = 0; i < 90; i++) {
+  // Hasta 240 s. Eran 90 y no alcanzaban: después de borrar .next —o de un
+  // merge que invalida la caché— Turbopack tarda bastante más en la primera
+  // compilación, y el script se rendía justo antes de que la app estuviera
+  // lista. El síntoma era "No pude levantar la app" sin ningún error abajo,
+  // que manda a buscar el problema donde no está.
+  for (let i = 0; i < 240; i++) {
     if (dev.exitCode !== null) break;
     if (await responde()) {
       console.log("· lista");

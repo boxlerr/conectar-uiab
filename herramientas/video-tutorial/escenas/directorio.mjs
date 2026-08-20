@@ -11,7 +11,7 @@
  */
 import {
   dormir, asentar, plano, clickEn, tipear, scrollA, moverAlSelector,
-  asegurarVisible, indicePorTexto, posicionarCursor, caja,
+  asegurarVisible, indicePorTexto, posicionarCursor, caja, scrollSuave,
 } from "../piloto.mjs";
 
 const BUSCADOR = 'input[aria-label="Buscar en todo el directorio"]';
@@ -77,8 +77,8 @@ export async function escenaDirectorio({ page, BASE }) {
 
   await plano(page, {
     id: "resultados",
-    encuadre: '[data-tour="directorio-resultados"]',
-    escala: 1.15,
+    encuadre: TARJETA,
+    escala: 1.45,
     rotulo: "Al instante",
     texto: "Quién hace eso en el parque.",
   }, () => dormir(400));
@@ -115,28 +115,18 @@ export async function escenaDirectorio({ page, BASE }) {
   const iFicha = Math.max(0, await indicePorTexto(page, TARJETA, /vaxler/i));
   const destino = await page.locator(TARJETA).nth(iFicha).getAttribute("href");
 
-  // El puntero llega a la tarjeta ANTES de que empiece el plano. Con
-  // `navega: true` la espera de lectura va primero, así que si el viaje del
-  // mouse quedaba adentro, el plano arrancaba con tres segundos de imagen
-  // completamente quieta y después recién se movía: se sentía congelado.
+  // El plano "Un click y estás en el perfil" se sacó: no sumaba nada — misma
+  // pantalla, mismo encuadre, y el click no se percibía. Después de filtros se
+  // salta directo a la ficha. El click sigue estando, pero fuera de plano.
   await moverAlSelector(page, TARJETA, { ms: 460, idx: iFicha });
-  await dormir(120);
-
-  await plano(page, {
-    id: "tarjetas",
-    encuadre: TARJETA,
-    idx: iFicha,
-    escala: 1.5,
-    navega: true,
-    rotulo: "Cada tarjeta",
-    texto: "Un click y estás en el perfil.",
-  }, async () => {
-    await clickEn(page, TARJETA, { ms: 200, idx: iFicha });
-  });
+  await dormir(140);
+  await clickEn(page, TARJETA, { ms: 200, idx: iFicha });
 
   // La navegación no se filma.
   await page.waitForURL(/\/empresas\//, { timeout: 15_000 }).catch(() => {});
   await asentar(page, 700);
+  await scrollSuave(page, 0, 1);
+  await dormir(260);
   await posicionarCursor(page, 900, 620);
 
   // ── 6. La ficha ─────────────────────────────────────────────────
@@ -164,8 +154,25 @@ export async function escenaDirectorio({ page, BASE }) {
   ).catch(() => console.log("    · el catálogo no apareció en 8 s"));
   const iCat = await indicePorTexto(page, CATALOGO, /productos y servicios/i);
   if (iCat >= 0) {
-    await scrollA(page, CATALOGO, { offset: 150, ms: 620, idx: iCat });
-    await dormir(360);
+    // scrollIntoViewIfNeeded de Playwright, no el del DOM.
+    //
+    // Dos razones, las dos comprobadas a la mala: la capa visual PARCHEA
+    // Element.prototype.scrollIntoView para poder congelar el scroll durante
+    // un plano, así que llamarlo desde la página puede ser un no-op; y si el
+    // contenido vive en un contenedor con scroll propio, window.scrollTo
+    // tampoco hace nada. El de Playwright va por el protocolo del navegador y
+    // resuelve los dos casos.
+    const seccionCatalogo = page.locator("main section")
+      .filter({ hasText: /productos y servicios/i }).first();
+    await seccionCatalogo.scrollIntoViewIfNeeded({ timeout: 8000 }).catch(() => {});
+    await dormir(700);
+
+    // Comprobación ruidosa: si el catálogo no quedó arriba, el plano va a
+    // mostrar otra cosa y el cartel va a mentir. Mejor enterarse en el log.
+    const yCat = await caja(page, CATALOGO, iCat);
+    console.log(`    · catálogo en y=${Math.round(yCat?.y ?? -9999)}`
+      + (yCat && yCat.y >= 0 && yCat.y < 420 ? " ✓" : " ⚠ no quedó en cuadro"));
+
     await plano(page, {
       id: "catalogo",
       encuadre: CATALOGO,

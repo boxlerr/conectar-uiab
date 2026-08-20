@@ -94,9 +94,12 @@ async function sembrar() {
     const [c] = await api(`categorias?select=id,nombre&nombre=ilike.*${encodeURIComponent(like)}*&limit=1`);
     return c;
   };
-  const metal = await cat("Metal");
+  // Exactas: con patrones flojos ("Metal", "Mantenimiento") caía en cosas como
+  // "Cursos de Mantenimiento de Grúas", que en cámara no tiene nada que ver
+  // con el pedido.
+  const redes = await cat("Telecomunicaciones y Redes");
+  const electr = await cat("Electricidad");
   const transp = await cat("Transporte");
-  const mant = await cat("Mantenimiento");
 
   const hoy = new Date("2026-07-31");
   const enDias = (d) => new Date(hoy.getTime() + d * 864e5).toISOString().slice(0, 10);
@@ -104,27 +107,26 @@ async function sembrar() {
   const filas = [
     {
       empresa_solicitante_id: vaxler.id, creado_por: autorVaxler,
-      categoria_id: metal?.id ?? null,
-      titulo: "Provisión de 500 kg de chapa laminada en frío",
+      categoria_id: redes?.id ?? null,
+      titulo: "Cableado estructurado y rack para sala de servidores",
       descripcion:
-        "<p>Necesitamos <b>500 kg de chapa laminada en frío</b> calidad SAE 1010, espesor 1,2 mm, " +
-        "en formato de 1000 x 2000 mm.</p><p>Requisitos: certificado de colada por lote, superficie sin " +
-        "óxido ni marcas de manipuleo, y entrega en planta de Burzaco en un plazo máximo de 15 días.</p>" +
-        "<p>Se solicita cotización con precio por kilo, condiciones de pago y plazo de entrega en firme.</p>",
-      cantidad: 500, unidad: "kg", localidad: "Burzaco, Provincia de Buenos Aires",
+        "<p>Necesitamos <b>cableado estructurado categoría 6A</b> y un rack de 42U para la sala de " +
+        "servidores de nuestra oficina en Burzaco.</p><p>Alcance: tendido de 24 bocas, patchera, " +
+        "bandejas, certificación de cada enlace y etiquetado. Incluye rack, PDU y organizadores.</p>" +
+        "<p>Se solicita cotización con materiales y mano de obra, y plazo de ejecución en firme.</p>",
+      cantidad: 24, unidad: "bocas", localidad: "Burzaco, Provincia de Buenos Aires",
       fecha_necesidad: enDias(21), tipo_requerimiento: ["material"],
     },
     {
       empresa_solicitante_id: vaxler.id, creado_por: autorVaxler,
-      categoria_id: mant?.id ?? metal?.id ?? null,
-      titulo: "Reparación y puesta a punto de torno CNC Fanuc",
+      categoria_id: electr?.id ?? redes?.id ?? null,
+      titulo: "Tablero eléctrico y UPS para sala de servidores",
       descripcion:
-        "<p>Buscamos taller o técnico especializado para la <b>reparación de un torno CNC con control " +
-        "Fanuc 0i-TD</b>. La máquina presenta error de eje X y pérdida de repetibilidad.</p>" +
-        "<p>Alcance: diagnóstico en planta, reemplazo de guías y husillo si hiciera falta, calibración " +
-        "final y protocolo de mediciones.</p><p>Valoramos experiencia comprobable en Fanuc y " +
-        "disponibilidad para trabajar durante la parada de planta.</p>",
-      cantidad: 1, unidad: "servicio", localidad: "Longchamps, Provincia de Buenos Aires",
+        "<p>Buscamos instalador matriculado para el <b>tablero eléctrico dedicado y la UPS</b> de la " +
+        "sala de servidores.</p><p>Alcance: tablero con protecciones diferenciales y termomagnéticas, " +
+        "puesta a tierra medida, y UPS online de 6 kVA con autonomía de 30 minutos.</p>" +
+        "<p>Se pide memoria técnica, certificado de puesta a tierra y garantía por escrito.</p>",
+      cantidad: 1, unidad: "servicio", localidad: "Burzaco, Provincia de Buenos Aires",
       fecha_necesidad: enDias(12), tipo_requerimiento: ["servicio"],
     },
     {
