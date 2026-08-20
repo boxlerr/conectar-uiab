@@ -142,7 +142,11 @@ export default function MiPerfilSuscripcionPage() {
 
   const nombreMetodo = (() => {
     const m = suscripcion?.metodo_pago;
-    if (m === 'mercadopago') return 'Mercado Pago (tarjeta recurrente)';
+    if (m === 'sipago') return 'Sipago (tarjeta)';
+    if (m === 'transferencia') return 'Transferencia bancaria';
+    // Mercado Pago se dio de baja el 2026-08-14. Queda el rótulo porque hay
+    // filas viejas que todavía lo tienen guardado.
+    if (m === 'mercadopago') return 'Mercado Pago (dado de baja)';
     if (m === 'efectivo') return 'Efectivo (en persona)';
     if (m === 'cheque') return 'Cheque (en persona)';
     if (m === 'cortesia') return 'Cortesía UIAB';

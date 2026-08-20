@@ -6,7 +6,7 @@ import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utilidades";
-import { Loader2, CreditCard, ShieldCheck, AlertCircle, Check } from "lucide-react";
+import { Loader2, CreditCard, ShieldCheck, AlertCircle, Check, Clock, RefreshCw, Copy } from "lucide-react";
 import {
   PRECIO_MENSUAL,
   PRECIO_ANUAL,
@@ -45,6 +45,14 @@ function CheckoutContenido() {
   const [monto, setMonto] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Cuando no hay pasarela disponible el pago se coordina por fuera. No es un
+  // error —la solicitud quedó anotada y el admin recibe el aviso— así que se
+  // muestra aparte del cartel rojo.
+  const [avisoManual, setAvisoManual] = useState<string | null>(null);
+  // El plan recurrente no redirige de una: antes hay que decirle al socio con
+  // qué CUIT tiene que anotarse, porque es el único dato con el que después lo
+  // vamos a poder reconocer en el reporte de cobros de Sipago.
+  const [adhesion, setAdhesion] = useState<{ url: string; cuit: string | null } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !currentUser) {
@@ -76,6 +84,26 @@ function CheckoutContenido() {
       }
 
       setMonto(data.monto);
+
+      // Plan recurrente: deja la tarjeta adherida y Sipago le debita solo.
+      if (data.suscripcion_url) {
+        setAdhesion({ url: data.suscripcion_url, cuit: data.cuit ?? null });
+        setLoading(false);
+        return;
+      }
+
+      // Sin pasarela configurada (o con Sipago caído) el endpoint devuelve
+      // `manual`. Antes esa respuesta terminaba en `location.href = undefined`,
+      // que en la práctica dejaba el botón girando para siempre.
+      if (!data.init_point) {
+        setAvisoManual(
+          "Anotamos tu plan y le avisamos a la UIAB. Te van a contactar para coordinar el pago; " +
+            "en cuanto lo registren, tu suscripción queda activa."
+        );
+        setLoading(false);
+        return;
+      }
+
       window.location.href = data.init_point;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error inesperado");
@@ -127,11 +155,14 @@ function CheckoutContenido() {
               <CreditCard className="w-5 h-5 text-slate-600" />
             </div>
             <div>
-              <p className="font-semibold text-slate-900">Pago con Mercado Pago</p>
+              <p className="font-semibold text-slate-900">Pago con Sipago</p>
               <p className="text-sm text-slate-500">
+                {/* Sipago cobra el ciclo de una vez: no queda una tarjeta
+                    adherida ni hay débito automático. Decir "cobro automático"
+                    sería prometer algo que la pasarela no hace. */}
                 {ciclo === "anual"
-                  ? "Cobro automático todos los años. Podés cancelar cuando quieras."
-                  : "Cobro automático todos los meses. Podés cancelar cuando quieras."}
+                  ? "Con tarjeta de débito o crédito."
+                  : "Con tarjeta de débito o crédito."}
               </p>
             </div>
           </div>
@@ -190,6 +221,53 @@ function CheckoutContenido() {
             </div>
           )}
 
+          {adhesion && (
+            <div className="rounded-xl border border-primary-200 bg-primary-50 p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <RefreshCw className="w-5 h-5 text-primary-700 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-slate-900">Débito automático</p>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Dejás tu tarjeta una vez y Sipago cobra {ciclo === "anual" ? "todos los años" : "todos los meses"} solo.
+                    Podés dar de baja cuando quieras.
+                  </p>
+                </div>
+              </div>
+
+              {adhesion.cuit && (
+                <div className="rounded-lg bg-white border border-primary-200 p-4">
+                  <p className="text-sm text-slate-700">
+                    Cuando Sipago te pida el <strong>Documento (CUIT/CUIL)</strong>, ingresá exactamente este:
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <code className="text-lg font-bold tracking-wide text-slate-900">{adhesion.cuit}</code>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard?.writeText(adhesion.cuit!)}
+                      className="inline-flex items-center gap-1 text-xs text-primary-700 hover:text-primary-900 underline"
+                    >
+                      <Copy className="w-3 h-3" /> copiar
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Es con ese número que vamos a reconocer tu pago. Si ponés otro, tu suscripción puede quedar sin activar.
+                  </p>
+                </div>
+              )}
+
+              <Button size="lg" className="w-full" onClick={() => { window.location.href = adhesion.url; }}>
+                Ir a Sipago y adherir mi tarjeta
+              </Button>
+            </div>
+          )}
+
+          {avisoManual && (
+            <div className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-200 p-4 text-amber-800">
+              <Clock className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <p className="text-sm">{avisoManual}</p>
+            </div>
+          )}
+
           {error && (
             <div className="flex items-start gap-3 rounded-lg bg-rose-50 border border-rose-200 p-4 text-rose-700">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -197,13 +275,17 @@ function CheckoutContenido() {
             </div>
           )}
 
-          <Button size="lg" className="w-full" onClick={iniciarPago} disabled={loading}>
-            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirigiendo...</> : "Pagar con Mercado Pago"}
-          </Button>
+          {!adhesion && (
+            <>
+              <Button size="lg" className="w-full" onClick={iniciarPago} disabled={loading}>
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Un momento...</> : "Continuar"}
+              </Button>
 
-          <p className="text-xs text-slate-500 text-center">
-            Serás redirigido a Mercado Pago para completar el pago de forma segura.
-          </p>
+              <p className="text-xs text-slate-500 text-center">
+                Te vamos a llevar a Sipago para completar el pago de forma segura.
+              </p>
+            </>
+          )}
         </div>
       </Card>
 

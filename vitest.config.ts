@@ -7,6 +7,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Ver src/tests/stubs/server-only.ts: sin esto, cualquier test que toque
+      // un módulo marcado como server-only explota al importarlo.
+      'server-only': path.resolve(__dirname, './src/tests/stubs/server-only.ts'),
     },
   },
   test: {

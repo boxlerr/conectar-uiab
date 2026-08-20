@@ -1,3 +1,14 @@
+> ⚠️ **DOCUMENTO HISTÓRICO — no describe el sistema actual.**
+>
+> Mercado Pago se dio de baja como pasarela el **2026-08-14** y el código que
+> figura acá (`src/lib/mercadopago/*`, `src/app/api/mercadopago/*`) ya no existe
+> en el repo. Desde el **2026-08-20** la pasarela es Sipago: ver
+> **[SIPAGO.md](./SIPAGO.md)**.
+>
+> Se conserva para poder leer decisiones viejas —el esquema de estados, el
+> período de gracia y el circuito de pagos manuales siguen vigentes y nacieron
+> acá—, no para implementar nada.
+
 # Integración Mercado Pago — Suscripciones UIAB Conecta
 
 > Documentación técnica y operativa completa de la integración con Mercado Pago usando **Suscripciones con integración (Preapproval API)**.

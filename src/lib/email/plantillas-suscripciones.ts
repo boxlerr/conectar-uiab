@@ -77,10 +77,12 @@ export function plantillaSuscripcionPendiente(d: DatosSuscripcionComun & {
 export function plantillaPagoConfirmado(d: DatosSuscripcionComun & {
   pagadoEn: Date | string;
   proximoCobro: Date | string;
-  metodoPago: "mercadopago" | "efectivo" | "cheque" | "cortesia";
+  metodoPago: "sipago" | "transferencia" | "mercadopago" | "efectivo" | "cheque" | "cortesia";
   referenciaPago?: string | null;
 }): { asunto: string; html: string; texto: string } {
   const nombreMetodo =
+    d.metodoPago === "sipago" ? "Sipago" :
+    d.metodoPago === "transferencia" ? "Transferencia" :
     d.metodoPago === "mercadopago" ? "Mercado Pago" :
     d.metodoPago === "efectivo" ? "Efectivo" :
     d.metodoPago === "cheque" ? "Cheque" : "Cortesía";
@@ -273,7 +275,13 @@ export function plantillaPagoManualRegistrado(d: DatosSuscripcionComun & {
   proximoCobro: Date | string;
   nota?: string | null;
 }): { asunto: string; html: string; texto: string } {
-  const nombreMetodo = d.metodo === "efectivo" ? "Efectivo" : d.metodo === "cheque" ? "Cheque" : "Cortesía";
+  // La cadena anterior caía en "Cortesía" por descarte, así que a todo el que
+  // pagaba por transferencia —el método por defecto desde que se dio de baja
+  // Mercado Pago— le llegaba un mail diciendo que su pago era sin cargo.
+  const nombreMetodo =
+    d.metodo === "transferencia" ? "Transferencia" :
+    d.metodo === "efectivo" ? "Efectivo" :
+    d.metodo === "cheque" ? "Cheque" : "Cortesía";
   const cuerpo = `
     <p style="margin: 0 0 16px 0;">Hola <strong>${d.nombre}</strong>, registramos tu pago de forma manual desde el panel UIAB.</p>
     ${tarjetaDatos([
