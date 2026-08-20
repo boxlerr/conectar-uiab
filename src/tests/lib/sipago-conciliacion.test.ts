@@ -169,7 +169,7 @@ describe("el reporte completo", () => {
 
 // ─── La decisión ────────────────────────────────────────────────────────────
 
-import { decidirAccion } from "@/lib/sipago/conciliacion";
+import { decidirAccion, activaLaSuscripcion } from "@/lib/sipago/conciliacion";
 
 const cobro = (extra: Partial<Parameters<typeof decidirAccion>[0]["fila"]> = {}) => ({
   cuit: "30711615187", monto: 50000, fecha: "2026-08-20",
@@ -296,5 +296,111 @@ describe("a quién se le cobra y a quién no", () => {
         yaCargado: false,
       }).accion
     ).toBe("activar");
+  });
+});
+
+// ─── El primer cobro del anual ──────────────────────────────────────────────
+
+describe("el primer cobro prorrateado del plan anual", () => {
+  const socia = { nombre: "Metalúrgica del Sur SA" };
+  const anual = { metodo_pago: "sipago_suscripcion", monto: 500000, ciclo: "anual" };
+
+  const anual1erCobro = (monto: number, prorrateoEsperado: number | null) =>
+    decidirAccion({
+      fila: cobro({ monto }),
+      entidad: socia,
+      suscripcion: anual,
+      yaCargado: false,
+      esPrimerCobro: true,
+      prorrateoEsperado,
+    }).accion;
+
+  it("se activa aunque el importe no llegue al precio de lista", () => {
+    // Sipago prorratea el primer cobro hasta la fecha comun del plan. Sin este
+    // caso, el socio paga, tiene el debito automatico andando, y queda sin
+    // acceso porque su cobro cae en "monto no coincide".
+    expect(anual1erCobro(195_890, 195_890)).toBe("primer_cobro_anual");
+  });
+
+  it("el que se adhiere en diciembre tampoco queda afuera", () => {
+    // Este es el punto ciego que tenia la primera version: con un piso fijo de
+    // un doceavo ($41.667), un prorrateo de diciembre (~$28.767) se marcaba
+    // como error y el socio quedaba sin activar.
+    expect(anual1erCobro(28_767, 28_767)).toBe("primer_cobro_anual");
+  });
+
+  it("ni el que se adhiere cinco dias antes de la fecha de cobro", () => {
+    expect(anual1erCobro(6_849, 6_849)).toBe("primer_cobro_anual");
+  });
+
+  it("tolera que la formula de Sipago no sea exactamente la nuestra", () => {
+    // No esta documentada: puede contar meses en vez de dias, o incluir el dia
+    // de alta. La banda aguanta esa diferencia sin abrir la mano.
+    expect(anual1erCobro(180_000, 195_890)).toBe("primer_cobro_anual");
+    expect(anual1erCobro(210_000, 195_890)).toBe("primer_cobro_anual");
+  });
+
+  it("un importe ridiculo NO pasa por prorrateo", () => {
+    // El agujero que cierra la banda: contra un prorrateo esperado de $28.767,
+    // un pago de $1 no entra por ningun lado.
+    expect(anual1erCobro(1, 195_890)).toBe("monto_no_coincide");
+    expect(anual1erCobro(1, 28_767)).toBe("monto_no_coincide");
+    expect(anual1erCobro(100, 195_890)).toBe("monto_no_coincide");
+  });
+
+  it("sin prorrateo esperado no se arriesga: lo marca para revisar", () => {
+    // Pasa cuando el reporte no trae fecha. Mejor que lo mire alguien.
+    expect(anual1erCobro(195_890, null)).toBe("monto_no_coincide");
+  });
+
+  it("del segundo cobro en adelante, un importe raro sigue siendo un error", () => {
+    expect(
+      decidirAccion({
+        fila: cobro({ monto: 195_890 }),
+        entidad: socia,
+        suscripcion: anual,
+        yaCargado: false,
+        esPrimerCobro: false,
+        prorrateoEsperado: 195_890,
+      }).accion
+    ).toBe("monto_no_coincide");
+  });
+
+  it("el mensual no prorratea: ahi un monto menor es un error", () => {
+    expect(
+      decidirAccion({
+        fila: cobro({ monto: 20000 }),
+        entidad: socia,
+        suscripcion: { metodo_pago: "sipago_suscripcion", monto: 50000, ciclo: "mensual" },
+        yaCargado: false,
+        esPrimerCobro: true,
+        prorrateoEsperado: 20000,
+      }).accion
+    ).toBe("monto_no_coincide");
+  });
+
+  it("pagar de MÁS nunca es prorrateo", () => {
+    expect(anual1erCobro(900_000, 195_890)).toBe("monto_no_coincide");
+  });
+
+  it("una socia del padrón sigue sin pagar, prorrateo o no", () => {
+    expect(
+      decidirAccion({
+        fila: cobro({ monto: 195_890 }),
+        entidad: socia,
+        suscripcion: { metodo_pago: "cortesia", monto: 0, ciclo: "anual" },
+        yaCargado: false,
+        esPrimerCobro: true,
+        prorrateoEsperado: 195_890,
+      }).accion
+    ).toBe("cortesia");
+  });
+
+  it("las dos acciones que escriben plata son exactamente esas dos", () => {
+    expect(activaLaSuscripcion("activar")).toBe(true);
+    expect(activaLaSuscripcion("primer_cobro_anual")).toBe(true);
+    for (const a of ["ya_registrado", "cuit_desconocido", "rechazado", "cortesia", "monto_no_coincide"] as const) {
+      expect(activaLaSuscripcion(a)).toBe(false);
+    }
   });
 });

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, X, RefreshCw, CheckCircle2, AlertTriangle, Gift, Ban, HelpCircle } from "lucide-react";
+import { Loader2, X, RefreshCw, CheckCircle2, AlertTriangle, Gift, Ban, HelpCircle, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 
 /**
@@ -21,7 +21,9 @@ import { toast } from "sonner";
  * aplicar recién aparece cuando hay algo que aplicar.
  */
 
-type Accion = "activar" | "ya_registrado" | "cuit_desconocido" | "rechazado" | "cortesia" | "monto_no_coincide";
+type Accion =
+  | "activar" | "primer_cobro_anual" | "ya_registrado"
+  | "cuit_desconocido" | "rechazado" | "cortesia" | "monto_no_coincide";
 
 interface Resultado {
   cuit: string;
@@ -34,6 +36,7 @@ interface Resultado {
 
 const ESTILOS: Record<Accion, { icono: React.ReactNode; etiqueta: string; clase: string }> = {
   activar:            { icono: <CheckCircle2 className="w-4 h-4" />,   etiqueta: "Activar",        clase: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+  primer_cobro_anual: { icono: <CalendarClock className="w-4 h-4" />,  etiqueta: "1er a\u00f1o prorrateado", clase: "text-sky-700 bg-sky-50 border-sky-200" },
   ya_registrado:      { icono: <RefreshCw className="w-4 h-4" />,      etiqueta: "Ya estaba",      clase: "text-slate-600 bg-slate-50 border-slate-200" },
   cortesia:           { icono: <Gift className="w-4 h-4" />,           etiqueta: "Cortesía",       clase: "text-violet-700 bg-violet-50 border-violet-200" },
   cuit_desconocido:   { icono: <HelpCircle className="w-4 h-4" />,     etiqueta: "CUIT sin socio", clase: "text-amber-700 bg-amber-50 border-amber-200" },
@@ -78,7 +81,11 @@ export function ModalConciliarSipago({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const aActivar = (resultados ?? []).filter((r) => r.accion === "activar").length;
+  // El prorrateado tambien activa: si no se aplicara, el socio anual paga, tiene
+  // el debito automatico andando y queda sin acceso.
+  const aActivar = (resultados ?? []).filter(
+    (r) => r.accion === "activar" || r.accion === "primer_cobro_anual"
+  ).length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">

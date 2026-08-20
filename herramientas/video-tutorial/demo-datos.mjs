@@ -4,14 +4,20 @@
  *   node demo-datos.mjs sembrar   → crea 3 oportunidades y anota sus ids
  *   node demo-datos.mjs limpiar   → borra EXACTAMENTE esas 3 (y sus postulaciones)
  *
- * Van a nombre de la UIAB (no de la empresa de prueba) a propósito: el botón
- * "Postularse" no se renderiza para el dueño de la oportunidad, así que si las
- * creara la misma cuenta con la que filmo, no habría nada que mostrar.
+ * Dos van a nombre de VAXLER —la empresa que el video recorre— y la tercera a
+ * nombre de la UIAB. Esto último no es un detalle: ni "Postularse" ni el bloque
+ * "Por qué te recomendamos" se le muestran a quien publicó, así que si las tres
+ * fueran de Vaxler el capítulo 2 se quedaría sin sus dos mejores tramos.
+ *
+ * Además del alta, siembra las etiquetas y corre el cruce REAL del producto
+ * (ver recalcular-matches.mjs): los puntajes que se ven en cámara los calcula
+ * la plataforma, no este archivo.
  *
  * Nacen con visibilidad "privada_parque", igual que las que crea el formulario:
  * no son visibles para el público anónimo.
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -100,6 +106,7 @@ async function sembrar() {
   const redes = await cat("Telecomunicaciones y Redes");
   const electr = await cat("Electricidad");
   const transp = await cat("Transporte");
+  const software = await cat("Desarrollo de Software Industrial");
 
   const hoy = new Date("2026-07-31");
   const enDias = (d) => new Date(hoy.getTime() + d * 864e5).toISOString().slice(0, 10);
@@ -116,6 +123,7 @@ async function sembrar() {
         "<p>Se solicita cotización con materiales y mano de obra, y plazo de ejecución en firme.</p>",
       cantidad: 24, unidad: "bocas", localidad: "Burzaco, Provincia de Buenos Aires",
       fecha_necesidad: enDias(21), tipo_requerimiento: ["material"],
+      etiquetas: ["Cableado industrial", "Redes industriales"],
     },
     {
       empresa_solicitante_id: vaxler.id, creado_por: autorVaxler,
@@ -128,28 +136,85 @@ async function sembrar() {
         "<p>Se pide memoria técnica, certificado de puesta a tierra y garantía por escrito.</p>",
       cantidad: 1, unidad: "servicio", localidad: "Burzaco, Provincia de Buenos Aires",
       fecha_necesidad: enDias(12), tipo_requerimiento: ["servicio"],
+      etiquetas: ["Electricidad y tableros", "Electricidad industrial"],
     },
     {
+      // El pedido que el video usa para mostrar el match, y por eso es de
+      // software y no de logística.
+      //
+      // El criterio real (calcular-matches.ts) exige compartir una etiqueta o
+      // el rubro: la cercanía suma pero no habilita. Vaxler es una empresa de
+      // software en CABA, así que con un pedido de fletes en Almirante Brown
+      // no era candidata de ninguna manera y la sección "Por qué te
+      // recomendamos" no se renderizaba. Con este pedido coincide por rubro y
+      // por tres etiquetas, y la ubicación queda en cero — que es la verdad y
+      // además deja ver que el puntaje se calcula, no se decora.
+      //
+      // Sigue siendo de la UIAB, no de Vaxler: a quien publica no se le
+      // muestra "Postularse" ni el bloque del match.
       empresa_solicitante_id: EMPRESA_UIAB,
-      categoria_id: transp?.id ?? null,
-      titulo: "Servicio de logística interna para el parque industrial",
+      categoria_id: software?.id ?? transp?.id ?? null,
+      titulo: "Sistema web para gestionar capacitaciones y certificados",
       descripcion:
-        "<p>Requerimos un <b>servicio de transporte y logística interna</b> entre plantas del parque " +
-        "industrial de Almirante Brown, con frecuencia diaria de lunes a viernes.</p>" +
-        "<p>Se necesita utilitario con capacidad de 1.500 kg, chofer con licencia vigente y seguro de " +
-        "carga. El recorrido estimado es de 40 km diarios.</p><p>Cotizar por mes, con contrato mínimo " +
-        "de 6 meses.</p>",
-      cantidad: 22, unidad: "viajes/mes", localidad: "Almirante Brown, Provincia de Buenos Aires",
+        "<p>La UIAB necesita un <b>sistema web</b> para administrar las capacitaciones que dicta a sus " +
+        "socias y emitir los certificados correspondientes.</p><p>Alcance: inscripción online, control " +
+        "de asistencia, emisión de certificados con código de verificación y panel de reportes por " +
+        "empresa.</p><p>Se pide propuesta técnica, plazo de entrega y esquema de mantenimiento " +
+        "posterior.</p>",
+      cantidad: 1, unidad: "sistema", localidad: "Almirante Brown, Provincia de Buenos Aires",
       fecha_necesidad: enDias(30), tipo_requerimiento: ["servicio"],
+      etiquetas: ["Desarrollo de software", "Aplicaciones web y móviles", "Sistemas de gestión (ERP)"],
     },
   ].map((f) => ({
     ...f, estado: "abierta", visibilidad: "privada_parque", creado_por: f.creado_por ?? miembro.perfil_id,
   }));
 
-  const creadas = await api("oportunidades", { method: "POST", body: JSON.stringify(filas) });
+  // `etiquetas` no es una columna de `oportunidades`: viaja acá al lado para
+  // poder sembrar la tabla puente después, con los ids ya asignados.
+  const etiquetasPorTitulo = new Map(filas.map((f) => [f.titulo, f.etiquetas ?? []]));
+  const creadas = await api("oportunidades", {
+    method: "POST",
+    body: JSON.stringify(filas.map(({ etiquetas, ...resto }) => resto)),
+  });
   writeFileSync(REGISTRO, JSON.stringify(creadas.map((o) => o.id), null, 2));
   console.log(`✓ ${creadas.length} oportunidades de demo creadas:`);
   for (const o of creadas) console.log(`   ${o.id}  ${o.titulo}`);
+
+  // ── Etiquetas ──────────────────────────────────────────────────────────
+  // Sin esto los pedidos quedan con rubro pero sin etiquetas, y el cruce se
+  // apoya justo ahí: 20 puntos por etiqueta compartida contra 30 por rubro.
+  // Se resuelven por nombre EXACTO; si alguna no existe en el catálogo se
+  // avisa en vez de seguir en silencio, porque el efecto de una etiqueta que
+  // falta es un puntaje más bajo en cámara y nadie lo relaciona con esto.
+  const puente = [];
+  for (const o of creadas) {
+    for (const nombre of etiquetasPorTitulo.get(o.titulo) ?? []) {
+      const [t] = await api(`tags?select=id,nombre&nombre=eq.${encodeURIComponent(nombre)}&limit=1`);
+      if (t) puente.push({ oportunidad_id: o.id, tag_id: t.id });
+      else console.warn(`  ⚠ la etiqueta "${nombre}" no está en el catálogo: el match va a puntuar más bajo`);
+    }
+  }
+  if (puente.length) {
+    await api("oportunidades_tags", { method: "POST", body: JSON.stringify(puente) });
+    console.log(`✓ ${puente.length} etiquetas asignadas`);
+  }
+
+  // ── Candidatos recomendados ────────────────────────────────────────────
+  // El cálculo real del producto, en su propio proceso (necesita
+  // --experimental-strip-types para importar el .ts). Si no corre, la sección
+  // "Por qué te recomendamos" no se renderiza y el capítulo 2 se queda sin su
+  // remate — así que si falla, se grita.
+  console.log("· calculando candidatos con el cruce real del producto");
+  const r = spawnSync(
+    process.execPath,
+    ["--experimental-strip-types", "--no-warnings",
+     resolve(AQUI, "recalcular-matches.mjs"), ...creadas.map((o) => o.id)],
+    { stdio: "inherit", cwd: AQUI, env: process.env },
+  );
+  if (r.status !== 0) {
+    console.error("  ⚠ el cálculo de candidatos falló: el bloque del match no se va a poder filmar.");
+  }
+
   console.log(`\n  ids anotados en ${REGISTRO} — corré "node demo-datos.mjs limpiar" al terminar.`);
 }
 

@@ -4,10 +4,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   parsearReporteCobros,
   decidirAccion,
+  activaLaSuscripcion,
   type FilaCobro,
   type AccionConciliacion,
 } from "@/lib/sipago/conciliacion";
 import { proximoCobro, nombrePlan, type CicloSuscripcion } from "@/lib/suscripciones/modelo";
+import { primerCobroAnualEstimado } from "@/lib/sipago/planes";
 import { enviarEmail } from "@/lib/email/cliente";
 import { plantillaPagoManualRegistrado } from "@/lib/email/plantillas-suscripciones";
 import { notificarEntidad } from "@/modulos/notificaciones/acciones";
@@ -146,10 +148,12 @@ async function procesar(
     monto: number | string | null; ciclo: string | null; nombre_plan: string | null;
   } | null = null;
   let yaCargado = false;
+  let esPrimerCobro = false;
 
   if (entidad) {
     const columna = entidad.tipo === "empresa" ? "empresa_id" : "proveedor_id";
-    const [{ data: sus }, { data: pago }] = await Promise.all([
+    const columnaPago = entidad.tipo === "empresa" ? "empresa_id" : "proveedor_id";
+    const [{ data: sus }, { data: pago }, { data: previo }] = await Promise.all([
       admin
         .from("suscripciones")
         .select("id, estado, metodo_pago, monto, ciclo, nombre_plan")
@@ -163,19 +167,38 @@ async function procesar(
         .eq("sipago_order_uuid", clave)
         .limit(1)
         .maybeSingle(),
+      // Sin cobros previos, un importe menor al de lista es el prorrateo del
+      // anual. Con cobros previos ya no: ahi un monto que no cierra es un error.
+      admin
+        .from("pagos_suscripciones")
+        .select("id")
+        .eq(columnaPago, entidad.id)
+        .eq("estado", "aprobado")
+        .limit(1)
+        .maybeSingle(),
     ]);
     suscripcion = sus;
     yaCargado = Boolean(pago);
+    esPrimerCobro = !previo;
   }
 
-  const { accion, detalle } = decidirAccion({ fila, entidad, suscripcion, yaCargado });
+  // Cuanto deberia haber salido ese primer cobro, segun el dia en que se
+  // cobro. Es lo que distingue un prorrateo legitimo de un importe equivocado.
+  const prorrateoEsperado =
+    suscripcion?.ciclo === "anual" && fila.fecha
+      ? primerCobroAnualEstimado(Number(suscripcion.monto) || 0, new Date(`${fila.fecha}T12:00:00Z`))
+      : null;
 
-  if (accion !== "activar" || !aplicar || !entidad) {
+  const { accion, detalle } = decidirAccion({
+    fila, entidad, suscripcion, yaCargado, esPrimerCobro, prorrateoEsperado,
+  });
+
+  if (!activaLaSuscripcion(accion) || !aplicar || !entidad) {
     return { ...base, accion, detalle };
   }
 
   const ciclo: CicloSuscripcion = suscripcion?.ciclo === "anual" ? "anual" : "mensual";
-  await aplicarCobro(admin, fila, entidad, suscripcion, ciclo, clave);
+  await aplicarCobro(admin, fila, entidad, suscripcion, ciclo, clave, accion);
   return { ...base, accion, detalle: "Pago registrado, suscripción activa." };
 }
 
@@ -187,7 +210,8 @@ async function aplicarCobro(
   entidad: Entidad,
   sus: { id: string; nombre_plan: string | null; monto: number | string | null } | null,
   ciclo: CicloSuscripcion,
-  clave: string
+  clave: string,
+  accion: AccionConciliacion
 ): Promise<void> {
   const empresaId = entidad.tipo === "empresa" ? entidad.id : null;
   const proveedorId = entidad.tipo === "particular" ? entidad.id : null;
@@ -225,7 +249,10 @@ async function aplicarCobro(
     ciclo,
     sipago_order_uuid: clave,
     external_reference: fila.referencia,
-    nota: "Conciliado del reporte de Cobros de Sipago",
+    nota:
+      accion === "primer_cobro_anual"
+        ? "Conciliado de Sipago — primer cobro anual prorrateado"
+        : "Conciliado del reporte de Cobros de Sipago",
     pagado_en: pagadoEn.toISOString(),
   });
 
@@ -240,7 +267,10 @@ async function aplicarCobro(
       estado: "activa",
       metodo_pago: "sipago_suscripcion",
       ciclo,
-      monto,
+      // Un prorrateo NO cambia lo que vale la suscripcion: el ano que viene se
+      // le cobra el precio de lista. Pisar `monto` con el importe prorrateado
+      // haria que el proximo cobro completo cayera en "monto no coincide".
+      ...(accion === "primer_cobro_anual" ? {} : { monto }),
       proximo_cobro_en: proximo,
       gracia_hasta: null,
       actualizado_en: new Date().toISOString(),
@@ -277,7 +307,8 @@ async function aplicarCobro(
 
 function contar(rs: Resultado[]): Record<Accion, number> {
   const base: Record<Accion, number> = {
-    activar: 0, ya_registrado: 0, cuit_desconocido: 0, rechazado: 0, cortesia: 0, monto_no_coincide: 0,
+    activar: 0, primer_cobro_anual: 0, ya_registrado: 0,
+    cuit_desconocido: 0, rechazado: 0, cortesia: 0, monto_no_coincide: 0,
   };
   for (const r of rs) base[r.accion]++;
   return base;

@@ -596,7 +596,7 @@ export default function OportunidadDetalleCliente({
 
             {/* Por qué te recomendamos (tercero con match) */}
             {myMatch && !isOwner && (
-              <section>
+              <section data-tour="op-detalle-match">
                 <EncabezadoSeccion numero={proximoNumero()} titulo="Por qué te recomendamos" />
                 <div className="rounded-2xl border border-slate-200/60 bg-white p-7 shadow-sm sm:p-8">
                   <div className="flex items-start gap-4">
@@ -607,7 +607,7 @@ export default function OportunidadDetalleCliente({
                       {myMatch.motivo_match}
                     </p>
                   </div>
-                  <dl className="mt-6 grid grid-cols-3 gap-3">
+                  <dl data-tour="op-detalle-puntajes" className="mt-6 grid grid-cols-3 gap-3">
                     <PuntajeCelda etiqueta="Categoría" valor={myMatch.detalle_puntaje.categoria} />
                     <PuntajeCelda etiqueta="Etiquetas" valor={myMatch.detalle_puntaje.tags} />
                     <PuntajeCelda etiqueta="Ubicación" valor={myMatch.detalle_puntaje.ubicacion} />

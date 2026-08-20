@@ -146,37 +146,39 @@ export async function escenaDirectorio({ page, BASE }) {
   // Se filma el catálogo REAL de la ficha. Se probó reemplazarlo por un plano
   // generado y no sirve: lo que hay que mostrar es el producto, no una
   // ambientación.
-  const CATALOGO = "main section";
-  await page.waitForFunction(
-    () => [...document.querySelectorAll("main section")]
-      .some((e) => /productos y servicios/i.test(e.textContent || "")),
-    null, { timeout: 8000 },
-  ).catch(() => console.log("    · el catálogo no apareció en 8 s"));
-  const iCat = await indicePorTexto(page, CATALOGO, /productos y servicios/i);
-  if (iCat >= 0) {
-    // scrollIntoViewIfNeeded de Playwright, no el del DOM.
-    //
-    // Dos razones, las dos comprobadas a la mala: la capa visual PARCHEA
-    // Element.prototype.scrollIntoView para poder congelar el scroll durante
-    // un plano, así que llamarlo desde la página puede ser un no-op; y si el
-    // contenido vive en un contenedor con scroll propio, window.scrollTo
-    // tampoco hace nada. El de Playwright va por el protocolo del navegador y
-    // resuelve los dos casos.
-    const seccionCatalogo = page.locator("main section")
-      .filter({ hasText: /productos y servicios/i }).first();
-    await seccionCatalogo.scrollIntoViewIfNeeded({ timeout: 8000 }).catch(() => {});
+  //
+  // El selector es un data-tour propio y no "main section" + texto, que es lo
+  // que había antes y por qué el plano mostraba la cabecera de la ficha en vez
+  // del catálogo: al buscar la sección que CONTIENE "productos y servicios",
+  // el primer match en orden de documento no es el catálogo sino el
+  // contenedor que lo envuelve —los ancestros van primero—, así que se
+  // encuadraba media página y el acercamiento caía sobre el encabezado.
+  //
+  // Ojo: el catálogo está detrás del login (`isAuthenticated`) y sólo se
+  // renderiza si la ficha tiene ítems cargados. Las dos condiciones se cumplen
+  // acá (se filma con sesión, y Vaxler tiene catálogo), pero si alguna falla el
+  // plano se saltea con aviso en vez de encuadrar cualquier cosa.
+  const CATALOGO = '[data-tour="ficha-catalogo"]';
+  const hayCatalogo = await page.waitForSelector(CATALOGO, { timeout: 8000 })
+    .then(() => true)
+    .catch(() => { console.log("    · ⚠ no hay catálogo en la ficha: salteo el plano"); return false; });
+
+  if (hayCatalogo) {
+    // scrollIntoViewIfNeeded de Playwright, no el del DOM: la capa visual
+    // parchea Element.prototype.scrollIntoView para poder congelar el scroll
+    // durante un plano, así que llamarlo desde la página puede ser un no-op.
+    await page.locator(CATALOGO).first().scrollIntoViewIfNeeded({ timeout: 8000 }).catch(() => {});
     await dormir(700);
 
     // Comprobación ruidosa: si el catálogo no quedó arriba, el plano va a
     // mostrar otra cosa y el cartel va a mentir. Mejor enterarse en el log.
-    const yCat = await caja(page, CATALOGO, iCat);
+    const yCat = await caja(page, CATALOGO, 0);
     console.log(`    · catálogo en y=${Math.round(yCat?.y ?? -9999)}`
       + (yCat && yCat.y >= 0 && yCat.y < 420 ? " ✓" : " ⚠ no quedó en cuadro"));
 
     await plano(page, {
       id: "catalogo",
       encuadre: CATALOGO,
-      idx: iCat,
       escala: 1.25,
       rotulo: "El catálogo",
       texto: "Servicios con foto y ficha, no una lista.",

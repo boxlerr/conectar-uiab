@@ -6,7 +6,11 @@ import { montoPorCiclo, nombrePlan, type CicloSuscripcion } from "@/lib/suscripc
 import { enviarEmail, emailAdmin, appUrl } from "@/lib/email/cliente";
 import { renderEmailBase } from "@/lib/email/plantillas";
 import { crearOrden, sipagoConfigurado } from "@/lib/sipago/cliente";
-import { urlPlan } from "@/lib/sipago/planes";
+import {
+  urlPlan,
+  fechaCobroAnualEnPalabras,
+  primerCobroAnualEstimado,
+} from "@/lib/sipago/planes";
 
 export const runtime = "nodejs";
 
@@ -132,12 +136,21 @@ export async function POST(req: NextRequest) {
     // El CUIT se le muestra al socio porque el checkout del plan se lo va a
     // pedir, y es EL dato con el que después lo vamos a encontrar en el reporte
     // de Sipago. Si lo tipea distinto al que tenemos, su pago queda huérfano.
+    // El anual de Sipago cobra en una fecha fija del calendario, igual para
+    // todos, y prorratea el primer cobro. Si no se lo decimos, el socio ve
+    // "$500.000 / año" en pantalla y le debitan otra cosa.
+    const prorrateo =
+      ciclo === "anual"
+        ? { fechaCobro: fechaCobroAnualEnPalabras(), primerCobro: primerCobroAnualEstimado(monto) }
+        : null;
+
     return NextResponse.json({
       ok: true,
       ciclo,
       monto,
       suscripcion_url: planUrl,
       cuit: await cuitDeLaEntidad(admin, rol, entidadId),
+      prorrateo,
     });
   }
 

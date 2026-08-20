@@ -236,13 +236,51 @@ con redirección a `www.uiabconecta.com/suscripcion/resultado?ref=ok`.
 Su link es el que va en `SIPAGO_PLAN_MENSUAL_URL`.
 
 También está **"UIAB Conecta - Anual"**: $500.000, cobro **todos los 10 de enero**
-con **prorrateo activado**. El prorrateo ajusta el primer cobro a los días que
-faltan hasta esa fecha, así el que se suscribe en octubre no paga un año entero
-por tres meses.
+con **prorrateo activado**.
 
-> Consecuencia para la conciliación: ese primer cobro **no va a coincidir** con
-> los $500.000 y se marca como *monto no coincide* para que un humano lo mire.
-> Es lo correcto — mejor que se frene y alguien decida.
+### El anual NO renueva en el aniversario, y no se puede
+
+Sipago no ofrece cobro anual por aniversario. Al crear un plan anual **obliga** a
+poner `Mes de cobro` y `Día de cobro` fijos, iguales para todos los suscriptores,
+y después **no se pueden editar**: el diálogo de edición sólo expone nombre,
+descripción, monto y web de redirección. (El plan *mensual* sí tiene la opción
+"Día de suscripción", o sea aniversario — pero sólo el mensual.)
+
+O sea que alguien que se adhiere el 20 de agosto no renueva el 20 de agosto:
+renueva el 10 de enero, y todos los años siguientes también.
+
+Lo que hace que eso no sea un abuso es el **prorrateo**: el primer cobro se
+ajusta a los días que faltan hasta la fecha común.
+
+| Fecha | Qué se cobra |
+|---|---|
+| 20/08/2026 (se adhiere) | ~$195.890 — proporcional, 143 días |
+| 10/01/2027 | $500.000 automático |
+| 10/01/2028 | $500.000 automático |
+
+**Se eligió esto y no el Checkout** porque el requisito de la UIAB es no perder
+al socio cuando se le termina el año: el plan recurrente le debita solo para
+siempre, y el Checkout necesita que vuelva a pagar a mano.
+
+### Qué tuvo que aprender la app
+
+`SIPAGO_PLAN_ANUAL_DIA` y `SIPAGO_PLAN_ANUAL_MES` replican la fecha del portal
+(no hay API para leerla). Con eso:
+
+- **El checkout le dice al socio lo que realmente le van a cobrar.** Antes la
+  pantalla prometía "$500.000 / año" y el débito iba a ser otro número.
+- **La conciliación no lee ese primer cobro como un error.** Se compara contra el
+  prorrateo esperado *para la fecha de ese cobro* y se marca como
+  `primer_cobro_anual`, que sí activa la suscripción. Sin eso el socio pagaba,
+  tenía el débito automático andando y quedaba sin acceso.
+- El importe prorrateado **no pisa** `suscripciones.monto`: el año que viene se
+  le cobra el precio de lista, y si se pisara, ese cobro completo caería en
+  "monto no coincide".
+
+> La primera versión de ese chequeo usaba un piso fijo de un doceavo del precio.
+> Estaba mal: quien se adhiere en diciembre paga ~$28.000 de $500.000, por debajo
+> de ese piso, y quedaba marcado como error. Comparar contra el prorrateo
+> esperado por fecha no tiene ese punto ciego.
 
 ### Por qué hay que conciliar
 

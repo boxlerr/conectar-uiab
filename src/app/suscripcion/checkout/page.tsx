@@ -52,7 +52,11 @@ function CheckoutContenido() {
   // El plan recurrente no redirige de una: antes hay que decirle al socio con
   // qué CUIT tiene que anotarse, porque es el único dato con el que después lo
   // vamos a poder reconocer en el reporte de cobros de Sipago.
-  const [adhesion, setAdhesion] = useState<{ url: string; cuit: string | null } | null>(null);
+  const [adhesion, setAdhesion] = useState<{
+    url: string;
+    cuit: string | null;
+    prorrateo: { fechaCobro: string; primerCobro: number } | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !currentUser) {
@@ -87,7 +91,11 @@ function CheckoutContenido() {
 
       // Plan recurrente: deja la tarjeta adherida y Sipago le debita solo.
       if (data.suscripcion_url) {
-        setAdhesion({ url: data.suscripcion_url, cuit: data.cuit ?? null });
+        setAdhesion({
+          url: data.suscripcion_url,
+          cuit: data.cuit ?? null,
+          prorrateo: data.prorrateo ?? null,
+        });
         setLoading(false);
         return;
       }
@@ -233,6 +241,30 @@ function CheckoutContenido() {
                   </p>
                 </div>
               </div>
+
+              {/* El anual no renueva en el aniversario de cada socio: Sipago
+                  cobra en una fecha fija del calendario, igual para todos, y
+                  prorratea el primer cobro. Decirlo acá es la diferencia entre
+                  una sorpresa buena y un reclamo. */}
+              {adhesion.prorrateo && (
+                <div className="rounded-lg bg-white border border-primary-200 p-4 space-y-2">
+                  <p className="text-sm font-semibold text-slate-900">Cómo se te va a cobrar</p>
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="text-slate-600">Ahora, proporcional hasta el {adhesion.prorrateo.fechaCobro}</span>
+                    <span className="font-bold text-slate-900 whitespace-nowrap">
+                      ~{formatARS(adhesion.prorrateo.primerCobro)}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="text-slate-600">Después, cada {adhesion.prorrateo.fechaCobro}</span>
+                    <span className="font-bold text-slate-900 whitespace-nowrap">{formatARS(PRECIO_ANUAL)}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 pt-1">
+                    Todos los planes anuales renuevan el mismo día, así que el primer año pagás sólo la parte
+                    que te corresponde. El monto exacto lo calcula Sipago.
+                  </p>
+                </div>
+              )}
 
               {adhesion.cuit && (
                 <div className="rounded-lg bg-white border border-primary-200 p-4">

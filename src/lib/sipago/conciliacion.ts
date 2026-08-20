@@ -216,21 +216,56 @@ export function parsearReporteCobros(texto: string): ResultadoParseo {
 
 export type AccionConciliacion =
   | "activar"
+  /** Anual: primer cobro prorrateado hasta la fecha comun del plan. Se aplica igual. */
+  | "primer_cobro_anual"
   | "ya_registrado"
   | "cuit_desconocido"
   | "rechazado"
   | "cortesia"
   | "monto_no_coincide";
 
+/** Acciones que, al confirmar, escriben el pago y activan la suscripcion. */
+export function activaLaSuscripcion(accion: AccionConciliacion): boolean {
+  return accion === "activar" || accion === "primer_cobro_anual";
+}
+
 export interface EntradaDecision {
   fila: FilaCobro;
   /** La ficha que matcheó por CUIT, o null si ninguna. */
   entidad: { nombre: string } | null;
   /** Su suscripción más reciente, si tiene. */
-  suscripcion: { metodo_pago: string | null; monto: number | string | null } | null;
+  suscripcion: { metodo_pago: string | null; monto: number | string | null; ciclo?: string | null } | null;
   /** ¿Este mismo cobro ya está cargado? */
   yaCargado: boolean;
+  /** ¿Es el primer cobro de esta ficha? Habilita el prorrateo del anual. */
+  esPrimerCobro?: boolean;
+  /**
+   * Cuánto debería salir el primer cobro anual prorrateado, calculado a partir
+   * de la fecha del cobro. Lo pasa el llamador (`primerCobroAnualEstimado()`);
+   * este módulo se mantiene puro a propósito.
+   */
+  prorrateoEsperado?: number | null;
 }
+
+/**
+ * Cuánto puede desviarse el cobro real del prorrateo que calculamos.
+ *
+ * Sipago prorratea el primer cobro del plan anual, así que ese importe casi
+ * nunca coincide con el precio de lista y no puede tratarse como error — si no,
+ * el socio paga, tiene el débito automático andando, y queda sin acceso.
+ *
+ * La primera versión usaba un piso fijo de un doceavo del precio, y estaba mal:
+ * quien se adhiere en diciembre paga ~$28.000 de $500.000, por debajo de ese
+ * piso, y quedaba marcado como error. Ahora se compara contra el prorrateo
+ * ESPERADO para la fecha de ese cobro, que no tiene ese punto ciego.
+ *
+ * La banda es ancha porque la fórmula exacta la aplica Sipago y no está
+ * documentada (puede contar meses en vez de días, incluir o no el día de alta).
+ * Aun así deja afuera lo que tiene que dejar: contra un prorrateo esperado de
+ * $28.000, un pago de $1 no entra.
+ */
+const PRORRATEO_MINIMO = 0.5;
+const PRORRATEO_MAXIMO = 1.15;
 
 /**
  * La decisión, sin base de datos de por medio.
@@ -269,6 +304,27 @@ export function decidirAccion(e: EntradaDecision): { accion: AccionConciliacion;
 
   const esperado = Number(e.suscripcion?.monto) || 0;
   if (e.fila.monto !== null && esperado > 0 && Math.abs(e.fila.monto - esperado) > 0.5) {
+    const esAnual = e.suscripcion?.ciclo === "anual";
+    const prorrateo = e.prorrateoEsperado ?? null;
+    const pareceProrrateo =
+      esAnual &&
+      e.esPrimerCobro === true &&
+      prorrateo !== null &&
+      prorrateo > 0 &&
+      e.fila.monto >= prorrateo * PRORRATEO_MINIMO &&
+      e.fila.monto <= prorrateo * PRORRATEO_MAXIMO &&
+      e.fila.monto < esperado;
+
+    if (pareceProrrateo) {
+      return {
+        accion: "primer_cobro_anual",
+        detalle:
+          `Primer cobro prorrateado hasta la fecha común del plan: ` +
+          `$${e.fila.monto.toLocaleString("es-AR")} de $${esperado.toLocaleString("es-AR")}. ` +
+          `El año que viene se le cobra el precio completo.`,
+      };
+    }
+
     return {
       accion: "monto_no_coincide",
       detalle:

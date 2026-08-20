@@ -223,7 +223,10 @@ export function CatalogoPublico({ items, colorScheme = "blue", contacto }: Catal
   if (items.length === 0) return null;
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-7">
+    <section
+      data-tour="ficha-catalogo"
+      className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-7"
+    >
       {/* ─── Header de sección ─── */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div className="flex items-center gap-3">

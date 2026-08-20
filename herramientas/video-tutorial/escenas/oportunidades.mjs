@@ -44,15 +44,19 @@ export async function escenaOportunidades({ page, BASE }) {
     // Se entra al pedido de la UIAB, no al primero de la lista.
     //
     // Dos de los tres pedidos de ejemplo son de Vaxler —que es la cuenta con
-    // la que se filma— y a quien publicó no se le muestra "Postularse". Si
-    // entramos al primero, el capítulo pierde su mejor tramo sin decir nada:
-    // el paso se saltea en silencio. El tablero igual muestra los de Vaxler,
-    // que es lo que se quería ver.
+    // la que se filma— y a quien publicó no se le muestra ni "Postularse" ni
+    // el bloque del match. Si entramos al primero, el capítulo pierde sus dos
+    // mejores tramos sin decir nada: los pasos se saltean en silencio. El
+    // tablero igual muestra los de Vaxler, que es lo que se quería ver.
+    //
+    // El título tiene que coincidir con el que siembra demo-datos.mjs. Si se
+    // cambia allá y no acá, esto cae en la primera tarjeta —una de Vaxler— y
+    // el capítulo se queda sin match ni postulación.
     // La tarjeta ES el enlace (data-tour="op-tarjeta" está sobre el <a>), así
     // que buscar un <a> ADENTRO no matchea nada. Y hay que excluir
     // /oportunidades/nueva, que también empieza igual.
     const AJENO = 'a[href^="/oportunidades/"]:not([href$="/nueva"])';
-    const i = await indicePorTexto(page, AJENO, /log.stica interna/i);
+    const i = await indicePorTexto(page, AJENO, /capacitaciones y certificados/i);
     if (i >= 0) await clickEn(page, AJENO, { ms: 420, idx: i });
     else await clickEn(page, TARJETA, { ms: 420 });
   });
@@ -80,7 +84,47 @@ export async function escenaOportunidades({ page, BASE }) {
     texto: "Cantidad, plazo y ubicación.",
   }, () => dormir(1200));
 
-  // ── 5. Postularse (se muestra, NO se envía) ─────────────────────
+  // ── 5. Por qué te llega (el match, del lado de quien lo recibe) ─
+  // Este bloque es el que se pidió sumar, y es el argumento entero de la
+  // plataforma: no es una cartelera donde hay que ir a mirar, es un cruce que
+  // te trae lo que podés hacer.
+  //
+  // Sólo se renderiza si la cuenta con la que se filma es candidata del pedido
+  // Y no es la dueña (detalle-cliente.tsx: `myMatch && !isOwner`). Los datos
+  // los siembra demo-datos.mjs corriendo el cruce REAL del producto, así que
+  // el motivo y los puntajes que se ven en cámara son los que calcula la
+  // plataforma. Si por lo que sea no hay match, los dos planos se saltean con
+  // aviso en vez de encuadrar el vacío.
+  await opcional("match", async () => {
+    const MATCH = '[data-tour="op-detalle-match"]';
+    const PUNTAJES = '[data-tour="op-detalle-puntajes"]';
+    await page.waitForSelector(MATCH, { timeout: 8000, state: "visible" });
+    await scrollA(page, MATCH, { offset: 170, ms: 560 });
+    await dormir(320);
+
+    await plano(page, {
+      id: "match-motivo",
+      encuadre: MATCH,
+      escala: 1.3,
+      rotulo: "Por qué te llega",
+      texto: "Coincide con tu rubro y tus etiquetas.",
+      sello: "Match",
+    }, () => dormir(1250));
+
+    // Y ahora el detalle: la grilla de tres celdas, recortada al elemento.
+    // Es el mismo bloque que el plano anterior, pero el recorte es muy
+    // distinto —una tira de 3 celdas contra la sección entera— así que no
+    // repite encuadre.
+    await plano(page, {
+      id: "match-puntajes",
+      encuadre: PUNTAJES,
+      escala: 1.7,
+      rotulo: "Se puntúa",
+      texto: "Categoría, etiquetas y ubicación.",
+    }, () => dormir(1150));
+  });
+
+  // ── 6. Postularse (se muestra, NO se envía) ─────────────────────
   // Todo este tramo es OPCIONAL: el botón no se renderiza si la cuenta con la
   // que se filma ya se postuló, o si es la dueña del pedido.
   await opcional("postularse", async () => {
@@ -120,7 +164,7 @@ export async function escenaOportunidades({ page, BASE }) {
   // abierto y taparía todo lo que sigue.
   await page.keyboard.press("Escape").catch(() => {});
 
-  // ── 6. Publicar lo propio ───────────────────────────────────────
+  // ── 7. Publicar lo propio ───────────────────────────────────────
   await page.goto(`${BASE}/oportunidades/nueva`, { waitUntil: "domcontentloaded" });
   await asentar(page, 700);
   await posicionarCursor(page, 760, 520);
@@ -199,7 +243,7 @@ export async function escenaOportunidades({ page, BASE }) {
       "Revisión trimestral del tablero y la puesta a tierra de la oficina."));
   await dormir(300);
 
-  // ── 7. El pico: el match ────────────────────────────────────────
+  // ── 8. El remate ────────────────────────────────────────────────
   // El remate va sin selectores que puedan faltar: si el formulario quedó a
   // medio llenar, el plano se arma igual en general.
   await opcional("volver arriba", async () => {
@@ -219,7 +263,9 @@ export async function escenaOportunidades({ page, BASE }) {
     encuadre: hayForm ? FORM : null,
     escala: hayForm ? 1.35 : 1,
     rotulo: "Y listo",
-    texto: "Se lo sugiere a quien puede hacerlo.",
-    sello: "Match",
+    // Sin sello: el de "Match" se usa dos capítulos antes, sobre el bloque
+    // donde el match de verdad se ve. Repetirlo acá, encima de un formulario,
+    // es ponerle el rótulo a algo que en este plano no está pasando.
+    texto: "Va derecho a quien puede hacerlo.",
   }, () => dormir(1500));
 }
