@@ -16,14 +16,21 @@ import { notificarEntidad } from "@/modulos/notificaciones/acciones";
  * - Mueve `en_mora` con gracia vencida a `suspendida` y notifica.
  *
  * Protegido por `CRON_SECRET` en header `x-cron-secret` o `authorization: Bearer <secret>`.
+ * Vercel manda ese header solo cuando la variable está definida en el proyecto.
  */
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  const provided =
-    req.headers.get("x-cron-secret") ||
-    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
-    "";
-  if (secret && provided !== secret) {
+  const permitido = puedeCorrerElCron(
+    process.env.CRON_SECRET,
+    req.headers.get("x-cron-secret"),
+    req.headers.get("authorization")
+  );
+  if (!permitido) {
+    if (!process.env.CRON_SECRET) {
+      console.error(
+        "[cron/suscripciones] CRON_SECRET no está configurado: el cron no corre. " +
+        "Definila en el proyecto de Vercel para que vuelva a ejecutarse."
+      );
+    }
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
@@ -125,6 +132,29 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, resumen });
+}
+
+/**
+ * ¿Puede correr este cron?
+ *
+ * Falla CERRADO cuando no hay `CRON_SECRET`. Antes fallaba abierto —`if (secret
+ * && provided !== secret)`— y sin la variable definida el chequeo se salteaba
+ * entero. En el proyecto de Vercel la variable **no está**, así que este
+ * endpoint quedaba abierto a internet: cualquiera que le pegara mandaba mails de
+ * "estás en mora" y "acceso suspendido" a los socios y les cambiaba el estado de
+ * la suscripción, tantas veces como quisiera.
+ *
+ * Que sin secreto no corra es incómodo pero visible: se ve en los logs y se
+ * arregla definiendo la variable. Lo otro no se veía.
+ */
+export function puedeCorrerElCron(
+  secretConfigurado: string | undefined,
+  headerXCron: string | null,
+  headerAuthorization: string | null
+): boolean {
+  if (!secretConfigurado) return false;
+  const provisto = headerXCron || headerAuthorization?.replace(/^Bearer\s+/i, "") || "";
+  return provisto === secretConfigurado;
 }
 
 async function destinatario(
