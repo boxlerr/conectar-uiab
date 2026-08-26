@@ -50,7 +50,7 @@ export const pasosDashboard: PasoConRuta[] = [
     placement: "bottom",
     title: "El pulso de la red, de un vistazo",
     content:
-      "Socios activos, proveedores de servicios verificados, oportunidades abiertas y tus propias métricas (publicadas o matches, según tu rol). Cada número es un link — tocalo y te lleva al detalle.",
+      "Las visitas a tu ficha, los socios del directorio, los prestadores verificados y las oportunidades abiertas. La línea al pie aparece sólo donde hay historial real para dibujarla. Cada número es un link — tocalo y te lleva al detalle.",
     data: { ruta: "/panel-de-control" },
   }),
 
@@ -70,7 +70,7 @@ export const pasosDashboard: PasoConRuta[] = [
     placement: "top",
     title: "Actividad reciente",
     content:
-      "Las últimas oportunidades publicadas en la red, ordenadas por fecha. Scrolleá para mantenerte al día incluso si no entrás al tablero de Oportunidades.",
+      "Lo que fue pasando con tu ficha: productos que cargaste, certificaciones, oportunidades que publicaste y solicitudes que recibiste, de lo más nuevo a lo más viejo.",
     data: { ruta: "/panel-de-control" },
   }),
 
@@ -90,7 +90,7 @@ export const pasosDashboard: PasoConRuta[] = [
     placement: "left",
     title: "Acciones rápidas",
     content:
-      "Los atajos más usados según tu rol: publicar oportunidad, buscar proveedores de servicios, editar perfil, subir documentos. Un click y estás adentro.",
+      "Los atajos más usados según tu rol: publicar una oportunidad, buscar proveedores de servicios, tus etiquetas de match, certificaciones y el legajo. Un click y estás adentro.",
     data: { ruta: "/panel-de-control" },
   }),
 
@@ -108,7 +108,7 @@ export const pasosDashboard: PasoConRuta[] = [
   centro({
     title: "¡Listo! Ya conocés tu panel de control",
     content:
-      'Cuando quieras repasar, tocá "Ver tutorial" arriba en el hero. Ahora dale — revisá tus matches y aprovechá la red.',
+      'Cuando quieras repasar, abrí el menú de los tres puntos arriba a la derecha y tocá "Ver tutorial". Ahora dale — revisá tus matches y aprovechá la red.',
     data: { ruta: "/panel-de-control" },
   }),
 ];

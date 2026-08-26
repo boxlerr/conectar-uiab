@@ -1,6 +1,7 @@
 "use client";
 
-import { Users, X, Check, KeyRound, UserX } from "lucide-react";
+import { X, Check } from "lucide-react";
+import { CATALOGO_NOVEDADES } from "./catalogo";
 import { PieNovedad, type PropsNovedad } from "./pie-novedad";
 
 /**
@@ -12,6 +13,18 @@ import { PieNovedad, type PropsNovedad } from "./pie-novedad";
  * volvería a aparecer en cada dispositivo y en cada navegador). Este archivo es
  * sólo el contenido.
  */
+
+/**
+ * El texto sale del catálogo compartido: el mismo que lee la sección
+ * "Novedades" del panel de control.
+ *
+ * De paso se termina una duplicación vieja: los bullets estaban escritos DOS
+ * veces con redacciones distintas (una para el layout de una columna y otra
+ * para el de dos). Ahora las dos listas leen la misma, la larga, que es la que
+ * se entiende sola.
+ */
+const { titulo: TITULO, resumen: RESUMEN, cambios: CAMBIOS, aviso: AVISO, cta: CTA } =
+  CATALOGO_NOVEDADES.usuarios_empresa;
 
 export function ModalNovedadUsuarios(props: PropsNovedad) {
   const cerrar = props.onCerrar;
@@ -62,21 +75,16 @@ export function ModalNovedadUsuarios(props: PropsNovedad) {
               className="text-2xl md:text-[28px] font-bold text-white tracking-tight leading-tight mt-2"
               style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
             >
-              Ya podés sumar a tu equipo
+              {TITULO}
             </h2>
             <p className="text-sm text-white/70 mt-3 max-w-md leading-relaxed">
-              Compras, Mantenimiento, RRHH, Logística… cada persona de tu empresa puede tener
-              su propio usuario, con su email y su contraseña.
+              {RESUMEN}
             </p>
 
             {/* En dos columnas los bullets viven acá: equilibran el alto de las
                 dos mitades y dejan la derecha para lo accionable. */}
             <ul className="hidden md:block mt-7 space-y-3">
-              {[
-                { icon: KeyRound, texto: "Les creás el acceso, listo para mandar por WhatsApp." },
-                { icon: Users, texto: "Ven y editan lo mismo que vos: sin permisos que configurar." },
-                { icon: UserX, texto: "Si alguien se va, lo desactivás y deja de entrar." },
-              ].map(({ icon: Icon, texto }, i) => (
+              {CAMBIOS.map(({ icono: Icon, texto }, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-[13px] text-white/75">
                   <span className="w-5 h-5 rounded-md bg-white/10 text-sky-300 flex items-center justify-center shrink-0 mt-0.5">
                     <Icon className="w-3 h-3" />
@@ -130,11 +138,7 @@ export function ModalNovedadUsuarios(props: PropsNovedad) {
           {/* En una sola columna (mobile) los bullets van acá; en dos columnas
               se muestran sobre el panel navy y este bloque desaparece. */}
           <ul className="mt-4 space-y-2 md:hidden">
-            {[
-              { icon: KeyRound, texto: "Les creás el acceso y te queda listo para copiar y mandar por WhatsApp." },
-              { icon: Users, texto: "Ven y editan lo mismo que vos: no hay permisos que configurar." },
-              { icon: UserX, texto: "Cuando alguien se va de la empresa, lo desactivás y deja de entrar." },
-            ].map(({ icon: Icon, texto }, i) => (
+            {CAMBIOS.map(({ icono: Icon, texto }, i) => (
               <li key={i} className="flex items-start gap-2.5 text-[13px] text-slate-600">
                 <span className="w-5 h-5 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 mt-0.5">
                   <Icon className="w-3 h-3" />
@@ -150,14 +154,10 @@ export function ModalNovedadUsuarios(props: PropsNovedad) {
               arreglos internos del panel de admin no le dicen nada. */}
           <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-700 mb-2.5">
-              También arreglamos lo que nos reportaron
+              {AVISO.titulo}
             </p>
             <ul className="space-y-1.5">
-              {[
-                "Guardar los datos de tu ficha ya funciona: se terminó el cartel de “problema de sincronización temporal”.",
-                "El logo se sube y queda guardado. Antes se cargaba pero se perdía al guardar.",
-                "Si sos socia de la UIAB ya no se te pide pagar la suscripción: tu acceso es sin cargo.",
-              ].map((texto, i) => (
+              {AVISO.items.map((texto, i) => (
                 <li key={i} className="flex items-start gap-2 text-[13px] text-emerald-900/80">
                   <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-[3px]" />
                   <span className="leading-snug">{texto}</span>
@@ -165,13 +165,13 @@ export function ModalNovedadUsuarios(props: PropsNovedad) {
               ))}
             </ul>
             <p className="text-[11px] text-emerald-800/60 mt-3 leading-snug">
-              Gracias por avisarnos. Si ves algo raro, escribinos desde Contacto.
+              {AVISO.pie}
             </p>
           </div>
 
           {/* Los botones viven dentro de la columna derecha: si quedaran fuera
               de la grilla se irían al ancho completo, debajo del panel navy. */}
-          <PieNovedad {...props} cta={{ href: "/perfil/usuarios", label: "Configurar mis usuarios" }} />
+          <PieNovedad {...props} cta={CTA} />
         </div>
       </div>
     </div>

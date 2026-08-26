@@ -1,10 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import {
-  X, Check, Building2, SlidersHorizontal, CalendarClock, Sparkles, MapPin, Tag,
-} from "lucide-react";
+import { X, Check, Sparkles, MapPin, Tag, CalendarClock } from "lucide-react";
 import { PieNovedad, type PropsNovedad } from "./pie-novedad";
+import { CATALOGO_NOVEDADES } from "./catalogo";
 
 /**
  * Cartel de novedad: "rediseñamos la cartelera de oportunidades".
@@ -14,24 +13,13 @@ import { PieNovedad, type PropsNovedad } from "./pie-novedad";
  * los marca en `perfiles.tutoriales_vistos`. Este archivo es sólo el contenido.
  */
 
-/** Lo que cambió de verdad en la cartelera. Nada de esto es promesa a futuro. */
-const CAMBIOS = [
-  {
-    icon: Building2,
-    titulo: "Se ve quién publica",
-    texto: "Cada pedido lleva el logo de la empresa que lo publicó, no sólo el nombre.",
-  },
-  {
-    icon: SlidersHorizontal,
-    titulo: "Filtros y orden",
-    texto: "Buscá por rubro, ubicación o antigüedad, y ordená la lista como te sirva.",
-  },
-  {
-    icon: CalendarClock,
-    titulo: "Los datos duros, afuera",
-    texto: "Cantidad, localidad y fecha de necesidad se leen sin abrir el pedido.",
-  },
-];
+/**
+ * El texto sale del catálogo compartido: el mismo que lee la sección
+ * "Novedades" del panel de control. Antes vivía duplicado acá adentro y no
+ * había forma de mostrarlo en otro lado.
+ */
+const { titulo: TITULO, resumen: RESUMEN, cambios: CAMBIOS, aviso: AVISO, cta: CTA } =
+  CATALOGO_NOVEDADES.oportunidades_cartelera;
 
 export function ModalNovedadOportunidades(props: PropsNovedad) {
   const cerrar = props.onCerrar;
@@ -76,11 +64,10 @@ export function ModalNovedadOportunidades(props: PropsNovedad) {
               className="text-2xl md:text-[28px] font-bold text-white tracking-tight leading-tight mt-2"
               style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
             >
-              Rediseñamos la cartelera de oportunidades
+              {TITULO}
             </h2>
             <p className="text-sm text-white/70 mt-3 max-w-md leading-relaxed">
-              Es donde las socias publican lo que necesitan comprar o contratar. Ahora se lee
-              de un vistazo: quién lo pide, de qué rubro es y para cuándo lo necesita.
+              {RESUMEN}
             </p>
 
             {/* La misma ilustración que ahora encabeza /oportunidades: el cartel
@@ -149,7 +136,7 @@ export function ModalNovedadOportunidades(props: PropsNovedad) {
 
           {/* En una sola columna los bullets van acá. */}
           <ul className="mt-4 space-y-2">
-            {CAMBIOS.map(({ icon: Icon, titulo, texto }) => (
+            {CAMBIOS.map(({ icono: Icon, titulo, texto }) => (
               <li key={titulo} className="flex items-start gap-2.5 text-[13px] text-slate-600">
                 <span className="w-5 h-5 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 mt-0.5">
                   <Icon className="w-3 h-3" />
@@ -164,14 +151,10 @@ export function ModalNovedadOportunidades(props: PropsNovedad) {
           <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50/60 p-4">
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-800 mb-2.5 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
-              Conviene que lo sepas
+              {AVISO.titulo}
             </p>
             <ul className="space-y-1.5">
-              {[
-                "El logo que se muestra es el de tu ficha: si no cargaste uno, aparece la inicial.",
-                "Publicar un pedido no tiene costo adicional y las respuestas van directo a tu empresa.",
-                "Al publicarlo, la plataforma te sugiere las socias afines por rubro y etiquetas.",
-              ].map((texto, i) => (
+              {AVISO.items.map((texto, i) => (
                 <li key={i} className="flex items-start gap-2 text-[13px] text-amber-900/80">
                   <Check className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-[3px]" />
                   <span className="leading-snug">{texto}</span>
@@ -180,7 +163,7 @@ export function ModalNovedadOportunidades(props: PropsNovedad) {
             </ul>
           </div>
 
-          <PieNovedad {...props} cta={{ href: "/oportunidades", label: "Ver la cartelera" }} />
+          <PieNovedad {...props} cta={CTA} />
         </div>
       </div>
     </div>

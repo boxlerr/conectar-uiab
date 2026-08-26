@@ -2,6 +2,8 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/servidor";
+import { revalidatePath } from "next/cache";
+import { SELECT_NOTIFICACION, type Notificacion } from "./tipos";
 
 function adminClient() {
   return createClient(
@@ -10,26 +12,12 @@ function adminClient() {
   );
 }
 
-export interface Notificacion {
-  id: string;
-  tipo:
-    | "resena_aprobada"
-    | "resena_rechazada"
-    | "resena_recibida"
-    | "oportunidad_solicitud"
-    | "solicitud_respondida"
-    | "pago_confirmado"
-    | "pago_fallido"
-    | "suscripcion_por_vencer"
-    | "suscripcion_en_mora"
-    | "suscripcion_suspendida"
-    | "etiquetas_precargadas";
-  titulo: string;
-  mensaje: string;
-  leida: boolean;
-  url: string | null;
-  creada_en: string;
-}
+/**
+ * El tipo vive en `./tipos` para que un componente pueda importarlo sin
+ * arrastrar este archivo `"use server"`. Se re-exporta para no romper a los
+ * que ya lo importaban de acá (la campana del header, entre otros).
+ */
+export type { Notificacion, TipoNotificacion } from "./tipos";
 
 /** Crea una notificación en la DB para un perfil dado (usa service role). */
 export async function crearNotificacion(input: {
@@ -113,7 +101,7 @@ export async function obtenerNotificaciones(): Promise<{
 
     const { data, error } = await supabase
       .from("notificaciones")
-      .select("id, tipo, titulo, mensaje, leida, url, creada_en")
+      .select(SELECT_NOTIFICACION)
       .eq("perfil_id", user.id)
       .order("creada_en", { ascending: false })
       .limit(20);
@@ -141,6 +129,11 @@ export async function marcarTodasLeidas() {
       .update({ leida: true })
       .eq("perfil_id", user.id)
       .eq("leida", false);
+
+    // El panel de control es un Server Component: sin esto, la lista y el
+    // contador siguen mostrando lo viejo hasta un refresh duro. La campana del
+    // header no lo necesita (es estado de cliente) pero tampoco le molesta.
+    revalidatePath("/panel-de-control");
   } catch (err) {
     console.error("[notificaciones] Error marcando como leídas:", err);
   }
@@ -158,6 +151,8 @@ export async function marcarLeida(notificacionId: string) {
       .update({ leida: true })
       .eq("id", notificacionId)
       .eq("perfil_id", user.id);
+
+    revalidatePath("/panel-de-control");
   } catch (err) {
     console.error("[notificaciones] Error marcando notificación como leída:", err);
   }

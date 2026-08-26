@@ -4,14 +4,14 @@ import { useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
-import type { User } from "@/tipos";
 import { llamarAccion, fallo } from "@/lib/accion-segura";
 import { marcarNovedadVista } from "./acciones";
-import { novedadesPendientes, type NovedadId } from "./novedades";
+import { NOVEDAD_EXIGE_FICHA, novedadesPendientes, type NovedadId } from "./novedades";
 import type { PropsNovedad } from "./pie-novedad";
 import { ModalNovedadUsuarios } from "./modal-novedad-usuarios";
 import { ModalNovedadPerfil } from "./modal-novedad-perfil";
 import { ModalNovedadOportunidades } from "./modal-novedad-oportunidades";
+import { ModalNovedadGenerico } from "./modal-novedad-generico";
 
 /**
  * Pila de novedades: los carteles pendientes, de a uno y en orden.
@@ -49,25 +49,25 @@ const RUTAS_SIN_CARTEL = [
 ];
 
 /**
- * A quién le corresponde cada cartel, más allá de la fecha.
+ * Qué componente dibuja cada cartel.
  *
- * `perfil_directorio` y `usuarios_empresa` hablan de la ficha propia, así que
- * sólo van para quien administra una. La cartelera de oportunidades le sirve
- * tanto a quien publica como a quien responde: esa va para cualquiera.
+ * A quién le corresponde ya NO se decide acá: es `NOVEDAD_EXIGE_FICHA` en
+ * `novedades.ts`, porque el feed del panel necesita el mismo criterio y
+ * leerlo de este archivo le arrastraría los tres modales al bundle.
  */
-const REGISTRO: Record<
-  NovedadId,
-  { aplica: (u: User) => boolean; Componente: React.ComponentType<PropsNovedad> }
-> = {
-  oportunidades_cartelera: { aplica: () => true, Componente: ModalNovedadOportunidades },
-  perfil_directorio: {
-    aplica: (u) => Boolean(tipoEntidadDe(u)),
-    Componente: ModalNovedadPerfil,
-  },
-  usuarios_empresa: {
-    aplica: (u) => Boolean(tipoEntidadDe(u)),
-    Componente: ModalNovedadUsuarios,
-  },
+const REGISTRO: Record<NovedadId, React.ComponentType<PropsNovedad>> = {
+  // Los tres primeros tienen su maqueta dibujada a mano. Del panel en adelante
+  // el cartel se arma solo desde el catálogo — ver `modal-novedad-generico`.
+  panel_control: (props) => (
+    <ModalNovedadGenerico
+      {...props}
+      id="panel_control"
+      imagen={{ src: "/panel/ilustracion-estadisticas.webp" }}
+    />
+  ),
+  oportunidades_cartelera: ModalNovedadOportunidades,
+  perfil_directorio: ModalNovedadPerfil,
+  usuarios_empresa: ModalNovedadUsuarios,
 };
 
 export function PilaNovedades() {
@@ -90,7 +90,9 @@ export function PilaNovedades() {
    * en la próxima carga baja al día desde el servidor.
    */
   const pila = currentUser
-    ? novedadesPendientes(currentUser).filter((id) => REGISTRO[id].aplica(currentUser))
+    ? novedadesPendientes(currentUser).filter(
+        (id) => !NOVEDAD_EXIGE_FICHA[id] || Boolean(tipoEntidadDe(currentUser))
+      )
     : [];
 
   if (!currentUser || cerrado || pila.length === 0) return null;
@@ -110,7 +112,7 @@ export function PilaNovedades() {
     if (fallo(r)) console.warn("No se pudo marcar la novedad como vista:", id);
   }
 
-  const { Componente } = REGISTRO[actual];
+  const Componente = REGISTRO[actual];
 
   return (
     <Componente

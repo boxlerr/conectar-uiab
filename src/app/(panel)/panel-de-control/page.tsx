@@ -4,14 +4,34 @@ import { redirect } from 'next/navigation';
 import { BannerSuscripcion, DashboardBlurGate } from '@/components/ui/BannerSuscripcion';
 import { AvisoDatosFaltantes, faltantesDeLaFicha } from '@/components/ui/aviso-datos-faltantes';
 import { AvisoEtiquetasPrecargadas } from '@/components/ui/aviso-etiquetas-precargadas';
-import { BotonReiniciarTour } from '@/modulos/onboarding/componentes/boton-reiniciar-tour';
 import { AvisoConflictosPadron } from '@/modulos/altas/componentes/aviso-conflictos-padron';
 import { conflictosPendientes, type ConflictoPadron } from '@/modulos/altas/padron';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { resolverEntidadDePerfil } from '@/modulos/autenticacion/entidad-del-perfil';
-import { TarjetaVisitas } from '@/components/ui/tarjeta-visitas';
-import { hrefFichaDeCandidato } from '@/modulos/compartido/ficha-publica';
+import { hrefFichaDeCandidato, slugDeEmpresa, slugDeProveedor } from '@/modulos/compartido/ficha-publica';
+import { textoDeFicha } from '@/modulos/compartido/texto-ficha';
 import { urlPublicaDeLogo } from '@/modulos/oportunidades/solicitante';
+import { estadisticasDeVisitas } from '@/modulos/visitas/consultas';
+import { estadisticasVacias } from '@/modulos/visitas/estadisticas';
+import { serieAcumulada } from '@/modulos/panel/series';
+import { construirActividad } from '@/modulos/panel/actividad';
+import {
+  etiquetaNorma,
+  mapearCertificaciones,
+  SELECT_CERTIFICACIONES_DIRECTORIO,
+  type CertificacionChip,
+} from '@/modulos/certificaciones/normas';
+import { SELECT_NOTIFICACION, type Notificacion } from '@/modulos/notificaciones/tipos';
+import { FeedNovedades } from '@/modulos/novedades/componentes/feed-novedades';
+import { AccionesRapidas, type AccionRapida } from '@/components/ui/panel/acciones-rapidas';
+import { HeroPanel } from '@/components/ui/panel/hero-panel';
+import { CabeceraPanel, TARJETA, TituloBloque } from '@/components/ui/panel/piezas';
+import { PanelNotificaciones } from '@/components/ui/panel/panel-notificaciones';
+import { TarjetaActividad } from '@/components/ui/panel/tarjeta-actividad';
+import { TarjetaEstadisticas } from '@/components/ui/panel/tarjeta-estadisticas';
+import { TarjetaKpi } from '@/components/ui/panel/tarjeta-kpi';
+import { TarjetaPlan, type EstadoSuscripcion } from '@/components/ui/panel/tarjeta-plan';
+import { VistaPreviaFicha } from '@/components/ui/panel/vista-previa-ficha';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -33,26 +53,27 @@ import {
   Clock,
   Award,
   BarChart3,
-  Settings,
   CheckCircle2,
   ArrowUpRight,
   Activity,
-  Bell,
-  Camera,
   FileText,
   CircleDot,
   MessageSquare,
   Eye,
-  User,
   PackageSearch,
   Wrench,
-  Globe,
-  Mail,
-  Link2,
-  Phone,
   Building2,
+  Camera,
+  LayoutGrid,
+  Inbox,
 } from 'lucide-react';
 
+/**
+ * Los joins de supabase-js vienen sin tipar y el render los recorre con `any`.
+ * El `disable` cubre el archivo entero a propósito: antes había un
+ * `eslint-enable` antes del JSX y las nueve `any` del render quedaban marcadas
+ * como error en cada corrida.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ═══════════════════════════════════════════════════════════
@@ -60,25 +81,22 @@ import {
 // ═══════════════════════════════════════════════════════════
 
 function calcProfileCompletion(entity: Record<string, any>, type: 'empresa' | 'proveedor') {
-  if (!entity) return { pct: 0, missing: [] as string[] };
-  const fieldMap =
+  if (!entity) return { pct: 0 };
+  const campos =
     type === 'empresa'
-      ? { razon_social: 'Razón Social', cuit: 'CUIT', email: 'Email', descripcion: 'Descripción', direccion: 'Dirección', localidad: 'Localidad', provincia: 'Provincia', nombre_comercial: 'Nombre Comercial', whatsapp: 'WhatsApp' }
-      : { nombre: 'Nombre', apellido: 'Apellido', cuit: 'CUIT', email: 'Email', descripcion: 'Descripción', direccion: 'Dirección', localidad: 'Localidad', provincia: 'Provincia', nombre_comercial: 'Nombre Comercial', whatsapp: 'WhatsApp' };
-  const missing: string[] = [];
+      ? ['razon_social', 'cuit', 'email', 'descripcion', 'direccion', 'localidad', 'provincia', 'nombre_comercial', 'whatsapp']
+      : ['nombre', 'apellido', 'cuit', 'email', 'descripcion', 'direccion', 'localidad', 'provincia', 'nombre_comercial', 'whatsapp'];
   let filled = 0;
-  for (const [k, label] of Object.entries(fieldMap)) {
+  for (const k of campos) {
     const v = entity[k];
     if (v !== null && v !== undefined && String(v).trim() !== '') filled++;
-    else missing.push(label);
   }
-  return { pct: Math.round((filled / Object.keys(fieldMap).length) * 100), missing };
+  return { pct: Math.round((filled / campos.length) * 100) };
 }
 
 function timeAgo(dateStr: string): string {
   const d = new Date(dateStr);
-  const now = new Date();
-  const mins = Math.floor((now.getTime() - d.getTime()) / 60000);
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000);
   if (mins < 1) return 'Ahora';
   if (mins < 60) return `${mins}min`;
   const hrs = Math.floor(mins / 60);
@@ -89,27 +107,17 @@ function timeAgo(dateStr: string): string {
 }
 
 function scoreColor(s: number) {
-  if (s >= 75) return 'bg-emerald-50/80 text-emerald-700';
-  if (s >= 50) return 'bg-sky-50/80 text-sky-700';
-  if (s >= 30) return 'bg-amber-50/80 text-amber-700';
+  if (s >= 75) return 'bg-emerald-50 text-emerald-700';
+  if (s >= 50) return 'bg-sky-50 text-sky-700';
+  if (s >= 30) return 'bg-amber-50 text-amber-700';
   return 'bg-[#f2f4f6] text-[#10375c]';
 }
 
-const TARIFA_BADGE: Record<number, { label: string; style: string }> = {
-  1: { label: 'Nivel 1', style: 'bg-[#f2f4f6] text-[#10375c]' },
-  2: { label: 'Nivel 2', style: 'bg-sky-50 text-sky-800' },
-  3: { label: 'Nivel 3', style: 'bg-amber-50 text-amber-800' },
-};
-
 const ESTADO_OP: Record<string, { label: string; style: string }> = {
-  abierta: { label: 'Abierta', style: 'bg-emerald-50/80 text-emerald-700' },
+  abierta: { label: 'Abierta', style: 'bg-emerald-50 text-emerald-700' },
   cerrada: { label: 'Cerrada', style: 'bg-[#f2f4f6] text-slate-600' },
-  cancelada: { label: 'Cancelada', style: 'bg-red-50/80 text-red-600' },
+  cancelada: { label: 'Cancelada', style: 'bg-red-50 text-red-600' },
 };
-
-function ars(n: number) {
-  return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
-}
 
 // ═══════════════════════════════════════════════════════════
 //  PAGE
@@ -127,9 +135,11 @@ export default async function DashboardPage() {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) redirect('/login');
 
+  // `tutoriales_vistos` lo necesita el feed de novedades para saber cuáles ya
+  // cerró: se trae acá para no hacerle un fetch aparte.
   const { data: profile } = await supabase
     .from('perfiles')
-    .select('id, nombre_completo, rol_sistema, activo, email')
+    .select('id, nombre_completo, rol_sistema, activo, email, tutoriales_vistos, creado_en')
     .eq('id', user.id)
     .single();
 
@@ -146,6 +156,7 @@ export default async function DashboardPage() {
   const entityId: string | null = entidad?.id ?? null;
   const isCompany = entidad?.tipo === 'company';
   const isProvider = entidad?.tipo === 'provider';
+  const tieneFicha = isCompany || isProvider;
 
   // ── Diferencias con el padrón que la socia todavía no revisó ──
   // `altas_socios` es deny-by-default para authenticated, así que va por el
@@ -164,6 +175,7 @@ export default async function DashboardPage() {
   // ── Parallel data fetch ──
   const [
     statsRes,
+    altasSociasRes,
     recentOpsRes,
     entityRes,
     catsRes,
@@ -172,51 +184,97 @@ export default async function DashboardPage() {
     myOpsRes,
     suscripcionRes,
     solicitudesRes,
+    tagsRes,
+    certsRes,
+    itemsCountRes,
+    resenasCountRes,
+    notificacionesRes,
+    sinLeerRes,
+    visitas,
   ] = await Promise.all([
-    // 1) Global stats
+    // 1) Contadores globales
     Promise.all([
       supabase.from('empresas').select('*', { count: 'exact', head: true }).eq('estado', 'aprobada'),
       supabase.from('proveedores').select('*', { count: 'exact', head: true }).eq('estado', 'aprobado'),
       supabase.from('oportunidades').select('*', { count: 'exact', head: true }).eq('estado', 'abierta'),
     ]),
-    // 2) Recent open opportunities
+    // 2) Fechas de aprobación de las socias — la serie del KPI del directorio.
+    //    Son ~60 filas de una sola columna: sale más barato que una RPC nueva.
+    supabase.from('empresas').select('aprobada_en').eq('estado', 'aprobada'),
+    // 3) Últimas oportunidades abiertas de la red
     supabase.from('oportunidades')
       .select('id, titulo, localidad, creado_en, categoria:categorias(nombre)')
       .eq('estado', 'abierta').order('creado_en', { ascending: false }).limit(5),
-    // 3) Entity data
+    // 4) Ficha propia
     isCompany && entityId ? supabase.from('empresas').select('*').eq('id', entityId).single()
       : isProvider && entityId ? supabase.from('proveedores').select('*').eq('id', entityId).single()
       : Promise.resolve({ data: null }),
-    // 4) Categories
+    // 5) Rubros
     isCompany && entityId ? supabase.from('empresas_categorias').select('categoria:categorias(nombre)').eq('empresa_id', entityId)
       : isProvider && entityId ? supabase.from('proveedores_categorias').select('categoria:categorias(nombre)').eq('proveedor_id', entityId)
       : Promise.resolve({ data: [] }),
-    // 5) Admin pending
+    // 6) Pendientes de admin
     isAdmin ? Promise.all([
       supabase.from('empresas').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente_revision'),
       supabase.from('proveedores').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente_revision'),
       supabase.from('resenas').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente_revision'),
     ]) : Promise.resolve(null),
-    // 6) Fourth stat per role
+    // 7) Cuarta métrica según rol
     isCompany && entityId ? supabase.from('oportunidades').select('*', { count: 'exact', head: true }).eq('empresa_solicitante_id', entityId)
       : isProvider && entityId ? supabase.from('oportunidades_matches').select('*', { count: 'exact', head: true }).eq('proveedor_candidato_id', entityId)
       : Promise.resolve({ count: 0 }),
-    // 7) Company's own opportunities
+    // 8) Oportunidades propias
     isCompany && entityId ? supabase.from('oportunidades').select('id, titulo, estado, creado_en, categoria:categorias(nombre)')
       .eq('empresa_solicitante_id', entityId).order('creado_en', { ascending: false }).limit(4)
       : Promise.resolve({ data: [] }),
-    // 8) Subscription
-    entityId ? supabase.from('suscripciones').select('id, estado, nombre_plan, inicia_en, finaliza_en, monto')
+    // 9) Suscripción — se leen también ciclo, método y fechas: la tarjeta de
+    //    plan necesita distinguir "al día", "en gracia" y "cortesía".
+    entityId ? supabase.from('suscripciones')
+      .select('id, estado, ciclo, metodo_pago, monto, proximo_cobro_en, gracia_hasta')
       .or(isCompany ? `empresa_id.eq.${entityId}` : `proveedor_id.eq.${entityId}`)
       .order('creado_en', { ascending: false }).limit(1).maybeSingle()
       : Promise.resolve({ data: null }),
-    // 9) Quote requests received by me (company OR provider as destino)
-    entityId && (isCompany || isProvider)
+    // 10) Solicitudes de presupuesto recibidas
+    entityId && tieneFicha
       ? supabase.from('solicitudes_presupuesto')
-          .select('id, estado, creado_en, empresa_origen_id, proveedor_origen_id, empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social, nombre_comercial), proveedor_origen:proveedores!solicitudes_presupuesto_proveedor_origen_id_fkey(nombre, nombre_comercial)')
+          .select('id, estado, creado_en, empresa_origen:empresas!solicitudes_presupuesto_empresa_origen_id_fkey(razon_social, nombre_comercial), proveedor_origen:proveedores!solicitudes_presupuesto_proveedor_origen_id_fkey(nombre, nombre_comercial)')
           .eq(isCompany ? 'empresa_destino_id' : 'proveedor_destino_id', entityId)
-          .order('creado_en', { ascending: false }).limit(4)
+          .order('creado_en', { ascending: false }).limit(5)
       : Promise.resolve({ data: [] }),
+    // 11) Etiquetas de match: la ficha las muestra como "especialidades".
+    isCompany && entityId ? supabase.from('empresas_tags').select('tags(nombre)').eq('empresa_id', entityId)
+      : isProvider && entityId ? supabase.from('proveedores_tags').select('tags(nombre)').eq('proveedor_id', entityId)
+      : Promise.resolve({ data: [] }),
+    // 12) Certificaciones — `certificaciones_select` es `using (true)` para
+    //     authenticated, así que van con el cliente de sesión.
+    entityId && tieneFicha
+      ? supabase.from('certificaciones')
+          .select(`${SELECT_CERTIFICACIONES_DIRECTORIO}, id, creado_en`)
+          .eq(isCompany ? 'empresa_id' : 'proveedor_id', entityId)
+      : Promise.resolve({ data: [] }),
+    // 13) Total del catálogo (los 3 de la tira se traen aparte)
+    entityId && tieneFicha
+      ? supabase.from('items').select('*', { count: 'exact', head: true })
+          .eq(isCompany ? 'empresa_id' : 'proveedor_id', entityId)
+      : Promise.resolve({ count: 0 }),
+    // 14) Reseñas publicadas sobre la ficha
+    entityId && tieneFicha
+      ? supabase.from('resenas').select('*', { count: 'exact', head: true })
+          .eq(isCompany ? 'empresa_resenada_id' : 'proveedor_resenado_id', entityId)
+          .eq('estado', 'aprobada')
+      : Promise.resolve({ count: 0 }),
+    // 15) Notificaciones propias. La RLS ya filtra por auth.uid(); el .eq es
+    //     defensa en profundidad. La columna de orden es `creada_en`.
+    supabase.from('notificaciones').select(SELECT_NOTIFICACION)
+      .eq('perfil_id', user.id).order('creada_en', { ascending: false }).limit(5),
+    // 16) No leídas: conteo real sobre la tabla, no sobre las 5 traídas.
+    supabase.from('notificaciones').select('id', { count: 'exact', head: true })
+      .eq('perfil_id', user.id).eq('leida', false),
+    // 17) Visitas. Van con service role sí o sí: `visitas_perfil` tiene RLS sin
+    //     políticas y con la anon key devuelve [] sin avisar.
+    entityId && tieneFicha
+      ? estadisticasDeVisitas(isCompany ? 'company' : 'provider', entityId)
+      : Promise.resolve(estadisticasVacias()),
   ]);
 
   const empresasCount = statsRes[0].count ?? 0;
@@ -228,6 +286,21 @@ export default async function DashboardPage() {
   const myOps = (myOpsRes as any).data as any[] || [];
   const suscripcion = (suscripcionRes as any).data as any | null;
   const solicitudes = (solicitudesRes as any).data as any[] || [];
+  const entityTags: string[] = ((tagsRes as any).data as any[] || [])
+    .map((t: any) => t.tags?.nombre).filter(Boolean);
+  const certsRaw = ((certsRes as any).data as any[]) || [];
+  const certificaciones: CertificacionChip[] = entityId
+    ? mapearCertificaciones(certsRaw).get(entityId) ?? []
+    : [];
+  const totalItems = (itemsCountRes as any)?.count ?? 0;
+  const totalResenas = (resenasCountRes as any)?.count ?? 0;
+  const notificaciones = ((notificacionesRes as any).data as Notificacion[] | null) ?? [];
+  const sinLeer = (sinLeerRes as any)?.count ?? 0;
+
+  // Serie real del directorio: el acumulado de socias aprobadas, día a día.
+  const socias = serieAcumulada(
+    (((altasSociasRes as any).data as any[]) || []).map((e: any) => e.aprobada_en),
+  );
 
   let pendingEmpresas = 0, pendingProveedores = 0, pendingResenas = 0;
   if (isAdmin && adminPendingRes) {
@@ -243,15 +316,13 @@ export default async function DashboardPage() {
   // Un candidato puede ser una SOCIA (`empresa_candidata_id`) o un prestador
   // (`proveedor_candidato_id`) — nunca los dos. Traer sólo el join de
   // `proveedores`, como se hacía antes, dejaba las tarjetas literalmente en
-  // blanco: hoy las seis candidatas de la única oportunidad abierta son socias
-  // y la tabla `proveedores` está vacía, así que `match.proveedor` venía null
-  // en el 100% de los casos y sólo se veía la insignia con el puntaje.
+  // blanco: hoy las candidatas son socias y la tabla `proveedores` está vacía.
   let dashboardMatches: any[] = [];
   let ultimaOportunidadId: string | null = null;
   if (isCompany && entityId) {
     const { data: latestOp } = await supabase.from('oportunidades').select('id')
       .eq('empresa_solicitante_id', entityId).eq('estado', 'abierta')
-      .order('creado_en', { ascending: false }).limit(1).single();
+      .order('creado_en', { ascending: false }).limit(1).maybeSingle();
     if (latestOp) {
       ultimaOportunidadId = latestOp.id;
       const { data } = await supabase.from('oportunidades_matches')
@@ -270,15 +341,8 @@ export default async function DashboardPage() {
     dashboardMatches = data || [];
   }
 
-  // ── Tarifa ──
-  let tarifaData: any = null;
-  if (isCompany && entityData?.tarifa) {
-    const { data } = await supabase.from('tarifas').select('*').eq('nivel', entityData.tarifa).single();
-    tarifaData = data;
-  }
-
-  // ── Productos / Servicios ──
-  const { data: myItemsData } = (isCompany || isProvider) && entityId
+  // ── Productos / Servicios (los 3 más nuevos, para la tira del panel) ──
+  const { data: myItemsData } = tieneFicha && entityId
     ? await supabase.from('items')
         .select('id, nombre, precio, estado, tipo_item, creado_en, imagenes:imagenes_item(bucket, ruta_archivo, orden)')
         .eq(isCompany ? 'empresa_id' : 'proveedor_id', entityId)
@@ -288,26 +352,70 @@ export default async function DashboardPage() {
     : { data: [] };
   const myItems = myItemsData || [];
 
-  // ── Derived ──
-  const { pct: profilePct, missing: missingFields } = entityData
+  // ── Derivados ──
+  const { pct: profilePct } = entityData
     ? calcProfileCompletion(entityData, isCompany ? 'empresa' : 'proveedor')
-    : { pct: 0, missing: [] };
+    : { pct: 0 };
   const firstName = profile?.nombre_completo?.split(' ')[0] || 'Usuario';
-  const formattedDate = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
-  const hasLogo = isCompany ? !!entityData?.ruta_logo : !!entityData?.ruta_logo;
-  const logoUrl = entityData?.ruta_logo
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${entityData.bucket_logo}/${entityData.ruta_logo}`
-    : null;
+  const hasLogo = !!entityData?.ruta_logo;
+  const logoUrl = urlPublicaDeLogo(entityData?.bucket_logo, entityData?.ruta_logo);
 
-  const displayName = isCompany 
+  const displayName = isCompany
     ? (entityData?.nombre_comercial || entityData?.razon_social || 'Empresa sin nombre')
     : isProvider
       ? (entityData?.nombre_comercial || `${entityData?.nombre} ${entityData?.apellido}`.trim() || 'Profesional sin nombre')
       : firstName;
 
-  const publicProfileUrl = entityData?.slug ? `/empresas/${entityData.slug}` : null;
+  /**
+   * El slug NO es una columna de `empresas`: se recalcula de `razon_social` en
+   * cada render. Este link leía `entityData.slug`, que siempre es `undefined`,
+   * así que el botón de la ficha pública no se renderizaba nunca — el panel
+   * jamás ofreció una forma de llegar a la ficha propia.
+   */
+  const slugPublico = isCompany
+    ? slugDeEmpresa(entityData?.razon_social)
+    : isProvider
+      ? slugDeProveedor(entityData ?? {})
+      : null;
+  const publicProfileUrl = slugPublico ? `/empresas/${slugPublico}` : null;
 
-  // Onboarding steps
+  const descripcionFicha = entityData ? textoDeFicha(entityData) : null;
+  const ubicacionFicha = entityData
+    ? [entityData.localidad, entityData.direccion].filter(Boolean).join(', ') || null
+    : null;
+  const fichaVerificada = entityData?.estado === 'aprobada' || entityData?.estado === 'aprobado';
+
+  // ── Suscripción ──
+  // Sin fila se trata como "nunca activó", igual que el gate del middleware.
+  const estadoSuscripcion = (suscripcion?.estado as EstadoSuscripcion | undefined) ?? null;
+  const esCortesia = Boolean(
+    suscripcion && (suscripcion.metodo_pago === 'cortesia' || Number(suscripcion.monto) === 0),
+  );
+
+  // ── Actividad reciente: eventos reales, no un log inventado ──
+  const actividad = construirActividad({
+    entidad: entityData,
+    items: myItems.map((i: any) => ({
+      id: i.id, nombre: i.nombre, tipo_item: i.tipo_item, creado_en: i.creado_en,
+    })),
+    certificaciones: certsRaw
+      .filter((c: any) => c.creado_en)
+      .map((c: any) => ({
+        id: c.id,
+        etiqueta: etiquetaNorma(c.codigo_norma, c.nombre_libre),
+        creado_en: c.creado_en,
+      })),
+    oportunidades: myOps.map((o: any) => ({ id: o.id, titulo: o.titulo, creado_en: o.creado_en })),
+    solicitudes: solicitudes.map((s: any) => ({
+      id: s.id,
+      origen:
+        s.empresa_origen?.nombre_comercial || s.empresa_origen?.razon_social ||
+        s.proveedor_origen?.nombre_comercial || s.proveedor_origen?.nombre || 'Una socia',
+      creado_en: s.creado_en,
+    })),
+  });
+
+  // Pasos de onboarding
   const onboardingSteps = [
     { done: !!entityData, label: isCompany ? 'Crear perfil de empresa' : 'Crear perfil profesional', href: '/perfil/datos', icon: Building },
     { done: profilePct >= 60, label: 'Completar datos principales', href: '/perfil/datos', icon: FileText },
@@ -317,28 +425,116 @@ export default async function DashboardPage() {
   const stepsCompleted = onboardingSteps.filter(s => s.done).length;
   const showOnboarding = stepsCompleted < onboardingSteps.length;
 
-  // Quick actions
-  const quickActions = isAdmin
+  // Accesos directos.
+  // OJO: `/perfil/documentos` no está en la nav de /perfil — esta lista es el
+  // único camino a esa pantalla en toda la app.
+  const quickActions: AccionRapida[] = isAdmin && !tieneFicha
     ? [
-        { href: '/admin', icon: ShieldCheck, label: 'Panel Admin', sub: 'Gestión completa' },
-        { href: '/admin/empresas', icon: Building, label: 'Socios UIAB', sub: `${pendingEmpresas} pendientes` },
-        { href: '/admin/proveedores', icon: Users, label: 'Proveedores de servicios', sub: `${pendingProveedores} pendientes` },
+        { href: '/admin', icono: ShieldCheck, label: 'Panel Admin', tono: 'bg-blue-50 text-blue-500' },
+        { href: '/admin/empresas', icono: Building, label: 'Socios UIAB', tono: 'bg-emerald-50 text-emerald-500' },
+        { href: '/admin/proveedores', icono: Users, label: 'Proveedores de servicios', tono: 'bg-amber-50 text-amber-500' },
+        { href: '/admin/etiquetas', icono: Sparkles, label: 'Etiquetas', tono: 'bg-violet-50 text-violet-500' },
       ]
     : isCompany
       ? [
-          { href: '/oportunidades', icon: Plus, label: 'Publicar Oportunidad', sub: 'Nuevo requerimiento' },
-          { href: '/empresas?categoria=proveedores', icon: Search, label: 'Buscar proveedores de servicios', sub: 'Directorio verificado' },
-          { href: '/perfil/certificaciones', icon: Award, label: 'Certificaciones', sub: 'ISO, BPM y normas' },
-          { href: '/perfil/documentos', icon: FileCheck2, label: 'Legajo y habilitaciones', sub: 'Documentación privada' },
+          { href: '/oportunidades/nueva', icono: Plus, label: 'Publicar oportunidad', tono: 'bg-blue-50 text-blue-500' },
+          { href: '/empresas?categoria=proveedores', icono: Search, label: 'Buscar proveedores', tono: 'bg-emerald-50 text-emerald-500' },
+          { href: '/perfil/productos-servicios', icono: LayoutGrid, label: 'Agregar producto o servicio', tono: 'bg-amber-50 text-amber-500' },
+          { href: '/perfil/etiquetas', icono: Sparkles, label: 'Etiquetas de match', tono: 'bg-violet-50 text-violet-500' },
+          { href: '/perfil/certificaciones', icono: Award, label: 'Certificaciones', tono: 'bg-teal-50 text-teal-500' },
+          { href: '/perfil/documentos', icono: FileCheck2, label: 'Legajo y habilitaciones', tono: 'bg-rose-50 text-rose-500' },
         ]
       : [
-          { href: '/oportunidades', icon: Briefcase, label: 'Oportunidades', sub: 'Requerimientos abiertos' },
-          { href: '/empresas', icon: Building, label: 'Explorar Socios UIAB', sub: 'Directorio industrial' },
-          { href: '/perfil/certificaciones', icon: Award, label: 'Certificaciones', sub: 'ISO, BPM y normas' },
-          { href: '/perfil/documentos', icon: FileCheck2, label: 'Legajo y habilitaciones', sub: 'Documentación privada' },
+          { href: '/oportunidades', icono: Briefcase, label: 'Ver oportunidades', tono: 'bg-blue-50 text-blue-500' },
+          { href: '/empresas', icono: Building, label: 'Explorar socios UIAB', tono: 'bg-emerald-50 text-emerald-500' },
+          { href: '/perfil/productos-servicios', icono: LayoutGrid, label: 'Agregar producto o servicio', tono: 'bg-amber-50 text-amber-500' },
+          { href: '/perfil/etiquetas', icono: Sparkles, label: 'Etiquetas de match', tono: 'bg-violet-50 text-violet-500' },
+          { href: '/perfil/certificaciones', icono: Award, label: 'Certificaciones', tono: 'bg-teal-50 text-teal-500' },
+          { href: '/perfil/documentos', icono: FileCheck2, label: 'Legajo y habilitaciones', tono: 'bg-rose-50 text-rose-500' },
         ];
 
-  /* eslint-enable @typescript-eslint/no-explicit-any */
+  const menuHero = [
+    { href: '/perfil/datos', label: 'Datos y contacto' },
+    { href: '/perfil/servicios', label: 'Rubros y especialidades' },
+    { href: '/perfil/etiquetas', label: 'Etiquetas de match' },
+    ...(tieneFicha ? [{ href: '/perfil/usuarios', label: 'Usuarios de mi empresa' }] : []),
+    { href: '/perfil/suscripcion', label: 'Mi suscripción' },
+    ...(isAdmin ? [{ href: '/admin', label: 'Panel de administración' }] : []),
+  ];
+
+  /**
+   * KPIs. La línea de tendencia aparece SÓLO donde hay serie real: visitas a la
+   * ficha (`visitas_perfil`, por día) y socias del directorio (acumulado de
+   * `empresas.aprobada_en`). Prestadores y oportunidades están en cero en la
+   * base: ahí va el guión, igual que en el mockup. Dibujarles una curva sería
+   * inventar una tendencia.
+   */
+  const kpis = [
+    ...(tieneFicha
+      ? [{
+          key: 'visitas',
+          icono: Eye,
+          valor: visitas.total,
+          etiqueta: 'Visitas a tu ficha',
+          sub: visitas.ultimos30 > 0 ? `${visitas.ultimos30} en los últimos 30 días` : 'Total histórico',
+          href: '#estadisticas',
+          tono: { fondo: 'bg-violet-50', texto: 'text-violet-500', linea: '#7c3aed' },
+          serie: visitas.serie,
+          variacion: visitas.variacion,
+          tituloVariacion: 'Contra los 30 días anteriores',
+        }]
+      : []),
+    {
+      key: 'socias',
+      icono: Building,
+      valor: empresasCount,
+      etiqueta: 'Socios UIAB',
+      sub: 'En el directorio',
+      href: '/empresas',
+      tono: { fondo: 'bg-blue-50', texto: 'text-blue-500', linea: '#2563eb' },
+      serie: socias.serie,
+      variacion: socias.variacion,
+      tituloVariacion: 'Crecimiento del directorio en 30 días',
+    },
+    {
+      key: 'prestadores',
+      icono: Users,
+      valor: proveedoresCount,
+      etiqueta: 'Proveedores de servicios',
+      sub: 'Verificados',
+      href: '/empresas?categoria=proveedores',
+      tono: { fondo: 'bg-emerald-50', texto: 'text-emerald-500', linea: '#10b981' },
+      serie: undefined,
+      variacion: null,
+      tituloVariacion: undefined,
+    },
+    {
+      key: 'oportunidades',
+      icono: Target,
+      valor: oportunidadesCount,
+      etiqueta: 'Oportunidades',
+      sub: 'Abiertas ahora',
+      href: '/oportunidades',
+      tono: { fondo: 'bg-amber-50', texto: 'text-amber-500', linea: '#f59e0b' },
+      serie: undefined,
+      variacion: null,
+      tituloVariacion: undefined,
+    },
+    ...(tieneFicha
+      ? []
+      : [{
+          key: 'pendientes',
+          icono: isAdmin ? AlertCircle : Zap,
+          valor: isAdmin ? totalPending : fourthStatCount,
+          etiqueta: isAdmin ? 'Pendientes' : 'Mis matches',
+          sub: isAdmin ? 'A revisar' : 'Activos',
+          href: isAdmin ? '/admin' : '/oportunidades',
+          tono: { fondo: 'bg-violet-50', texto: 'text-violet-500', linea: '#7c3aed' },
+          serie: undefined,
+          variacion: null,
+          tituloVariacion: undefined,
+        }]),
+  ];
 
   // ═════════════════════════════════════════════════════════
   //  RENDER
@@ -350,166 +546,60 @@ export default async function DashboardPage() {
     <DashboardBlurGate>
     {/* svh (no vh ni dvh): evita que la barra de Safari en iOS recorte el alto */}
     <main className="min-h-svh bg-[#f2f5f8]">
-      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-5">
+      <div className="mx-auto max-w-[1320px] space-y-6 px-4 pb-24 pt-8 sm:px-6 lg:px-8">
 
         <AvisoDatosFaltantes faltantes={faltantesDeLaFicha(entityData)} />
-
         <AvisoConflictosPadron conflictos={conflictosPadron} />
-
         <AvisoEtiquetasPrecargadas />
 
-        {/* ── HERO HEADER ── */}
-        <header
-          data-tour="dash-hero"
-          className="relative overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,33,63,0.4)] ring-1 ring-white/5 animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-fill-mode:both]"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-[#00182f] via-[#042848] to-[#0c3260]" />
-          <div aria-hidden className="absolute inset-0 opacity-[0.045]" style={{
-            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)',
-            backgroundSize: '28px 28px',
-          }} />
-          <div aria-hidden className="absolute -top-28 right-10 w-[480px] h-[480px] bg-sky-400/12 rounded-full blur-[100px] pointer-events-none" />
-          <div aria-hidden className="absolute bottom-0 left-1/3 w-[280px] h-[180px] bg-cyan-300/8 rounded-full blur-[70px] pointer-events-none" />
+        <HeroPanel
+          displayName={displayName}
+          logoUrl={logoUrl}
+          tipoEtiqueta={isCompany ? 'Empresa' : isProvider ? 'Proveedor de servicios' : isAdmin ? 'Admin' : 'Invitado'}
+          verificada={fichaVerificada}
+          gestionadoPor={profile?.nombre_completo ?? null}
+          miembroDesde={entityData?.creado_en ?? profile?.creado_en ?? null}
+          contacto={{
+            email: entityData?.email,
+            localidad: entityData?.localidad,
+            sitioWeb: entityData?.sitio_web,
+            telefono: entityData?.telefono,
+          }}
+          hrefFicha={publicProfileUrl}
+          completitud={profilePct}
+          menu={menuHero}
+        />
 
-          <div className="relative px-6 sm:px-10 py-8">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-7">
-
-              {/* Avatar + Info */}
-              <div className="flex items-center gap-5 sm:gap-6 min-w-0 flex-1">
-                <Link href="/perfil/datos" className="group relative flex-shrink-0" aria-label="Editar logo">
-                  <div className="absolute -inset-0.5 rounded-full bg-gradient-to-br from-sky-400 via-cyan-300 to-blue-500 opacity-50 group-hover:opacity-95 blur-sm transition-opacity duration-300" />
-                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white flex items-center justify-center overflow-hidden ring-1 ring-white/20 shadow-2xl">
-                    {logoUrl ? (
-                      <Image src={logoUrl} alt="" width={120} height={120} className="w-full h-full object-contain p-2" />
-                    ) : (
-                      <span className="font-poppins font-black text-3xl sm:text-4xl text-[#00213f]">
-                        {displayName.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                    <div className="absolute inset-0 bg-[#001c38]/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Camera className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
-                  {(entityData?.estado === 'aprobada' || entityData?.estado === 'aprobado') && (
-                    <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-emerald-400 ring-[3px] ring-[#042848] flex items-center justify-center shadow-lg">
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#003020]" strokeWidth={2.5} />
-                    </span>
-                  )}
-                </Link>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-2.5">
-                    <span className="bg-white/10 text-white/70 text-[11px] sm:text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-white/10">
-                      {isCompany ? 'Empresa' : isProvider ? 'Proveedor de servicios' : isAdmin ? 'Admin' : 'Invitado'}
-                    </span>
-                    {(entityData?.estado === 'aprobada' || entityData?.estado === 'aprobado') && (
-                      <span className="flex items-center gap-1.5 bg-emerald-400/15 border border-emerald-400/25 text-emerald-300 text-[11px] sm:text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                        <ShieldCheck className="w-3 h-3" /> Verificado
-                      </span>
-                    )}
-                  </div>
-                  {/* break-words en vez de truncate: el nombre de la empresa salia cortado con puntos suspensivos en iPhone */}
-                  <h1 className="font-poppins text-2xl sm:text-[32px] lg:text-[36px] font-extrabold text-white tracking-tight leading-tight break-words">
-                    {displayName}
-                  </h1>
-                  <p className="text-white/40 text-xs font-medium mt-2">
-                    Gestionado por <span className="text-white/70 font-semibold">{profile?.nombre_completo}</span>
-                    <span className="mx-2 text-white/20">·</span>
-                    <span className="capitalize">{formattedDate}</span>
-                  </p>
-                  {(entityData?.email || entityData?.localidad || entityData?.sitio_web || entityData?.telefono) && (
-                    <div className="flex flex-wrap items-center gap-1.5 mt-3">
-                      {entityData?.email && (
-                        <span className="inline-flex items-center gap-1.5 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.08] text-white/65 text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors">
-                          <Mail className="w-3 h-3 text-sky-400" /> {entityData.email}
-                        </span>
-                      )}
-                      {entityData?.localidad && (
-                        <span className="inline-flex items-center gap-1.5 bg-white/[0.07] border border-white/[0.08] text-white/65 text-[11px] font-medium px-2.5 py-1 rounded-lg">
-                          <MapPin className="w-3 h-3 text-sky-400" /> {entityData.localidad}
-                        </span>
-                      )}
-                      {entityData?.sitio_web && (
-                        <span className="inline-flex items-center gap-1.5 bg-white/[0.07] border border-white/[0.08] text-white/65 text-[11px] font-medium px-2.5 py-1 rounded-lg max-w-[200px] truncate">
-                          <Globe className="w-3 h-3 text-sky-400 shrink-0" />
-                          <span className="truncate">{entityData.sitio_web.replace(/^https?:\/\//, '')}</span>
-                        </span>
-                      )}
-                      {entityData?.telefono && (
-                        <span className="inline-flex items-center gap-1.5 bg-white/[0.07] border border-white/[0.08] text-white/65 text-[11px] font-medium px-2.5 py-1 rounded-lg">
-                          <Phone className="w-3 h-3 text-sky-400" /> {entityData.telefono}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex flex-wrap items-center gap-2">
-                {publicProfileUrl && (
-                  <Link href={publicProfileUrl} target="_blank"
-                    className="flex items-center gap-2 bg-white text-[#00213f] hover:bg-sky-50 px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:shadow-xl shadow-black/15 whitespace-nowrap">
-                    <Eye className="w-4 h-4" /> Ver Perfil
-                  </Link>
-                )}
-                <Link href="/perfil/datos"
-                  className="flex items-center gap-2 bg-white/10 hover:bg-white/18 text-white px-4 py-2.5 rounded-xl text-sm font-bold border border-white/15 transition-all whitespace-nowrap">
-                  <Settings className="w-4 h-4" /> Editar Datos
-                </Link>
-                <BotonReiniciarTour tour="dashboard" label="Tutorial" variant="ghost"
-                  className="justify-center text-white/55 hover:text-white bg-white/5 border border-white/10 px-4 py-2.5 rounded-xl text-sm" />
-              </div>
-            </div>
-
-            {/* Profile completion bar */}
-            {profilePct < 100 && (
-              <div className="mt-6 pt-5 border-t border-white/[0.07]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] sm:text-[10px] font-bold text-white/35 uppercase tracking-[0.14em] flex items-center gap-1.5">
-                    <Sparkles className="w-3 h-3" /> Completitud del Perfil
-                  </span>
-                  <span className="text-[11px] font-black text-sky-300 tabular-nums">{profilePct}%</span>
-                </div>
-                <div className="h-[3px] bg-white/[0.07] rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-sky-400 to-emerald-400 transition-all duration-1000 rounded-full" style={{ width: `${profilePct}%` }} />
-                </div>
-              </div>
-            )}
-          </div>
-        </header>
-
-        {/* ── ADMIN BANNER ── */}
+        {/* ── BANNER DE ADMIN ── */}
         {isAdmin && totalPending > 0 && (
-          <section className="bg-amber-50 border border-amber-200/80 rounded-2xl px-6 py-4 flex items-center justify-between gap-4 animate-in fade-in duration-500 [animation-fill-mode:both]">
+          <section className="flex animate-in flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-200/80 bg-amber-50 px-5 py-4 duration-500 fade-in sm:px-6 [animation-fill-mode:both]">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="w-4 h-4 text-amber-600" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
               </div>
               <div>
                 <p className="text-sm font-bold text-amber-900">{totalPending} solicitud{totalPending !== 1 ? 'es' : ''} pendiente{totalPending !== 1 ? 's' : ''}</p>
-                <p className="text-xs text-amber-600/70 mt-0.5">{pendingEmpresas} empresas · {pendingProveedores} proveedores de servicios · {pendingResenas} reseñas</p>
+                <p className="mt-0.5 text-xs text-amber-600/70">{pendingEmpresas} empresas · {pendingProveedores} proveedores de servicios · {pendingResenas} reseñas</p>
               </div>
             </div>
-            <Link href="/admin" className="flex items-center gap-1.5 text-sm font-bold text-amber-800 hover:text-amber-900 transition-colors whitespace-nowrap">
-              Panel Admin <ArrowRight className="w-4 h-4" />
+            <Link href="/admin" className="flex items-center gap-1.5 whitespace-nowrap text-sm font-bold text-amber-800 transition-colors hover:text-amber-900">
+              Panel Admin <ArrowRight className="h-4 w-4" />
             </Link>
           </section>
         )}
 
-        {/* ── ONBOARDING (if incomplete) ── */}
-        {showOnboarding && !isAdmin && (() => {
+        {/* ── ONBOARDING (si está incompleto) ── */}
+        {showOnboarding && tieneFicha && (() => {
           const pct = Math.round((stepsCompleted / onboardingSteps.length) * 100);
-          const ringCircumference = 2 * Math.PI * 34;
-          const ringOffset = ringCircumference - (pct / 100) * ringCircumference;
+          const circ = 2 * Math.PI * 34;
           return (
-            <section className="bg-white rounded-2xl shadow-[0_4px_24px_-8px_rgba(0,33,63,0.1)] overflow-hidden ring-1 ring-slate-200/50 animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:120ms] [animation-fill-mode:both]">
-              <div className="flex items-center gap-4 sm:gap-6 px-5 sm:px-8 py-6 border-b border-slate-100">
-                <div className="relative w-[86px] h-[86px] flex-shrink-0">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
+            <section className="animate-in overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_-8px_rgba(0,33,63,0.1)] ring-1 ring-slate-200/50 duration-700 fade-in slide-in-from-bottom-3 [animation-delay:120ms] [animation-fill-mode:both]">
+              <div className="flex items-center gap-4 border-b border-slate-100 px-5 py-6 sm:gap-6 sm:px-8">
+                <div className="relative h-[86px] w-[86px] shrink-0">
+                  <svg className="h-full w-full -rotate-90" viewBox="0 0 80 80">
                     <circle cx="40" cy="40" r="34" stroke="#e2e8f0" strokeWidth="6" fill="none" />
                     <circle cx="40" cy="40" r="34" stroke="url(#onbGrad)" strokeWidth="6" fill="none"
-                      strokeLinecap="round" strokeDasharray={ringCircumference} strokeDashoffset={ringOffset} />
+                      strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ - (pct / 100) * circ} />
                     <defs>
                       <linearGradient id="onbGrad" x1="0" y1="0" x2="1" y2="1">
                         <stop offset="0%" stopColor="#3b82f6" />
@@ -521,34 +611,34 @@ export default async function DashboardPage() {
                     <span className="font-poppins text-lg font-extrabold text-[#00213f]">{pct}%</span>
                   </div>
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <h2 className="font-poppins text-lg font-bold text-[#00213f]">Completá tu perfil</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">
+                  <p className="mt-0.5 text-sm text-slate-500">
                     <span className="font-semibold text-[#00213f]">{stepsCompleted}</span> de {onboardingSteps.length} pasos listos · te faltan {onboardingSteps.length - stepsCompleted} para aparecer en el directorio
                   </p>
                 </div>
               </div>
-              <div className="px-5 sm:px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 gap-2.5 px-5 py-6 sm:grid-cols-2 sm:px-8">
                 {onboardingSteps.map((step) => (
                   <Link key={step.label} href={step.href}
-                    className={`group flex items-center gap-3.5 px-4 py-3.5 rounded-xl transition-all duration-200 border ${
+                    className={`group flex items-center gap-3.5 rounded-xl border px-4 py-3.5 transition-all duration-200 ${
                       step.done
-                        ? 'bg-emerald-50/50 border-emerald-100 hover:bg-emerald-50'
-                        : 'bg-white border-slate-200 hover:border-[#00213f]/25 hover:bg-slate-50/80 hover:shadow-sm'
+                        ? 'border-emerald-100 bg-emerald-50/50 hover:bg-emerald-50'
+                        : 'border-slate-200 bg-white hover:border-[#00213f]/25 hover:bg-slate-50/80 hover:shadow-sm'
                     }`}
                   >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
                       step.done ? 'bg-emerald-500 text-white shadow-[0_4px_12px_-2px_rgba(16,185,129,0.4)]' : 'bg-slate-100 text-slate-500 group-hover:bg-[#00213f] group-hover:text-white'
                     }`}>
-                      {step.done ? <CheckCircle2 className="w-5 h-5" strokeWidth={2.5} /> : <step.icon className="w-4 h-4" />}
+                      {step.done ? <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} /> : <step.icon className="h-4 w-4" />}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className={`text-sm font-semibold leading-tight ${step.done ? 'text-emerald-800' : 'text-[#00213f]'}`}>{step.label}</p>
-                      <p className={`text-[11px] mt-0.5 ${step.done ? 'text-emerald-600/80' : 'text-slate-400'}`}>
+                      <p className={`mt-0.5 text-[11px] ${step.done ? 'text-emerald-600/80' : 'text-slate-400'}`}>
                         {step.done ? 'Listo' : 'Pendiente · tocá para completar'}
                       </p>
                     </div>
-                    {!step.done && <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-[#00213f] transition-colors" />}
+                    {!step.done && <ChevronRight className="h-4 w-4 text-slate-200 transition-colors group-hover:text-[#00213f]" />}
                   </Link>
                 ))}
               </div>
@@ -556,111 +646,182 @@ export default async function DashboardPage() {
           );
         })()}
 
-        {/* ── KPI CARDS ── */}
-        <section data-tour="dash-kpis" className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:180ms] [animation-fill-mode:both]">
-          {([
-            { icon: Building, value: empresasCount, label: 'Socios UIAB', sub: 'en el directorio', href: '/empresas', iconBg: 'bg-blue-50', iconColor: 'text-blue-500', accentColor: 'from-blue-500 to-blue-700' },
-            { icon: Users, value: proveedoresCount, label: 'Proveedores de servicios', sub: 'verificados', href: '/empresas?categoria=proveedores', iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500', accentColor: 'from-emerald-500 to-teal-500' },
-            { icon: Target, value: oportunidadesCount, label: 'Oportunidades', sub: 'abiertas ahora', href: '/oportunidades', iconBg: 'bg-amber-50', iconColor: 'text-amber-500', accentColor: 'from-amber-500 to-orange-500' },
-            { icon: isAdmin ? AlertCircle : Zap, value: isAdmin ? totalPending : fourthStatCount, label: isAdmin ? 'Pendientes' : isCompany ? 'Ops. Publicadas' : 'Mis Matches', sub: isAdmin ? 'a revisar' : 'activas', href: isAdmin ? '/admin' : '/oportunidades', iconBg: 'bg-violet-50', iconColor: 'text-violet-500', accentColor: 'from-violet-500 to-purple-600' },
-          ] as const).map((stat, i) => (
-            <Link key={stat.label} href={stat.href}
-              className="group bg-white rounded-2xl p-5 lg:p-6 border border-slate-200/50 hover:border-slate-200 hover:shadow-[0_12px_32px_-8px_rgba(0,33,63,0.1)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden relative"
-              style={{ animationDelay: `${180 + i * 50}ms` }}
-            >
-              <div className={`absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r ${stat.accentColor} opacity-0 group-hover:opacity-100 transition-all duration-300`} />
-              <div className="flex items-start justify-between mb-4">
-                <div className={`w-10 h-10 rounded-xl ${stat.iconBg} flex items-center justify-center flex-shrink-0`}>
-                  <stat.icon className={`w-5 h-5 ${stat.iconColor}`} strokeWidth={1.75} />
-                </div>
-                <ArrowUpRight className="w-4 h-4 text-slate-200 group-hover:text-[#00213f] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200" />
-              </div>
-              <p className="font-poppins text-[32px] lg:text-[38px] font-black text-[#00213f] leading-none tracking-tight">{stat.value}</p>
-              <p className="text-[11px] sm:text-[10px] font-bold text-[#00213f]/50 uppercase tracking-[0.11em] mt-2">{stat.label}</p>
-              <p className="text-[11px] sm:text-[10px] text-slate-400 mt-0.5">{stat.sub}</p>
-            </Link>
-          ))}
+        {/* ── RESUMEN GENERAL ── */}
+        <section className="animate-in space-y-3 duration-700 fade-in slide-in-from-bottom-3 [animation-delay:160ms] [animation-fill-mode:both]">
+          <TituloBloque titulo="Resumen general" icono={BarChart3} />
+          <div data-tour="dash-kpis" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {kpis.map((k) => (
+              <TarjetaKpi
+                key={k.key}
+                icono={k.icono}
+                valor={k.valor}
+                etiqueta={k.etiqueta}
+                sub={k.sub}
+                href={k.href}
+                tono={k.tono}
+                serie={k.serie}
+                variacion={k.variacion}
+                tituloVariacion={k.tituloVariacion}
+              />
+            ))}
+          </div>
         </section>
 
-        {/* ── MAIN GRID ── */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+        {/* ── GRILLA PRINCIPAL ── */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
 
-          {/* LEFT (8 cols) */}
-          <div className="md:col-span-7 lg:col-span-8 space-y-5">
+          {/* IZQUIERDA */}
+          <div className="space-y-5 lg:col-span-8">
 
-            {/* SMART MATCHES */}
-            {(isCompany || isProvider) && (
-              <section data-tour="dash-matches" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:280ms] [animation-fill-mode:both]">
-                <div className="px-5 sm:px-7 py-5 flex items-center justify-between gap-3 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-[3px] h-5 bg-gradient-to-b from-sky-500 to-blue-600 rounded-full" />
-                    <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">
-                      {isCompany ? 'Candidatos Recomendados' : 'Oportunidades para Vos'}
-                    </h2>
-                  </div>
-                  {/* "Ver todo" tiene que llevar a donde está la lista completa
-                      —el detalle de la oportunidad—, no a la cartelera general. */}
-                  <Link
-                    href={isCompany && ultimaOportunidadId ? `/oportunidades/${ultimaOportunidadId}` : '/oportunidades'}
-                    className="shrink-0 whitespace-nowrap text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors"
-                  >
-                    Ver todo <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
+            {/* Actividad + Estadísticas, lado a lado como en el mockup */}
+            {tieneFicha ? (
+              <div id="estadisticas" className="grid scroll-mt-24 animate-in grid-cols-1 gap-5 duration-700 fade-in slide-in-from-bottom-3 lg:grid-cols-5 [animation-delay:220ms] [animation-fill-mode:both]">
+                <div data-tour="dash-feed" className="lg:col-span-2">
+                  <TarjetaActividad eventos={actividad} />
                 </div>
-                <div className="p-6">
-                  {/* 3 columnas recien en lg: dentro de la columna md:col-span-7 quedaban tarjetas de ~120px */}
+                <div className="lg:col-span-3">
+                  <TarjetaEstadisticas stats={visitas} hrefFicha={publicProfileUrl} />
+                </div>
+              </div>
+            ) : (
+              <div data-tour="dash-feed">
+                <TarjetaActividad eventos={actividad} />
+              </div>
+            )}
+
+            {/* TU FICHA EN EL DIRECTORIO */}
+            {tieneFicha && entityData && (
+              <div className="animate-in duration-700 fade-in slide-in-from-bottom-3 [animation-delay:280ms] [animation-fill-mode:both]">
+                <VistaPreviaFicha
+                  nombre={isCompany ? (entityData.razon_social || displayName) : displayName}
+                  inicial={displayName.charAt(0).toUpperCase()}
+                  logoUrl={logoUrl}
+                  verificada={fichaVerificada}
+                  ubicacion={ubicacionFicha}
+                  descripcion={descripcionFicha}
+                  rubros={entityCategories}
+                  especialidades={entityTags}
+                  certificaciones={certificaciones}
+                  totalItems={totalItems}
+                  totalResenas={totalResenas}
+                  href={publicProfileUrl}
+                />
+              </div>
+            )}
+
+            {/* MIS PRODUCTOS Y SERVICIOS */}
+            {tieneFicha && (
+              <section data-tour="dash-items" className={TARJETA}>
+                <CabeceraPanel
+                  titulo={`Mis productos y servicios${totalItems > 0 ? ` (${totalItems})` : ''}`}
+                  icono={PackageSearch}
+                  tonoIcono="text-teal-500"
+                  accion={{ href: '/perfil/productos-servicios', label: 'Ver todas' }}
+                />
+                {myItems.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3 p-4 sm:p-5 lg:grid-cols-3">
+                    {myItems.map((item: any) => {
+                      const itemImg = Array.isArray(item.imagenes) && item.imagenes.length > 0
+                        ? urlPublicaDeLogo(item.imagenes[0].bucket, item.imagenes[0].ruta_archivo)
+                        : null;
+                      return (
+                        <Link key={item.id} href="/perfil/productos-servicios"
+                          className="group flex items-center gap-3.5 rounded-xl border border-slate-100 bg-[#f8fafc] p-3 transition-all hover:border-slate-200 hover:bg-white hover:shadow-[0_8px_20px_-10px_rgba(0,33,63,0.2)]">
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200/60 bg-white">
+                            {itemImg ? (
+                              <Image src={itemImg} alt="" width={56} height={56} className="h-full w-full object-cover" unoptimized />
+                            ) : (
+                              item.tipo_item === 'servicio' ? <Wrench className="h-5 w-5 text-slate-300" /> : <PackageSearch className="h-5 w-5 text-slate-300" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-2 text-[13px] font-bold leading-snug text-[#00213f]">{item.nombre}</p>
+                            <div className="mt-1 flex items-center gap-2">
+                              <span className="text-[10.5px] uppercase tracking-wider text-slate-400">{item.tipo_item || 'Producto'}</span>
+                              {item.precio && (
+                                <>
+                                  <span className="text-slate-300">·</span>
+                                  <span className="text-[11px] font-bold text-emerald-600">$ {Number(item.precio).toLocaleString('es-AR')}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-slate-200 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-400" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="px-7 py-9 text-center">
+                    <Image src="/panel/ilustracion-catalogo.webp" alt="" width={220} height={220}
+                      className="mx-auto h-20 w-20 rounded-2xl object-cover ring-1 ring-slate-200/70" aria-hidden />
+                    <p className="mt-3.5 font-poppins text-[15px] font-bold text-[#00213f]">Tu catálogo está vacío</p>
+                    <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-slate-400">
+                      Los productos y servicios son lo que ve una empresa cuando entra a tu ficha, y lo que el buscador del directorio usa para encontrarte.
+                    </p>
+                    <Link href="/perfil/productos-servicios" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#00213f] transition-colors hover:text-[#2563eb]">
+                      Cargar el primero <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* CANDIDATOS RECOMENDADOS */}
+            {tieneFicha && (
+              <section data-tour="dash-matches" className={TARJETA}>
+                {/* "Ver todo" tiene que llevar a donde está la lista completa
+                    —el detalle de la oportunidad—, no a la cartelera general. */}
+                <CabeceraPanel
+                  titulo={isCompany ? 'Candidatos recomendados' : 'Oportunidades para vos'}
+                  icono={Sparkles}
+                  tonoIcono="text-sky-500"
+                  accion={{
+                    href: isCompany && ultimaOportunidadId ? `/oportunidades/${ultimaOportunidadId}` : '/oportunidades',
+                    label: 'Ver todo',
+                  }}
+                />
+                <div className="p-5">
                   {dashboardMatches.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       {dashboardMatches.map((match: any) => {
                         const score = Math.round(match.puntaje);
-
                         // Como prestador, la tarjeta es la oportunidad que le
                         // recomendamos; como socia, es la candidata sugerida
                         // para SU pedido — y ahí el destino es la ficha de esa
-                        // candidata, no el pedido propio (el link viejo llevaba
-                        // siempre a la oportunidad que uno mismo publicó, que
-                        // es de donde ya venía el usuario).
+                        // candidata, no el pedido propio.
                         const candidato = match.empresa ?? match.proveedor ?? null;
                         const nombre = isProvider
                           ? match.oportunidad?.titulo
-                          : match.empresa?.nombre_comercial ||
-                            match.empresa?.razon_social ||
-                            match.proveedor?.nombre_comercial ||
-                            match.proveedor?.nombre;
-                        const localidad = isProvider
-                          ? match.oportunidad?.localidad
-                          : candidato?.localidad;
-                        const href = isProvider
-                          ? `/oportunidades/${match.oportunidad_id}`
-                          : hrefFichaDeCandidato(match);
-                        const logoUrl = isProvider
-                          ? null
-                          : urlPublicaDeLogo(candidato?.bucket_logo, candidato?.ruta_logo);
+                          : match.empresa?.nombre_comercial || match.empresa?.razon_social ||
+                            match.proveedor?.nombre_comercial || match.proveedor?.nombre;
+                        const localidad = isProvider ? match.oportunidad?.localidad : candidato?.localidad;
+                        const href = isProvider ? `/oportunidades/${match.oportunidad_id}` : hrefFichaDeCandidato(match);
+                        const logoCandidato = isProvider ? null : urlPublicaDeLogo(candidato?.bucket_logo, candidato?.ruta_logo);
 
                         const tarjeta = (
-                          <div className="bg-[#f8fafc] hover:bg-slate-100/70 rounded-xl p-4 transition-all duration-200 group h-full flex flex-col border border-slate-100/80 hover:border-slate-200 hover:shadow-sm">
-                            <div className="flex items-center justify-between mb-3">
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] sm:text-[10px] font-black ${scoreColor(score)}`}>
-                                <TrendingUp className="w-3 h-3" />{score}%
+                          <div className="group flex h-full flex-col rounded-xl border border-slate-100 bg-[#f8fafc] p-4 transition-all duration-200 hover:border-slate-200 hover:bg-white hover:shadow-[0_8px_20px_-10px_rgba(0,33,63,0.2)]">
+                            <div className="mb-3 flex items-center justify-between">
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-black ${scoreColor(score)}`}>
+                                <TrendingUp className="h-3 w-3" />{score}%
                               </span>
-                              {href && <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#00213f] transition-colors" />}
+                              {href && <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 transition-colors group-hover:text-[#00213f]" />}
                             </div>
                             {!isProvider && (
                               <span className="mb-2.5 flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-slate-100">
-                                {logoUrl ? (
-                                  <Image src={logoUrl} alt="" width={44} height={44} className="h-full w-full object-contain p-1.5" />
+                                {logoCandidato ? (
+                                  <Image src={logoCandidato} alt="" width={44} height={44} className="h-full w-full object-contain p-1.5" />
                                 ) : (
-                                  <Building2 className="w-4 h-4 text-slate-300" />
+                                  <Building2 className="h-4 w-4 text-slate-300" />
                                 )}
                               </span>
                             )}
-                            <h4 className="font-poppins font-bold text-[#00213f] leading-snug text-sm flex-1 line-clamp-2 [overflow-wrap:anywhere]">
+                            <h4 className="line-clamp-2 flex-1 font-poppins text-[13.5px] font-bold leading-snug text-[#00213f] [overflow-wrap:anywhere]">
                               {nombre || 'Sin nombre'}
                             </h4>
                             {localidad && (
-                              <p className="text-[11px] sm:text-[10px] text-slate-400 flex items-center gap-1 mt-2.5">
-                                <MapPin className="w-3 h-3" />
-                                {localidad}
+                              <p className="mt-2.5 flex items-center gap-1 text-[11px] text-slate-400">
+                                <MapPin className="h-3 w-3" />{localidad}
                               </p>
                             )}
                           </div>
@@ -668,22 +829,20 @@ export default async function DashboardPage() {
 
                         // Sin destino no se pinta un link muerto: si el join no
                         // trajo la contraparte (RLS) la tarjeta queda estática.
-                        return href ? (
-                          <Link key={match.id} href={href} className="h-full">{tarjeta}</Link>
-                        ) : (
-                          <div key={match.id} className="h-full">{tarjeta}</div>
-                        );
+                        return href
+                          ? <Link key={match.id} href={href} className="h-full">{tarjeta}</Link>
+                          : <div key={match.id} className="h-full">{tarjeta}</div>;
                       })}
                     </div>
                   ) : (
-                    <div className="py-10 text-center">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                        <Activity className="w-5 h-5 text-slate-300" />
+                    <div className="py-8 text-center">
+                      <div className="mx-auto mb-3.5 flex h-11 w-11 items-center justify-center rounded-full bg-sky-50">
+                        <Activity className="h-5 w-5 text-sky-400" />
                       </div>
                       {/* Tres vacíos distintos, tres salidas distintas: sin
                           pedido abierto hay que publicar; con pedido abierto y
                           sin coincidencias lo que falta son etiquetas. */}
-                      <p className="text-sm text-slate-400 max-w-xs mx-auto leading-relaxed">
+                      <p className="mx-auto max-w-sm text-[13px] leading-relaxed text-slate-400">
                         {!isCompany
                           ? 'Completá tu perfil para recibir oportunidades relevantes.'
                           : ultimaOportunidadId
@@ -691,21 +850,11 @@ export default async function DashboardPage() {
                           : 'Publicá una oportunidad para recibir candidatos recomendados.'}
                       </p>
                       <Link
-                        href={
-                          !isCompany
-                            ? '/perfil/datos'
-                            : ultimaOportunidadId
-                            ? `/oportunidades/${ultimaOportunidadId}`
-                            : '/oportunidades/nueva'
-                        }
-                        className="inline-flex items-center gap-1 text-sm font-bold text-[#00213f] hover:underline mt-4 transition-colors"
+                        href={!isCompany ? '/perfil/datos' : ultimaOportunidadId ? `/oportunidades/${ultimaOportunidadId}` : '/oportunidades/nueva'}
+                        className="mt-3.5 inline-flex items-center gap-1 text-[13px] font-bold text-[#00213f] transition-colors hover:text-[#2563eb]"
                       >
-                        {!isCompany
-                          ? 'Completar perfil'
-                          : ultimaOportunidadId
-                          ? 'Ver mi oportunidad'
-                          : 'Publicar oportunidad'}{' '}
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        {!isCompany ? 'Completar perfil' : ultimaOportunidadId ? 'Ver mi oportunidad' : 'Publicar oportunidad'}
+                        <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
                     </div>
                   )}
@@ -713,274 +862,183 @@ export default async function DashboardPage() {
               </section>
             )}
 
-            {/* MY OPPORTUNITIES */}
-            {isCompany && myOps.length > 0 && (
-              <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:330ms] [animation-fill-mode:both]">
-                <div className="px-5 sm:px-7 py-5 flex items-center justify-between gap-3 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-[3px] h-5 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full" />
-                    <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">Tus Oportunidades</h2>
-                  </div>
-                  <Link href="/oportunidades" className="text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors">
-                    Ver todas <ArrowRight className="w-3 h-3" />
-                  </Link>
-                </div>
-                <div className="divide-y divide-slate-50">
-                  {myOps.map((op: any) => {
-                    const est = ESTADO_OP[op.estado] || { label: op.estado, style: 'bg-slate-50 text-slate-500' };
-                    return (
-                      <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-4 px-5 sm:px-7 py-3.5 hover:bg-[#f8fafc] transition-colors group">
-                        <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-                          <CircleDot className="w-3.5 h-3.5 text-amber-500" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#00213f] truncate">{op.titulo}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {(op.categoria as any)?.nombre && <span className="text-[11px] sm:text-[10px] text-slate-400">{(op.categoria as any).nombre}</span>}
-                            <span className="text-[11px] sm:text-[10px] text-slate-300">·</span>
-                            <span className="text-[11px] sm:text-[10px] text-slate-400">{timeAgo(op.creado_en)}</span>
-                          </div>
-                        </div>
-                        <span className={`text-[11px] sm:text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${est.style}`}>{est.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* QUOTE REQUESTS */}
-            {(isCompany || isProvider) && solicitudes.length > 0 && (
-              <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:380ms] [animation-fill-mode:both]">
-                <div className="px-5 sm:px-7 py-5 flex items-center justify-between gap-3 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-[3px] h-5 bg-gradient-to-b from-violet-400 to-purple-500 rounded-full" />
-                    <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">Solicitudes Recibidas</h2>
-                  </div>
-                  <Link href="/perfil/solicitudes" className="text-[11px] font-bold text-slate-400 hover:text-[#00213f] transition-colors">Ver bandeja</Link>
-                </div>
-                <div className="divide-y divide-slate-50">
-                  {solicitudes.map((sol: any) => {
-                    const origenNombre =
-                      sol.empresa_origen?.nombre_comercial || sol.empresa_origen?.razon_social ||
-                      sol.proveedor_origen?.nombre_comercial || sol.proveedor_origen?.nombre || 'Solicitante';
-                    return (
-                      <Link href="/perfil/solicitudes" key={sol.id} className="flex items-center gap-4 px-5 sm:px-7 py-3.5 hover:bg-[#f8fafc] transition-colors">
-                        <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
-                          <MessageSquare className="w-3.5 h-3.5 text-violet-500" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#00213f] truncate">{origenNombre}</p>
-                          <p className="text-[11px] sm:text-[10px] text-slate-400 mt-0.5">{timeAgo(sol.creado_en)}</p>
-                        </div>
-                        <span className={`text-[11px] sm:text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${
-                          sol.estado === 'enviada' ? 'bg-amber-50 text-amber-600' :
-                          sol.estado === 'respondida' ? 'bg-emerald-50 text-emerald-600' :
-                          sol.estado === 'vista' ? 'bg-sky-50 text-sky-600' : 'bg-slate-50 text-slate-500'
-                        }`}>{sol.estado}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* PRODUCTS / SERVICES */}
-            {(isCompany || isProvider) && (
-              <section data-tour="dash-items" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:430ms] [animation-fill-mode:both]">
-                <div className="px-5 sm:px-7 py-5 flex items-center justify-between gap-3 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-[3px] h-5 bg-gradient-to-b from-emerald-400 to-teal-500 rounded-full" />
-                    <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">Mis Productos y Servicios</h2>
-                  </div>
-                  <Link href="/perfil/productos-servicios" className="text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors">
-                    Gestionar <ArrowRight className="w-3 h-3" />
-                  </Link>
-                </div>
-                <div className="divide-y divide-slate-50">
-                  {myItems.length > 0 ? myItems.map((item: any) => {
-                    const itemImg = Array.isArray(item.imagenes) && item.imagenes.length > 0
-                      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${item.imagenes[0].bucket}/${item.imagenes[0].ruta_archivo}`
-                      : null;
-                    return (
-                      <Link key={item.id} href="/perfil/productos-servicios" className="flex items-center gap-4 px-5 sm:px-7 py-3.5 hover:bg-[#f8fafc] transition-all group">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center flex-shrink-0 border border-slate-200/50">
-                          {itemImg ? (
-                            <Image src={itemImg} alt={item.nombre} width={40} height={40} className="w-full h-full object-cover" unoptimized />
-                          ) : (
-                            item.tipo_item === 'servicio' ? <Wrench className="w-4 h-4 text-slate-400" /> : <PackageSearch className="w-4 h-4 text-slate-400" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold text-[#00213f] truncate">{item.nombre}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[11px] sm:text-[10px] text-slate-400 uppercase tracking-wider">{item.tipo_item || 'Producto'}</span>
-                            {item.precio && (
-                              <>
-                                <span className="text-slate-300">·</span>
-                                <span className="text-[11px] sm:text-[10px] text-emerald-600 font-bold">$ {Number(item.precio).toLocaleString('es-AR')}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-slate-400 transition-colors" />
-                      </Link>
-                    );
-                  }) : (
-                    <div className="px-7 py-10 text-center">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                        <PackageSearch className="w-5 h-5 text-slate-300" />
-                      </div>
-                      <p className="text-sm text-slate-400">Aún no tenés productos o servicios en tu catálogo.</p>
-                      <Link href="/perfil/productos-servicios" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#00213f] hover:underline">
-                        Crear tu primer ítem <ArrowRight className="w-3 h-3" />
-                      </Link>
+            {/* MIS OPORTUNIDADES + SOLICITUDES */}
+            {(myOps.length > 0 || solicitudes.length > 0) && (
+              <div className="grid grid-cols-1 gap-5 tab:grid-cols-2">
+                {isCompany && myOps.length > 0 && (
+                  <section className={TARJETA}>
+                    <CabeceraPanel titulo="Tus oportunidades" icono={Target} tonoIcono="text-amber-500" accion={{ href: '/oportunidades', label: 'Ver todas' }} />
+                    <div className="divide-y divide-slate-50">
+                      {myOps.map((op: any) => {
+                        const est = ESTADO_OP[op.estado] || { label: op.estado, style: 'bg-slate-50 text-slate-500' };
+                        return (
+                          <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-3.5 px-5 py-3.5 transition-colors hover:bg-[#f8fafc] sm:px-6">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-50">
+                              <CircleDot className="h-4 w-4 text-amber-500" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[13px] font-bold text-[#00213f]">{op.titulo}</p>
+                              <p className="mt-0.5 truncate text-[12px] text-slate-400">
+                                {(op.categoria as any)?.nombre ? `${(op.categoria as any).nombre} · ` : ''}{timeAgo(op.creado_en)}
+                              </p>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide ${est.style}`}>{est.label}</span>
+                          </Link>
+                        );
+                      })}
                     </div>
-                  )}
-                </div>
-              </section>
-            )}
+                  </section>
+                )}
 
-            {/* OPPORTUNITIES FEED */}
-            <section data-tour="dash-feed" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:480ms] [animation-fill-mode:both]">
-              <div className="px-5 sm:px-7 py-5 flex items-center justify-between gap-3 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-[3px] h-5 bg-gradient-to-b from-amber-400 to-amber-600 rounded-full" />
-                  <h2 className="font-poppins text-[13px] font-bold text-[#00213f] uppercase tracking-[0.08em]">
-                    {isProvider ? 'Últimas Oportunidades' : 'Actividad Reciente'}
-                  </h2>
-                </div>
-                <Link href="/oportunidades" className="text-[11px] font-bold text-slate-400 hover:text-[#00213f] flex items-center gap-1 transition-colors">
-                  Ver todas <ArrowRight className="w-3 h-3" />
-                </Link>
+                {tieneFicha && solicitudes.length > 0 && (
+                  <section className={TARJETA}>
+                    <CabeceraPanel titulo="Solicitudes recibidas" icono={Inbox} tonoIcono="text-indigo-500" accion={{ href: '/perfil/solicitudes', label: 'Ver bandeja' }} />
+                    <div className="divide-y divide-slate-50">
+                      {solicitudes.slice(0, 4).map((sol: any) => {
+                        const origenNombre =
+                          sol.empresa_origen?.nombre_comercial || sol.empresa_origen?.razon_social ||
+                          sol.proveedor_origen?.nombre_comercial || sol.proveedor_origen?.nombre || 'Solicitante';
+                        return (
+                          <Link href="/perfil/solicitudes" key={sol.id} className="flex items-center gap-3.5 px-5 py-3.5 transition-colors hover:bg-[#f8fafc] sm:px-6">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50">
+                              <MessageSquare className="h-4 w-4 text-indigo-500" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[13px] font-bold text-[#00213f]">{origenNombre}</p>
+                              <p className="mt-0.5 text-[12px] text-slate-400">{timeAgo(sol.creado_en)}</p>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide ${
+                              sol.estado === 'enviada' ? 'bg-amber-50 text-amber-600' :
+                              sol.estado === 'respondida' ? 'bg-emerald-50 text-emerald-600' :
+                              sol.estado === 'vista' ? 'bg-sky-50 text-sky-600' : 'bg-slate-50 text-slate-500'
+                            }`}>{sol.estado}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
               </div>
+            )}
+
+            {/* ÚLTIMAS OPORTUNIDADES DE LA RED */}
+            <section className={TARJETA}>
+              <CabeceraPanel titulo="Últimas oportunidades de la red" icono={Briefcase} tonoIcono="text-orange-500" accion={{ href: '/oportunidades', label: 'Ver todas' }} />
               {recentOps.length > 0 ? (
                 <div className="divide-y divide-slate-50">
                   {recentOps.map((op: any) => (
-                    <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-4 px-5 sm:px-7 py-3.5 hover:bg-[#f8fafc] transition-colors group">
-                      <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-                        <Target className="w-3.5 h-3.5 text-amber-500" />
+                    <Link key={op.id} href={`/oportunidades/${op.id}`} className="flex items-center gap-3.5 px-5 py-3.5 transition-colors hover:bg-[#f8fafc] sm:px-6">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50">
+                        <Target className="h-4 w-4 text-orange-500" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#00213f] truncate">{op.titulo}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-bold text-[#00213f]">{op.titulo}</p>
+                        <div className="mt-0.5 flex items-center gap-2">
                           {(op.categoria as any)?.nombre && (
-                            <span className="text-[11px] sm:text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">{(op.categoria as any).nombre}</span>
+                            <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10.5px] font-semibold text-slate-500">{(op.categoria as any).nombre}</span>
                           )}
                           {op.localidad && (
-                            <span className="text-[11px] sm:text-[10px] text-slate-400 flex items-center gap-0.5"><MapPin className="w-3 h-3" />{op.localidad}</span>
+                            <span className="flex items-center gap-0.5 text-[11.5px] text-slate-400"><MapPin className="h-3 w-3" />{op.localidad}</span>
                           )}
                         </div>
                       </div>
-                      <span className="text-[11px] sm:text-[10px] text-slate-300 font-medium flex items-center gap-1 flex-shrink-0">
-                        <Clock className="w-3 h-3" />{timeAgo(op.creado_en)}
+                      <span className="flex shrink-0 items-center gap-1 text-[11.5px] text-slate-400">
+                        <Clock className="h-3 w-3" />{timeAgo(op.creado_en)}
                       </span>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <div className="py-10 text-center">
-                  <Target className="w-9 h-9 text-slate-200 mx-auto mb-3" />
-                  <p className="text-sm text-slate-400">No hay oportunidades abiertas.</p>
+                <div className="px-7 py-9 text-center">
+                  <Image src="/panel/ilustracion-ficha.webp" alt="" width={220} height={220}
+                    className="mx-auto h-20 w-20 rounded-2xl object-cover ring-1 ring-slate-200/70" aria-hidden />
+                  <p className="mt-3.5 font-poppins text-[15px] font-bold text-[#00213f]">No hay oportunidades abiertas</p>
+                  <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-slate-400">
+                    {isCompany
+                      ? 'Cuando una socia publique lo que necesita comprar o contratar, te aparece acá. También podés publicar la tuya.'
+                      : 'Cuando una socia publique un requerimiento, te aparece acá.'}
+                  </p>
+                  {isCompany && (
+                    <Link href="/oportunidades/nueva" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#00213f] transition-colors hover:text-[#2563eb]">
+                      Publicar una oportunidad <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  )}
                 </div>
               )}
             </section>
-
           </div>
 
-          {/* RIGHT SIDEBAR (4 cols) */}
-          <div className="md:col-span-5 lg:col-span-4 space-y-4">
+          {/* SIDEBAR */}
+          <div className="space-y-5 lg:col-span-4">
+            {tieneFicha && (
+              <TarjetaPlan
+                estado={estadoSuscripcion}
+                ciclo={suscripcion?.ciclo ?? null}
+                esCortesia={esCortesia}
+                proximoCobro={suscripcion?.proximo_cobro_en ?? null}
+                graciaHasta={suscripcion?.gracia_hasta ?? null}
+              />
+            )}
 
-            {/* VISITAS A TU FICHA */}
-            {!isAdmin && <TarjetaVisitas />}
+            <AccionesRapidas acciones={quickActions} />
 
-            {/* QUICK ACTIONS */}
-            <section data-tour="dash-quick" className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:230ms] [animation-fill-mode:both]">
-              <div className="px-6 py-5 border-b border-slate-100">
-                <h3 className="text-[11px] sm:text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em]">Acciones Rápidas</h3>
-              </div>
-              <div className="p-3 space-y-0.5">
-                {quickActions.map((a) => (
-                  <Link key={a.href} href={a.href} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f2f5f8] transition-colors group">
-                    <div className="w-9 h-9 rounded-xl bg-slate-50 group-hover:bg-[#00213f] flex items-center justify-center transition-all duration-200 flex-shrink-0 border border-slate-100 group-hover:border-transparent group-hover:shadow-[0_4px_12px_-2px_rgba(0,33,63,0.3)]">
-                      <a.icon className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[#00213f]">{a.label}</p>
-                      <p className="text-[11px] sm:text-[10px] text-slate-400">{a.sub}</p>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-200 group-hover:text-slate-400 transition-colors" />
-                  </Link>
-                ))}
-              </div>
-            </section>
+            <PanelNotificaciones notificaciones={notificaciones} sinLeer={sinLeer} />
 
-            {/* EXPLORE CTA */}
-            <section data-tour="dash-explore" className="relative rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:310ms] [animation-fill-mode:both]"
-              style={{ background: 'linear-gradient(145deg, #001829 0%, #00213f 55%, #0b3268 100%)' }}>
-              <div aria-hidden className="absolute inset-0 opacity-[0.04]" style={{
-                backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)',
-                backgroundSize: '22px 22px',
+            {/* EXPLORAR LA RED */}
+            <section data-tour="dash-explore" className="relative overflow-hidden rounded-2xl"
+              style={{ background: 'linear-gradient(150deg, #001829 0%, #00213f 52%, #0b3268 100%)' }}>
+              <div aria-hidden className="absolute inset-0 bg-cover bg-center opacity-[0.22]"
+                style={{ backgroundImage: "url('/panel/textura-parque-industrial.webp')" }} />
+              <div aria-hidden className="absolute inset-0" style={{
+                background: 'linear-gradient(150deg, rgba(0,24,41,0.9) 0%, rgba(0,33,63,0.87) 52%, rgba(11,50,104,0.82) 100%)',
               }} />
-              <div aria-hidden className="absolute -top-12 right-0 w-36 h-36 bg-sky-400/12 rounded-full blur-3xl" />
-              <div className="relative z-10 p-7">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-5 border border-white/10">
-                  {isCompany ? <Users className="w-5 h-5 text-sky-300" /> : <Building className="w-5 h-5 text-sky-300" />}
+              <div aria-hidden className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-sky-400/10 blur-3xl" />
+              <div className="relative z-10 p-6">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/10">
+                  {isCompany ? <Users className="h-5 w-5 text-sky-300" /> : <Building className="h-5 w-5 text-sky-300" />}
                 </div>
-                <h3 className="font-poppins text-[15px] font-bold text-white mb-2">
-                  {isCompany ? 'Encontrá Proveedores de servicios' : isProvider ? 'Explorá Empresas' : 'Directorio UIAB'}
+                <h3 className="font-poppins text-[16px] font-bold leading-snug text-white">
+                  {isCompany ? 'Encontrá proveedores de servicios' : isProvider ? 'Explorá empresas' : 'Directorio UIAB'}
                 </h3>
-                <p className="text-[13px] text-white/50 leading-relaxed mb-5">
+                <p className="mt-2 text-[13px] leading-relaxed text-white/50">
                   {isCompany
                     ? 'Proveedores de servicios verificados para las necesidades de tu empresa.'
                     : 'Empresas que buscan tus servicios en Almirante Brown.'}
                 </p>
                 <Link href={isCompany ? '/empresas?categoria=proveedores' : '/empresas'}
-                  className="inline-flex items-center gap-2 bg-white text-[#00213f] hover:bg-sky-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:shadow-lg shadow-black/20">
-                  {isCompany ? 'Ver Proveedores de servicios' : 'Ver Empresas'} <ArrowRight className="w-4 h-4" />
+                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-[13px] font-bold text-[#00213f] shadow-lg shadow-black/25 transition-all hover:bg-sky-50">
+                  {isCompany ? 'Ver proveedores' : 'Ver empresas'} <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </section>
 
-            {/* NETWORK STATS */}
-            <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:390ms] [animation-fill-mode:both]">
-              <div className="px-6 py-5 border-b border-slate-100">
-                <h3 className="text-[11px] sm:text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em] flex items-center gap-2">
-                  <BarChart3 className="w-3.5 h-3.5" /> Red Industrial
-                </h3>
-              </div>
-              <div className="p-5 space-y-3">
+            {/* RED INDUSTRIAL */}
+            <section className={TARJETA}>
+              <CabeceraPanel titulo="Red industrial" icono={BarChart3} tonoIcono="text-slate-400" />
+              <div className="space-y-3.5 p-5">
                 {[
                   { label: 'Empresas socias', value: empresasCount, dot: 'bg-blue-500' },
-                  { label: 'Proveedores de servicios verificados', value: proveedoresCount, dot: 'bg-emerald-500' },
+                  { label: 'Proveedores verificados', value: proveedoresCount, dot: 'bg-emerald-500' },
                   { label: 'Oportunidades abiertas', value: oportunidadesCount, dot: 'bg-amber-500' },
                 ].map((s) => (
                   <div key={s.label} className="flex items-center gap-3">
-                    <div className={`w-1.5 h-1.5 rounded-full ${s.dot} flex-shrink-0`} />
-                    <span className="text-[13px] text-slate-500 flex-1">{s.label}</span>
-                    <span className="font-poppins text-[15px] font-black text-[#00213f]">{s.value}</span>
+                    <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${s.dot}`} />
+                    <span className="flex-1 text-[13px] text-slate-500">{s.label}</span>
+                    <span className="font-poppins text-[15px] font-black tabular-nums text-[#00213f]">{s.value}</span>
                   </div>
                 ))}
               </div>
             </section>
-
-            {/* NOTIFICATIONS */}
-            <section className="bg-white rounded-2xl border border-slate-200/50 shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700 [animation-delay:470ms] [animation-fill-mode:both]">
-              <div className="px-6 py-5 border-b border-slate-100">
-                <h3 className="text-[11px] sm:text-[10px] font-black text-[#00213f]/60 uppercase tracking-[0.14em] flex items-center gap-2">
-                  <Bell className="w-3.5 h-3.5" /> Notificaciones
-                </h3>
-              </div>
-              <div className="p-6 flex flex-col items-center py-8 text-center">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center mb-3 border border-emerald-100">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                </div>
-                <p className="text-xs text-slate-400 font-medium">Tu cuenta está al día</p>
-              </div>
-            </section>
-
           </div>
         </div>
+
+        {/* ── NOVEDADES DEL SISTEMA ──
+            A todo lo ancho: los carteles que hasta ahora se veían una sola vez
+            y no volvían nunca. */}
+        <FeedNovedades
+          tieneFicha={tieneFicha}
+          vistas={(profile?.tutoriales_vistos ?? {}) as Record<string, string | null>}
+        />
 
       </div>
     </main>

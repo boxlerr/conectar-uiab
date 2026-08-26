@@ -67,53 +67,11 @@ export async function registrarVisitaPerfil(
   }
 }
 
-/**
- * Devuelve las métricas de visitas de la ficha del usuario logueado
- * (total histórico + últimos 30 días). null si no tiene entidad.
+/*
+ * `obtenerMisVisitas()` vivía acá y devolvía { total, ultimos30 } para la
+ * tarjeta del panel viejo. Se fue junto con `tarjeta-visitas.tsx` cuando el
+ * panel pasó a mostrar la serie diaria completa: eso lo resuelve
+ * `estadisticasDeVisitas()` en `./consultas.ts`, que además resuelve la entidad
+ * una sola vez (la recibe ya resuelta) y usa `createAdminClient`, con su
+ * timeout de 8s. Esta acción no tenía ninguno de los dos.
  */
-export async function obtenerMisVisitas() {
-  const supa = await createServerClient();
-  const {
-    data: { user },
-  } = await supa.auth.getUser();
-  if (!user) return null;
-
-  const db = adminClient();
-
-  // Resolver la entidad del usuario.
-  const { data: me } = await db
-    .from("miembros_empresa")
-    .select("empresa_id")
-    .eq("perfil_id", user.id)
-    .maybeSingle();
-
-  let col: "empresa_id" | "proveedor_id";
-  let entidadId: string | null = null;
-
-  if (me?.empresa_id) {
-    col = "empresa_id";
-    entidadId = me.empresa_id;
-  } else {
-    const { data: mp } = await db
-      .from("miembros_proveedor")
-      .select("proveedor_id")
-      .eq("perfil_id", user.id)
-      .maybeSingle();
-    if (!mp?.proveedor_id) return null;
-    col = "proveedor_id";
-    entidadId = mp.proveedor_id;
-  }
-
-  const hace30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-  const [{ count: total }, { count: ultimos30 }] = await Promise.all([
-    db.from("visitas_perfil").select("*", { count: "exact", head: true }).eq(col, entidadId),
-    db
-      .from("visitas_perfil")
-      .select("*", { count: "exact", head: true })
-      .eq(col, entidadId)
-      .gte("creado_en", hace30),
-  ]);
-
-  return { total: total ?? 0, ultimos30: ultimos30 ?? 0 };
-}

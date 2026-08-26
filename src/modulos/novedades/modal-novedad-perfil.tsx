@@ -1,9 +1,8 @@
 "use client";
 
-import {
-  X, Check, BadgeCheck, Phone, LayoutGrid, Sparkles,
-} from "lucide-react";
+import { X, Check, Sparkles, BadgeCheck } from "lucide-react";
 import { PieNovedad, type PropsNovedad } from "./pie-novedad";
+import { CATALOGO_NOVEDADES } from "./catalogo";
 
 /**
  * Cartel de novedad: "tu ficha del directorio se rediseñó".
@@ -13,24 +12,13 @@ import { PieNovedad, type PropsNovedad } from "./pie-novedad";
  * los marca en `perfiles.tutoriales_vistos`. Este archivo es sólo el contenido.
  */
 
-/** Lo que cambió de verdad en la ficha. Nada de esto es promesa a futuro. */
-const CAMBIOS = [
-  {
-    icon: BadgeCheck,
-    titulo: "Sello de verificada",
-    texto: "Se ve de entrada que la ficha es la cuenta real de tu empresa, no una copia.",
-  },
-  {
-    icon: Phone,
-    titulo: "El contacto, arriba de todo",
-    texto: "Teléfono, correo y dirección dejaron de estar al final del scroll.",
-  },
-  {
-    icon: LayoutGrid,
-    titulo: "Tu catálogo de un vistazo",
-    texto: "Los productos entran en pantalla y la foto grande se abre con un click.",
-  },
-];
+/**
+ * El texto sale del catálogo compartido: el mismo que lee la sección
+ * "Novedades" del panel de control. Antes vivía duplicado acá adentro y no
+ * había forma de mostrarlo en otro lado.
+ */
+const { titulo: TITULO, resumen: RESUMEN, cambios: CAMBIOS, aviso: AVISO, cta: CTA } =
+  CATALOGO_NOVEDADES.perfil_directorio;
 
 export function ModalNovedadPerfil(props: PropsNovedad) {
   const cerrar = props.onCerrar;
@@ -75,15 +63,14 @@ export function ModalNovedadPerfil(props: PropsNovedad) {
               className="text-2xl md:text-[28px] font-bold text-white tracking-tight leading-tight mt-2"
               style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
             >
-              Rediseñamos tu ficha del directorio
+              {TITULO}
             </h2>
             <p className="text-sm text-white/70 mt-3 max-w-md leading-relaxed">
-              Es la página que ven las otras empresas cuando te buscan. Ahora se entiende de
-              una: quién sos, cómo contactarte y qué vendés, sin bajar media pantalla.
+              {RESUMEN}
             </p>
 
             <ul className="hidden md:block mt-7 space-y-3">
-              {CAMBIOS.map(({ icon: Icon, titulo, texto }) => (
+              {CAMBIOS.map(({ icono: Icon, titulo, texto }) => (
                 <li key={titulo} className="flex items-start gap-2.5 text-[13px] text-white/75">
                   <span className="w-5 h-5 rounded-md bg-white/10 text-sky-300 flex items-center justify-center shrink-0 mt-0.5">
                     <Icon className="w-3 h-3" />
@@ -147,7 +134,7 @@ export function ModalNovedadPerfil(props: PropsNovedad) {
 
           {/* En una sola columna los bullets van acá. */}
           <ul className="mt-4 space-y-2 md:hidden">
-            {CAMBIOS.map(({ icon: Icon, titulo, texto }) => (
+            {CAMBIOS.map(({ icono: Icon, titulo, texto }) => (
               <li key={titulo} className="flex items-start gap-2.5 text-[13px] text-slate-600">
                 <span className="w-5 h-5 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 mt-0.5">
                   <Icon className="w-3 h-3" />
@@ -162,14 +149,10 @@ export function ModalNovedadPerfil(props: PropsNovedad) {
           <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50/60 p-4">
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-800 mb-2.5 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
-              Conviene que le des una mirada
+              {AVISO.titulo}
             </p>
             <ul className="space-y-1.5">
-              {[
-                "La ficha muestra lo que vos cargaste: si falta el logo o la descripción, ahora se nota más.",
-                "Los rubros y especialidades son por dónde te encuentran cuando buscan lo que hacés.",
-                "Tus productos y servicios aparecen con su foto: los que no tienen quedan opacos al lado.",
-              ].map((texto, i) => (
+              {AVISO.items.map((texto, i) => (
                 <li key={i} className="flex items-start gap-2 text-[13px] text-amber-900/80">
                   <Check className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-[3px]" />
                   <span className="leading-snug">{texto}</span>
@@ -178,7 +161,7 @@ export function ModalNovedadPerfil(props: PropsNovedad) {
             </ul>
           </div>
 
-          <PieNovedad {...props} cta={{ href: "/perfil/datos", label: "Revisar mi ficha" }} />
+          <PieNovedad {...props} cta={CTA} />
         </div>
       </div>
     </div>

@@ -6,7 +6,11 @@
  * una server action no existe del lado del cliente y rompe el import en tiempo
  * de build (la app entera devuelve 500).
  */
-export type NovedadId = "usuarios_empresa" | "perfil_directorio" | "oportunidades_cartelera";
+export type NovedadId =
+  | "usuarios_empresa"
+  | "perfil_directorio"
+  | "oportunidades_cartelera"
+  | "panel_control";
 
 /** Clave dentro de `perfiles.tutoriales_vistos`, que es un mapa jsonb libre. */
 export function claveNovedad(id: NovedadId): string {
@@ -34,6 +38,25 @@ export const NOVEDAD_PUBLICADA_EL: Record<NovedadId, string> = {
    * no le saldría ninguna de las dos. Va la hora real del deploy.
    */
   oportunidades_cartelera: "2026-08-14T23:30:00-03:00",
+  // Rediseño del panel de control (2026-08-25, de noche).
+  panel_control: "2026-08-25T22:00:00-03:00",
+};
+
+/**
+ * Cuáles hablan de la ficha propia y por lo tanto sólo le sirven a quien
+ * administra una.
+ *
+ * Vive acá y no en `pila-novedades.tsx` porque ahora hay dos lugares que lo
+ * necesitan —el cartel y el feed del panel— y el registro de componentes de la
+ * pila importa los tres modales: leerlo desde el panel arrastraría los tres al
+ * bundle sólo para averiguar un booleano.
+ */
+export const NOVEDAD_EXIGE_FICHA: Record<NovedadId, boolean> = {
+  oportunidades_cartelera: false,
+  // El panel es la pantalla de entrada de todo el mundo, tenga ficha o no.
+  panel_control: false,
+  perfil_directorio: true,
+  usuarios_empresa: true,
 };
 
 /**
@@ -47,6 +70,7 @@ export const NOVEDAD_PUBLICADA_EL: Record<NovedadId, string> = {
  * `pila-novedades.tsx`.
  */
 export const NOVEDADES_POR_PRIORIDAD: NovedadId[] = [
+  "panel_control",
   "oportunidades_cartelera",
   "perfil_directorio",
   "usuarios_empresa",
