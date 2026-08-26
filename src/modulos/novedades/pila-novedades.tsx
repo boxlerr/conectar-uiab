@@ -12,6 +12,7 @@ import { ModalNovedadUsuarios } from "./modal-novedad-usuarios";
 import { ModalNovedadPerfil } from "./modal-novedad-perfil";
 import { ModalNovedadOportunidades } from "./modal-novedad-oportunidades";
 import { ModalNovedadGenerico } from "./modal-novedad-generico";
+import { MaquetaPanel } from "./maqueta-panel";
 
 /**
  * Pila de novedades: los carteles pendientes, de a uno y en orden.
@@ -62,7 +63,8 @@ const REGISTRO: Record<NovedadId, React.ComponentType<PropsNovedad>> = {
     <ModalNovedadGenerico
       {...props}
       id="panel_control"
-      imagen={{ src: "/panel/ilustracion-estadisticas.webp" }}
+      maqueta={<MaquetaPanel />}
+      epigrafe="Así se ve ahora el resumen de visitas en tu panel."
     />
   ),
   oportunidades_cartelera: ModalNovedadOportunidades,

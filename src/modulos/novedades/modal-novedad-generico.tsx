@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { Check, X } from "lucide-react";
 import { PieNovedad, type PropsNovedad } from "./pie-novedad";
 import { CATALOGO_NOVEDADES } from "./catalogo";
@@ -39,11 +38,19 @@ const TONO = {
 
 interface Props extends PropsNovedad {
   id: NovedadId;
-  /** Ilustración de la columna derecha. Se oculta abajo de `md`. */
-  imagen?: { src: string; alt?: string };
+  /**
+   * Dibujo de lo que se anuncia, arriba de la columna derecha.
+   *
+   * Va primero y ocupa el espacio grande a propósito: lo que se anuncia pesa
+   * más que la lista de arreglos que lo acompaña, y al revés el cartel parecía
+   * un parte de incidencias.
+   */
+  maqueta?: React.ReactNode;
+  /** Epígrafe bajo la maqueta. */
+  epigrafe?: string;
 }
 
-export function ModalNovedadGenerico({ id, imagen, ...props }: Props) {
+export function ModalNovedadGenerico({ id, maqueta, epigrafe, ...props }: Props) {
   const { titulo, resumen, cambios, aviso, cta } = CATALOGO_NOVEDADES[id];
   const tono = TONO[aviso.tono];
   const cerrar = props.onCerrar;
@@ -119,15 +126,12 @@ export function ModalNovedadGenerico({ id, imagen, ...props }: Props) {
             <X className="h-4 w-4" />
           </button>
 
-          {imagen && (
-            <div className="mb-5 hidden overflow-hidden rounded-xl ring-1 ring-slate-200/70 md:block">
-              <Image
-                src={imagen.src}
-                alt={imagen.alt ?? ""}
-                width={440}
-                height={440}
-                className="h-32 w-full object-cover"
-              />
+          {maqueta && (
+            <div className="mb-4">
+              {maqueta}
+              {epigrafe && (
+                <p className="mt-2 text-[11px] leading-snug text-slate-400">{epigrafe}</p>
+              )}
             </div>
           )}
 
@@ -146,20 +150,20 @@ export function ModalNovedadGenerico({ id, imagen, ...props }: Props) {
             ))}
           </ul>
 
-          <div className={`mt-4 rounded-xl border p-4 md:mt-0 ${tono.caja}`}>
-            <p className={`mb-2.5 text-[11px] font-bold uppercase tracking-[0.12em] ${tono.titulo}`}>
+          <div className={`mt-4 rounded-xl border px-3.5 py-3 ${tono.caja}`}>
+            <p className={`mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] ${tono.titulo}`}>
               {aviso.titulo}
             </p>
-            <ul className="space-y-1.5">
+            <ul className="space-y-1">
               {aviso.items.map((texto) => (
-                <li key={texto} className={`flex items-start gap-2 text-[13px] ${tono.texto}`}>
-                  <Check className={`mt-[3px] h-3.5 w-3.5 shrink-0 ${tono.check}`} />
+                <li key={texto} className={`flex items-start gap-1.5 text-[12px] ${tono.texto}`}>
+                  <Check className={`mt-[2px] h-3 w-3 shrink-0 ${tono.check}`} />
                   <span className="leading-snug">{texto}</span>
                 </li>
               ))}
             </ul>
             {aviso.pie && (
-              <p className={`mt-3 text-[11px] leading-snug ${tono.pie}`}>{aviso.pie}</p>
+              <p className={`mt-2 text-[10.5px] leading-snug ${tono.pie}`}>{aviso.pie}</p>
             )}
           </div>
 

@@ -92,8 +92,7 @@ export const CATALOGO_NOVEDADES: Record<NovedadId, ContenidoNovedad> = {
       titulo: "También arreglamos esto",
       items: [
         "El botón para ver tu ficha pública no aparecía nunca: estaba roto desde el principio.",
-        "Los números que ves son de tu cuenta, no ejemplos: si algo dice cero, es porque está en cero.",
-        "Ahora tenés esta misma sección de novedades en el panel, así que ningún anuncio se pierde.",
+        "El atajo para publicar una oportunidad te dejaba en el listado en vez del formulario.",
       ],
       pie: "Si algo no se ve como esperabas, escribinos desde Contacto.",
     },
