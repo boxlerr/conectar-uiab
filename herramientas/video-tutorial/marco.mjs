@@ -46,6 +46,16 @@ const MARCA = {
 const LOGO_UIAB = join(DESTINO, "logo-blanco.png");
 const LOGO_VAXLER = join(RAIZ, "public", "logo-vaxler.png");
 
+/**
+ * `--sin-vaxler` saca el crédito "Desarrollado por · Vaxler" de la banda
+ * superior y escribe un PNG aparte (`marco-sin-vaxler.png`), sin pisar el
+ * marco normal. Es para poder montar la misma pieza con y sin crédito y
+ * comparar, no para reemplazarlo: montar.mjs elige cuál usar con `--marco`.
+ */
+const SIN_VAXLER = process.argv.includes("--sin-vaxler");
+const NOMBRE_SALIDA = SIN_VAXLER ? "marco-sin-vaxler.png" : "marco.png";
+
+
 // Los logos van EMBEBIDOS en base64, no como file://: page.setContent deja el
 // documento en about:blank y Chromium le prohíbe cargar subrecursos locales.
 // El síntoma es un ícono de imagen rota en cada esquina, no un error.
@@ -132,15 +142,15 @@ const html = `<!doctype html><meta charset="utf-8">
 <div class="pantalla"></div>
 <div class="banda">
   <img class="uiab" src="${aDataURL(LOGO_UIAB)}">
-  <div class="derecha">
+  ${SIN_VAXLER ? "" : `<div class="derecha">
     <span class="rotulo">Desarrollado por</span>
     <span class="barrita"></span>
     <img class="vaxler" src="${aDataURL(LOGO_VAXLER)}">
-  </div>
+  </div>`}
 </div>`;
 
 for (const [ruta, qué] of [[LOGO_UIAB, "logo-blanco.png (corré `node logo.mjs`)"],
-                           [LOGO_VAXLER, "public/logo-vaxler.png"]]) {
+                           ...(SIN_VAXLER ? [] : [[LOGO_VAXLER, "public/logo-vaxler.png"]])]) {
   if (!existsSync(ruta)) throw new Error(`Falta ${qué}`);
 }
 
@@ -153,11 +163,11 @@ export async function dibujarMarco() {
   const page = await navegador.newPage({ viewport: { width: W, height: H } });
   await page.setContent(html, { waitUntil: "load" });
   await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: join(DESTINO, "marco.png"), omitBackground: true });
+  await page.screenshot({ path: join(DESTINO, NOMBRE_SALIDA), omitBackground: true });
   await navegador.close();
 
   writeFileSync(join(DESTINO, "marco.json"), JSON.stringify(MARCO, null, 2));
-  console.log(`✓ assets/marco.png — ${W}x${H}, agujero ${P.w}x${P.h} en (${P.x},${P.y})`);
+  console.log(`✓ assets/${NOMBRE_SALIDA} — ${W}x${H}, agujero ${P.w}x${P.h} en (${P.x},${P.y})`);
 }
 
 // Sólo dibuja si se lo corre a mano. montar.mjs importa MARCO por las medidas

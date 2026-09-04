@@ -145,6 +145,13 @@ const SIN_BOOKENDS = bandera("sin-bookends");
 const LUFS = Number(opt("lufs", "-16"));
 const SOLO = opt("solo", null);
 const DONDE_LOGO = existsSync(LOGO) ? opt("logo", "ambos") : "no";
+// Qué marco usar. `node marco.mjs --sin-vaxler` deja uno sin el crédito.
+const MARCO_PNG = opt("marco", "assets/marco.png");
+// Cuánto se queda quieto el último cuadro del plano aéreo del cierre, con el
+// logo ya puesto. Es un congelado del cuadro final, no una ralentización: el
+// clip de dron ya se consume entero (5,04 s de origen), así que estirarlo más
+// sólo se puede repitiendo cuadro. En un atardecer casi inmóvil no se nota.
+const COLA_CIERRE = Number(opt("cola", "0")) || 0;
 
 const ff = (a) => execFileSync(FFMPEG, ["-hide_banner", "-loglevel", "error", "-y", ...a], { stdio: "inherit" });
 
@@ -351,7 +358,7 @@ function armarPlano(fuente, marca, { desde, bruto, dur, vel = 1 }, salida) {
   const entradas = [
     "-ss", desde.toFixed(3), "-t", (bruto ?? dur).toFixed(3), "-i", fuente,
     "-loop", "1", "-framerate", String(FPS), "-i", join(TMP_TEXTO, marca.__texto ?? PLACAS.cierre.archivo),
-    "-loop", "1", "-framerate", String(FPS), "-i", "assets/marco.png",
+    "-loop", "1", "-framerate", String(FPS), "-i", MARCO_PNG,
   ];
 
   const salidaTexto = Math.max(0.1, durSalida - TEXTO.sale);
@@ -465,10 +472,17 @@ function armarBookend(plano, cual, salida) {
   // salgan `dur` segundos hay que pedir dur/factor de fuente.
   const durEntrada = (dur / factor).toFixed(3);
 
+  // El congelado va DESPUÉS del logo y del fundido: así lo que se sostiene es
+  // el cuadro final ya compuesto, con el logo encima.
+  const cola = cual === "cierre" && COLA_CIERRE > 0 ? COLA_CIERRE : 0;
+  const congelar = cola ? `,tpad=stop_mode=clone:stop_duration=${cola.toFixed(2)}` : "";
+  const durTotal = dur + cola;
+
   if (!conLogo) {
     ff(["-ss", String(desde), "-t", durEntrada, "-i", plano.archivo,
-        "-vf", `${base}${haciaLaPieza},format=yuv420p`, "-an", ...X264, salida]);
-    return dur;
+        "-vf", `${base}${haciaLaPieza}${congelar},format=yuv420p`,
+        "-t", String(durTotal), "-an", ...X264, salida]);
+    return durTotal;
   }
 
   // El logo se compone acá y NO se le pide al modelo: la IA deforma cualquier
@@ -483,10 +497,10 @@ function armarBookend(plano, cual, salida) {
     `[0:v]${base},eq=brightness=-0.06:saturation=1.05[v];`
     + `[1:v]scale=${LOGO_ANCHO}:-1,format=rgba,`
     + `fade=t=in:st=${entra}:d=0.5:alpha=1${sale}[l];`
-    + `[v][l]overlay=(W-w)/2:(H-h)/2:shortest=1${haciaLaPieza},format=yuv420p[o]`,
-    "-map", "[o]", "-t", String(dur), "-an", ...X264, salida,
+    + `[v][l]overlay=(W-w)/2:(H-h)/2:shortest=1${haciaLaPieza}${congelar},format=yuv420p[o]`,
+    "-map", "[o]", "-t", String(durTotal), "-an", ...X264, salida,
   ]);
-  return dur;
+  return durTotal;
 }
 
 // ── 6. Recorrer el libreto ───────────────────────────────────────────
