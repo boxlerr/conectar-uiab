@@ -45,12 +45,43 @@ const api = async (ruta, opciones = {}) => {
   return r.status === 204 ? null : r.json();
 };
 
-// Tours + novedades. Las claves salen de perfiles.tutoriales_vistos de cuentas
-// que ya las vieron; si mañana se agrega una novedad nueva, se suma acá.
-const CLAVES = [
-  "directorio", "oportunidades", "dashboard", "perfil",
-  "novedad_perfil_directorio", "novedad_oportunidades_cartelera",
-];
+/**
+ * Tours + novedades, leídos del CÓDIGO y no de una lista escrita a mano.
+ *
+ * La lista fija se quedó vieja y costó una grabación entera: la novedad
+ * "Rediseñamos tu panel de control" (`novedad_panel_control`) es posterior a
+ * cuando se escribió, así que no se marcaba como vista y el modal aparecía
+ * arriba del tablero de Oportunidades. Como es un `fixed inset-0`, se comía
+ * TODOS los clicks: la pasada del Directorio moría en el primer click sobre el
+ * buscador y la de Oportunidades no llegaba a entrar a ningún pedido. En el log
+ * eso se lee como "locator.click: Timeout", que no sugiere en nada que haya un
+ * cartel tapando la pantalla.
+ *
+ * Los ids viven en dos uniones de TypeScript. Parsearlas es frágil comparado
+ * con importarlas, pero importarlas desde acá arrastra media app; y una unión
+ * de literales es lo bastante estable como para leerla con una expresión
+ * regular. Si algún día no encuentra nada, avisa y cae en la lista mínima.
+ */
+function clavesDelCodigo() {
+  const union = (archivo, tipo) => {
+    const ruta = resolve(AQUI, "../..", archivo);
+    if (!existsSync(ruta)) return [];
+    const src = readFileSync(ruta, "utf8");
+    const bloque = src.match(new RegExp(`export type ${tipo}\\s*=([^;]+);`));
+    return bloque ? [...bloque[1].matchAll(/"([a-z_]+)"/g)].map((m) => m[1]) : [];
+  };
+  const tours = union("src/modulos/onboarding/tipos.ts", "TourId");
+  const novedades = union("src/modulos/novedades/novedades.ts", "NovedadId")
+    .map((id) => `novedad_${id}`);
+  if (!tours.length || !novedades.length) {
+    console.warn("  ⚠ no pude leer los ids de tours/novedades del código: uso la lista mínima");
+    return ["directorio", "oportunidades", "dashboard", "perfil",
+            "novedad_perfil_directorio", "novedad_oportunidades_cartelera"];
+  }
+  return [...tours, ...novedades];
+}
+
+const CLAVES = clavesDelCodigo();
 
 const [perfil] = await api(`perfiles?select=id,email,tutoriales_vistos&email=eq.${encodeURIComponent(EMAIL)}`);
 if (!perfil) throw new Error(`No encontré el perfil de ${EMAIL}.`);

@@ -87,8 +87,17 @@ al plano que te señalaron.
 
 Datos verificados de uiabconecta.com — usalos y no los inventes:
 
-- **Caso demo: Vaxler**, en `/empresas/vaxler`. Nunca uses otras empresas socias
-  como ejemplo, ni las nombres. Ya se pidió sacarlas.
+- **Capítulo 1 (Directorio): Vaxler**, en `/empresas/vaxler`. Es la ficha más
+  completa de la base, y es de la empresa que desarrolló el sitio.
+- **Capítulo 2 (Oportunidades): Metalúrgica Longchamps** (pedido del cliente, 3
+  de septiembre de 2026, a través de Lucas). El pedido que se filma sale a su
+  nombre y se graba **con su cuenta**, porque "Candidatos recomendados" —la
+  sección donde se ven las empresas que matchean con el trabajo— sólo se le
+  muestra a quien publicó.
+- Ahí **sí** se nombran otras socias: las candidatas del match son empresas
+  reales de la red, con su logo y su puntaje, y ése es justamente el punto del
+  capítulo. Lo que se pidió sacar en su momento era usar otra socia como
+  PROTAGONISTA del recorrido, no mostrarlas como resultado del cruce.
 - **Campos de la ficha**, en este orden: descripción, localidad · Almirante
   Brown, Sector, Servicios, Productos, Capacidad, certificaciones (ISO 9001),
   sello Verificado, reseñas, contacto directo. El argumento del video es que la
@@ -171,6 +180,11 @@ Cosas ya rechazadas. Si aparecen, el plano se rehace:
 - Zoom que deja el header y el footer a la vista y se presenta como detalle.
 - Interpolación lineal.
 - Mostrar un render sin haber mirado los frames.
+- Grabar sin correr antes `verificar-escenas.mjs` y `preparar-cuenta.mjs`. Los
+  dos fallos más caros del proyecto son de ese tipo y no se ven en el log: una
+  escena que usa un ayudante sin importarlo (corta la pasada a la mitad) y un
+  modal de novedades sin marcar como visto (es `fixed inset-0`: se come todos
+  los clicks y el log sólo dice "locator.click: Timeout").
 
 ## Cuando el pedido llega en bloque
 

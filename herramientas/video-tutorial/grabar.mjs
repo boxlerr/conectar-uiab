@@ -72,18 +72,28 @@ const CREDENCIALES = {
   email: process.env.UIAB_EMAIL || env.UIAB_EMAIL,
   password: process.env.UIAB_PASSWORD || env.UIAB_PASSWORD,
 };
+// Para filmar con una cuenta cuya contraseña no tenemos —el capítulo de
+// Oportunidades se graba con la socia que publica el pedido, porque la sección
+// "Candidatos recomendados" sólo se le muestra a ella— se emite un magic link
+// de un solo uso con la service role y se navega al callback que ya existe en
+// el repo. Sin contraseñas de terceros dando vueltas en ningún lado.
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+const PUEDE_MAGIC_LINK = Boolean(SUPABASE_URL && SERVICE_ROLE);
 
 // `--sin-sesion` filma sólo el Directorio público, sin entrar. No sirve para
 // la pieza final —la ficha queda tapada por "Contenido exclusivo para
 // miembros"— pero permite iterar el montaje cuando no hay credenciales a mano.
 const SIN_SESION = process.argv.includes("--sin-sesion");
 
-if (!SIN_SESION && (!CREDENCIALES.email || !CREDENCIALES.password)) {
+if (!SIN_SESION && (!CREDENCIALES.email || (!CREDENCIALES.password && !PUEDE_MAGIC_LINK))) {
   console.error("\n✗ Falta con qué cuenta filmar.\n");
   console.error("  Agregá al .env de la raíz del repo estas dos líneas, con una");
   console.error("  cuenta de empresa socia (NO la de la UIAB):\n");
   console.error("      UIAB_EMAIL=alguien@suempresa.com");
   console.error("      UIAB_PASSWORD=la-contraseña\n");
+  console.error("  (la contraseña se puede omitir si el .env tiene");
+  console.error("   SUPABASE_SERVICE_ROLE_KEY: se entra por magic link.)\n");
   console.error("  El video se graba con sesión iniciada: sin eso, la ficha de");
   console.error("  empresa muestra \"Contenido exclusivo para miembros\" y las");
   console.error("  Oportunidades directamente no se ven.");
@@ -107,9 +117,30 @@ async function iniciarSesion(navegador) {
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle").catch(() => {});
 
-  await page.locator('input[type="email"]').first().fill(CREDENCIALES.email);
-  await page.locator('input[type="password"]').first().fill(CREDENCIALES.password);
-  await page.locator('button[type="submit"]').first().click();
+  if (!CREDENCIALES.password) {
+    // Magic link de un solo uso. `src/app/api/auth/callback/route.ts` acepta
+    // token_hash + type=magiclink y hace verifyOtp, así que la cookie de
+    // sesión queda puesta en un único GET.
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+      method: "POST",
+      headers: {
+        apikey: SERVICE_ROLE, Authorization: `Bearer ${SERVICE_ROLE}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ type: "magiclink", email: CREDENCIALES.email }),
+    });
+    if (!r.ok) throw new Error(`No pude emitir el magic link para ${CREDENCIALES.email}: ${r.status} ${await r.text()}`);
+    const datos = await r.json();
+    const token = datos.hashed_token ?? datos.properties?.hashed_token;
+    if (!token) throw new Error(`El magic link vino sin hashed_token: ${JSON.stringify(datos).slice(0, 200)}`);
+    console.log(`  · entrando por magic link como ${CREDENCIALES.email}`);
+    await page.goto(`${BASE}/api/auth/callback?token_hash=${token}&type=magiclink&next=/oportunidades`,
+      { waitUntil: "domcontentloaded" });
+  } else {
+    await page.locator('input[type="email"]').first().fill(CREDENCIALES.email);
+    await page.locator('input[type="password"]').first().fill(CREDENCIALES.password);
+    await page.locator('button[type="submit"]').first().click();
+  }
 
   // Si no redirige, la pantalla casi siempre dice por qué. Leerlo evita
   // adivinar entre "contraseña mal", "usuario inexistente" y "se colgó".
@@ -124,7 +155,7 @@ async function iniciarSesion(navegador) {
       throw new Error(
         `El login no redirigió con ${CREDENCIALES.email}.`
         + (enPantalla ? `\n  La pantalla dice: "${enPantalla}"` : "")
-        + "\n  Revisá UIAB_EMAIL y UIAB_PASSWORD en el .env de la raíz del repo."
+        + "\n  Revisá UIAB_EMAIL (y UIAB_PASSWORD, si usás login por formulario)."
       );
     });
   await page.waitForLoadState("networkidle").catch(() => {});

@@ -149,8 +149,33 @@ export async function tipear(page, selector, texto, { porChar = 34, clickPrimero
 }
 
 // ── Atajos hacia la capa visual ────────────────────────────────────────
-export const cast = (page, metodo, ...args) =>
-  page.evaluate(([m, a]) => window.__cast[m](...a), [metodo, args]);
+/**
+ * Puente hacia `window.__cast` (capa-visual.js), con un reintento.
+ *
+ * El reintento no es paranoia: si esta llamada cae justo mientras el navegador
+ * está cambiando de página, Playwright tira "Execution context was destroyed"
+ * y —como esto se usa en medio de una escena— se lleva puesta la pasada
+ * entera. Pasó al entrar al primer pedido del tablero: el `scrollSuave` de
+ * después del click llegaba antes de que la ruta nueva terminara de montar, y
+ * el capítulo 2 se cortaba a los 30 s con dos planos filmados.
+ *
+ * Una sola reintentona alcanza: para cuando vuelve, el documento nuevo ya
+ * corrió el init script y `window.__cast` existe de nuevo. Si vuelve a fallar,
+ * se propaga, porque entonces sí es un problema de verdad.
+ */
+export async function cast(page, metodo, ...args) {
+  const llamar = () => page.evaluate(([m, a]) => window.__cast[m](...a), [metodo, args]);
+  try {
+    return await llamar();
+  } catch (error) {
+    const transitorio = /Execution context was destroyed|__cast|Target closed|navigation/i
+      .test(String(error?.message ?? error));
+    if (!transitorio) throw error;
+    await page.waitForLoadState("domcontentloaded").catch(() => {});
+    await new Promise((r) => setTimeout(r, 350));
+    return llamar();
+  }
+}
 
 export const scrollSuave = (page, y, ms) => cast(page, "scrollSuave", y, ms);
 export const scrollA = (page, sel, opts = {}) => cast(page, "scrollAlSelector", sel, opts);
