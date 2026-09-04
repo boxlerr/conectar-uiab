@@ -178,17 +178,23 @@ correr("preparar-cuenta.mjs");
 if (CON_DEMO) {
   console.log("· sembrando oportunidades de ejemplo (se borran al terminar)");
   correr("demo-datos.mjs", ["sembrar"]);
+  // El catálogo de la ficha de la UIAB, que el capítulo 1 recorre. Va con el
+  // mismo criterio: se siembra, se filma y se borra.
+  console.log("· sembrando el catálogo de servicios de la UIAB");
+  correr("demo-catalogo-uiab.mjs", ["sembrar"]);
 }
 try {
   correr("grabar.mjs");
 } finally {
   if (CON_DEMO) {
-    console.log("\n· borrando las oportunidades de ejemplo");
-    try {
-      correr("demo-datos.mjs", ["limpiar"]);
-    } catch {
-      console.error("\n  ⚠ NO pude borrar los datos de ejemplo.");
-      console.error("     Corré a mano:  node demo-datos.mjs limpiar");
+    console.log("\n· borrando los datos de ejemplo");
+    for (const script of ["demo-datos.mjs", "demo-catalogo-uiab.mjs"]) {
+      try {
+        correr(script, ["limpiar"]);
+      } catch {
+        console.error(`\n  ⚠ NO pude borrar los datos de ${script}.`);
+        console.error(`     Corré a mano:  node ${script} limpiar`);
+      }
     }
   }
 }

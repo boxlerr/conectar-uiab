@@ -50,16 +50,23 @@ export async function escenaDirectorio({ page, BASE }) {
     texto: "Un rubro, una especialidad o un nombre.",
     velocidad: 1.25,
   }, async () => {
-    // La palabra ENTERA, no "metal". Cortada a la mitad el plano terminaba
+    // La palabra ENTERA, no "capacit". Cortada a la mitad el plano terminaba
     // sin haber mostrado nunca un resultado, que es lo que la búsqueda tiene
     // que probar.
-    // "software" y no "vaxler": buscar por el nombre propio de la empresa que
-    // desarrolló el sitio queda auto-referencial, y además una búsqueda por
-    // rubro muestra lo que el directorio hace de verdad — devolver varias.
+    //
+    // "capacitación" y no el nombre de la ficha a la que se entra: buscar por
+    // el nombre propio queda auto-referencial, y una búsqueda por lo que se
+    // NECESITA muestra lo que el directorio hace de verdad — devolver varias y
+    // dejarte elegir. Devuelve 3 (verificado), así que la grilla no queda
+    // vacía.
+    //
+    // Ojo con la tilde: el buscador NO normaliza acentos. "capacitacion" sin
+    // tilde devuelve CERO resultados. Si algún día se arregla eso en el
+    // producto, acá da igual; al revés no.
     await moverAlSelector(page, BUSCADOR, { ms: 440 });
     await page.locator(BUSCADOR).click({ timeout: 5000 });
     await dormir(160);
-    await tipear(page, BUSCADOR, "software", { porChar: 66, clickPrimero: false });
+    await tipear(page, BUSCADOR, "capacitación", { porChar: 58, clickPrimero: false });
     await dormir(420);
   });
 
@@ -108,11 +115,16 @@ export async function escenaDirectorio({ page, BASE }) {
   await scrollA(page, TARJETA, { offset: 190, ms: 560 });
   await dormir(320);
 
-  // Vaxler a propósito y no "la primera que salga": es la ficha más completa
-  // de la base —6 servicios con foto, 10 etiquetas, descripción, logo y web—,
-  // y una ficha vacía en el video vende lo contrario de lo que se quiere
-  // vender. Si no aparece, cae en la primera.
-  const iFicha = Math.max(0, await indicePorTexto(page, TARJETA, /vaxler/i));
+  // La ficha de la UIAB a propósito, y no "la primera que salga": es la
+  // institución que está atrás de la plataforma, tiene logo, descripción, web,
+  // teléfono y un catálogo de 6 servicios con foto (los siembra
+  // demo-catalogo-uiab.mjs con el contenido y las fotos de uiab.org). Una
+  // ficha vacía en el video vende lo contrario de lo que se quiere vender.
+  //
+  // Se busca por la razón social y no por "UIAB" a secas: todas las tarjetas
+  // llevan el sello "Socia UIAB", así que /uiab/i matchearía la primera que
+  // aparezca. Si no está, cae en la primera.
+  const iFicha = Math.max(0, await indicePorTexto(page, TARJETA, /uni.n industrial de almirante/i));
   const destino = await page.locator(TARJETA).nth(iFicha).getAttribute("href");
 
   // El plano "Un click y estás en el perfil" se sacó: no sumaba nada — misma
