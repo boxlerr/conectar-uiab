@@ -472,15 +472,28 @@ function armarBookend(plano, cual, salida) {
   // salgan `dur` segundos hay que pedir dur/factor de fuente.
   const durEntrada = (dur / factor).toFixed(3);
 
-  // El congelado va DESPUÉS del logo y del fundido: así lo que se sostiene es
-  // el cuadro final ya compuesto, con el logo encima.
+  // La cola del cierre: el plano se APAGA A NEGRO y el logo se queda solo.
+  //
+  // La primera versión sostenía el último cuadro tal cual, y se notaba como un
+  // congelado: el atardecer se queda quieto de golpe y el ojo lo lee como que
+  // el video se trabó. Fundir a negro resuelve las dos cosas de una: tapa el
+  // momento exacto en que se acaba la animación —el fundido arranca 0,3 s
+  // ANTES de que se termine el material real, así que nunca se ve un cuadro
+  // repetido con luz— y deja el remate donde tiene que estar, que es el logo.
+  //
+  // El fundido va sobre la CAPA DE VIDEO, antes de componer el logo. Si fuera
+  // después se apagaría también el logo, que es justo lo que tiene que quedar.
   const cola = cual === "cierre" && COLA_CIERRE > 0 ? COLA_CIERRE : 0;
-  const congelar = cola ? `,tpad=stop_mode=clone:stop_duration=${cola.toFixed(2)}` : "";
   const durTotal = dur + cola;
+  const apagado = cola
+    ? `,tpad=stop_mode=clone:stop_duration=${cola.toFixed(2)}`
+      + `,fade=t=out:st=${Math.max(0, dur - 0.3).toFixed(2)}`
+      + `:d=${Math.min(1.4, cola * 0.6).toFixed(2)}:color=black`
+    : "";
 
   if (!conLogo) {
     ff(["-ss", String(desde), "-t", durEntrada, "-i", plano.archivo,
-        "-vf", `${base}${haciaLaPieza}${congelar},format=yuv420p`,
+        "-vf", `${base}${haciaLaPieza}${apagado},format=yuv420p`,
         "-t", String(durTotal), "-an", ...X264, salida]);
     return durTotal;
   }
@@ -494,10 +507,10 @@ function armarBookend(plano, cual, salida) {
     "-ss", String(desde), "-t", durEntrada, "-i", plano.archivo,
     "-framerate", String(FPS), "-loop", "1", "-i", LOGO,
     "-filter_complex",
-    `[0:v]${base},eq=brightness=-0.06:saturation=1.05[v];`
+    `[0:v]${base},eq=brightness=-0.06:saturation=1.05${apagado}[v];`
     + `[1:v]scale=${LOGO_ANCHO}:-1,format=rgba,`
     + `fade=t=in:st=${entra}:d=0.5:alpha=1${sale}[l];`
-    + `[v][l]overlay=(W-w)/2:(H-h)/2:shortest=1${haciaLaPieza}${congelar},format=yuv420p[o]`,
+    + `[v][l]overlay=(W-w)/2:(H-h)/2:shortest=1${haciaLaPieza},format=yuv420p[o]`,
     "-map", "[o]", "-t", String(durTotal), "-an", ...X264, salida,
   ]);
   return durTotal;
