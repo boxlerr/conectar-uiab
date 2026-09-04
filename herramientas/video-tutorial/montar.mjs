@@ -67,7 +67,10 @@ const FONDO = "#061f33"; // el mismo navy del marco: los cortes no parpadean
 //   apertura → los últimos N s: el dron acelera, el pico está al final.
 //   cierre   → los primeros N s: el retroceso abre el plano enseguida.
 const APERTURA = { archivo: "assets/apertura.mp4", dur: 3.2, anclaje: "final" };
-const CIERRE = { archivo: "assets/cierre.mp4", dur: 4.0, anclaje: "inicio" };
+// El cierre usa AHORA los 5 s enteros del plano (el archivo dura 5,04): antes
+// se cortaba en 4 y el remate se sentía apurado. Es material real, no un
+// congelado ni una ralentización, así que no cuesta nada de calidad.
+const CIERRE = { archivo: "assets/cierre.mp4", dur: 5.0, anclaje: "inicio" };
 
 // ── Plano insertado ──────────────────────────────────────────────────
 // Va a sangre, sin el marco, en medio del capítulo 1. Rompe la seguidilla de
@@ -320,7 +323,9 @@ const PLACAS = {
     tipo: "placa", archivo: "placa-cierre.png", rotulo: "UIAB Conecta",
     titulo: "Ya sabés moverte",
     texto: "Entrá, buscá y conectá con el parque industrial de Almirante Brown.",
-    dur: 2.2,
+    // 2,2 s no alcanzaban para leer las dos líneas y todavía respirar antes del
+    // plano aéreo: el final se sentía cortado.
+    dur: 3.1,
   },
 };
 if (existsSync(INSERTO.archivo)) {
