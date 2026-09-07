@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 72" width="220" height="72"
+     role="img" aria-label="Socia verificada de UIAB Conecta">
+  <title>Socia verificada de UIAB Conecta</title>
+  <desc>Sello del directorio comercial B2B de la Unión Industrial de Almirante Brown.</desc>
+
+  <!--
+    Sello para que las empresas socias lo peguen en su propio sitio.
+
+    Vectorial y autocontenido a propósito: viaja dentro de un <img> en dominios
+    ajenos, así que no puede depender de fuentes web (no cargan en ese contexto)
+    ni de imágenes externas. El icono del sitio no servía: icono-uiab.svg pesa
+    467 KB porque lleva un PNG embebido en base64.
+
+    Las medidas reales son 220x72, que son las que declara el snippet que se le
+    pasa a cada socia. Si cambian acá, cambian allá.
+  -->
+
+  <rect x="0.5" y="0.5" width="219" height="71" rx="7" fill="#ffffff" stroke="#dbe3ea"/>
+
+  <!-- Marca: cuadrado con el tilde de verificación -->
+  <rect x="14" y="16" width="40" height="40" rx="9" fill="#0c3c60"/>
+  <path d="M25.5 36.4l6 6.1 11.6-12.6" fill="none" stroke="#ffffff"
+        stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="68" y="31" fill="#64748b"
+        font-family="'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="8.5" font-weight="700" letter-spacing="1.15">SOCIA VERIFICADA</text>
+
+  <text x="68" y="49" fill="#0c3c60"
+        font-family="'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="17" font-weight="700" letter-spacing="-0.3">UIAB<tspan fill="#0382bf"> Conecta</tspan></text>
+
+  <text x="68" y="60.5" fill="#94a3b8"
+        font-family="'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="7.5" letter-spacing="0.15">uiabconecta.com</text>
+</svg>
