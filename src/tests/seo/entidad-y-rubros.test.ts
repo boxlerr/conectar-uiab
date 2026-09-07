@@ -156,7 +156,11 @@ describe("landings de rubro", () => {
     expect(rubro.title).not.toMatch(/UIAB Conecta/);
 
     expect(rubro.description.length).toBeGreaterThanOrEqual(80);
-    expect(rubro.description.length).toBeLessThanOrEqual(180);
+    // 160, no 180: por encima de eso Google descarta la description y
+      // escribe el snippet con texto que elige él — y ahí se pierde el
+      // fraseo que nombra la marca, que es lo único que estas landings
+      // tienen para aportarle a la consulta "UIAB Conecta".
+      expect(rubro.description.length).toBeLessThanOrEqual(160);
 
     // El H1 es la keyword, no la marca.
     expect(rubro.h1).not.toMatch(/UIAB Conecta/);

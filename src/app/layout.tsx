@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins, Open_Sans, Geist, Manrope, Inter } from "next/font/google";
+import { Poppins, Geist, Manrope, Inter } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 
@@ -8,12 +8,13 @@ const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
-});
-
-const openSans = Open_Sans({
-  variable: "--font-open-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  /**
+   * Sin preload: viaja en la cabecera `Link` de las 86 rutas y sólo se usa
+   * como `--font-mono` (globals.css), o sea en el panel privado, que es
+   * noindex. 39 KB compitiendo con el LCP de las páginas que sí rankean.
+   * NO se puede borrar la familia: ~13 archivos usan `font-mono`.
+   */
+  preload: false,
 });
 
 const manrope = Manrope({
@@ -216,9 +217,9 @@ export default async function RootLayout({
   const initialUser = await getServerUser();
 
   return (
-    <html lang="es" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+    <html lang="es-AR" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body
-        className={`${openSans.variable} ${poppins.variable} ${manrope.variable} ${inter.variable} font-sans antialiased min-h-svh bg-slate-50`}
+        className={`${poppins.variable} ${manrope.variable} ${inter.variable} font-sans antialiased min-h-svh bg-slate-50`}
       >
         <script
           type="application/ld+json"
