@@ -44,6 +44,41 @@ export function crearSlug(texto: string) {
 }
 
 /**
+ * El nombre con el que un PARTICULAR aparece en /empresas/[slug], y del que
+ * sale su slug.
+ *
+ * POR QUÉ ES UNA FUNCIÓN Y NO UNA LÍNEA COPIADA
+ *
+ * Esta regla vivía escrita a mano en cinco lugares, con cuatro resultados
+ * distintos:
+ *
+ *   - `sitemap.ts` publicaba `crearSlug(razon_social)`, que es OTRO campo. El
+ *     día que se apruebe el primer particular cuya `razon_social` no coincida
+ *     con su `nombre_comercial`, el sitemap publica una URL que da 404.
+ *   - `generateMetadata` caía a `""` y la página a `"Sin nombre"`, así que un
+ *     particular sin nombre resolvía distinto según quién preguntara.
+ *
+ * Hoy no se nota porque la tabla `proveedores` está vacía. Es exactamente la
+ * clase de bug que aparece con la primera alta y que nadie relaciona con esto.
+ *
+ * El fallback es `""` a propósito, no `"Sin nombre"`: `sin-nombre` sería una
+ * URL real e indexable para una ficha sin identidad. Quien necesite un texto
+ * para MOSTRAR que agregue el `|| "Sin nombre"` en su llamada — eso es una
+ * decisión de presentación, no de identidad.
+ */
+export function nombreDeFichaParticular(p: {
+  nombre_comercial?: string | null;
+  nombre?: string | null;
+  apellido?: string | null;
+}): string {
+  return (
+    p.nombre_comercial ||
+    [p.nombre, p.apellido].filter(Boolean).join(" ") ||
+    ""
+  );
+}
+
+/**
  * Normaliza un tel\u00e9fono argentino a formato wa.me (solo d\u00edgitos, con pa\u00eds 54).
  * Devuelve null si no hay d\u00edgitos suficientes para un n\u00famero v\u00e1lido.
  *  - "+54 9 11 1234-5678" \u2192 "5491112345678"

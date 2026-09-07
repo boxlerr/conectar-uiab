@@ -1,6 +1,6 @@
 import { createClient as createServerClient } from "@/lib/supabase/servidor";
 import { createClient } from "@supabase/supabase-js";
-import { crearSlug, normalizarSitioWeb, normalizarSitiosWeb } from "@/lib/utilidades";
+import { crearSlug, nombreDeFichaParticular, normalizarSitioWeb, normalizarSitiosWeb } from "@/lib/utilidades";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
@@ -346,11 +346,11 @@ async function datosSeoPorSlug(slug: string) {
     .select("nombre, apellido, nombre_comercial, descripcion, localidad, provincia, sitio_web, bucket_logo, ruta_logo")
     .eq("estado", "aprobado");
   const prov = provs?.find((p: any) => {
-    const dn = p.nombre_comercial || [p.nombre, p.apellido].filter(Boolean).join(" ") || "";
-    return crearSlug(dn) === slug;
+    const dn = nombreDeFichaParticular(p);
+    return dn !== "" && crearSlug(dn) === slug;
   });
   if (prov) {
-    const dn = prov.nombre_comercial || [prov.nombre, prov.apellido].filter(Boolean).join(" ");
+    const dn = nombreDeFichaParticular(prov);
     return {
       esProveedor: true,
       nombre: dn as string,
@@ -793,11 +793,10 @@ export default async function EmpresaProfilePage({
       .eq('estado', 'aprobado');
 
     const provDb = provData?.find((p: any) => {
-      const displayName =
-        p.nombre_comercial ||
-        [p.nombre, p.apellido].filter(Boolean).join(" ") ||
-        "Sin nombre";
-      return crearSlug(displayName) === slug;
+      // Antes caía a "Sin nombre" y generateMetadata a "": para un particular
+      // sin nombre, el título y el cuerpo resolvían fichas distintas.
+      const displayName = nombreDeFichaParticular(p);
+      return displayName !== "" && crearSlug(displayName) === slug;
     });
 
     if (!provDb) {
@@ -1592,10 +1591,7 @@ async function ProveedorProfile({
 }) {
   // Ver el comentario de EmpresaProfile: el cliente no viaja por prop.
   const supabase = createAdminClient();
-  const displayName =
-    provDb.nombre_comercial ||
-    [provDb.nombre, provDb.apellido].filter(Boolean).join(" ") ||
-    "Sin nombre";
+  const displayName = nombreDeFichaParticular(provDb) || "Sin nombre";
   const personalName = [provDb.nombre, provDb.apellido].filter(Boolean).join(" ");
   const cats = provDb.proveedores_categorias?.map((pc: any) => pc.categorias?.nombre).filter(Boolean) || [];
   const mainCat = provDb.tipo_proveedor || (cats.length > 0 ? cats[0] : "Prestador de servicios");

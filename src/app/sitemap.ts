@@ -1,6 +1,6 @@
 import { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
-import { crearSlug } from "@/lib/utilidades";
+import { crearSlug, nombreDeFichaParticular } from "@/lib/utilidades";
 import { RUBROS_SEO } from "@/lib/datos/rubros-seo";
 
 const BASE_URL = "https://www.uiabconecta.com";
@@ -74,7 +74,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [{ data: empresas }, { data: proveedores }, { data: oportunidades }] =
       await Promise.all([
         supabase.from("empresas").select("razon_social, creado_en, actualizado_en").eq("estado", "aprobada"),
-        supabase.from("proveedores").select("razon_social, creado_en, actualizado_en").eq("estado", "aprobado"),
+        supabase
+          .from("proveedores")
+          .select("nombre, apellido, nombre_comercial, creado_en, actualizado_en")
+          .eq("estado", "aprobado"),
         supabase.from("oportunidades").select("id, creado_en").eq("estado", "abierta"),
       ]);
 
@@ -115,9 +118,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      * directamente el destino.
      */
     const proveedorRoutes: MetadataRoute.Sitemap = (proveedores ?? [])
-      .filter((p) => p.razon_social)
-      .map((p) => ({
-        url: `${BASE_URL}/empresas/${crearSlug(p.razon_social)}`,
+      .map((p) => ({ p, nombre: nombreDeFichaParticular(p) }))
+      // El slug TIENE que salir de la misma regla que usa /empresas/[slug].
+      // Publicaba `crearSlug(razon_social)`, que es otro campo: la primera alta
+      // con razón social distinta del nombre comercial habría entrado al
+      // sitemap como una URL que da 404.
+      .filter(({ nombre }) => nombre !== "")
+      .map(({ p, nombre }) => ({
+        url: `${BASE_URL}/empresas/${crearSlug(nombre)}`,
         lastModified: ultimoCambio(p),
         changeFrequency: "weekly" as const,
         priority: 0.8,

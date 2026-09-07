@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { crearSlug } from "@/lib/utilidades";
+import { crearSlug, nombreDeFichaParticular } from "@/lib/utilidades";
 
 /**
  * URL permanente de una ficha: `/e/{id}` → 308 a `/empresas/{slug}`.
@@ -83,9 +83,7 @@ export async function GET(
       .maybeSingle();
 
     if (proveedor) {
-      const nombre =
-        proveedor.nombre_comercial ||
-        [proveedor.nombre, proveedor.apellido].filter(Boolean).join(" ");
+      const nombre = nombreDeFichaParticular(proveedor);
       if (nombre) return aFicha(nombre);
     }
 

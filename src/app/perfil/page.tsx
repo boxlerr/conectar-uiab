@@ -24,7 +24,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AvisoEtiquetasPrecargadas } from "@/components/ui/aviso-etiquetas-precargadas";
 import { createClient } from "@/lib/supabase/cliente";
-import { cn, normalizarSitioWeb, normalizarSitiosWeb } from "@/lib/utilidades";
+import { cn, nombreDeFichaParticular, normalizarSitioWeb, normalizarSitiosWeb } from "@/lib/utilidades";
+import { SelloParaTuWeb } from "@/components/ui/sello-para-tu-web";
 
 interface Resena {
   id: string;
@@ -446,6 +447,23 @@ export default function MiPerfilPage() {
           </div>
         )}
       </Card>
+
+      {/*
+        Sólo con la ficha APROBADA: /e/{id} devuelve 404 para las que no lo
+        están, así que ofrecerle el sello a una socia pendiente sería darle un
+        enlace roto para poner en su web.
+      */}
+      {currentUser?.entityId &&
+        (profileDetails?.estado === "aprobada" || profileDetails?.estado === "aprobado") && (
+          <SelloParaTuWeb
+            entidadId={currentUser.entityId}
+            nombre={
+              esFichaDeEmpresa(currentUser)
+                ? profileDetails?.razon_social
+                : nombreDeFichaParticular(profileDetails ?? {})
+            }
+          />
+        )}
     </div>
   );
 }
