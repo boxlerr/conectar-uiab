@@ -110,6 +110,18 @@ export function telefonoE164(valor: string | null | undefined): string | null {
   if (digitos.startsWith("54") && digitos.length >= 12) return `+${digitos}`;
   // 10 dígitos = característica + abonado sin el 0 (ej. 11 6518-6162).
   if (digitos.length === 10) return `+54${digitos}`;
+  /**
+   * 11 dígitos arrancando en 0 = formato nacional con el prefijo de salida.
+   * En Argentina ese 0 SIEMPRE se cae para el formato internacional, así que la
+   * conversión no tiene ambigüedad y no inventa nada: `011 4299-6795` es
+   * +541142996795, y `0810-222-0606` es +548102220606.
+   *
+   * Faltaba, y por eso los 0800/0810 y cualquier número cargado con el 0
+   * adelante caían al `return limpio` del final y se publicaban en el JSON-LD
+   * sin normalizar. Va ANTES de la rama del 9 para no pisarla: un `09…` es el
+   * mismo caso y se resuelve igual sacando el 0.
+   */
+  if (digitos.length === 11 && digitos.startsWith("0")) return `+54${digitos.slice(1)}`;
   // 11 dígitos arrancando en 9 = el "9" de celular ya incluido.
   if (digitos.length === 11 && digitos.startsWith("9")) return `+54${digitos}`;
 

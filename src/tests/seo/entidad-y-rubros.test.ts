@@ -97,6 +97,10 @@ describe("telefonoE164", () => {
     ["1165186162", "+541165186162"],
     ["11 2380-7089", "+541123807089"],
     ["+54 3442 41-9341", "+543442419341"],
+    // El 0 del formato nacional se cae siempre; no hay ambigüedad que resolver.
+    ["011 4299-6795", "+541142996795"],
+    ["0810-222-0606", "+548102220606"],
+    ["(011) 5365-5467", "+541153655467"],
   ])("normaliza %s", (entrada, esperado) => {
     expect(telefonoE164(entrada)).toBe(esperado);
   });
