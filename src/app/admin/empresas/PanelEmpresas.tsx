@@ -2,15 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building, Check, X, Search, Eye, ChevronDown } from "lucide-react";
+import { Building, Check, X, Search, Eye, ChevronDown, Pencil, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   aprobarEmpresa,
   rechazarEmpresa,
+  actualizarContactoEmpresa,
 } from "@/modulos/admin/acciones";
-import { llamarAccion } from "@/lib/accion-segura";
+import { llamarAccion, fallo } from "@/lib/accion-segura";
+import { toast } from "sonner";
 
 // El selector de Tarifa 1/2/3 salió de este panel: desde el modelo de precio
 // único (jul-2026) los tres niveles valen $50.000, así que elegir uno no hacía
@@ -66,6 +68,46 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
   const [seleccionada, setSeleccionada] = useState<Empresa | null>(null);
   const [modalRechazo, setModalRechazo] = useState<{ id: string; nombre: string } | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
+
+  /**
+   * Edición del contacto. 35 de las 59 fichas aprobadas salían sin `telephone`
+   * en su JSON-LD porque la columna estaba vacía, y este panel mostraba el dato
+   * pero no tenía forma de escribirlo: había que hacer el UPDATE a mano en
+   * Supabase.
+   */
+  const [editando, setEditando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [borrador, setBorrador] = useState({ telefono: "", email: "" });
+
+  function abrirEdicion() {
+    if (!seleccionada) return;
+    setBorrador({
+      telefono: seleccionada.telefono ?? "",
+      email: seleccionada.email ?? "",
+    });
+    setEditando(true);
+  }
+
+  async function guardarContacto() {
+    if (!seleccionada) return;
+    setGuardando(true);
+    const res = await llamarAccion(() =>
+      actualizarContactoEmpresa(seleccionada.id, borrador)
+    );
+    setGuardando(false);
+    if (fallo(res)) {
+      toast.error("No se pudo guardar", { description: res.error });
+      return;
+    }
+    // La fila del panel se rearma en el refresh, pero el detalle abierto se
+    // quedaba con los valores viejos hasta cerrarlo y volver a abrirlo.
+    setSeleccionada((prev) =>
+      prev ? { ...prev, telefono: borrador.telefono || null, email: borrador.email || null } : null
+    );
+    setEditando(false);
+    toast.success("Contacto actualizado");
+    refresh();
+  }
 
   // "Sin cuenta" es transversal al estado: son fichas publicadas del padrón que
   // todavía no tiene nadie adentro. Es la lista de a quién falta contactar.
@@ -259,20 +301,72 @@ export function PanelEmpresas({ empresas }: { empresas: Empresa[] }) {
             <div className="p-6 space-y-7">
               {/* Info */}
               <section>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-100 pb-2">Datos de la empresa</p>
-                <dl className="space-y-2">
-                  {[
-                    ["CUIT", seleccionada.cuit],
-                    ["Email", seleccionada.email],
-                    ["Teléfono", seleccionada.telefono],
-                    ["Localidad", [seleccionada.localidad, seleccionada.provincia].filter(Boolean).join(", ")],
-                  ].map(([label, valor]) => valor ? (
-                    <div key={label as string} className="flex gap-2 text-sm">
-                      <dt className="text-slate-400 w-24 flex-shrink-0">{label}</dt>
-                      <dd className="text-slate-800 font-medium">{valor as string}</dd>
+                <div className="flex items-center justify-between gap-2 mb-3 border-b border-slate-100 pb-2">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Datos de la empresa</p>
+                  {!editando && (
+                    <button
+                      type="button"
+                      onClick={abrirEdicion}
+                      className="flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700"
+                    >
+                      <Pencil className="h-3 w-3" /> Editar contacto
+                    </button>
+                  )}
+                </div>
+
+                {editando ? (
+                  <div className="space-y-3">
+                    <label className="block">
+                      <span className="text-xs text-slate-500">Teléfono</span>
+                      <input
+                        value={borrador.telefono}
+                        onChange={(ev) => setBorrador((b) => ({ ...b, telefono: ev.target.value }))}
+                        placeholder="+54 11 4299-6795"
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none"
+                      />
+                      {/* Es el dato que Google cruza para decidir si la ficha
+                          describe a ESTA empresa. Con característica siempre. */}
+                      <span className="text-[11px] text-slate-400">Con característica. Sin ella, el dato no sirve para el perfil público.</span>
+                    </label>
+                    <label className="block">
+                      <span className="text-xs text-slate-500">Email</span>
+                      <input
+                        value={borrador.email}
+                        onChange={(ev) => setBorrador((b) => ({ ...b, email: ev.target.value }))}
+                        placeholder="contacto@empresa.com.ar"
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none"
+                      />
+                    </label>
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" onClick={guardarContacto} disabled={guardando}>
+                        {guardando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                        Guardar
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditando(false)} disabled={guardando}>
+                        Cancelar
+                      </Button>
                     </div>
-                  ) : null)}
-                </dl>
+                  </div>
+                ) : (
+                  <dl className="space-y-2">
+                    {([
+                      ["CUIT", seleccionada.cuit],
+                      ["Email", seleccionada.email],
+                      ["Teléfono", seleccionada.telefono],
+                      ["Localidad", [seleccionada.localidad, seleccionada.provincia].filter(Boolean).join(", ")],
+                    ] as [string, string | null][]).map(([label, valor]) => (
+                      <div key={label} className="flex gap-2 text-sm">
+                        <dt className="text-slate-400 w-24 flex-shrink-0">{label}</dt>
+                        {/* Antes las filas vacías no se renderizaban, así que
+                            "sin teléfono" era indistinguible de "no te lo
+                            muestro": justo el dato que falta en 35 fichas. */}
+                        <dd className={valor ? "text-slate-800 font-medium" : "text-amber-600 italic"}>
+                          {valor || "falta"}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
               </section>
 
               {seleccionada.descripcion && (

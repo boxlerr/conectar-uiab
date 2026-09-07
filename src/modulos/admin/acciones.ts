@@ -129,6 +129,69 @@ export async function rechazarEmpresa(empresaId: string, motivo: string) {
 }
 
 /**
+ * Carga o corrige los datos de contacto de una ficha desde el panel.
+ *
+ * POR QUÉ HIZO FALTA
+ *
+ * 35 de las 59 empresas aprobadas no tienen teléfono, y ninguna tiene whatsapp,
+ * así que su `Organization` sale sin `telephone` — el dato de contacto que
+ * Google cruza para decidir si la ficha describe a esa empresa o a otra.
+ *
+ * No era un bug de render: `page.tsx` ya hace fallback a `whatsapp` y
+ * `telefonoE164()` no descarta nada. Las columnas están vacías, y hasta ahora
+ * `PanelEmpresas.tsx` mostraba el teléfono pero no tenía un solo `.update(`:
+ * no había forma de cargarlo salvo un UPDATE a mano en Supabase.
+ *
+ * Escribe `telefono`, no `whatsapp`: la fila visible de la ficha lee `telefono`
+ * y el JSON-LD lee `telefono` con fallback a `whatsapp`. Llenando el primero,
+ * los dos quedan alineados; llenando el segundo, el JSON-LD publicaría un
+ * número que la página no muestra.
+ *
+ * Guarda el texto tal como lo escribe el admin. La normalización a E.164 la
+ * hace `telefonoE164()` al renderear, y está escrita para devolver el original
+ * limpio ante la duda en vez de inventar una característica.
+ */
+export async function actualizarContactoEmpresa(
+  empresaId: string,
+  datos: { telefono?: string | null; email?: string | null }
+) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
+  const limpiar = (v: string | null | undefined) => {
+    const t = (v ?? "").trim();
+    return t === "" ? null : t;
+  };
+
+  const telefono = limpiar(datos.telefono);
+  const email = limpiar(datos.email);
+
+  // Un teléfono con menos de 8 dígitos no es reconstruible por `telefonoE164()`
+  // y terminaría publicado en el JSON-LD como basura. Mejor rechazarlo acá que
+  // guardarlo y que el error viaje a Google.
+  if (telefono && telefono.replace(/\D/g, "").length < 8) {
+    return { error: "El teléfono tiene menos de 8 dígitos. Incluí la característica." };
+  }
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { error: "El email no parece válido." };
+  }
+
+  const db = adminClient();
+  const { error } = await db
+    .from("empresas")
+    .update({ telefono, email })
+    .eq("id", empresaId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/empresas");
+  // La ficha pública y los listados muestran el contacto: sin esto el cambio no
+  // se ve hasta la próxima revalidación.
+  revalidatePath("/empresas", "layout");
+  revalidatePath("/directorio");
+  return { success: true };
+}
+
+/**
  * Cambia el precio de la suscripción — el único que hay.
  *
  * Reemplaza a `actualizarPrecioTarifa(nivel, ...)`, que editaba una de las tres
