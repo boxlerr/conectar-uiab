@@ -73,7 +73,7 @@ export const RUBROS_SEO: RubroSeo[] = [
     h1: "Empresas químicas en Almirante Brown",
     title: "Empresas Químicas en Almirante Brown y Burzaco",
     description:
-      "Industrias y proveedores químicos socios de la UIAB en Burzaco y Almirante Brown: insumos, materias primas, resinas y especialidades. Perfiles verificados con contacto directo.",
+      "Industrias y proveedores químicos socios de la UIAB en Burzaco y Almirante Brown: insumos, materias primas, resinas y especialidades, con contacto directo.",
     intro:
       "Las empresas químicas de Almirante Brown que integran la red UIAB cubren desde la materia prima hasta el producto ya formulado. Doce están radicadas en Burzaco y una en Longchamps.\n\nEn el listado hay fabricación y distribución de productos químicos, resinas, abrasivos, siliconas y selladores, tintas y diluyentes, pinturas industriales y pintura en polvo. FINE & PURE trabaja productos químicos para la industria alimenticia; PLAQUIMET, química y resinas; KORUND fabrica abrasivos y BESTCHEM, siliconas y selladores. LATIN CHEMICAL SUPPLIERS se dedica a la distribución, que es lo que te sirve cuando lo que necesitás es abastecimiento y no fabricación. Varias figuran además con la etiqueta de provisión de materiales, la que marca a quien tiene stock para vender.\n\nEn cada ficha vas a encontrar la actividad tal como la declara la empresa, los rubros y etiquetas con los que trabaja, y el contacto directo. Todas son socias verificadas de la Unión Industrial de Almirante Brown.",
     catSlugs: ["quimica"],
@@ -85,7 +85,7 @@ export const RUBROS_SEO: RubroSeo[] = [
     h1: "Empresas metalúrgicas y metalmecánicas en Almirante Brown",
     title: "Metalúrgicas y Metalmecánica en Almirante Brown",
     description:
-      "Metalúrgicas, fundiciones y talleres metalmecánicos socios de la UIAB en Burzaco y Longchamps: mecanizado CNC, soldadura, forja, estructuras metálicas y fabricación a medida.",
+      "Metalúrgicas, fundiciones y talleres metalmecánicos socios de la UIAB en Burzaco y Longchamps: mecanizado CNC, soldadura, forja y estructuras metálicas.",
     intro:
       "Las empresas metalúrgicas y metalmecánicas de Almirante Brown que integran la red UIAB cubren la cadena completa: desde transformar el metal en bruto hasta entregar el equipo terminado.\n\nEn el listado hay fundición de hierro gris, forja y templado, mecanizado CNC, soldadura, corte y plegado, estampado metálico, estructuras metálicas y fabricación a medida. También producto terminado: maquinaria hidráulica, maquinaria para minería y construcción, componentes mecánicos para equipos de elevación y traslación de materiales, tableros eléctricos y abrasivos. ACEROS ANGELETTI funde hierro gris y FORJA ATLAS trabaja forja y fundición, las dos en Burzaco. Desde Longchamps, METALURGICA LONGCHAMPS hace mantenimiento industrial con mecanizado, soldadura, corte y plegado, y MIGUEL ABAD diseña y fabrica componentes para equipos de elevación. INDUSTRIAS GUIDI produce autopartes con estampado metálico.\n\nCada ficha tiene la actividad declarada por la empresa, sus rubros y el contacto directo. Todas son socias verificadas de la Unión Industrial de Almirante Brown.",
     catSlugs: ["metalurgica", "maquinarias"],
@@ -105,7 +105,7 @@ export const RUBROS_SEO: RubroSeo[] = [
     h1: "Empresas de construcción y materiales en Almirante Brown",
     title: "Construcción y Materiales en Almirante Brown",
     description:
-      "Fabricantes y proveedores para la construcción socios de la UIAB en Almirante Brown: perfiles, cerámicos, membranas, estructuras metálicas y alquiler de maquinaria.",
+      "Fabricantes y proveedores para la construcción socios de la UIAB en Almirante Brown: perfiles, cerámicos, membranas y estructuras metálicas.",
     intro:
       "Las empresas de construcción y materiales de Almirante Brown que integran la red UIAB fabrican insumos para obra, los comercializan o proveen equipamiento.\n\nLo que cubren es concreto: perfiles para construcción en seco, cerámicos, membranas asfálticas, estructuras metálicas, siliconas y selladores, materiales eléctricos, ferretería industrial y construcción modular. También pinturas y artículos conexos por mayor y menor, y alquiler y venta de máquinas para obra, que sirve cuando necesitás resolver una etapa puntual sin comprar el equipo. A. D. BARBIERI fabrica perfiles para construcción en seco; SAINT GOBAIN - MEGAFLEX, membranas asfálticas; ANDARIEGA trabaja construcción modular y TDMA, estructuras metálicas. IND. CERAMICAS LOURDES fabrica cerámicos desde Longchamps; el resto está radicado en Burzaco.\n\nEn cada ficha vas a ver la actividad declarada, los rubros en los que trabaja la empresa y el contacto directo. Todas son socias verificadas de la Unión Industrial de Almirante Brown.",
     catSlugs: ["construccion", "pinturas-construccion"],
@@ -129,7 +129,7 @@ export const RUBROS_SEO: RubroSeo[] = [
     h1: "Empresas de plásticos en Almirante Brown",
     title: "Empresas de Plásticos en Almirante Brown y Burzaco",
     description:
-      "Industrias del plástico socias de la UIAB en Almirante Brown: inyección, extrusión, polietileno, PVC, poliéster y recubrimientos. Perfiles verificados con contacto directo.",
+      "Industrias del plástico socias de la UIAB en Almirante Brown: inyección, extrusión, polietileno, PVC y poliéster, con contacto directo.",
     intro:
       "Las empresas de plásticos de Almirante Brown que integran la red UIAB son siete y cubren eslabones distintos de la misma cadena: la química de base, la transformación de la pieza y la terminación.\n\nEn el listado hay fabricación de envases plásticos por inyección, polietileno, extrusión y PVC; perfiles para construcción en seco; resinas —incluida resina epoxi— como insumo de producción; y pintura por cataforesis para el recubrimiento de piezas, con aplicación en el rubro automotriz. POLIGSA fabrica envases plásticos desde Longchamps; en Burzaco, A. D. BARBIERI trabaja perfiles, extrusión y PVC, PLAQUIMET está del lado de las resinas, BAYRESPLASTIC produce envases y RPA CATAFORESIS FACTORY hace el recubrimiento.\n\nPara afinar la búsqueda entrá a cada ficha: ahí figura la actividad tal como la declara la propia empresa, los rubros y etiquetas con los que trabaja y el contacto directo. Todas son socias verificadas de la Unión Industrial de Almirante Brown.",
     catSlugs: ["plasticos", "poliester"],
@@ -153,7 +153,7 @@ export const RUBROS_SEO: RubroSeo[] = [
     h1: "Automatización industrial y tableros eléctricos en Almirante Brown",
     title: "Automatización Industrial y Tableros Eléctricos",
     description:
-      "Empresas de automatización industrial, tableros eléctricos e instalaciones socias de la UIAB en Almirante Brown: PLC, SCADA, cableado industrial y material eléctrico.",
+      "Empresas de automatización industrial, tableros eléctricos e instalaciones socias de la UIAB en Almirante Brown: PLC, SCADA y cableado industrial.",
     intro:
       "Las socias de la UIAB que trabajan en automatización industrial y tableros eléctricos cubren desde el control de la máquina hasta el gabinete y el material eléctrico que va adentro.\n\nEntre las capacidades declaradas hay programación de PLC, sistemas SCADA, instrumentación, redes industriales, cableado y montaje industrial, puesta en marcha, retrofit, termografía y mantenimiento preventivo y predictivo; también fabricación de tableros eléctricos y de materiales eléctricos, monitoreo y alarmas, codificación y marcación para trazabilidad, y energía solar. Simonetta Automatización encara proyectos de automatismos industriales y control de procesos de baja, media y alta complejidad, incluso llave en mano; ZOLODA fabrica tableros eléctricos y GENROD materiales eléctricos; SISTEMAS DE CODIFICACION trabaja marcación y trazabilidad. Esas cuatro están radicadas en Burzaco.\n\nEntrá a cada ficha: ahí están la actividad declarada, los rubros y el contacto directo. Todas son socias verificadas de la Unión Industrial de Almirante Brown.",
     catSlugs: [
@@ -231,7 +231,7 @@ export const RUBROS_SEO: RubroSeo[] = [
     h1: "Seguridad e higiene industrial en Almirante Brown",
     title: "Seguridad e Higiene Industrial en Almirante Brown",
     description:
-      "Empresas de seguridad e higiene industrial socias de la UIAB en Almirante Brown: elementos de protección personal, monitoreo, alarmas y consultoría en seguridad laboral.",
+      "Empresas de seguridad e higiene industrial socias de la UIAB en Almirante Brown: elementos de protección personal, monitoreo y alarmas.",
     intro:
       "Las socias de la UIAB que trabajan en seguridad e higiene industrial en Almirante Brown cubren tres frentes distintos: el equipamiento de protección, la vigilancia electrónica y el asesoramiento.\n\nROGUANT, en Burzaco, fabrica guantes y elementos de seguridad, y figura con etiquetas de seguridad e higiene, indumentaria y provisión de materiales: es el proveedor al que le comprás el equipo de protección personal. CENTRAL ALERT, también en Burzaco, trabaja monitoreo y alarmas, con capacidades de electrónica, instalación y telecomunicaciones. Seguridad Líderes está dentro de la categoría de consultoría en seguridad e higiene, que es el lado del asesoramiento.\n\nSi necesitás cubrir el requisito legal, equipar al personal o montar el sistema de monitoreo de la planta, entrá a cada ficha: ahí figura la actividad tal como la declara la empresa, sus rubros y el contacto directo. Son socias verificadas de la Unión Industrial de Almirante Brown.",
     catSlugs: ["seguridad", "seguridad-higiene-consultoria"],

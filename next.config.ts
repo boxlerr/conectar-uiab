@@ -63,6 +63,11 @@ const nextConfig: NextConfig = {
       { source: "/panel-de-control/:path*", headers: noindex },
       { source: "/suscripcion/:path*", headers: noindex },
       { source: "/pendiente-aprobacion", headers: noindex },
+      // Formularios de alta y edición: hoy hacen 307 al login, pero eso es el
+      // guard de sesión, no una instrucción al crawler. Si el guard cambia,
+      // estas dos quedan indexables sin que nadie se entere.
+      { source: "/oportunidades/nueva", headers: noindex },
+      { source: "/oportunidades/:id/editar", headers: noindex },
       { source: "/403", headers: noindex },
       { source: "/api/:path*", headers: noindex },
     ];

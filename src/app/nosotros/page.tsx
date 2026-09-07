@@ -45,6 +45,15 @@ const PREGUNTAS = [
     a: "Es el directorio comercial B2B de la Unión Industrial de Almirante Brown. Reúne en un solo lugar a las empresas socias de la cámara junto a prestadores de productos y servicios, entidades financieras y educativas y cooperativas, con su actividad, sus rubros, sus certificaciones y su contacto directo.",
   },
   {
+    // Google desambigua una sigla por co-ocurrencia de su forma expandida.
+    // "UIAB" es indistinguible de "IAB" para el corrector ortográfico mientras
+    // no haya texto que diga qué significa; esta respuesta deja la expansión
+    // completa + partido + provincia + país en el único lugar del sitio cuyo
+    // propósito declarado es definir la entidad.
+    q: "¿Qué significa UIAB?",
+    a: "UIAB es la sigla de Unión Industrial de Almirante Brown, la cámara empresaria que nuclea a las industrias del partido de Almirante Brown, en la provincia de Buenos Aires, Argentina, con sede en Burzaco. UIAB Conecta es su directorio comercial B2B.",
+  },
+  {
     q: "¿Qué diferencia hay con el sitio de la UIAB?",
     a: "uiab.org es el sitio institucional de la cámara: su historia, su comisión directiva, sus novedades y su listado de asociadas. UIAB Conecta es la herramienta comercial: un buscador por rubro, etiqueta y localidad, fichas con catálogo de productos y servicios, y una cartelera de oportunidades donde las socias publican lo que necesitan comprar o contratar.",
   },
@@ -88,7 +97,21 @@ export default async function NosotrosPage() {
         inLanguage: "es-AR",
         about: { "@id": ID_ORG_CONECTA },
         publisher: { "@id": ID_ORG_CONECTA },
-        mainEntity: { "@id": ID_ORG_UIAB },
+        /**
+         * `mainEntity` apunta al DIRECTORIO, no a la cámara.
+         *
+         * Mientras dijo `ID_ORG_UIAB` esta página declaraba que
+         * uiabconecta.com/nosotros describe primariamente a la Unión
+         * Industrial — el mismo error de identidad que entidad.ts documenta
+         * haber matado en el layout, sobreviviendo en el último lugar del
+         * sitio. Y es justo la página a la que apuntan los backlinks que
+         * queremos conseguir: no puede regalar la entidad que viene a fijar.
+         *
+         * La cámara sigue nombrada, pero como `mentions`: la cita sin cederle
+         * el sujeto de la página.
+         */
+        mainEntity: { "@id": ID_ORG_CONECTA },
+        mentions: { "@id": ID_ORG_UIAB },
       },
       {
         "@type": "FAQPage",

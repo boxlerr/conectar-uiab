@@ -124,6 +124,24 @@ export function nodoOrganizacionConecta() {
     name: "UIAB Conecta",
     // Variantes del nombre PROPIO. Nunca el de la cámara: eso era el bug.
     alternateName: ["Directorio UIAB Conecta", "UIAB Conecta Directorio Industrial"],
+    /**
+     * La propiedad que schema.org define para distinguir un ítem de otros
+     * homónimos, y el nodo no la tenía: se presentaba con cuatro caracteres de
+     * sigla y nada que los explicara. Google autocorrige "UIAB" a "IAB" —
+     * devuelve iabconecta.com, un evento mexicano con Knowledge Panel propio—
+     * porque no tiene con qué desempatar. Acá van la forma expandida, la
+     * geografía y el país, que es lo que separa las dos marcas.
+     *
+     * A propósito NO nombra a IAB: meter esa cadena crearía co-ocurrencia entre
+     * las dos marcas en el único documento donde tenemos señal de la nuestra.
+     */
+    disambiguatingDescription:
+      "Directorio industrial de la Unión Industrial de Almirante Brown (UIAB), la cámara empresaria del partido de Almirante Brown, provincia de Buenos Aires, Argentina.",
+    /**
+     * Cierra el par con el `about`/`mainEntity` de /nosotros y consolida ahí la
+     * señal de entidad, en vez de dejarla repartida entre 86 páginas.
+     */
+    mainEntityOfPage: `${SITE_URL}/nosotros`,
     url: SITE_URL,
     logo: `${SITE_URL}/icono-uiab.png`,
     description:

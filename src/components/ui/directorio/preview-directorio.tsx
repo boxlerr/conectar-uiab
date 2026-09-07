@@ -330,7 +330,15 @@ export function PreviewDirectorio() {
                     fill
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     className="object-cover"
-                    priority={activeIdx === 0}
+                    /**
+                     * Sin `priority`: esta imagen arranca al 76% del HTML de la
+                     * home, muy por debajo del pliegue, y su preload hacía que
+                     * en mobile el navegador bajara hasta 145 KB antes de
+                     * terminar de pintar la primera pantalla. `eager` mantiene
+                     * que no aparezca de golpe al scrollear, sin robarle ancho
+                     * de banda al LCP real.
+                     */
+                    loading="eager"
                   />
                   <div
                     className="absolute inset-0"

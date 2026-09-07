@@ -9,7 +9,14 @@
      md (768px) y se comía los layouts de dos columnas. 45rem = 720px. */
   --breakpoint-tab: 45rem;
 
-  --font-sans: var(--font-open-sans);
+  /* Acá NO va --font-sans: lo define el `@theme inline` del final del archivo,
+     y `inline` le gana a este bloque para generar la utilidad `font-sans`.
+     Hasta ahora esta línea decía `--font-sans: var(--font-open-sans)` y no
+     servía para nada: en el CSS compilado de producción `var(--font-open-sans)`
+     aparece CERO veces, porque el `@theme inline` la pisaba. Open Sans se
+     descargaba igual —43 KB con preload de máxima prioridad en las 86 rutas—
+     sin que ninguna regla la seleccionara nunca. La familia real es Geist, que
+     entra por `geist.variable` en el <html> del layout. */
   --font-mono: var(--font-poppins);
   --font-poppins: var(--font-poppins);
 
