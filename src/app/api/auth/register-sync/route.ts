@@ -25,9 +25,37 @@ function clienteAdmin() {
 }
 type ClienteAdmin = ReturnType<typeof clienteAdmin>
 
+/**
+ * Borra el usuario de Auth que dejó el `signUp` del browser cuando el alta no
+ * se puede completar.
+ *
+ * Por qué importa: el `signUp` ya corrió en el cliente, así que si cualquiera
+ * de los pasos siguientes falla el email queda TOMADO por un usuario sin ficha
+ * y sin contraseña utilizable. La persona reintenta, le decimos "este email ya
+ * está registrado", no puede loguearse ni recuperar la clave, y para esa
+ * casilla el sistema quedó cerrado para siempre. Dos caminos ya lo limpiaban
+ * (servicio del particular y padrón); los demás se olvidaban — y el más
+ * probable de todos es el insert de `empresas`, que tiene índice único en cuit.
+ *
+ * Nunca lanza: si la limpieza falla se registra y se sigue, porque el error que
+ * el usuario tiene que ver es el original, no éste.
+ */
+async function limpiarUsuarioHuerfano(admin: ClienteAdmin, instanceId: string | null) {
+  if (!instanceId) return
+  try {
+    await admin.auth.admin.deleteUser(instanceId)
+  } catch (err) {
+    console.error('[register-sync] quedó un usuario de Auth sin ficha:', instanceId, err)
+  }
+}
+
 export async function POST(request: Request) {
+  // Fuera del try para que el catch general también pueda limpiar: si el alta
+  // explota a mitad de camino, el usuario huérfano es igual de terminal.
+  let usuarioHuerfano: string | null = null
   try {
     const { instanceId, payload, fullName } = await request.json()
+    usuarioHuerfano = typeof instanceId === 'string' ? instanceId : null
 
     if (!instanceId || !payload) {
       return NextResponse.json({ error: 'Faltan parámetros de inicialización del registro' }, { status: 400 })
@@ -35,12 +63,25 @@ export async function POST(request: Request) {
 
     const {
       role, email,
-      razonSocial, nombre, apellido, nombreComercial, cuit,
+      razonSocial, nombre, apellido, nombreComercial, cuit: cuitCrudo,
       telefono, sitioWeb,
       pais, provincia, localidad, direccion, descripcion,
       sectorId, subSector, servicioLibre, size, experience,
       plan,
     } = payload
+
+    /**
+     * El CUIT se guarda siempre como 11 dígitos pelados.
+     *
+     * El formulario ahora lo muestra formateado ("30-54891771-5") porque es como
+     * se lee en una factura, pero lo que llega a la base tiene que ser canónico:
+     * hoy la columna tiene los dos formatos mezclados (50 filas con guiones y 7
+     * sin, medido el 15/09/2026) y el índice `empresas_cuit_unique` es sobre el
+     * texto crudo, así que dos formatos distintos del MISMO CUIT no chocan entre
+     * sí. La defensa real contra el duplicado es el chequeo de padrón, que sí
+     * normaliza — pero no hay razón para seguir ensuciando la columna.
+     */
+    const cuit = typeof cuitCrudo === 'string' ? cuitCrudo.replace(/\D/g, '') : cuitCrudo
 
     // Bandera para accesos de prueba: salteamos Mercado Pago y dejamos la cuenta
     // activa de inmediato (entidad aprobada + suscripción cortesía).
@@ -231,6 +272,12 @@ export async function POST(request: Request) {
 
         if (!empError && emp?.id) {
           entityId = emp.id;
+          // Punto de no retorno: la ficha ya existe y su CUIT ya ocupa el índice
+          // único. A partir de acá borrar el usuario de Auth deja algo PEOR que
+          // el huérfano — la persona reintenta y choca contra su propia ficha,
+          // sin cuenta y sin forma de reclamarla. Si algo explota más adelante,
+          // el rescate es de la UIAB desde /admin/altas, no un borrado a ciegas.
+          usuarioHuerfano = null
           await supabaseAdmin.from('miembros_empresa').insert({
             empresa_id: emp.id,
             perfil_id: instanceId,
@@ -247,6 +294,7 @@ export async function POST(request: Request) {
           }
         } else {
           console.error("Error creating company:", empError)
+          await limpiarUsuarioHuerfano(supabaseAdmin, usuarioHuerfano)
           return NextResponse.json({ error: 'Error al registrar la entidad.' }, { status: 500 })
         }
   
@@ -305,6 +353,7 @@ export async function POST(request: Request) {
 
         if (!categoriaId) {
           console.error('[register-sync] no se pudo enganchar el servicio del particular:', email)
+          await limpiarUsuarioHuerfano(supabaseAdmin, usuarioHuerfano)
           return NextResponse.json(
             { error: 'No pudimos guardar el servicio que elegiste. Probá de nuevo.' },
             { status: 500 }
@@ -317,6 +366,7 @@ export async function POST(request: Request) {
 
         if (pivoteError) {
           console.error('[register-sync] falló el pivote de servicios:', pivoteError.message)
+          await limpiarUsuarioHuerfano(supabaseAdmin, usuarioHuerfano)
           return NextResponse.json(
             { error: 'No pudimos guardar el servicio que elegiste. Probá de nuevo.' },
             { status: 500 }
@@ -324,6 +374,7 @@ export async function POST(request: Request) {
         }
       } else {
         console.error("Error creating provider:", provError)
+        await limpiarUsuarioHuerfano(supabaseAdmin, usuarioHuerfano)
         return NextResponse.json({ error: 'Error al registrar al proveedor.' }, { status: 500 })
       }
     }
@@ -519,6 +570,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, enEspera: quedaPendienteDeHabilitacion })
   } catch (err: unknown) {
     console.error('Registration API Error:', err)
+    await limpiarUsuarioHuerfano(clienteAdmin(), usuarioHuerfano)
     return NextResponse.json({ error: 'Error interno de backend al procesar la integración profunda.' }, { status: 500 })
   }
 }

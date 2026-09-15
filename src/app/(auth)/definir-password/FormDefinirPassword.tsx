@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utilidades'
+import { ayudaWhatsApp, CONSULTAS, WHATSAPP_UIAB_LEGIBLE } from '@/lib/soporte'
 
 /**
  * Formulario donde un socio recién dado de alta define su contraseña por primera vez.
@@ -55,18 +56,41 @@ type Valores = z.infer<typeof schema>
 
 type EstadoLink = 'ok' | 'invalido' | 'usado' | 'expirado'
 
-const MENSAJE_LINK: Record<Exclude<EstadoLink, 'ok'>, { titulo: string; texto: string }> = {
+/**
+ * Los tres callejones del link de invitación.
+ *
+ * Antes los tres decían alguna variante de "pedile al equipo de UIAB que te
+ * reenvíe la invitación" SIN un solo dato de contacto, y el único botón era
+ * "Ir al login" — inútil justamente para alguien que nunca llegó a definir una
+ * contraseña. El caso más frecuente que cae acá es volver a tocar el mismo mail
+ * una semana después, que para este público es lo normal: el mail ES la app.
+ *
+ * Ahora cada estado dice qué pasó, qué puede hacer la persona por su cuenta, y
+ * deja una salida real (WhatsApp) cuando no puede resolverlo sola.
+ */
+const MENSAJE_LINK: Record<
+  Exclude<EstadoLink, 'ok'>,
+  { titulo: string; texto: string; consulta: string; mostrarRecuperar: boolean }
+> = {
   invalido: {
-    titulo: 'Enlace no válido',
-    texto: 'El enlace no es correcto o está incompleto. Pedile al equipo de UIAB que te reenvíe la invitación.',
+    titulo: 'Ese enlace no sirve',
+    texto:
+      'Puede que se haya cortado al copiarlo. Probá abriendo el mail y tocando el botón "Elegir mi contraseña" en vez de pegar la dirección.',
+    consulta: CONSULTAS.linkInvalido,
+    mostrarRecuperar: false,
   },
   usado: {
-    titulo: 'Este enlace ya fue utilizado',
-    texto: 'Ya definiste tu contraseña con este enlace. Ingresá con tu email y tu clave.',
+    titulo: 'Este enlace ya lo usaste',
+    texto:
+      'Quiere decir que tu contraseña ya está elegida: entrá con tu correo y esa contraseña. ¿No te acordás cuál pusiste? Tocá "Olvidé mi contraseña".',
+    consulta: CONSULTAS.linkInvalido,
+    mostrarRecuperar: true,
   },
   expirado: {
-    titulo: 'El enlace venció',
-    texto: 'Por seguridad, la invitación tiene una duración limitada. Pedile al equipo de UIAB que te reenvíe una nueva.',
+    titulo: 'Este enlace venció',
+    texto: `Los enlaces duran 30 días. Escribinos por WhatsApp al ${WHATSAPP_UIAB_LEGIBLE} y te mandamos uno nuevo en el día.`,
+    consulta: CONSULTAS.linkVencido,
+    mostrarRecuperar: false,
   },
 }
 
@@ -172,12 +196,39 @@ export function FormDefinirPassword({
               <p className="mt-2 text-sm leading-relaxed text-[#525b63]">
                 {MENSAJE_LINK[estadoLink].texto}
               </p>
-              <Button
-                asChild
-                className="mt-6 h-11 w-full rounded-md bg-[#00213f] text-white hover:bg-[#10375c]"
-              >
-                <Link href="/login">Ir al login</Link>
-              </Button>
+              <div className="mt-6 space-y-2.5">
+                {MENSAJE_LINK[estadoLink].mostrarRecuperar ? (
+                  <>
+                    <Button
+                      asChild
+                      className="h-11 w-full rounded-md bg-[#00213f] text-white hover:bg-[#10375c]"
+                    >
+                      <Link href="/login">Ir a ingresar</Link>
+                    </Button>
+                    <Button asChild variant="outline" className="h-11 w-full rounded-md">
+                      <Link href="/recovery">Olvidé mi contraseña</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    asChild
+                    className="h-11 w-full rounded-md bg-[#00213f] text-white hover:bg-[#10375c]"
+                  >
+                    <a
+                      href={ayudaWhatsApp(MENSAJE_LINK[estadoLink].consulta)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Escribirnos por WhatsApp
+                    </a>
+                  </Button>
+                )}
+                {!MENSAJE_LINK[estadoLink].mostrarRecuperar && (
+                  <Button asChild variant="outline" className="h-11 w-full rounded-md">
+                    <Link href="/login">Ir a ingresar</Link>
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 

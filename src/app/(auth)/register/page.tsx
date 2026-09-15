@@ -15,6 +15,8 @@ import {
   Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { ayudaWhatsApp, CONSULTAS } from '@/lib/soporte'
+import { cuitValido, formatearCuit, soloDigitosCuit } from '@/modulos/compartido/cuit'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
 
 import { Button } from '@/components/ui/button'
@@ -80,7 +82,19 @@ const registerSchema = z.object({
   apellido: z.string().optional(),
   nombreComercial: z.string().optional(),
 
-  cuit: z.string().regex(/^\d{11}$/, { message: 'Debe contener exactamente 11 números, sin guiones.' }),
+  // Acepta el CUIT como venga (con guiones, con espacios, pegado de una
+  // factura) y valida el dígito verificador. Antes exigía 11 dígitos pelados y
+  // el input cortaba en 11 caracteres ANTES de limpiar, así que pegar
+  // "30-54891771-5" dejaba 10 dígitos y el error culpaba a la persona.
+  cuit: z
+    .string()
+    .min(1, { message: 'Ingresá el CUIT de tu empresa' })
+    .refine((v) => soloDigitosCuit(v).length === 11, {
+      message: 'El CUIT tiene 11 números. Podés escribirlo con guiones o sin ellos.',
+    })
+    .refine((v) => cuitValido(v), {
+      message: 'Revisá el CUIT: hay algún número cambiado.',
+    }),
   telefono: z.string().min(8, { message: 'Teléfono o WhatsApp requerido' }),
   sitioWeb: z.string().optional(),
 
@@ -102,12 +116,8 @@ const registerSchema = z.object({
 
   // -- Credenciales --
   email: z.string().email({ message: 'Email inválido' }),
-  password: z.string().min(8, { message: 'Mínimo 8 caracteres' }),
-  confirmPassword: z.string(),
+  password: z.string().min(8, { message: 'La contraseña tiene que tener al menos 8 caracteres' }),
   plan: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Las contraseñas no coinciden",
-  path: ["confirmPassword"],
 }).superRefine((data, ctx) => {
   if (data.role === 'company') {
     if (!data.razonSocial || data.razonSocial.length < 3) {
@@ -209,24 +219,10 @@ const itemFade: Variants = {
   animate: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
 }
 
-// ─── HELPERS ───
-
-const getPasswordStrength = (pass: string) => {
-  if (!pass) return 0
-  let strength = 0
-  if (pass.length >= 8) strength += 25
-  if (/[A-Z]/.test(pass)) strength += 25
-  if (/[0-9]/.test(pass)) strength += 25
-  if (/[^A-Za-z0-9]/.test(pass)) strength += 25
-  return strength
-}
-
-const getStrengthColor = (strength: number) => {
-  if (strength <= 25) return "bg-red-400"
-  if (strength <= 50) return "bg-orange-400"
-  if (strength <= 75) return "bg-yellow-400"
-  return "bg-primary-500"
-}
+// El medidor de fuerza (getPasswordStrength/getStrengthColor) se borró junto con
+// los cuatro requisitos que el schema no exigía: puntuaba mayúsculas, números y
+// símbolos que nadie pedía, así que pintaba de rojo contraseñas perfectamente
+// válidas. El único requisito real (8 caracteres) se muestra en el campo.
 
 // ─── COMPONENT ───
 
@@ -239,24 +235,21 @@ function RegisterContent() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [emailAlreadyExists, setEmailAlreadyExists] = useState(false)
-  /**
-   * La empresa ya figura en el padrón de la UIAB (lo resolvió /api/auth/check-cuit
-   * en el paso 3, por CUIT o por nombre). Cambia el último paso: en vez del plan
-   * y el precio ve que su acceso no tiene cargo y que la UIAB lo confirma.
-   */
-  const [padronDetectado, setPadronDetectado] = useState<
-    { razonSocial: string | null; esSocia: boolean } | null
-  >(null)
 
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
+    // onTouched = valida recién cuando la persona sale del campo, y a partir de
+    // ahí revalida por tecla para que el error se borre solo al corregir. En
+    // onChange el email se marca mal mientras todavía se está escribiendo, que
+    // es la queja textual que Baymard documenta en formularios de alta.
+    mode: 'onTouched',
     defaultValues: {
       role: 'company',
       razonSocial: '', nombre: '', apellido: '', nombreComercial: '',
       cuit: '', telefono: '', sitioWeb: '', tipoEmpresa: '', tipoProveedor: '',
       provincia: '', localidad: '', direccion: '', descripcion: '',
       sectorId: '', subSector: '', servicioLibre: '', experience: '', size: '',
-      email: '', password: '', confirmPassword: '', plan: 'basic'
+      email: '', password: '', plan: 'basic'
     },
   })
 
@@ -303,25 +296,60 @@ function RegisterContent() {
       .catch(() => setCategorias([]))
   }, [])
 
-  const passRequirements = useMemo(() => [
-    { label: "8+ Caracteres", met: password.length >= 8 },
-    { label: "Mayúscula", met: /[A-Z]/.test(password) },
-    { label: "Número", met: /[0-9]/.test(password) },
-    { label: "Esp. (@#$)", met: /[^A-Za-z0-9]/.test(password) }
-  ], [password])
+  /**
+   * El único requisito que el sistema realmente exige.
+   *
+   * Antes acá había cuatro ("8+ Caracteres", "Mayúscula", "Número", "Esp. (@#$)")
+   * más una barra de fuerza. Ninguno de los tres últimos estaba en el schema:
+   * con `aaaaaaaa` el formulario avanzaba igual, con la barra en rojo y tres
+   * requisitos sin tildar. O sea que la pantalla comunicaba "no vas a poder
+   * seguir" y era mentira. Sumado a que "Esp. (@#$)" es ilegible, el efecto era
+   * gente trabada inventando contraseñas que después no se acuerda.
+   */
+  const passwordListo = password.length >= 8
 
-  const passStrength = useMemo(() => getPasswordStrength(password), [password])
+  /**
+   * La secuencia real del wizard.
+   *
+   * Falta el 2 a propósito: era una pantalla de "así se ve tu empresa" con un
+   * título, un párrafo y una captura, sin UN SOLO campo — verificable: no había
+   * ningún FormField en todo el bloque. Le sumaba un paso entero y un 14% a la
+   * longitud percibida a cambio de argumentos que ya convencieron a la persona
+   * antes de entrar (y que en escritorio ya están en la columna oscura de al
+   * lado, o sea que los leía dos veces).
+   *
+   * Se saltea en vez de renumerar porque `validateStep()` tiene los campos
+   * atados al número de paso: correr todo un lugar significaría tocar esas
+   * claves y arriesgar que un paso valide los campos de otro. Los números
+   * internos quedan como estaban; lo que ve la persona es "de 6".
+   */
+  const PASOS = useMemo(() => [1, 3, 4, 5, 6, 7], [])
 
   const nextStep = () => {
-    setStep(prev => prev + 1)
+    setStep(prev => {
+      const i = PASOS.indexOf(prev)
+      return i >= 0 && i < PASOS.length - 1 ? PASOS[i + 1] : prev
+    })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-  const prevStep = () => { if (step > 1) setStep(prev => prev - 1) }
+  const prevStep = () => {
+    setStep(prev => {
+      const i = PASOS.indexOf(prev)
+      return i > 0 ? PASOS[i - 1] : prev
+    })
+    // Faltaba el scroll que sí hace nextStep: al volver del 4 al 3 en celular la
+    // vista quedaba abajo de todo y parecía que el botón no había hecho nada.
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       const target = e.target as HTMLElement;
-      if (target.tagName !== 'TEXTAREA') {
+      // El paso 7 es el envío final y el 2 no pide ningún campo: en los dos,
+      // validateStep() no tenía nada que validar y caía derecho en nextStep().
+      // Desde el 7 eso dejaba step=8, que no lo renderiza ningún bloque — o sea
+      // pantalla en blanco con los 7 pasos de datos ya cargados adentro.
+      if (target.tagName !== 'TEXTAREA' && step !== 2 && step !== 7) {
         e.preventDefault();
         validateStep(step);
       }
@@ -341,19 +369,34 @@ function RegisterContent() {
     }
     else if (currentStep === 4) fieldsToValidate = ['provincia', 'localidad', 'direccion', 'descripcion']
     else if (currentStep === 5) fieldsToValidate = ['sectorId', 'servicioLibre', selectedRole === 'company' ? 'size' : 'experience']
-    else if (currentStep === 6) fieldsToValidate = ['email', 'password', 'confirmPassword']
+    else if (currentStep === 6) fieldsToValidate = ['email', 'password']
 
     // Step 2 assumes read-only, Step 7 is final submission.
 
     if (fieldsToValidate.length > 0) {
       const isValid = await form.trigger(fieldsToValidate)
       if (!isValid) {
-        const errors = form.formState.errors
-        const errorMessages = Object.values(errors).filter(err => err?.message)
-        if (errorMessages.length > 1) {
-          toast.warning('Completá todos los campos obligatorios antes de continuar.')
-        } else if (errorMessages.length === 1) {
-          toast.warning(errorMessages[0]!.message as string)
+        /**
+         * Antes esto era un toast ("Completá todos los campos obligatorios")
+         * que no decía CUÁL campo, salía abajo a la derecha y se iba solo a los
+         * pocos segundos. Para alguien mirando el teclado del celular, el aviso
+         * aparecía y desaparecía sin que lo viera: apretaba el botón otra vez,
+         * pasaba lo mismo, y ahí terminaba llamando por teléfono a la UIAB.
+         *
+         * El mensaje por campo ya existe y ya está debajo de cada input
+         * (<FormMessage/>, que además cablea aria-invalid y aria-describedby).
+         * Lo único que faltaba era llevar a la persona hasta el primero.
+         */
+        const primerCampoConError = fieldsToValidate.find(
+          campo => form.getFieldState(campo).error
+        )
+        if (primerCampoConError) {
+          form.setFocus(primerCampoConError, { shouldSelect: false })
+          // setFocus no alcanza con los combobox propios (Provincia, Localidad,
+          // Rubro): no son <input> nativos, así que los buscamos por name.
+          document
+            .querySelector(`[name="${primerCampoConError}"]`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         }
         return
       }
@@ -378,8 +421,6 @@ function RegisterContent() {
             }),
           })
           const { enPadron, esSocia, razonSocial } = await res.json()
-
-          setPadronDetectado(enPadron ? { razonSocial: razonSocial ?? null, esSocia: !!esSocia } : null)
 
           if (enPadron) {
             // La empresa YA está en el directorio: no corresponde crear una
@@ -464,11 +505,12 @@ function RegisterContent() {
           data: { nombre_completo: fullName },
           // A una empresa del padrón no se la manda al checkout ni por el link del
           // correo: su acceso no tiene cargo y además queda en espera.
+          // Una empresa del padrón nunca llega hasta acá: el chequeo del paso 3
+          // la desvía a /sumate. Si ese chequeo falla por red, register-sync
+          // tiene su propia red y deja la cuenta en espera.
           emailRedirectTo: esPrueba
             ? `${window.location.origin}/api/auth/callback?next=/panel-de-control`
-            : padronDetectado
-              ? `${window.location.origin}/api/auth/callback?next=/login`
-              : `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(destinoCheckout)}`,
+            : `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(destinoCheckout)}`,
         }
       })
 
@@ -590,23 +632,47 @@ function RegisterContent() {
     return (
       <div className="flex flex-col min-h-svh w-full items-center justify-center p-6 bg-slate-50">
         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="text-center max-w-lg bg-white p-6 sm:p-10 lg:p-12 rounded-2xl shadow-xl border border-slate-100">
-          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-amber-50 mb-8 border border-amber-100 shadow-xl shadow-amber-900/5">
-            <Lock className="h-10 w-10 text-amber-600" />
+          {/* Decía "Perfil en Revisión · ¡Tu pre-registro fue completado!" con
+              un candado ámbar. No es un pre-registro ni falta ninguna revisión
+              nuestra: en este punto ya existen el usuario, la ficha y la
+              suscripción. Lo que falta lo tiene que hacer LA PERSONA — confirmar
+              el correo y pagar — y el mensaje decía exactamente lo contrario
+              ("ya hiciste tu parte, esperá"), que es la forma más segura de que
+              nadie abra el mail. Ahora el primer paso es una instrucción, no un
+              estado, y los tres puntos van numerados porque son secuencia. */}
+          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-primary-50 mb-8 border border-primary-100 shadow-xl shadow-primary-900/5">
+            <Mail className="h-10 w-10 text-primary-600" />
           </div>
           <h2 className="text-4xl font-black text-[#00213f] mb-4 tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>
-            Perfil en Revisión
+            Revisá tu correo
           </h2>
           <p className="text-slate-500 mb-8 font-inter text-lg">
-            ¡Tu pre-registro fue completado exitosamente! La administración de <strong>UIAB Conecta</strong> está evaluando tu solicitud.
+            Tu cuenta ya está creada. Te mandamos un mail a{' '}
+            <strong className="text-[#00213f]">{form.getValues('email')}</strong> para que confirmes
+            que la casilla es tuya.
           </p>
-          <div className="bg-slate-50 rounded-xl p-6 text-sm text-slate-600 mb-8 text-left space-y-3">
-            <p className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" /> Confirmá tu email con el link que te enviamos.</p>
-            <p className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" /> Al confirmar, te llevaremos a completar el pago de tu suscripción mensual.</p>
-            <p className="flex items-start gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" /> Una vez aprobado por UIAB, tu perfil será público en el Directorio Comercial.</p>
+          <div className="bg-slate-50 rounded-xl p-6 text-sm text-slate-600 mb-6 text-left space-y-4">
+            <p className="flex items-start gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#00213f] text-xs font-bold text-white">1</span>
+              <span>Abrí el mail y tocá el botón para confirmar tu correo. Si no lo ves, fijate en <strong>Correo no deseado</strong> o <strong>Promociones</strong>.</span>
+            </p>
+            <p className="flex items-start gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#00213f] text-xs font-bold text-white">2</span>
+              <span>Al confirmar entrás y elegís cómo pagar tu membresía.</span>
+            </p>
+            <p className="flex items-start gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#00213f] text-xs font-bold text-white">3</span>
+              <span>Con el pago acreditado, tu ficha sale publicada en el directorio.</span>
+            </p>
           </div>
-          <Button onClick={() => router.push('/')} variant="outline" className="w-full h-14 border-slate-200 font-bold hover:bg-slate-50">
-            Volver al Inicio
-          </Button>
+          <a
+            href={ayudaWhatsApp(CONSULTAS.registroTrabado)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white h-12 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            ¿No te llegó el mail? Escribinos
+          </a>
         </motion.div>
       </div>
     )
@@ -702,7 +768,7 @@ function RegisterContent() {
               <Image src="/logo-prueba.png" alt="Logo" width={24} height={24} className="brightness-0 invert opacity-50" />
               <span className="text-white/50 font-bold text-sm tracking-widest uppercase">UIAB Conecta</span>
             </div>
-            <p className="text-white/30 text-xs">Paso {step} de 7</p>
+            <p className="text-white/30 text-xs">Paso {PASOS.indexOf(step) + 1} de {PASOS.length}</p>
           </div>
         </div>
 
@@ -720,10 +786,21 @@ function RegisterContent() {
                     <ChevronLeft className="h-6 w-6" />
                   </motion.button>
                 )}
-                <div className="flex items-center gap-1 sm:gap-1.5">
-                  {[1, 2, 3, 4, 5, 6, 7].map(i => (
-                    <div key={i} className={cn("h-2 rounded-full transition-all duration-500", step === i ? "w-10 bg-primary-600" : (i < step ? "w-4 bg-slate-300" : "w-2 bg-slate-100"))} />
-                  ))}
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    {PASOS.map(i => (
+                      <div key={i} className={cn("h-2 rounded-full transition-all duration-500", step === i ? "w-10 bg-primary-600" : (i < step ? "w-4 bg-slate-300" : "w-2 bg-slate-100"))} />
+                    ))}
+                  </div>
+                  {/* En qué paso estoy, EN TEXTO y en el celular.
+                      El "Paso N de 6" vivía sólo en la columna oscura, que está
+                      oculta abajo de lg: en el teléfono la única señal de avance
+                      eran seis puntitos de 8px. Saber cuánto falta es lo que
+                      sostiene a alguien que está llenando un formulario largo
+                      parado en la fábrica. */}
+                  <span className="lg:hidden whitespace-nowrap text-[13px] font-bold text-slate-500">
+                    Paso {PASOS.indexOf(step) + 1} de {PASOS.length}
+                  </span>
                 </div>
               </div>
               <div>
@@ -736,13 +813,17 @@ function RegisterContent() {
               <AnimatePresence mode="wait">
                 <motion.div key={step} variants={pageTransition} initial="initial" animate="animate" exit="exit" className="h-full">
                   <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+                    {/* pb-24 en mobile: el botón de avanzar es `sticky bottom-3`, y sin este
+                        colchón el scroll termina antes de que pueda soltarse en su lugar
+                        natural, así que al final del formulario quedaba tapando el último
+                        campo (medido: el botón sobre "sitioWeb" en el paso de Identidad). */}
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6 pb-24 lg:pb-0">
 
                       {/* ─── PHASE 1: ROLE ─── */}
                       {step === 1 && (
                         <div className="space-y-4 lg:space-y-5">
                           <div className="space-y-1">
-                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[11px] sm:text-[10px] tracking-widest uppercase rounded-sm">Registro · Paso 1 de 7</Badge>
+                            <Badge className="bg-primary-50 text-primary-600 border-none font-bold px-2 py-1 text-[11px] sm:text-[10px] tracking-widest uppercase rounded-sm">Registro · Paso 1 de {PASOS.length}</Badge>
                             <h2 className="text-2xl sm:text-4xl font-black text-[#00213f] tracking-tighter leading-none" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>¿Quién se registra?</h2>
                             <p className="text-sm text-slate-500 font-inter pt-2 max-w-md">
                               Elegí la opción que describe a tu organización. El acceso y el precio son los
@@ -854,7 +935,7 @@ function RegisterContent() {
 
                           {/* El desvío de socias ahora vive arriba de todo, grande. */}
 
-                          <Button type="button" onClick={() => validateStep(1)} className="w-full h-12 sm:h-14 bg-[#00213f] hover:bg-black text-white font-black text-base sm:text-lg rounded-xl transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98]">
+                          <Button type="button" onClick={() => validateStep(1)} className="sticky bottom-3 z-20 w-full h-12 sm:h-14 bg-[#00213f] hover:bg-black text-white font-black text-base sm:text-lg rounded-xl transition-all shadow-xl shadow-slate-900/25 active:scale-[0.98]">
                             Continuar <ArrowRight className="ml-3 h-5 w-5" />
                           </Button>
 
@@ -873,37 +954,15 @@ function RegisterContent() {
                             </p>
                           </div>
                           <p className="text-[11px] text-slate-400 text-center">
-                            Son 7 pasos cortos. Podés volver atrás en cualquier momento.
+                            Son {PASOS.length} pasos cortos. Podés volver atrás en cualquier momento.
                           </p>
                         </div>
                       )}
 
-                      {/* ─── PHASE 2: VALUE PROP ─── */}
-                      {step === 2 && (
-                        <div className="space-y-4 lg:space-y-5 text-center">
-                          <div className="space-y-1 lg:space-y-2">
-                            <h2 className="text-3xl lg:text-4xl font-black text-[#00213f] tracking-tighter leading-none" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>
-                              {selectedRole === 'company' ? "Así se ve tu empresa." : "Así te ven las empresas."}
-                            </h2>
-                            <p className="text-sm lg:text-base text-slate-500 max-w-md mx-auto">
-                              {selectedRole === 'company'
-                                ? "Tu ficha queda publicada en el directorio de la red industrial: te encuentran por rubro, publicás lo que necesitás comprar y contactás directo con otras empresas."
-                                : "Ofrecé tus productos y servicios a las empresas de la red, respondé las búsquedas que publican y ganá presencia en el directorio oficial."}
-                            </p>
-                          </div>
-
-                          <div className="relative aspect-[16/10] sm:aspect-[2/1] lg:aspect-[2.3/1] rounded-xl lg:rounded-2xl overflow-hidden shadow-xl border border-slate-200 group">
-                            <Image src={selectedRole === 'company' ? "/landing/platform-preview.png" : "/landing/register-provider.png"} alt="Contexto" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#00213f]/80 via-transparent to-transparent flex items-end p-4 lg:p-5">
-                              <Badge className="bg-primary-600 border-none font-bold text-[11px] sm:text-xs shadow-lg tracking-widest uppercase">UIAB Conecta</Badge>
-                            </div>
-                          </div>
-
-                          <Button type="button" onClick={nextStep} className="w-full h-12 lg:h-13 bg-[#00213f] hover:bg-black text-white font-black text-base lg:text-lg rounded-xl transition-all active:scale-[0.98]">
-                            Continuar y armar mi perfil <ArrowRight className="ml-3 h-5 w-5" />
-                          </Button>
-                        </div>
-                      )}
+                      {/* El paso 2 ("Así se ve tu empresa": título, párrafo y
+                          una captura) se eliminó: no pedía ni un solo dato y
+                          repetía lo que ya dice la columna de al lado. Ver el
+                          comentario de PASOS más arriba. */}
 
                       {/* ─── PHASE 3: IDENTITY & CONTACT ─── */}
                       {step === 3 && (
@@ -920,7 +979,7 @@ function RegisterContent() {
                               <>
                                 <FormField control={form.control} name="tipoEmpresa" render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo de organización *</FormLabel>
+                                    <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Tipo de organización *</FormLabel>
                                     <FormControl>
                                       <BuscadorLista
                                         value={field.value || ''}
@@ -945,14 +1004,14 @@ function RegisterContent() {
                                 )} />
                                 <FormField control={form.control} name="razonSocial" render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Razón Social / Nombre Institucional *</FormLabel>
-                                    <FormControl><Input placeholder="Ej: Industria Ejemplo S.A. / Fundación Ejemplo" className="h-12 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} /></FormControl>
+                                    <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Razón Social / Nombre Institucional *</FormLabel>
+                                    <FormControl><Input autoComplete="organization" placeholder="Ej: Industria Ejemplo S.A. / Fundación Ejemplo" className="h-12 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} /></FormControl>
                                     <FormMessage />
                                   </FormItem>
                                 )} />
                                 <FormField control={form.control} name="nombreComercial" render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nombre Comercial</FormLabel>
+                                    <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Nombre Comercial</FormLabel>
                                     <FormControl><Input placeholder="Ej: Aceros Ejemplo" className="h-12 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} /></FormControl>
                                   </FormItem>
                                 )} />
@@ -964,7 +1023,7 @@ function RegisterContent() {
                               <>
                                 <FormField control={form.control} name="tipoProveedor" render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo de Prestador *</FormLabel>
+                                    <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Tipo de Prestador *</FormLabel>
                                     <FormControl>
                                       <BuscadorLista
                                         value={field.value || ''}
@@ -985,22 +1044,22 @@ function RegisterContent() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <FormField control={form.control} name="nombre" render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nombre *</FormLabel>
-                                      <FormControl><Input placeholder="Juan" className="h-12 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} /></FormControl>
+                                      <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Nombre *</FormLabel>
+                                      <FormControl><Input autoComplete="given-name" placeholder="Juan" className="h-12 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} /></FormControl>
                                       <FormMessage />
                                     </FormItem>
                                   )} />
                                   <FormField control={form.control} name="apellido" render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Apellido *</FormLabel>
-                                      <FormControl><Input placeholder="Pérez" className="h-12 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} /></FormControl>
+                                      <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Apellido *</FormLabel>
+                                      <FormControl><Input autoComplete="family-name" placeholder="Pérez" className="h-12 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} /></FormControl>
                                       <FormMessage />
                                     </FormItem>
                                   )} />
                                 </div>
                                 <FormField control={form.control} name="nombreComercial" render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nombre Comercial (Agencia/Taller)</FormLabel>
+                                    <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Nombre Comercial (Agencia/Taller)</FormLabel>
                                     <FormControl><Input placeholder="Ej: Electromecánica Pérez" className="h-12 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} /></FormControl>
                                   </FormItem>
                                 )} />
@@ -1010,11 +1069,11 @@ function RegisterContent() {
                             {/* SHARED FIELDS */}
                             <FormField control={form.control} name="cuit" render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">CUIT *</FormLabel>
+                                <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">CUIT *</FormLabel>
                                 <FormControl>
                                   <div className="relative group">
                                     <FileText className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary-600" />
-                                    <Input placeholder="Ej: 30112233445 (Solo 11 números, sin guiones)" maxLength={11} className="h-12 pl-12 font-semibold text-base tracking-widest border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white font-mono" {...field} onChange={e => field.onChange(e.target.value.replace(/[^0-9]/g, ''))} />
+                                    <Input placeholder="30-54891771-5" inputMode="numeric" autoComplete="off" className="h-12 pl-12 font-semibold text-base tracking-widest border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white font-mono" {...field} onChange={e => field.onChange(formatearCuit(e.target.value))} />
                                   </div>
                                 </FormControl>
                                 <FormMessage />
@@ -1024,11 +1083,11 @@ function RegisterContent() {
                             <div className="grid sm:grid-cols-2 gap-4">
                               <FormField control={form.control} name="telefono" render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Teléfono / WhatsApp *</FormLabel>
+                                  <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Teléfono / WhatsApp *</FormLabel>
                                   <FormControl>
                                     <div className="relative group">
                                       <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary-600" />
-                                      <Input placeholder="+54 9 11..." type="tel" className="h-14 pl-11 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} />
+                                      <Input autoComplete="tel" inputMode="tel" placeholder="+54 9 11..." type="tel" className="h-14 pl-11 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white" {...field} />
                                     </div>
                                   </FormControl>
                                   <FormMessage />
@@ -1036,14 +1095,14 @@ function RegisterContent() {
                               )} />
                               <FormField control={form.control} name="sitioWeb" render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Web / Red Social</FormLabel>
+                                  <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Web / Red Social</FormLabel>
                                   <FormControl>
                                     <div className="relative group">
                                       <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary-600" />
                                       {/* Sin type="url": el browser bloqueaba el paso con su cartel
                                           nativo "Introduce una URL" cuando faltaba el https://.
                                           El esquema lo agrega normalizarSitioWeb() al salir del campo. */}
-                                      <Input
+                                      <Input autoComplete="url"
                                         placeholder="www.ejemplo.com"
                                         inputMode="url"
                                         className="h-14 pl-11 font-semibold text-base border-slate-200 focus:ring-primary-100 focus:border-primary-400 bg-white"
@@ -1065,7 +1124,7 @@ function RegisterContent() {
                             </div>
                           </div>
 
-                          <Button type="button" onClick={() => validateStep(3)} className="w-full h-12 lg:h-14 bg-[#00213f] hover:bg-black text-white font-black text-lg lg:text-xl rounded-xl transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98]">
+                          <Button type="button" onClick={() => validateStep(3)} className="sticky bottom-3 z-20 w-full h-12 lg:h-14 bg-[#00213f] hover:bg-black text-white font-black text-lg lg:text-xl rounded-xl transition-all shadow-xl shadow-slate-900/25 active:scale-[0.98]">
                             Siguiente: Ubicación <ArrowRight className="ml-3 h-5 w-5" />
                           </Button>
                         </div>
@@ -1089,7 +1148,7 @@ function RegisterContent() {
                                   (item 3.1). El resto del sistema ya usaba listas cerradas. */}
                               <FormField control={form.control} name="provincia" render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Provincia *</FormLabel>
+                                  <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Provincia *</FormLabel>
                                   <FormControl>
                                     <BuscadorLista
                                       value={field.value}
@@ -1104,7 +1163,7 @@ function RegisterContent() {
                               )} />
                               <FormField control={form.control} name="localidad" render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Localidad/Partido *</FormLabel>
+                                  <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Localidad/Partido *</FormLabel>
                                   <FormControl>
                                     <BuscadorLista
                                       value={field.value}
@@ -1122,11 +1181,11 @@ function RegisterContent() {
 
                             <FormField control={form.control} name="direccion" render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Dirección Completa *</FormLabel>
+                                <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Dirección Completa *</FormLabel>
                                 <FormControl>
                                   <div className="relative group">
                                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary-600" />
-                                    <Input placeholder="Ej: Av. Tomás Espora 1234, Burzaco" className="h-12 pl-11 font-semibold text-base" {...field} />
+                                    <Input autoComplete="street-address" placeholder="Ej: Av. Tomás Espora 1234, Burzaco" className="h-12 pl-11 font-semibold text-base" {...field} />
                                   </div>
                                 </FormControl>
                                 <FormMessage />
@@ -1135,7 +1194,7 @@ function RegisterContent() {
 
                             <FormField control={form.control} name="descripcion" render={({ field }) => (
                               <FormItem className="pt-2">
-                                <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Breve Descripción Comercial (Perfil) *</FormLabel>
+                                <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Breve Descripción Comercial (Perfil) *</FormLabel>
                                 <FormControl>
                                   <textarea
                                     placeholder={selectedRole === 'company' ? "Describe la capacidad productiva de tu planta, productos principales..." : "Describe tu experiencia, certificaciones o servicios destacados..."}
@@ -1148,7 +1207,7 @@ function RegisterContent() {
                             )} />
                           </div>
 
-                          <Button type="button" onClick={() => validateStep(4)} className="w-full h-12 lg:h-14 bg-[#00213f] hover:bg-black text-white font-black text-lg lg:text-xl rounded-xl transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98]">
+                          <Button type="button" onClick={() => validateStep(4)} className="sticky bottom-3 z-20 w-full h-12 lg:h-14 bg-[#00213f] hover:bg-black text-white font-black text-lg lg:text-xl rounded-xl transition-all shadow-xl shadow-slate-900/25 active:scale-[0.98]">
                             Definir Especialidad <ArrowRight className="ml-3 h-5 w-5" />
                           </Button>
                         </div>
@@ -1166,7 +1225,7 @@ function RegisterContent() {
                           <div className="grid gap-4 bg-slate-50/50 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100">
                             <FormField control={form.control} name="sectorId" render={() => (
                               <FormItem>
-                                <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Categoría *</FormLabel>
+                                <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Categoría *</FormLabel>
                                 <FormControl>
                                   <BuscadorJerarquico
                                     categorias={categorias}
@@ -1191,7 +1250,7 @@ function RegisterContent() {
                             {!form.watch('sectorId') && (
                               <FormField control={form.control} name="servicioLibre" render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                                  <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">
                                     ¿No está en la lista? Escribilo
                                   </FormLabel>
                                   <FormControl>
@@ -1213,7 +1272,7 @@ function RegisterContent() {
                             {selectedRole === 'company' ? (
                               <FormField control={form.control} name="size" render={({ field }) => (
                                 <FormItem className="pt-2">
-                                  <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                                  <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">
                                     Cantidad de Empleados *
                                   </FormLabel>
                                   <FormControl>
@@ -1231,15 +1290,25 @@ function RegisterContent() {
                                     </div>
                                   </FormControl>
                                   <FormMessage />
+                                  {/* Decía "Tu tarifa se calcula por cantidad de
+                                      empleados y la verás en el paso siguiente".
+                                      Es falso por dos lados: el escalonado por
+                                      empleados se eliminó el 2026-08-14 (está
+                                      documentado en lib/suscripciones/modelo.ts)
+                                      y en el paso siguiente no hay ningún precio.
+                                      Pedir un dato sensible con una excusa que no
+                                      existe es la forma más rápida de que alguien
+                                      abandone o invente un número. */}
                                   <p className="text-[11px] sm:text-[10px] text-slate-400 font-inter mt-2 ml-1 leading-relaxed">
-                                    Tu tarifa se calcula por cantidad de empleados y la verás en el paso siguiente.
+                                    Sale en tu ficha, para que las empresas que te buscan sepan con
+                                    qué tamaño de proveedor están hablando. No cambia lo que pagás.
                                   </p>
                                 </FormItem>
                               )} />
                             ) : (
                               <FormField control={form.control} name="experience" render={({ field }) => (
                                 <FormItem className="pt-2">
-                                  <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                                  <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">
                                     Años de Experiencia
                                   </FormLabel>
                                   <FormControl>
@@ -1253,7 +1322,7 @@ function RegisterContent() {
                             )}
                           </div>
 
-                          <Button type="button" onClick={() => validateStep(5)} className="w-full h-12 lg:h-14 bg-[#00213f] hover:bg-black text-white font-black text-lg lg:text-xl rounded-xl transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98]">
+                          <Button type="button" onClick={() => validateStep(5)} className="sticky bottom-3 z-20 w-full h-12 lg:h-14 bg-[#00213f] hover:bg-black text-white font-black text-lg lg:text-xl rounded-xl transition-all shadow-xl shadow-slate-900/25 active:scale-[0.98]">
                             Credenciales <ArrowRight className="ml-3 h-5 w-5" />
                           </Button>
                         </div>
@@ -1288,11 +1357,11 @@ function RegisterContent() {
                           <div className="grid gap-4 sm:gap-6">
                             <FormField control={form.control} name="email" render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Email Acceso Módulo *</FormLabel>
+                                <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest ml-1">Email Acceso Módulo *</FormLabel>
                                 <FormControl>
                                   <div className="relative group">
                                     <Mail className={cn("absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition-colors", emailAlreadyExists ? "text-rose-500" : "text-slate-400 group-focus-within:text-primary-600")} />
-                                    <Input placeholder="admin@empresa.com" className={cn("h-12 pl-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary-50 transition-all font-bold text-lg text-[#00213f]", emailAlreadyExists && "border-rose-300 bg-rose-50/50 focus:ring-rose-50 focus:border-rose-400")} {...field} onChange={(e) => { field.onChange(e); if (emailAlreadyExists) setEmailAlreadyExists(false); }} />
+                                    <Input autoComplete="email" inputMode="email" placeholder="admin@empresa.com" className={cn("h-12 pl-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary-50 transition-all font-bold text-lg text-[#00213f]", emailAlreadyExists && "border-rose-300 bg-rose-50/50 focus:ring-rose-50 focus:border-rose-400")} {...field} onChange={(e) => { field.onChange(e); if (emailAlreadyExists) setEmailAlreadyExists(false); }} />
                                   </div>
                                 </FormControl>
                                 <AnimatePresence>
@@ -1334,120 +1403,50 @@ function RegisterContent() {
                               <FormField control={form.control} name="password" render={({ field }) => (
                                 <FormItem>
                                   <div className="flex items-center justify-between ml-1 mb-1">
-                                    <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest">Contraseña Segura *</FormLabel>
-                                    <button type="button" onClick={() => setShowPass(!showPass)} className="flex min-h-11 items-center px-2 -mr-2 text-xs font-bold text-primary-600 uppercase hover:underline">
-                                      {showPass ? 'Ocultar' : 'Mostrar'}
+                                    <FormLabel className="text-[13px] sm:text-xs font-bold text-slate-600 sm:text-slate-500 uppercase tracking-wide sm:tracking-widest">Elegí una contraseña *</FormLabel>
+                                    <button type="button" onClick={() => setShowPass(!showPass)} className="flex min-h-11 items-center px-2 -mr-2 text-xs font-bold text-primary-600 hover:underline">
+                                      {showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                                     </button>
                                   </div>
                                   <FormControl>
                                     <div className="relative group">
                                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary-600" />
-                                      <Input type={showPass ? 'text' : 'password'} placeholder="••••••••" className="h-12 pl-12 rounded-xl bg-white border-slate-200 focus:ring-4 focus:ring-primary-50 transition-all font-bold text-lg text-[#00213f] tracking-wider" {...field} />
+                                      <Input type={showPass ? 'text' : 'password'} placeholder="••••••••" autoComplete="new-password" className="h-12 pl-12 rounded-xl bg-white border-slate-200 focus:ring-4 focus:ring-primary-50 transition-all font-bold text-lg text-[#00213f] tracking-wider" {...field} />
                                     </div>
                                   </FormControl>
 
-                                  <div className="pt-4 px-1">
-                                    <div className="h-1.5 w-full bg-slate-200 rounded-full flex gap-1 overflow-hidden">
-                                      {[1, 2, 3, 4].map((i) => (
-                                        <div key={i} className={cn("h-full flex-1 transition-all duration-500", passStrength >= i * 25 ? getStrengthColor(passStrength) : "bg-transparent")} />
-                                      ))}
+                                  <div className="flex items-center gap-2 pt-3 px-1">
+                                    <div className={cn("h-4 w-4 rounded-full flex items-center justify-center transition-all shrink-0", passwordListo ? "bg-emerald-500 text-white" : "border border-slate-300 bg-white")}>
+                                      {passwordListo && <Check className="h-2.5 w-2.5" />}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2 pt-4">
-                                      {passRequirements.map((req, i) => (
-                                        <div key={i} className="flex items-center gap-2">
-                                          <div className={cn("h-4 w-4 rounded-full flex items-center justify-center transition-all shadow-sm", req.met ? "bg-primary-500 text-white" : "border border-slate-300 bg-white")}>
-                                            {req.met && <Check className="h-2.5 w-2.5" />}
-                                          </div>
-                                          <span className={cn("text-[11px] sm:text-[10px] font-bold uppercase tracking-widest", req.met ? "text-primary-700" : "text-slate-400")}>{req.label}</span>
-                                        </div>
-                                      ))}
-                                    </div>
+                                    <span className={cn("text-xs font-semibold", passwordListo ? "text-emerald-700" : "text-slate-500")}>
+                                      Al menos 8 caracteres
+                                    </span>
                                   </div>
-                                  <FormMessage />
-                                </FormItem>
-                              )} />
-
-                              <FormField control={form.control} name="confirmPassword" render={({ field }) => (
-                                <FormItem className="pt-2">
-                                  <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Repetir Contraseña *</FormLabel>
-                                  <FormControl>
-                                    <div className="relative group">
-                                      <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary-600" />
-                                      <Input type={showPass ? 'text' : 'password'} placeholder="••••••••" className="h-12 pl-12 rounded-xl bg-white border-slate-200 focus:ring-4 focus:ring-primary-50 transition-all font-bold text-lg text-[#00213f] tracking-wider" {...field} />
-                                    </div>
-                                  </FormControl>
+                                  <p className="px-1 pt-2 text-xs text-slate-400 leading-relaxed">
+                                    Anotala en algún lado: la vas a necesitar cada vez que entres.
+                                  </p>
                                   <FormMessage />
                                 </FormItem>
                               )} />
                             </div>
                           </div>
 
-                          <Button type="button" onClick={() => validateStep(6)} className="w-full h-12 lg:h-14 bg-[#00213f] hover:bg-black text-white font-black text-lg lg:text-xl rounded-xl transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98]">
+                          <Button type="button" onClick={() => validateStep(6)} className="sticky bottom-3 z-20 w-full h-12 lg:h-14 bg-[#00213f] hover:bg-black text-white font-black text-lg lg:text-xl rounded-xl transition-all shadow-xl shadow-slate-900/25 active:scale-[0.98]">
                             Seleccionar Plan <ArrowRight className="ml-3 h-5 w-5" />
                           </Button>
                         </div>
                       )}
 
                       {/* ─── PHASE 7: SUSCRIPCIÓN (plan único UIAB Conecta) ─── */}
-                      {step === 7 && padronDetectado && (
-                        /* Empresa ya en el padrón: no hay plan que elegir ni precio
-                           que mostrar. Enseñarle "$50.000 / mes" a una socia — que es
-                           lo que le pasó a Transporte Gav — es directamente un error
-                           de facturación disfrazado de pantalla. */
-                        <div className="space-y-4">
-                          <div className="space-y-0.5">
-                            {/* La cortesía la define `es_socia_uiab`, NO el estar en la
-                                tabla: hay fichas publicadas que no son socias (Vaxler,
-                                por ejemplo). Prometerle "no pagás nada" a una de ésas y
-                                después dejarla bloqueada en el checkout sería peor que
-                                el problema que vinimos a arreglar. */}
-                            <Badge className={`border-none font-bold px-2 py-0.5 text-[11px] sm:text-[10px] tracking-widest uppercase rounded-sm ${padronDetectado.esSocia ? 'bg-emerald-50 text-emerald-700' : 'bg-primary-50 text-primary-700'}`}>
-                              {padronDetectado.esSocia ? 'Sin cargo' : 'Ya estás en el directorio'}
-                            </Badge>
-                            <h2 className="text-2xl font-black text-[#00213f] tracking-tighter" style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}>
-                              Tu empresa ya está en la UIAB.
-                            </h2>
-                            <p className="text-slate-500 font-inter text-xs">
-                              {padronDetectado.razonSocial
-                                ? `Encontramos a ${padronDetectado.razonSocial} en el directorio.`
-                                : 'Encontramos tu empresa en el directorio.'}{' '}
-                              {padronDetectado.esSocia
-                                ? 'No vas a pagar nada.'
-                                : 'No te vamos a cobrar ahora.'}
-                            </p>
-                          </div>
+                      {/* Acá había una variante del paso 7 para las empresas
+                          del padrón ("Sin cargo / Ya estás en el directorio").
+                          Era inalcanzable: `padronDetectado` sólo toma un valor
+                          no nulo dentro del mismo `if (enPadron)` que hace
+                          router.push('/sumate') y corta, así que al llegar al
+                          paso 7 siempre valía null. Se fue junto con el estado. */}
 
-                          <div className={`rounded-xl px-5 py-4 space-y-3 border ${padronDetectado.esSocia ? 'border-emerald-100 bg-emerald-50/60' : 'border-primary-100 bg-primary-50/60'}`}>
-                            <p className="text-xs font-semibold text-[#00213f] flex items-start gap-2">
-                              <ShieldCheck className={`h-4 w-4 shrink-0 mt-0.5 ${padronDetectado.esSocia ? 'text-emerald-600' : 'text-primary-600'}`} />
-                              <span>
-                                {padronDetectado.esSocia
-                                  ? 'Tu acceso es de cortesía: las socias de la UIAB no abonan la suscripción.'
-                                  : 'No hay ningún pago en este paso. Al revisar tu pedido, la UIAB te va a decir cómo sigue tu acceso.'}
-                              </span>
-                            </p>
-                            <p className="text-xs font-semibold text-[#00213f] flex items-start gap-2">
-                              <Building2 className={`h-4 w-4 shrink-0 mt-0.5 ${padronDetectado.esSocia ? 'text-emerald-600' : 'text-primary-600'}`} />
-                              <span>No se crea una ficha nueva. Tus datos se suman a la que ya está publicada en el directorio.</span>
-                            </p>
-                            <p className="text-xs font-semibold text-[#00213f] flex items-start gap-2">
-                              <Clock className={`h-4 w-4 shrink-0 mt-0.5 ${padronDetectado.esSocia ? 'text-emerald-600' : 'text-primary-600'}`} />
-                              <span>La UIAB confirma que trabajás en esa empresa y te habilita el ingreso. Te avisamos por correo.</span>
-                            </p>
-                          </div>
-
-                          <div className="space-y-2 pt-1">
-                            <Button type="submit" disabled={isLoading} className="w-full h-12 bg-primary-600 hover:bg-primary-700 text-white font-black text-base rounded-xl shadow-xl shadow-primary-600/20 transition-all active:scale-[0.98]">
-                              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Enviar mi pedido de acceso <ArrowRight className="ml-2 h-4 w-4" /></>}
-                            </Button>
-                            <p className="text-center text-[11px] sm:text-[10px] text-slate-400 font-medium max-w-md mx-auto leading-relaxed">
-                              Si tu empresa no fuera la que encontramos, la UIAB lo va a ver al revisar el pedido.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {step === 7 && !padronDetectado && (() => {
+                      {step === 7 && (() => {
                         const esEmpresa = selectedRole === 'company';
                         const beneficios = esEmpresa
                           ? [
@@ -1674,8 +1673,12 @@ function BuscadorLista({
           <div className="p-2 border-b border-slate-100">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              {/* Sin autoFocus a propósito: al tocar "Elegí tu provincia" se
+                  abría el desplegable Y saltaba el teclado, que en un celular
+                  ocupa media pantalla y dejaba la lista en dos renglones. Para
+                  listas cortas y cerradas el buscador se usa sólo si hace falta;
+                  quien quiera escribir, toca el campo. */}
               <input
-                autoFocus
                 type="text"
                 className="w-full pl-8 pr-2 py-2 text-base bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                 placeholder={searchPlaceholder}
@@ -1803,8 +1806,12 @@ function BuscadorJerarquico({
           <div className="p-2 border-b border-slate-100">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              {/* Sin autoFocus a propósito: al tocar "Elegí tu provincia" se
+                  abría el desplegable Y saltaba el teclado, que en un celular
+                  ocupa media pantalla y dejaba la lista en dos renglones. Para
+                  listas cortas y cerradas el buscador se usa sólo si hace falta;
+                  quien quiera escribir, toca el campo. */}
               <input
-                autoFocus
                 type="text"
                 className="w-full pl-8 pr-2 py-2 text-base bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                 placeholder="Buscar categoría..."
