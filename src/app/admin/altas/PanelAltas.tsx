@@ -692,12 +692,32 @@ export function PanelAltas({
     toast.success(`${label} copiado`);
   }
 
-  // El formulario /sumate no está en el menú público (es solo para socias): el
-  // admin comparte este link directo con cada empresa para que cargue sus datos.
+  // Link genérico al formulario de socias. Desde que /sumate está en el menú y
+  // arranca con la pregunta de entrada, esto sirve sobre todo para pegarlo en un
+  // mail masivo; para una empresa puntual conviene el link de reclamo de abajo.
   function copiarLinkFormulario() {
-    const url = `${window.location.origin}/sumate`;
+    const url = `${window.location.origin}/sumate?socia=si`;
     navigator.clipboard.writeText(url);
     toast.success("Link del formulario copiado. Compartíselo a la empresa socia.");
+  }
+
+  /**
+   * El link personal de UNA empresa: /reclamar/{id}.
+   *
+   * Es el que conviene mandar por WhatsApp durante un llamado. La persona abre,
+   * ve su propia empresa con el logo y sólo pone nombre, correo y teléfono —
+   * tres campos contra los quince de /sumate— y la solicitud llega ya vinculada
+   * a la ficha, así que acá alcanza con "Crear cuenta y dar acceso".
+   *
+   * Va por id y no por el nombre: el slug se calcula de la razón social y 23 de
+   * las 28 socias con nombre comercial distinto darían 404.
+   */
+  function copiarLinkReclamo(empresaId: string) {
+    const url = `${window.location.origin}/reclamar/${empresaId}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link de reclamo copiado.", {
+      description: "Mandáselo por WhatsApp: abre con su empresa ya cargada.",
+    });
   }
 
   function exportarCSV() {
@@ -1203,9 +1223,18 @@ export function PanelAltas({
                   )}
 
                   <div className="flex flex-wrap gap-2 pt-2">
-                    <Button onClick={copiarLinkFormulario} className="bg-primary-600 hover:bg-primary-700 text-white">
-                      <Link2 className="w-4 h-4 mr-2" /> Copiar el link de Sumate
-                    </Button>
+                    {fichaVista.empresaId ? (
+                      <Button
+                        onClick={() => copiarLinkReclamo(fichaVista.empresaId!)}
+                        className="bg-primary-600 hover:bg-primary-700 text-white"
+                      >
+                        <Link2 className="w-4 h-4 mr-2" /> Copiar link de reclamo
+                      </Button>
+                    ) : (
+                      <Button onClick={copiarLinkFormulario} className="bg-primary-600 hover:bg-primary-700 text-white">
+                        <Link2 className="w-4 h-4 mr-2" /> Copiar el link de Sumate
+                      </Button>
+                    )}
                     {fichaVista.empresaId && (
                       <a href="/admin/empresas?filtro=todas" target="_blank" rel="noopener noreferrer">
                         <Button variant="outline">
@@ -1480,9 +1509,29 @@ export function PanelAltas({
               <section className="space-y-2 pt-2">
                 {seleccionada.estado === "cuenta_creada" ? (
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 w-full bg-emerald-50 text-emerald-700 rounded-lg px-4 py-3 text-sm font-semibold">
-                      <CheckCircle2 className="w-4 h-4" /> Esta empresa ya tiene acceso a la plataforma.
-                    </div>
+                    {/* Antes esto era verde y decía "ya tiene acceso" por el
+                        solo hecho de que el alta estuviera en `cuenta_creada`,
+                        sin mirar si la invitación llegó a usarse — tres
+                        centímetros abajo de la tarjeta que dice "Pendiente · el
+                        enlace vence el …". O sea que la única persona que puede
+                        rescatar a una socia trabada leía que no hacía falta.
+                        Crear la cuenta y que la persona entre son dos cosas
+                        distintas y ahora se ven distintas. */}
+                    {estados[seleccionada.email.toLowerCase()]?.invitacion_usada ? (
+                      <div className="flex items-center gap-2 w-full bg-emerald-50 text-emerald-700 rounded-lg px-4 py-3 text-sm font-semibold">
+                        <CheckCircle2 className="w-4 h-4" /> Ya definió su contraseña y entró a la
+                        plataforma.
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-2 w-full bg-amber-50 text-amber-800 rounded-lg px-4 py-3 text-sm">
+                        <Clock className="w-4 h-4 shrink-0 mt-0.5" />
+                        <span>
+                          <span className="font-semibold">Todavía no entró.</span> La cuenta está
+                          creada, pero nadie usó el enlace para elegir la contraseña. Si ya pasaron
+                          varios días, conviene reenviar la invitación o llamar.
+                        </span>
+                      </div>
+                    )}
                     <Button
                       variant="outline"
                       className="w-full"

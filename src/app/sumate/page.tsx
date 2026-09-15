@@ -1,20 +1,21 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ogPorRuta } from "@/lib/seo/og";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { Building2, CheckCircle2, Users } from "lucide-react";
 import { FormularioAlta } from "./FormularioAlta";
-import { CATEGORIA_ALTA_LABEL } from "@/modulos/altas/constantes";
+import { ayudaWhatsApp, CONSULTAS } from "@/lib/soporte";
 
 export const metadata = {
   // Sin pipe adentro: el template raíz ya agrega " | UIAB Conecta" y el
   // title salía con doble pipe y 66 caracteres.
-  title: "Sumate — Alta de socios UIAB",
+  title: "Sumate a UIAB Conecta",
   description:
-    "Formulario exclusivo para organizaciones socias de la UIAB: verificamos tus datos contra el padrón y activamos el acceso de tu empresa a UIAB Conecta.",
+    "Pedí el acceso para manejar la ficha de tu empresa en el directorio de la UIAB. Si tu empresa es socia no tiene costo; si todavía no lo es, podés crear tu cuenta.",
   alternates: { canonical: "/sumate" },
   ...ogPorRuta(
-    "Sumate — Alta de socios UIAB",
-    "Verificamos tus datos contra el padrón y activamos el acceso de tu empresa a UIAB Conecta.",
+    "Sumate a UIAB Conecta",
+    "Pedí el acceso para manejar la ficha de tu empresa en el directorio de la UIAB.",
     "/sumate"
   ),
 };
@@ -22,132 +23,64 @@ export const metadata = {
 // El listado se actualiza a medida que las empresas completan el formulario.
 export const revalidate = 60;
 
-type AltaPublica = {
-  razon_social: string;
-  nombre_comercial: string | null;
-  categoria: string;
+type EmpresaPublicada = {
+  nombre: string;
   localidad: string | null;
-  creado_en: string;
-  /** Logo de la empresa ya cargada en la plataforma, si la pudimos identificar. */
   logoUrl: string | null;
 };
 
-type EmpresaConLogo = {
-  razon_social: string | null;
-  nombre_comercial: string | null;
-  cuit: string | null;
-  bucket_logo: string | null;
-  ruta_logo: string | null;
-};
-
-type AltaFila = {
-  razon_social: string;
-  nombre_comercial: string | null;
-  cuit: string | null;
-  categoria: string;
-  localidad: string | null;
-  creado_en: string;
-};
-
-/** CUIT comparable: sólo dígitos ("30-71232689-8" → "30712326898"). */
-const normalizarCuit = (v: string | null | undefined) => (v ?? "").replace(/\D/g, "");
-
 /**
- * Nombre comparable: sin acentos, sin espacios ni puntuación y sin la forma
- * societaria del final. Así "A. D. BARBIERI S.A." (padrón) y "A.D. Barbieri"
- * (formulario) caen en la misma clave.
+ * Las empresas que YA están publicadas en el directorio.
+ *
+ * Antes esto leía `altas_socios` filtrando sólo `estado != 'descartado'`, o sea
+ * que la lista titulada "Empresas que ya se sumaron", con un tilde verde por
+ * fila, era literalmente la COLA DE SOLICITUDES PENDIENTES. Dos problemas: la
+ * empresa se veía a sí misma con un check verde a los dos segundos de enviar el
+ * formulario —la señal exacta de "ya está, no hago nada más", cuando todavía no
+ * tenía cuenta— y además publicaba para siempre el nombre y la localidad de
+ * empresas que sólo habían llenado un formulario y quizá nunca se aprobaron.
+ *
+ * Leyendo `empresas` aprobadas se arregla lo uno y lo otro, y de paso desaparece
+ * todo el cruce por CUIT y por nombre normalizado que hacía falta para pegarle
+ * el logo a cada alta: acá el logo viene en la misma fila.
  */
-const FORMA_SOCIETARIA = /(sas|srl|saic|sacif|sacifia|sca|scs|sh|sa|ltda)$/;
-
-function clavesDeNombre(v: string | null | undefined): string[] {
-  if (!v) return [];
-  const base = v
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // marcas de acento
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-  if (base.length < 6) return []; // demasiado corto: se presta a falsos positivos
-  const sinForma = base.replace(FORMA_SOCIETARIA, "");
-  // Sólo usamos la versión recortada si sigue siendo un nombre reconocible.
-  return sinForma.length >= 6 && sinForma !== base ? [base, sinForma] : [base];
-}
-
-/**
- * Logos de las empresas ya cargadas, indexados por CUIT y por nombre para poder
- * cruzarlos con las altas. El CUIT manda; el nombre es el plan B y se descarta
- * si dos empresas comparten la misma clave (mejor sin logo que con el ajeno).
- */
-async function getIndiceLogos(supabase: SupabaseClient) {
-  const { data } = await supabase
-    .from("empresas")
-    .select("razon_social, nombre_comercial, cuit, bucket_logo, ruta_logo")
-    .eq("estado", "aprobada")
-    .not("ruta_logo", "is", null);
-
-  const porCuit = new Map<string, string>();
-  const porNombre = new Map<string, string | null>(); // null = clave ambigua
-
-  for (const emp of (data as EmpresaConLogo[] | null) ?? []) {
-    if (!emp.bucket_logo || !emp.ruta_logo) continue;
-    const logoUrl = supabase.storage.from(emp.bucket_logo).getPublicUrl(emp.ruta_logo)
-      .data.publicUrl;
-
-    const cuit = normalizarCuit(emp.cuit);
-    if (cuit) porCuit.set(cuit, logoUrl);
-
-    const claves = new Set([
-      ...clavesDeNombre(emp.razon_social),
-      ...clavesDeNombre(emp.nombre_comercial),
-    ]);
-    for (const clave of claves) {
-      const previo = porNombre.get(clave);
-      porNombre.set(clave, previo === undefined || previo === logoUrl ? logoUrl : null);
-    }
-  }
-
-  return { porCuit, porNombre };
-}
-
-async function getAltasPublicas(): Promise<AltaPublica[]> {
-  // Sólo columnas NO sensibles. Email/teléfono nunca salen al público; el CUIT
-  // se usa acá dentro para cruzar el logo y tampoco se renderiza.
+async function getEmpresasPublicadas(): Promise<EmpresaPublicada[]> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const [{ data }, { porCuit, porNombre }] = await Promise.all([
-    supabase
-      .from("altas_socios")
-      .select("razon_social, nombre_comercial, cuit, categoria, localidad, creado_en")
-      .neq("estado", "descartado")
-      .order("creado_en", { ascending: false })
-      .limit(120),
-    getIndiceLogos(supabase),
-  ]);
+  // Sólo columnas públicas: lo mismo que ya muestra /directorio sin sesión.
+  const { data } = await supabase
+    .from("empresas")
+    .select("razon_social, nombre_comercial, localidad, bucket_logo, ruta_logo")
+    .eq("estado", "aprobada")
+    .order("razon_social", { ascending: true })
+    .limit(120);
 
-  return ((data as AltaFila[] | null) ?? []).map((alta) => {
-    const porNombreAlta = [
-      ...clavesDeNombre(alta.razon_social),
-      ...clavesDeNombre(alta.nombre_comercial),
-    ]
-      .map((clave) => porNombre.get(clave))
-      .find((url) => !!url);
-
-    return {
-      razon_social: alta.razon_social,
-      nombre_comercial: alta.nombre_comercial,
-      categoria: alta.categoria,
-      localidad: alta.localidad,
-      creado_en: alta.creado_en,
-      logoUrl: porCuit.get(normalizarCuit(alta.cuit)) ?? porNombreAlta ?? null,
-    };
-  });
+  return ((data as EmpresaFila[] | null) ?? []).map((emp) => ({
+    nombre: emp.nombre_comercial || emp.razon_social,
+    localidad: emp.localidad,
+    logoUrl:
+      emp.bucket_logo && emp.ruta_logo
+        ? supabase.storage.from(emp.bucket_logo).getPublicUrl(emp.ruta_logo).data.publicUrl
+        : null,
+  }));
 }
+
+type EmpresaFila = {
+  razon_social: string;
+  nombre_comercial: string | null;
+  localidad: string | null;
+  bucket_logo: string | null;
+  ruta_logo: string | null;
+};
 
 type ParamsSumate = {
   desde?: string; empresa?: string; comercial?: string; cuit?: string;
   email?: string; telefono?: string; localidad?: string; referente?: string;
+  /** "si" = ya contestó la pregunta de entrada y va derecho al formulario. */
+  socia?: string;
 };
 
 export default async function SumatePage({
@@ -158,7 +91,26 @@ export default async function SumatePage({
   // Los datos vienen de /register: si la empresa ya está en el padrón se corta
   // el registro y se la manda acá, con lo que ya había escrito puesto.
   const params = await searchParams;
-  const altas = await getAltasPublicas();
+  const publicadas = await getEmpresasPublicadas();
+
+  /**
+   * La pregunta de entrada sólo aparece cuando la persona llega en frío.
+   *
+   * Por qué existe: /sumate daba por sentado que quien entraba ya era socia, y
+   * a quien no lo era lo rechazaba recién al final, con un toast, después de
+   * haber cargado quince campos. Peor todavía: una socia rebotada desde
+   * /register llegaba con el checkbox destildado y no lo tildaba —el sistema
+   * acababa de decirle que YA era socia— así que el error la mandaba de vuelta
+   * a /register, que la volvía a mandar acá. Preguntar primero corta el loop y
+   * manda a cada uno por su camino antes de pedirle un solo dato.
+   *
+   * Si ya sabemos la respuesta (viene de /register, del panel de la UIAB, o ya
+   * contestó) no se le pregunta de nuevo.
+   */
+  const yaSabemosQueEsSocia =
+    params.socia === "si" ||
+    params.desde === "registro" ||
+    Boolean(params.empresa || params.cuit || params.referente);
 
   return (
     <div className="min-h-svh bg-[#f7f9fb] selection:bg-primary/10">
@@ -172,13 +124,13 @@ export default async function SumatePage({
                 className="text-primary/60 font-semibold tracking-[0.2em] uppercase text-[11px] sm:text-[10px] mb-3 block"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
               >
-                Alta exclusiva para socios UIAB
+                Acceso para socias de la UIAB
               </span>
               <h1
                 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#00213f] tracking-tighter leading-[1.05] pt-1"
                 style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
               >
-                Cargá los datos <br />
+                Pedí el acceso <br />
                 <span className="text-primary/30">de tu empresa</span>
               </h1>
             </div>
@@ -187,9 +139,9 @@ export default async function SumatePage({
                 className="text-base md:text-lg text-slate-600 leading-relaxed font-medium"
                 style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
               >
-                Este formulario es exclusivo para organizaciones socias de la UIAB: lo usamos
-                para verificar tus datos contra el padrón y activar el acceso de tu empresa a
-                la plataforma.
+                Tu empresa ya figura en el directorio de la UIAB. Con este formulario pedís el
+                usuario para entrar y manejar tu ficha vos. Lo revisa alguien de la UIAB y te
+                llega un mail para que elijas tu contraseña.
               </p>
             </div>
           </div>
@@ -207,16 +159,72 @@ export default async function SumatePage({
             className="text-sm leading-relaxed text-white/80"
             style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}
           >
-            <span className="font-bold text-white">Sos socia UIAB: no pagás nada.</span> La membresía
-            ya está incluida en tu cuota.{" "}
-            <span className="text-white/50">
-              ¿Todavía no sos socia? La membresía sale $50.000/mes, o $41.667/mes pagando el año
-              (<span className="text-emerald-300 font-bold">2 meses gratis</span>).
-            </span>
+            <span className="font-bold text-white">Sos socia de la UIAB: no pagás nada.</span> El
+            acceso ya está incluido en tu cuota de socia.
           </p>
         </div>
       </div>
 
+      {!yaSabemosQueEsSocia ? (
+        /* ─── La pregunta de entrada ───
+           Dos botones grandes, uno arriba del otro en mobile. No son tarjetas ni
+           radios a propósito: para este público el patrón que menos falla es un
+           botón que se ve como botón y que al tocarlo pasa algo. */
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pb-24">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-primary/5 p-6 sm:p-9">
+            <h2
+              className="text-2xl sm:text-3xl font-black text-[#00213f] tracking-tight"
+              style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
+            >
+              ¿Tu empresa es socia de la UIAB?
+            </h2>
+            <p className="mt-2 text-sm sm:text-base text-slate-600">
+              Según qué contestes, el camino es distinto.
+            </p>
+
+            <div className="mt-7 space-y-4">
+              <Link
+                href="/sumate?socia=si"
+                className="group flex items-start gap-4 rounded-xl border-2 border-[#00213f] bg-[#00213f] px-5 py-5 text-left text-white transition-colors hover:bg-[#10375c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00213f] focus-visible:ring-offset-2"
+              >
+                <CheckCircle2 className="w-6 h-6 shrink-0 text-emerald-300 mt-0.5" aria-hidden="true" />
+                <span>
+                  <span className="block text-lg font-bold">Sí, ya somos socias</span>
+                  <span className="block text-sm text-white/70 mt-1">
+                    No pagás nada. Te pedimos unos datos y la UIAB te habilita el acceso.
+                  </span>
+                </span>
+              </Link>
+
+              <Link
+                href="/register"
+                className="group flex items-start gap-4 rounded-xl border-2 border-slate-200 bg-white px-5 py-5 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00213f] focus-visible:ring-offset-2"
+              >
+                <Building2 className="w-6 h-6 shrink-0 text-slate-400 mt-0.5" aria-hidden="true" />
+                <span>
+                  <span className="block text-lg font-bold text-[#00213f]">No, todavía no</span>
+                  <span className="block text-sm text-slate-500 mt-1">
+                    Podés crear tu cuenta y usar la plataforma con una membresía.
+                  </span>
+                </span>
+              </Link>
+            </div>
+
+            <p className="mt-7 text-sm text-slate-500">
+              ¿No sabés si tu empresa es socia?{" "}
+              <a
+                href={ayudaWhatsApp(CONSULTAS.esSocia)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-primary-600 underline underline-offset-2"
+              >
+                Escribinos por WhatsApp
+              </a>{" "}
+              y lo vemos con vos.
+            </p>
+          </div>
+        </div>
+      ) : (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* ─── Formulario ─── */}
@@ -224,6 +232,10 @@ export default async function SumatePage({
             <FormularioAlta
               desdeRegistro={params.desde === "registro"}
               inicial={{
+                // Ya contestó que es socia en la pregunta de entrada (o llegó
+                // rebotada desde /register, que es el sistema diciéndole que lo
+                // es): volver a pedirle que lo tilde era el paso donde se trababa.
+                ya_es_socio: true,
                 razon_social: params.empresa ?? "",
                 nombre_comercial: params.comercial ?? "",
                 cuit: params.cuit ?? "",
@@ -243,24 +255,27 @@ export default async function SumatePage({
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="font-bold tracking-tight">Empresas que ya se sumaron</h2>
+                  <h2 className="font-bold tracking-tight">Ya están en el directorio</h2>
                   <p className="text-white/50 text-xs">
-                    {altas.length} {altas.length === 1 ? "empresa registrada" : "empresas registradas"}
+                    {publicadas.length}{" "}
+                    {publicadas.length === 1
+                      ? "empresa de la red UIAB"
+                      : "empresas y entidades de la red UIAB"}
                   </p>
                 </div>
               </div>
 
-              {altas.length === 0 ? (
+              {publicadas.length === 0 ? (
                 <div className="p-10 text-center">
                   <Building2 className="w-8 h-8 text-slate-300 mx-auto mb-3" />
                   <p className="text-sm text-slate-500">
-                    Todavía no hay empresas registradas. <br />¡Sé la primera!
+                    Todavía no hay empresas publicadas. <br />¡Sé la primera!
                   </p>
                 </div>
               ) : (
                 <ul className="divide-y divide-slate-100 max-h-[560px] overflow-y-auto">
-                  {altas.map((a, i) => {
-                    const nombre = a.nombre_comercial || a.razon_social;
+                  {publicadas.map((a, i) => {
+                    const nombre = a.nombre;
                     return (
                       <li key={i} className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50/60 transition-colors">
                         {a.logoUrl ? (
@@ -283,11 +298,9 @@ export default async function SumatePage({
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-slate-800 text-sm truncate">{nombre}</p>
                           <p className="text-xs text-slate-400 truncate">
-                            {CATEGORIA_ALTA_LABEL[a.categoria] ?? a.categoria}
-                            {a.localidad ? ` · ${a.localidad}` : ""}
+                            {a.localidad ?? "Almirante Brown"}
                           </p>
                         </div>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                       </li>
                     );
                   })}
@@ -297,6 +310,7 @@ export default async function SumatePage({
           </aside>
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { appUrl, emailAdmin, enviarEmail } from "@/lib/email/cliente";
 import { escapeText, renderEmailBase } from "@/lib/email/plantillas";
+import { ayudaWhatsApp, CONSULTAS } from "@/lib/soporte";
 import { CATEGORIAS_ALTA, type AltaSocioInput } from "./constantes";
 import { exigirAdmin } from "@/lib/autenticacion/exigir-admin";
 import { buscarEnPadron, coincidenciaConfiable } from "./buscar-en-padron";
@@ -115,19 +116,28 @@ export async function enviarAltaSocio(input: AltaSocioInput) {
   // Email de confirmación al referente (no bloquea el flujo si falla)
   await enviarEmail({
     para: d.email,
-    asunto: "Recibimos tus datos — UIAB Conecta",
+    // Este es el acuse, no el acceso. Tiene que dejar dos cosas clarísimas: que
+    // todavía NO hay cuenta, y que lo único que hay que hacer es esperar un
+    // segundo mail. El CTA era "Conocé el directorio", que lo sacaba del flujo
+    // justo en el mail donde hay que dejarlo esperando; ahora es la vía de
+    // rescate por si esa espera se estira.
+    asunto: `Recibimos el pedido de acceso de ${nombre}`,
     html: renderEmailBase({
-      preheader: "Tu empresa está un paso más cerca de sumarse a UIAB Conecta.",
-      titulo: "¡Recibimos tus datos!",
-      intro: `Hola ${d.referente_nombre.trim()}, gracias por completar el formulario de ${nombre}.`,
+      preheader: "Te avisamos por mail cuando tu usuario esté listo.",
+      titulo: "Recibimos tu pedido",
+      intro: `Hola ${d.referente_nombre.trim()}, recibimos los datos de ${nombre}.`,
       cuerpo: `
-        <p style="margin:0 0 16px 0;">El equipo de la Unión Industrial de Almirante Brown va a revisar la información y se va a contactar con vos para activar el acceso de tu empresa a <strong>UIAB Conecta</strong>.</p>
-        <p style="margin:0;">Categoría seleccionada: <strong>${categoriaLabel}</strong>.</p>
+        <p style="margin:0 0 16px 0;"><strong>Todavía no tenés cuenta.</strong> Alguien de la Unión Industrial de Almirante Brown va a revisar la información y te vamos a mandar otro mail, a esta misma dirección, con un enlace para que elijas tu contraseña. Suele tardar hasta 3 días hábiles.</p>
+        <p style="margin:0 0 16px 0;">No hace falta que hagas nada hasta que llegue ese mail. Guardá éste por las dudas.</p>
+        <p style="margin:0;color:#525b63;font-size:13px;">Categoría que elegiste: <strong>${categoriaLabel}</strong>.</p>
       `,
-      cta: { etiqueta: "Conocé el directorio", href: `${appUrl()}/directorio` },
+      cta: {
+        etiqueta: "Escribirnos por WhatsApp",
+        href: ayudaWhatsApp(CONSULTAS.altaDemorada),
+      },
       pie: "Si no completaste este formulario, podés ignorar este correo.",
     }),
-    texto: `Hola ${d.referente_nombre.trim()}, recibimos los datos de ${nombre}. El equipo de UIAB se va a contactar para activar el acceso.`,
+    texto: `Hola ${d.referente_nombre.trim()}, recibimos los datos de ${nombre}. Todavía no tenés cuenta: te vamos a mandar otro mail con un enlace para elegir tu contraseña. Suele tardar hasta 3 días hábiles.`,
   });
 
   // Notificación al admin
@@ -548,4 +558,144 @@ export async function crearCuentaDesdeAlta(
     reutilizada: !!alta.empresa_id || (!esProveedor && !!empresaIdFinal && empresaIdFinal !== null),
     empresaId: empresaIdFinal,
   };
+}
+
+// ─── Reclamo de una ficha ya publicada ─────────────────────────────────────────
+
+/**
+ * "Soy de esta empresa, quiero manejar su ficha."
+ *
+ * POR QUÉ EXISTE ESTE CAMINO APARTE
+ *
+ * De las 59 fichas publicadas, 35 no tienen NINGÚN usuario: la UIAB las cargó
+ * del padrón y nadie de la empresa entró nunca (medido el 2026-09-15; y son
+ * exactamente las mismas 35 que no tienen descripción propia, sin una sola
+ * excepción). Para esas empresas el problema no es completar datos: es que su
+ * ficha ya existe y ellas no lo saben.
+ *
+ * `/sumate` les pide quince campos que la UIAB YA tiene cargados. Acá el id de
+ * la ficha resuelve razón social, CUIT, rubro y localidad, así que sólo hace
+ * falta saber quién es la persona: nombre, correo y teléfono. Es el patrón
+ * "reclamar este perfil" de Google Business Profile, y el punto de entrada está
+ * donde la persona ya está mirando su propia empresa.
+ *
+ * El reclamo NO da acceso: deja una solicitud con `empresa_id` ya vinculado, y
+ * un humano la aprueba desde /admin/altas. Como el CUIT y la razón social de
+ * cada ficha son públicos, cualquier aprobación automática sería una invitación
+ * a apropiarse de la ficha de otro.
+ */
+const ReclamoSchema = z.object({
+  empresa_id: z.string().uuid(),
+  referente_nombre: z.string().trim().min(2, "Ingresá tu nombre y apellido").max(120),
+  email: z.string().trim().toLowerCase().email("Revisá el correo: parece que falta algo").max(160),
+  telefono: z.string().trim().max(40).optional().or(z.literal("")),
+  mensaje: z.string().trim().max(1000).optional().or(z.literal("")),
+});
+
+export type ReclamoInput = z.input<typeof ReclamoSchema>;
+
+export async function reclamarFicha(input: ReclamoInput) {
+  const parsed = ReclamoSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+  const d = parsed.data;
+  const db = adminClient();
+
+  // La ficha tiene que existir y estar publicada. Se re-lee acá y no se confía
+  // en nada que venga del formulario: el id viaja por la URL.
+  const { data: empresa } = await db
+    .from("empresas")
+    .select("id, razon_social, nombre_comercial, es_socia_uiab, categoria_socio, localidad, estado")
+    .eq("id", d.empresa_id)
+    .eq("estado", "aprobada")
+    .maybeSingle();
+
+  if (!empresa) {
+    return { error: "No encontramos esa ficha. Buscá tu empresa en el directorio y entrá desde ahí." };
+  }
+
+  // Anti-duplicado: si ya hay un reclamo pendiente de la misma persona para la
+  // misma ficha, no se crea otro (tocar "Pedir el acceso" dos veces es lo más
+  // normal del mundo cuando la pantalla tarda).
+  const { data: existente } = await db
+    .from("altas_socios")
+    .select("id")
+    .eq("empresa_id", d.empresa_id)
+    .eq("email", d.email)
+    .eq("estado", "pendiente")
+    .maybeSingle();
+
+  if (existente) {
+    return {
+      duplicado: true as const,
+      mensaje: "Ya tenemos tu pedido y lo estamos revisando. Te avisamos por mail.",
+    };
+  }
+
+  const nombre = empresa.nombre_comercial?.trim() || empresa.razon_social.trim();
+
+  const { error } = await db.from("altas_socios").insert({
+    // El vínculo directo: `crearCuentaDesdeAlta` usa `alta.empresa_id` como
+    // `empresaIdFinal`, así que el admin no tiene que buscar nada en el padrón
+    // ni elegir entre fichas parecidas — que es donde hoy se equivoca.
+    empresa_id: empresa.id,
+    razon_social: empresa.razon_social,
+    nombre_comercial: empresa.nombre_comercial,
+    categoria: "empresa_socia",
+    ya_es_socio: empresa.es_socia_uiab === true,
+    localidad: empresa.localidad,
+    referente_nombre: d.referente_nombre.trim(),
+    email: d.email,
+    telefono: limpiar(d.telefono),
+    mensaje: limpiar(d.mensaje),
+  });
+
+  if (error) {
+    return { error: "No pudimos guardar tu pedido. Probá de nuevo en un momento." };
+  }
+
+  await enviarEmail({
+    para: d.email,
+    asunto: `Recibimos tu pedido de acceso a la ficha de ${nombre}`,
+    html: renderEmailBase({
+      preheader: "Te avisamos por mail cuando tu usuario esté listo.",
+      titulo: "Recibimos tu pedido",
+      intro: `Hola ${d.referente_nombre.trim()}, recibimos tu pedido para manejar la ficha de ${escapeText(nombre)}.`,
+      cuerpo: `
+        <p style="margin:0 0 16px 0;"><strong>Todavía no tenés cuenta.</strong> Alguien de la Unión Industrial de Almirante Brown va a confirmar que trabajás ahí y te vamos a mandar otro mail, a esta misma dirección, con un enlace para que elijas tu contraseña. Suele tardar hasta 3 días hábiles.</p>
+        <p style="margin:0;">No hace falta que hagas nada hasta que llegue ese mail.</p>
+      `,
+      cta: {
+        etiqueta: "Escribirnos por WhatsApp",
+        href: ayudaWhatsApp(CONSULTAS.altaDemorada),
+      },
+      pie: "Si no pediste esto, podés ignorar este correo.",
+    }),
+    texto: `Hola ${d.referente_nombre.trim()}, recibimos tu pedido para manejar la ficha de ${nombre}. Te vamos a mandar otro mail con un enlace para elegir tu contraseña.`,
+  });
+
+  await enviarEmail({
+    para: emailAdmin(),
+    asunto: `Reclamo de ficha: ${nombre}`,
+    html: renderEmailBase({
+      preheader: `${nombre} — reclamo de ficha`,
+      titulo: "Alguien reclama una ficha del directorio",
+      intro: `${d.referente_nombre.trim()} pide el acceso a la ficha de ${escapeText(nombre)}.`,
+      cuerpo: `
+        <p style="margin:0 0 8px 0;"><strong>Empresa:</strong> ${escapeText(nombre)}</p>
+        <p style="margin:0 0 8px 0;"><strong>Persona:</strong> ${escapeText(d.referente_nombre.trim())}</p>
+        <p style="margin:0 0 8px 0;"><strong>Email:</strong> ${escapeText(d.email)}</p>
+        ${d.telefono ? `<p style="margin:0 0 8px 0;"><strong>Teléfono:</strong> ${escapeText(d.telefono.trim())}</p>` : ""}
+        <p style="margin:16px 0 0 0;color:#525b63;font-size:13px;">La solicitud ya viene vinculada a la ficha, así que con "Crear cuenta y dar acceso" alcanza. Confirmá antes que la persona trabaje ahí.</p>
+      `,
+      cta: { etiqueta: "Revisar en el panel", href: `${appUrl()}/admin/altas` },
+    }),
+    texto: `Reclamo de ficha: ${nombre} — ${d.referente_nombre.trim()} (${d.email}). Revisar en ${appUrl()}/admin/altas`,
+  });
+
+  revalidatePath("/admin/altas");
+  revalidatePath("/admin");
+
+  return { success: true as const, empresa: nombre };
 }

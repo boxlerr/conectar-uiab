@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SelectUIAB } from "@/components/ui/select-uiab";
-import { CheckCircle2, Send, Loader2, PartyPopper, ShieldCheck, Users } from "lucide-react";
+import { CheckCircle2, Send, Loader2, PartyPopper, ShieldCheck, Users, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { CATEGORIAS_ALTA, type AltaSocioInput } from "@/modulos/altas/constantes
 import { LOCALIDADES_ALMIRANTE_BROWN } from "@/lib/datos/geografia-ar";
 import { normalizarSitioWeb } from "@/lib/utilidades";
 import { llamarAccion } from "@/lib/accion-segura";
+import { ayudaWhatsApp, CONSULTAS } from "@/lib/soporte";
 
 const ESTADO_INICIAL = {
   razon_social: "",
@@ -63,10 +64,14 @@ export function FormularioAlta({
     if (!form.razon_social.trim()) return toast.error("Ingresá la razón social de tu empresa.");
     if (!form.referente_nombre.trim()) return toast.error("Ingresá el nombre del referente.");
     if (!form.email.trim()) return toast.error("Ingresá un email de contacto.");
+    // Antes decía "Este formulario es exclusivo para organizaciones socias…
+    // Si no sos socio, podés crear tu cuenta desde el registro". Lo que pasó es
+    // que faltó tildar una casilla; lo que la persona leía era un rechazo
+    // institucional que la mandaba de vuelta al lugar del que venía rebotada.
     if (!form.ya_es_socio)
-      return toast.error(
-        "Este formulario es exclusivo para organizaciones socias de la UIAB. Si no sos socio, podés crear tu cuenta desde el registro."
-      );
+      return toast.error("Falta confirmar que tu empresa es socia de la UIAB.", {
+        description: 'Está más arriba, al final de "Datos de la empresa".',
+      });
     if (!consentimiento)
       return toast.error("Necesitamos tu consentimiento para tratar los datos.");
 
@@ -79,7 +84,9 @@ export function FormularioAlta({
       if ("duplicado" in res && res.duplicado) {
         toast.info(res.mensaje ?? "Ya teníamos tu solicitud.");
       } else {
-        toast.success("¡Datos enviados! Te vamos a contactar pronto.");
+        toast.success("Recibimos tu pedido.", {
+          description: "Te va a llegar un mail para elegir tu contraseña.",
+        });
       }
       setEnviado(true);
       router.refresh(); // refresca el listado público
@@ -108,32 +115,43 @@ export function FormularioAlta({
         <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-6">
           <PartyPopper className="w-8 h-8 text-emerald-600" />
         </div>
+        {/* Antes decía "¡Listo, recibimos tus datos!" y "se va a comunicar con
+            vos", con botones para cargar otra empresa o ir al directorio. Tres
+            problemas juntos: sonaba a trámite terminado cuando la persona
+            todavía NO tiene cuenta, prometía un contacto que en realidad es un
+            mail, y los botones la sacaban del flujo justo en el momento en que
+            hay que dejarla esperando una cosa concreta. Lo único que tiene que
+            quedarle grabado es qué mail va a llegar y qué hacer si no llega. */}
         <h3
           className="text-2xl font-bold text-[#00213f] mb-3 tracking-tight"
           style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
         >
-          ¡Listo, recibimos tus datos!
+          Recibimos tu pedido
         </h3>
-        <p className="text-slate-600 max-w-md mx-auto mb-8">
-          El equipo de la Unión Industrial de Almirante Brown va a revisar la información y se va a
-          comunicar con vos para activar el acceso de tu empresa a UIAB Conecta.
-        </p>
+        <div className="text-slate-600 max-w-md mx-auto mb-8 space-y-3 text-left sm:text-center">
+          <p>
+            <span className="font-bold text-[#00213f]">Todavía no tenés cuenta.</span> Alguien de
+            la UIAB va a revisar los datos
+            {form.razon_social.trim() ? ` de ${form.razon_social.trim()}` : ""} y te va a mandar un
+            mail a <span className="font-semibold text-[#00213f]">{form.email.trim()}</span> para
+            que elijas tu contraseña. Suele tardar hasta 3 días hábiles.
+          </p>
+          <p>
+            Lo único que tenés que hacer es esperar ese mail. Si no lo ves, fijate en{" "}
+            <span className="font-semibold">Correo no deseado</span> o{" "}
+            <span className="font-semibold">Promociones</span>.
+          </p>
+        </div>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setForm(ESTADO_INICIAL);
-              setConsentimiento(false);
-              setEnviado(false);
-            }}
+          <a
+            href={ayudaWhatsApp(CONSULTAS.altaDemorada)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-5 h-11 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
           >
-            Cargar otra empresa
-          </Button>
-          <Link href="/directorio">
-            <Button className="bg-[#00213f] hover:bg-[#10375c] text-white w-full">
-              Ver el directorio
-            </Button>
-          </Link>
+            <MessageCircle className="w-4 h-4" aria-hidden="true" />
+            ¿Pasaron más de 3 días? Escribinos
+          </a>
         </div>
       </div>
     );
@@ -150,10 +168,10 @@ export function FormularioAlta({
         <ShieldCheck className="w-5 h-5 text-[#00213f] shrink-0 mt-0.5" />
         <p className="text-[13px] text-slate-600 leading-relaxed">
           <span className="font-bold text-[#00213f]">
-            Este formulario es exclusivo para organizaciones socias de la UIAB.
+            Al enviar esto no se crea la cuenta todavía.
           </span>{" "}
-          Lo usamos para verificar tus datos contra el padrón y activar tu acceso a la
-          plataforma. ¿No sos socio y querés ofrecer tus productos o servicios?{" "}
+          Alguien de la UIAB revisa los datos contra el padrón y te manda un mail para que
+          elijas tu contraseña. ¿Tu empresa no es socia de la UIAB?{" "}
           <Link href="/register" className="text-primary font-semibold underline">
             Creá tu cuenta acá
           </Link>
@@ -209,7 +227,7 @@ export function FormularioAlta({
               onChange={(e) => set("cuit", e.target.value)}
             />
             <p className="text-[11px] text-slate-400 mt-1.5 ml-1">
-              Si ya sos socio, tu CUIT nos ayuda a encontrarte en el padrón de la UIAB.
+              Ponelo aunque no te acuerdes del formato exacto: nos ayuda a encontrarte en el padrón de la UIAB.
             </p>
           </div>
         </div>
@@ -323,9 +341,14 @@ export function FormularioAlta({
               onChange={(e) => set("email", e.target.value)}
               required
             />
-            <p className="text-[11px] text-slate-400 mt-1.5 ml-1">
-              Con este correo ingresa a la plataforma la persona que va a usar el sistema. No se
-              publica. Los usuarios del resto del equipo se agregan después, desde adentro.
+            {/* Decía "No se publica" y era al revés: este mismo correo se
+                escribe en `empresas.email` (modulos/altas/acciones.ts:400) y es
+                el contacto que muestra la ficha pública — y en el camino de
+                fusión con el padrón además pisa al que ya había. */}
+            <p className="text-[11px] text-slate-500 mt-1.5 ml-1">
+              Con este correo ingresa la persona que va a usar el sistema, y es el que va a figurar
+              como contacto en tu ficha. Después podés cambiarlo desde tu panel, y sumar a los demás
+              usuarios de tu equipo.
             </p>
           </div>
           <div>
@@ -470,9 +493,10 @@ export function FormularioAlta({
         </label>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6">
-          <p className="text-xs text-slate-400 flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            Tus datos los ve el equipo de UIAB (salvo el correo de compras, si lo cargás).
+          <p className="text-xs text-slate-500 leading-relaxed max-w-sm">
+            <span className="font-semibold text-slate-700">Qué se publica en tu ficha:</span> el
+            nombre de tu empresa, el rubro, la localidad, el teléfono y los correos de contacto.
+            Tu nombre y tu cargo los ve sólo el equipo de la UIAB.
           </p>
           <Button
             type="submit"

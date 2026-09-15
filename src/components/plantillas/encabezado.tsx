@@ -252,18 +252,25 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
       ];
 
   // Visitantes sin sesión: desplegable informativo con las categorías de la red.
-  // OJO: el formulario de alta (/sumate) NO se linkea acá — es solo para socias
-  // y el admin comparte el link directo desde /admin/altas.
+  //
+  // Este ítem se llamaba "Sumate" y apuntaba a /empresas, con un comentario que
+  // explicaba que /sumate no se linkeaba porque el alta era sólo para socias.
+  // El problema: el rótulo prometía una acción y entregaba un catálogo. Alguien
+  // de la UIAB decía por teléfono "entrá y sumate", la persona hacía literalmente
+  // eso y terminaba mirando el listado de empresas. Y encima el href nunca se
+  // usaba — con `groups` el header lo renderiza como <button> que sólo abre el
+  // desplegable. Ahora el desplegable se llama por lo que es, y "Sumate" es un
+  // ítem aparte que sí navega (abajo).
   if (!currentUser) {
     navigation.splice(2, 0, {
-      name: "Sumate",
+      name: "Empresas y entidades",
       href: "/empresas",
-      icon: UserPlus,
+      icon: Building,
       groups: [
         {
-          name: "Conocé la red UIAB",
-          icon: UserPlus,
-          description: "Las categorías del directorio de la UIAB",
+          name: "Categorías del directorio",
+          icon: Building,
+          description: "Todo lo que ya está publicado en UIAB Conecta",
           items: [
             {
               name: "Empresas industriales socias UIAB",
@@ -298,6 +305,16 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
           ],
         },
       ],
+    });
+
+    // La puerta de entrada, que hasta ahora no existía en ningún lado del sitio
+    // público: sin `groups` el header lo renderiza como <Link> y navega de
+    // verdad. Va después del desplegable a propósito — primero se muestra lo que
+    // hay, después se invita a entrar.
+    navigation.splice(3, 0, {
+      name: "Sumate",
+      href: "/sumate",
+      icon: UserPlus,
     });
   }
 

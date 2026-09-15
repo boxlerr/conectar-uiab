@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { appUrl, enviarEmail } from "@/lib/email/cliente";
 import { renderEmailBase } from "@/lib/email/plantillas";
+import { WHATSAPP_UIAB_LEGIBLE } from "@/lib/soporte";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Núcleo del flujo de invitación por token propio (sin vencimiento en horas).
@@ -69,21 +70,32 @@ export async function generarYEnviarInvitacion(params: {
 
   const link = `${appUrl()}/definir-password?token=${token}`;
 
+  /**
+   * El asunto decía "Tu acceso a UIAB Conecta está listo" y el titular
+   * "¡Tu cuenta está activa!". Las dos cosas son falsas: en ese momento existe
+   * un usuario de Auth SIN contraseña, o sea que no se puede entrar. Y es el
+   * último mail antes de convertir, lo primero que se lee en la preview del
+   * celular: el que lo abre se queda tranquilo, no clickea, y a los 30 días el
+   * enlace muere. El asunto ahora es la acción que falta, no una felicitación.
+   *
+   * Lo de "tomate el tiempo que necesites" iba en la misma dirección y también
+   * se fue: el enlace tiene fecha de vencimiento, hay que decirlo sin adornos.
+   */
   const res = await enviarEmail({
     para: email,
-    asunto: "Tu acceso a UIAB Conecta está listo",
+    asunto: "Elegí tu contraseña para entrar a UIAB Conecta",
     html: renderEmailBase({
-      preheader: "Definí tu contraseña y entrá al directorio de UIAB Conecta.",
-      titulo: "¡Tu cuenta está activa!",
-      intro: `Hola ${params.referenteNombre}, creamos el acceso de ${params.nombreEmpresa} a UIAB Conecta.`,
+      preheader: "Un solo paso y entrás al directorio.",
+      titulo: "Falta un paso: elegí tu contraseña",
+      intro: `Hola ${params.referenteNombre}, ya te preparamos el acceso de ${params.nombreEmpresa} a UIAB Conecta.`,
       cuerpo: `
-        <p style="margin:0 0 16px 0;">Solo falta que definas tu contraseña para empezar a usar la plataforma. Al ingresar por primera vez te vamos a guiar con un tutorial rápido.</p>
-        <p style="margin:0;color:#525b63;font-size:13px;">Este enlace es personal y válido por ${DIAS_VALIDEZ_INVITACION} días. Tomate el tiempo que necesites: si se vence, el equipo de UIAB puede reenviártelo.</p>
+        <p style="margin:0 0 16px 0;">Para poder entrar tenés que elegir una contraseña. Es un solo paso y son dos minutos.</p>
+        <p style="margin:0;color:#525b63;font-size:13px;">El enlace es tuyo y sirve una sola vez. Tenés ${DIAS_VALIDEZ_INVITACION} días para usarlo; después hay que pedir uno nuevo.</p>
       `,
-      cta: { etiqueta: "Definir mi contraseña", href: link },
-      pie: "Si no esperabas este correo, podés ignorarlo con tranquilidad.",
+      cta: { etiqueta: "Elegir mi contraseña", href: link },
+      pie: `¿No te funciona el enlace? Escribinos por WhatsApp al ${WHATSAPP_UIAB_LEGIBLE}.`,
     }),
-    texto: `Hola ${params.referenteNombre}, tu acceso a UIAB Conecta (${params.nombreEmpresa}) está listo. Definí tu contraseña (enlace válido por ${DIAS_VALIDEZ_INVITACION} días): ${link}`,
+    texto: `Hola ${params.referenteNombre}: para entrar a UIAB Conecta (${params.nombreEmpresa}) falta que elijas tu contraseña. Enlace de un solo uso, válido por ${DIAS_VALIDEZ_INVITACION} días: ${link}`,
   });
 
   if (res.skipped) {
