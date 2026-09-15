@@ -1,4 +1,3 @@
-import { createClient as createServerClient } from "@/lib/supabase/servidor";
 import { createClient } from "@supabase/supabase-js";
 import { crearSlug, nombreDeFichaParticular, normalizarSitioWeb, normalizarSitiosWeb } from "@/lib/utilidades";
 import { notFound } from "next/navigation";
@@ -6,7 +5,7 @@ import Link from "next/link";
 import { ResenasPerfil } from "@/components/ui/directorio/ResenasPerfil";
 import { CatalogoPublico, type CatalogoItem } from "@/components/ui/directorio/catalogo-publico";
 import { ModalContacto } from "@/components/ui/directorio/modal-contacto";
-import { MapPin, Mail, Phone, Globe, CheckCircle2, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Lock, Tag, Award, FileText, Star, PackageSearch, ShieldCheck, Users, Layers } from "lucide-react";
+import { MapPin, Mail, Phone, Globe, CheckCircle2, Building2, Wrench, User, Briefcase, ArrowRight, Clock, Tag, Award, FileText, Star, PackageSearch, ShieldCheck, Users, Layers } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   CabeceraFicha,
@@ -269,48 +268,11 @@ function PanelCertificaciones({ certs, accent }: { certs: CertFicha[]; accent: "
   );
 }
 
-// ── Gate overlay shown to unauthenticated visitors ──
-// El min-h del wrapper es necesario: las 3 filas fantasma suman ~204px pero la tarjeta
-// absolute inset-0 mide ~340px, asi que sin alto minimo sobresale y pisa la seccion de al lado.
-function LoginGate({ currentPath }: { currentPath: string }) {
-  return (
-    <div className="relative min-h-[360px] sm:min-h-[300px]">
-      {/* Blurred preview rows */}
-      <div className="pointer-events-none select-none" aria-hidden>
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-14 rounded-md bg-slate-100 mb-3 blur-sm opacity-60" />
-        ))}
-      </div>
-
-      {/* CTA card */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="bg-white border border-slate-200 rounded-xl shadow-lg px-8 py-7 text-center max-w-sm w-full mx-4">
-          <div className="w-10 h-10 bg-[#00213f]/8 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Lock className="w-5 h-5 text-[#00213f]" />
-          </div>
-          <h3 className="font-manrope font-bold text-[#00213f] text-base mb-1">
-            Contenido exclusivo para miembros
-          </h3>
-          <p className="text-slate-500 text-[13px] mb-5 leading-relaxed">
-            Ingresá para ver el catálogo completo, reseñas y datos de contacto.
-          </p>
-          <Link
-            href={`/login?redirect=${encodeURIComponent(currentPath)}`}
-            className="flex items-center justify-center w-full bg-[#00213f] hover:bg-[#10375c] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-white rounded transition-colors tracking-[0.15em] uppercase mb-2"
-          >
-            Ingresar
-          </Link>
-          <Link
-            href={`/register?redirect=${encodeURIComponent(currentPath)}`}
-            className="flex items-center justify-center w-full border border-slate-200 hover:border-[#00213f] px-5 py-3 md:py-2.5 min-h-11 text-xs font-bold text-slate-600 hover:text-[#00213f] rounded transition-colors tracking-[0.15em] uppercase"
-          >
-            Crear cuenta gratis
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
+// El gate de login que vivía acá se eliminó el 2026-09-15. Escondía el catálogo
+// —el único texto propio que tienen la mayoría de las fichas— y encima decía
+// "Ingresá para ver … datos de contacto" cuando el contacto ya estaba a la
+// vista en la barra lateral. Decisión de producto: fichas lo más públicas
+// posible, que es lo que empuja el posicionamiento.
 
 // ── SEO: datos mínimos por slug (empresa o proveedor) para metadata + JSON-LD ──
 async function datosSeoPorSlug(slug: string) {
@@ -481,6 +443,23 @@ function jsonLdOrganizacion(opts: {
   telefono?: string | null;
   email?: string | null;
   cuit?: string | null;
+  /** Nombre de fantasía, cuando difiere de la razón social. */
+  nombreComercial?: string | null;
+  /** Rubros y etiquetas ya cargados: lo que la empresa sabe hacer. */
+  especialidades?: readonly string[] | null;
+  /** Ítems publicados del catálogo, para emitir el OfferCatalog. */
+  catalogo?: readonly {
+    nombre: string;
+    tipo: "producto" | "servicio";
+    descripcion?: string | null;
+    imagen?: string | null;
+  }[] | null;
+  /** Normas que la empresa declara, con organismo y número si los cargó. */
+  certificaciones?: readonly {
+    etiqueta: string;
+    organismo?: string | null;
+    numero?: string | null;
+  }[] | null;
 }) {
   const tel = telefonoE164(opts.telefono);
   const web = normalizarSitioWeb(opts.sitioWeb);
@@ -512,6 +491,18 @@ function jsonLdOrganizacion(opts: {
     "@type": "Organization",
     "@id": `${opts.url}#organizacion`,
     name: opts.nombre,
+    /**
+     * El nombre de fantasía, que es por el que la conocen.
+     *
+     * 20 de las 59 socias tienen un `nombre_comercial` distinto de la razón
+     * social y hasta ahora no aparecía en ningún lado del grafo: quien busca
+     * "Pinturería Giannoni" no encontraba la ficha de la razón social. Es el
+     * mismo problema que resuelve `alternateName` para la propia UIAB.
+     */
+    ...(opts.nombreComercial?.trim() &&
+    opts.nombreComercial.trim().toLowerCase() !== opts.nombre.trim().toLowerCase()
+      ? { alternateName: opts.nombreComercial.trim() }
+      : {}),
     url: opts.url,
     mainEntityOfPage: opts.url,
     ...(opts.descripcion ? { description: opts.descripcion } : {}),
@@ -530,6 +521,71 @@ function jsonLdOrganizacion(opts: {
             "@type": "PropertyValue",
             propertyID: "CUIT",
             value: opts.cuit.trim(),
+          },
+        }
+      : {}),
+    /**
+     * Qué sabe hacer. Sale de los rubros y las etiquetas que ya están cargados
+     * (54 socias tienen), o sea que no agrega ni una palabra inventada: es el
+     * mismo dato que ya se renderiza en la sección "Servicios y especialidades",
+     * declarado de forma que Google pueda leerlo.
+     *
+     * Es la señal que más puede rendir en las consultas de DESCUBRIMIENTO
+     * ("proveedor de mecanizado en Almirante Brown"), que es donde el directorio
+     * compite de verdad — contra el nombre propio de la socia siempre pierde.
+     */
+    ...(opts.especialidades?.length
+      ? { knowsAbout: [...new Set(opts.especialidades.map((e) => e.trim()).filter(Boolean))] }
+      : {}),
+    /**
+     * Las normas declaradas. Ojo con el encuadre: la UIAB NO verifica ni audita
+     * certificaciones (es una decisión tomada), así que esto describe lo que la
+     * empresa declara, no un sello nuestro. Por eso no se emite ningún campo que
+     * sugiera validación de terceros.
+     */
+    ...(opts.certificaciones?.length
+      ? {
+          hasCredential: opts.certificaciones.map((c) => ({
+            "@type": "EducationalOccupationalCredential",
+            credentialCategory: "certification",
+            name: c.etiqueta,
+            ...(c.organismo?.trim()
+              ? { recognizedBy: { "@type": "Organization", name: c.organismo.trim() } }
+              : {}),
+            ...(c.numero?.trim() ? { identifier: c.numero.trim() } : {}),
+          })),
+        }
+      : {}),
+    /**
+     * El catálogo, declarado.
+     *
+     * Es el texto propio más valioso que tiene la ficha: lo escribió la socia,
+     * no se repite en ninguna otra, y hasta el 2026-09-15 vivía detrás del
+     * login — o sea que Googlebot no lo veía y no se podía emitir nada de esto.
+     *
+     * `Product` para los productos y `Service` para los servicios: son cosas
+     * distintas y mezclarlas en `Product` es lo que hace que Search Console
+     * marque "falta offers/price". No se emite `offers` porque ninguna socia
+     * cargó precio (17 de 29 son "a consultar"): inventar uno sería peor que
+     * omitirlo, y un `offers` sin `price` es un error de validación.
+     */
+    ...(opts.catalogo?.length
+      ? {
+          hasOfferCatalog: {
+            "@type": "OfferCatalog",
+            name: `Productos y servicios de ${opts.nombre}`,
+            itemListElement: opts.catalogo.map((it) => ({
+              "@type": "ListItem",
+              item: {
+                "@type": it.tipo === "producto" ? "Product" : "Service",
+                name: it.nombre,
+                ...(it.descripcion?.trim() ? { description: it.descripcion.trim() } : {}),
+                ...(it.imagen ? { image: it.imagen } : {}),
+                ...(it.tipo === "servicio"
+                  ? { provider: { "@id": `${opts.url}#organizacion` } }
+                  : { brand: { "@id": `${opts.url}#organizacion` } }),
+              },
+            })),
           },
         }
       : {}),
@@ -711,17 +767,18 @@ export default async function EmpresaProfilePage({
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
-  // Auth check and the empresas fetch are independent → run them in parallel
-  const serverClient = await createServerClient();
+  // Ya no se consulta la sesión: la ficha es íntegramente pública, así que no
+  // hay nada que ramificar por usuario. Eso ahorra además un round-trip a Auth
+  // en cada visita, que es la mayoría del tráfico de estas páginas.
   const supabase = createAdminClient();
 
-  const [{ data: { user } }, { data: empresasData }] = await Promise.all([
-    serverClient.auth.getUser(),
+  const [{ data: empresasData }] = await Promise.all([
     supabase
       .from('empresas')
       .select(`
         id,
         razon_social,
+        nombre_comercial,
         direccion,
         localidad,
         provincia,
@@ -755,8 +812,6 @@ export default async function EmpresaProfilePage({
       `)
       .eq('estado', 'aprobada'),
   ]);
-
-  const isAuthenticated = !!user;
 
   const empresaDb = empresasData?.find((emp: any) => crearSlug(emp.razon_social) === slug);
 
@@ -806,7 +861,6 @@ export default async function EmpresaProfilePage({
     return (
       <ProveedorProfile
         provDb={filaSerializable(provDb)}
-        isAuthenticated={isAuthenticated}
         currentPath={`/empresas/${slug}`}
       />
     );
@@ -825,7 +879,6 @@ export default async function EmpresaProfilePage({
       empresaDb={filaSerializable(empresaDb)}
       rubrosConLanding={rubrosConLanding}
       hermanas={hermanas}
-      isAuthenticated={isAuthenticated}
       currentPath={`/empresas/${slug}`}
     />
   );
@@ -838,13 +891,11 @@ async function EmpresaProfile({
   empresaDb,
   rubrosConLanding,
   hermanas,
-  isAuthenticated,
   currentPath,
 }: {
   empresaDb: any;
   rubrosConLanding: RubroConLanding[];
   hermanas: EmpresaHermana[];
-  isAuthenticated: boolean;
   currentPath: string;
 }) {
   /**
@@ -894,13 +945,49 @@ async function EmpresaProfile({
     totalResenas > 0 ? notas.reduce((a: number, b: number) => a + b, 0) / totalResenas : null;
   const totalItems = itemsPub.count ?? 0;
 
-  // Only fetch heavy data when authenticated to avoid wasted DB calls
+  /**
+   * ¿Esta ficha tiene dueño? (o sea: ¿alguien de la empresa tiene cuenta?)
+   *
+   * 35 de las 59 fichas publicadas no tienen ninguna fila en `miembros_empresa`
+   * — medido el 2026-09-15, y son exactamente las mismas 35 que no tienen
+   * descripción propia. Para esas fichas mostramos el botón de reclamo; para el
+   * resto sería ruido, y encima una invitación a que un tercero pida acceso a
+   * una empresa que ya está adentro.
+   *
+   * `head: true` con count exacto: no trae filas, sólo el número.
+   */
+  const { count: miembros } = await supabase
+    .from("miembros_empresa")
+    .select("perfil_id", { count: "exact", head: true })
+    .eq("empresa_id", empresaDb.id);
+  const sinDueno = (miembros ?? 0) === 0;
+
+  /**
+   * Catálogo, oportunidades y reseñas: se traen SIEMPRE, con o sin sesión.
+   *
+   * Antes esto vivía dentro de `if (isAuthenticated)` y era la mayor pérdida de
+   * SEO del proyecto: 29 ítems de 7 socias, ~1.243 palabras de texto único
+   * escrito por ellas, que Googlebot no veía nunca. Sin ese texto la ficha
+   * quedaba en puro boilerplate compartido con las otras 58 — el problema de
+   * thin content que ninguna optimización de metadata compensa. Y sin los ítems
+   * renderizados tampoco se podía emitir `Product`/`OfferCatalog`.
+   *
+   * Qué se expone de nuevo: nada que no fuera ya público. El contacto (correo,
+   * teléfono, WhatsApp, web) ya se veía sin cuenta en la barra lateral, las
+   * oportunidades ya se sirven sin sesión en /oportunidades, y los ítems tienen
+   * `estado = 'publicado'`: la socia ya eligió publicarlos. Verificado además
+   * que ninguno tiene precio cargado (17 de 29 son "a consultar"), así que no
+   * se publica ni un número que la empresa no haya querido mostrar.
+   *
+   * Decisión de producto de Julián (2026-09-15): las fichas lo más públicas
+   * posible, porque es lo que empuja el posicionamiento.
+   */
   let finalResenas: any[] = [];
   let oportunidadesActivas: any[] = [];
   let catalogoItems: CatalogoItem[] = [];
 
-  if (isAuthenticated) {
-    // The three authenticated fetches are independent → run them in parallel
+  {
+    // Las tres consultas son independientes → en paralelo
     const [resenasRes, opsRes, catalogo] = await Promise.all([
       supabase
         .from('resenas')
@@ -1175,6 +1262,21 @@ async function EmpresaProfile({
                 telefono: empresaDb.telefono || empresaDb.whatsapp || null,
                 email: empresaDb.email || null,
                 cuit: empresaDb.cuit || null,
+                nombreComercial: empresaDb.nombre_comercial,
+                // Rubros + etiquetas, que es exactamente lo que la ficha ya
+                // muestra en "Servicios y especialidades".
+                especialidades: [...cats, ...tagsEmpresa.map((t) => t.nombre)].filter(Boolean),
+                catalogo: catalogoItems.map((it) => ({
+                  nombre: it.nombre,
+                  tipo: it.tipo_item,
+                  descripcion: it.descripcion_corta || it.descripcion_larga,
+                  imagen: it.imagenes?.[0]?.url ?? null,
+                })),
+                certificaciones: certs.map((c: CertFicha) => ({
+                  etiqueta: etiquetaNorma(c.codigo_norma, c.nombre_libre),
+                  organismo: c.organismo_certificador,
+                  numero: c.numero_certificado,
+                })),
               })
             ),
           }}
@@ -1290,93 +1392,93 @@ async function EmpresaProfile({
               </section>
             )}
 
-            {/* Gated content */}
-            {isAuthenticated ? (
-              <>
-                {catalogoItems.length > 0 && (
-                  <CatalogoPublico
-                    items={catalogoItems}
-                    colorScheme="blue"
-                    contacto={{
-                      nombre: empresa.nombre,
-                      email: empresaDb.email || null,
-                      whatsapp: empresa.contacto.whatsapp || null,
-                    }}
-                  />
-                )}
+            {/* Contenido público.
+                Estaba detrás de `isAuthenticated`. El gate que iba acá abajo
+                prometía "el catálogo completo, reseñas y datos de contacto" —
+                y el contacto ya se veía sin cuenta tres centímetros a la
+                derecha, así que además de esconder el mejor contenido de la
+                ficha, mentía sobre lo que escondía. */}
+              {catalogoItems.length > 0 && (
+                <CatalogoPublico
+                  items={catalogoItems}
+                  colorScheme="blue"
+                  contacto={{
+                    nombre: empresa.nombre,
+                    email: empresaDb.email || null,
+                    whatsapp: empresa.contacto.whatsapp || null,
+                  }}
+                />
+              )}
 
-                {oportunidadesActivas.length > 0 && (
-                  <section className={`${TARJETA} overflow-hidden`}>
-                    <div className="px-5 pt-5 sm:px-7 sm:pt-7">
-                      <CabeceraSeccion
-                        icono={Briefcase}
-                        titulo={`Oportunidades publicadas (${oportunidadesActivas.length})`}
-                        accent="blue"
-                        extra={
-                          <Link href="/oportunidades" className="group flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.15em] text-slate-400 transition-colors hover:text-blue-600">
-                            Ver todas
-                            <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                          </Link>
-                        }
-                      />
-                    </div>
+              {oportunidadesActivas.length > 0 && (
+                <section className={`${TARJETA} overflow-hidden`}>
+                  <div className="px-5 pt-5 sm:px-7 sm:pt-7">
+                    <CabeceraSeccion
+                      icono={Briefcase}
+                      titulo={`Oportunidades publicadas (${oportunidadesActivas.length})`}
+                      accent="blue"
+                      extra={
+                        <Link href="/oportunidades" className="group flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.15em] text-slate-400 transition-colors hover:text-blue-600">
+                          Ver todas
+                          <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                        </Link>
+                      }
+                    />
+                  </div>
 
-                    <ul className="divide-y divide-slate-100 border-t border-slate-100">
-                      {oportunidadesActivas.map((op: any) => (
-                        <li key={op.id}>
-                          <Link href={`/oportunidades/${op.id}`} className="group flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-slate-50 sm:px-7">
-                            <div className="min-w-0 flex-1">
-                              <h4 className="text-[#00213f] font-bold text-[15px] leading-snug group-hover:text-blue-700 transition-colors truncate">{op.titulo}</h4>
-                              <p className="text-slate-500 text-[12px] font-medium mt-0.5">
-                                <span className="text-slate-600">{(op.categoria as any)?.nombre || "Industrial"}</span>
-                                <span className="mx-1.5 text-slate-300">·</span>
-                                <span>{new Date(op.creado_en).toLocaleDateString("es-AR", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-3 shrink-0">
-                              <span className="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider rounded-sm border border-emerald-200">
-                                Abierta
-                              </span>
-                              <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                            </div>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
+                  <ul className="divide-y divide-slate-100 border-t border-slate-100">
+                    {oportunidadesActivas.map((op: any) => (
+                      <li key={op.id}>
+                        <Link href={`/oportunidades/${op.id}`} className="group flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-slate-50 sm:px-7">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-[#00213f] font-bold text-[15px] leading-snug group-hover:text-blue-700 transition-colors truncate">{op.titulo}</h4>
+                            <p className="text-slate-500 text-[12px] font-medium mt-0.5">
+                              <span className="text-slate-600">{(op.categoria as any)?.nombre || "Industrial"}</span>
+                              <span className="mx-1.5 text-slate-300">·</span>
+                              <span>{new Date(op.creado_en).toLocaleDateString("es-AR", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider rounded-sm border border-emerald-200">
+                              Abierta
+                            </span>
+                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
-                <div data-tour="ficha-resenas">
-                  <ResenasPerfil resenasAprobadas={finalResenas} targetType="empresa" targetId={empresaDb.id} />
-                </div>
-              </>
-            ) : (
-              /*
-                El gate SÓLO se muestra si detrás hay algo.
-                Antes se renderizaba en las 59 fichas prometiendo "el catálogo
-                completo, reseñas y datos de contacto", cuando hay 0 reseñas
-                aprobadas en toda la base, 0 oportunidades abiertas y sólo 4
-                empresas con catálogo publicado. O sea: en 55 fichas era una
-                promesa vacía y ~30 palabras de plantilla idéntica que además
-                empeoraban el problema de contenido duplicado entre fichas.
-                `totalItems` y `totalResenas` ya se calculaban acá arriba: es un if.
-              */
-              (totalItems > 0 || totalResenas > 0) && (
-                <div className={`${TARJETA} p-5 sm:p-7`}>
-                  <CabeceraSeccion
-                    icono={Briefcase}
-                    accent="blue"
-                    titulo={
-                      totalItems > 0 && totalResenas > 0
-                        ? "Catálogo y reseñas"
-                        : totalItems > 0
-                          ? "Catálogo de productos y servicios"
-                          : "Reseñas de la red"
-                    }
-                  />
-                  <LoginGate currentPath={currentPath} />
-                </div>
-              )
+              <div data-tour="ficha-resenas">
+                <ResenasPerfil resenasAprobadas={finalResenas} targetType="empresa" targetId={empresaDb.id} />
+              </div>
+
+
+            {/* ─── "Esta ficha es mía" ───
+                Sólo aparece si NADIE de la empresa tiene cuenta todavía. Son 35
+                de las 59 fichas: la UIAB las cargó del padrón y la empresa nunca
+                se enteró de que existen. Es el patrón "reclamar este perfil" de
+                Google Business Profile — el punto de entrada va donde la persona
+                ya está mirando su propia empresa, no escondido en /sumate.
+                En cuanto alguien de la empresa entra, el bloque desaparece solo. */}
+            {sinDueno && (
+              <section className={`${TARJETA} p-5 sm:p-7`}>
+                <h2 className="font-manrope text-lg font-bold tracking-tight text-[#00213f]">
+                  ¿Trabajás en {empresa.nombre}?
+                </h2>
+                <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
+                  Esta ficha todavía no la maneja nadie de la empresa. Pedí el acceso y vas a poder
+                  editar los datos, subir el logo y contar a qué se dedican.
+                </p>
+                <Link
+                  href={`/reclamar/${empresaDb.id}`}
+                  className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-[#00213f] px-5 text-[14px] font-bold text-white transition-colors hover:bg-[#10375c]"
+                >
+                  Pedir el acceso a esta ficha
+                </Link>
+              </section>
             )}
           </main>
 
@@ -1582,11 +1684,9 @@ async function EmpresaProfile({
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function ProveedorProfile({
   provDb,
-  isAuthenticated,
   currentPath,
 }: {
   provDb: any;
-  isAuthenticated: boolean;
   currentPath: string;
 }) {
   // Ver el comentario de EmpresaProfile: el cliente no viaja por prop.
@@ -1625,9 +1725,9 @@ async function ProveedorProfile({
   // Los prestadores de servicios no son calificados: no se traen reseñas.
   let catalogoItems: CatalogoItem[] = [];
 
-  if (isAuthenticated) {
-    catalogoItems = await fetchCatalogoItems(supabase, "provider", provDb.id);
-  }
+  // Público, igual que en las fichas de empresa: los ítems tienen
+  // `estado = 'publicado'` y su texto es lo único propio que tiene la ficha.
+  catalogoItems = await fetchCatalogoItems(supabase, "provider", provDb.id);
 
   const proveedor = {
     nombre: displayName,
@@ -1823,26 +1923,17 @@ async function ProveedorProfile({
               </div>
             </section>
 
-            {/* Gated content — los prestadores no reciben reseñas, solo catálogo */}
-            {isAuthenticated ? (
-              catalogoItems.length > 0 && (
-                <CatalogoPublico
-                  items={catalogoItems}
-                  colorScheme="amber"
-                  contacto={{
-                    nombre: proveedor.nombre,
-                    email: provDb.email || null,
-                    whatsapp: provDb.telefono || null,
-                  }}
-                />
-              )
-            ) : (
-              totalItems > 0 && (
-                <div className={`${TARJETA} p-5 sm:p-7`}>
-                  <CabeceraSeccion icono={Briefcase} titulo="Catálogo" accent="amber" />
-                  <LoginGate currentPath={currentPath} />
-                </div>
-              )
+            {/* Catálogo público — los prestadores no reciben reseñas */}
+            {catalogoItems.length > 0 && (
+              <CatalogoPublico
+                items={catalogoItems}
+                colorScheme="amber"
+                contacto={{
+                  nombre: proveedor.nombre,
+                  email: provDb.email || null,
+                  whatsapp: provDb.telefono || null,
+                }}
+              />
             )}
           </main>
 
