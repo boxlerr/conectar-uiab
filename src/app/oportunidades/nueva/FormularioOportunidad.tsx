@@ -23,7 +23,7 @@ import {
   ListOrdered,
   Target,
   Tag,
-  ShieldCheck,
+  Globe,
   ArrowRight,
   CheckCircle2,
   Package,
@@ -748,16 +748,22 @@ export function FormularioOportunidad({
           {/* Footer de acciones: sticky dentro de la tarjeta */}
           <div className="sticky bottom-0 z-20 rounded-b-2xl border-t border-slate-200/70 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 shadow-[0_-8px_24px_-18px_rgba(15,23,42,0.25)]">
             <div className="flex items-start gap-2.5">
-              <ShieldCheck
-                className="h-5 w-5 shrink-0 text-emerald-500"
+              {/* Decía "Visible sólo para socias · Tu requerimiento no es
+                  público" con un escudo verde, y las dos cosas eran falsas:
+                  /oportunidades se sirve sin sesión y los adjuntos van a un
+                  bucket público. Prometer confidencialidad donde no la hay es
+                  peor que no decir nada, así que el aviso ahora dice lo que
+                  realmente pasa — y el ícono acompaña (globo, no escudo). */}
+              <Globe
+                className="h-5 w-5 shrink-0 text-amber-500"
                 aria-hidden="true"
               />
               <p className="text-xs leading-snug text-slate-500">
                 <span className="font-semibold text-slate-700">
-                  Visible sólo para empresas socias y prestadores verificados de la UIAB.
+                  Tu pedido se publica y lo puede ver cualquiera, también sin cuenta.
                 </span>
                 <br />
-                Tu requerimiento no es público · {totalEtiquetas} etiqueta
+                No pongas datos que no quieras hacer públicos · {totalEtiquetas} etiqueta
                 {totalEtiquetas === 1 ? "" : "s"}
               </p>
             </div>
@@ -851,11 +857,15 @@ export function FormularioOportunidad({
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                  <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                {/* Misma corrección que el aviso del footer: acá decía "Sólo lo
+                    ven empresas socias. No es público" y es al revés. Como el
+                    dato real es una ventaja, se cuenta como ventaja. */}
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                  <Globe className="h-4 w-4" aria-hidden="true" />
                 </span>
                 <span className="pt-1.5">
-                  Sólo lo ven empresas socias y prestadores verificados. No es público.
+                  Además de avisarle a las socias que encajan, tu pedido queda publicado: también
+                  te puede encontrar alguien de afuera de la red.
                 </span>
               </li>
             </ul>

@@ -46,8 +46,10 @@ export const pasosOportunidades: PasoConRuta[] = [
     target: '[data-tour="op-hero"]',
     placement: "bottom",
     title: "El tablero del parque",
+    // Decía "pedidos auditados por la UIAB": nadie los audita, se publican al
+    // instante. La UIAB no quiere quedar respaldando pedidos que no revisó.
     content:
-      "Todo lo que ves acá son pedidos auditados por la UIAB. Si sos empresa socia, podés publicar los tuyos desde el botón 'Publicar Oportunidad' arriba a la derecha.",
+      "Acá se publican los pedidos de compra y contratación de las empresas de la red. Los carga cada empresa y salen al aire al momento. Si sos socia, podés publicar el tuyo desde el botón 'Publicar Oportunidad' arriba a la derecha.",
     data: { ruta: "/oportunidades" },
   }),
 
