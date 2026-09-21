@@ -64,7 +64,9 @@ function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType,
           )}
           <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></div>
         </div>
-        <span className="text-sm font-semibold text-slate-800 max-w-[120px] truncate">
+        {/* El nombre sólo en xl: entre 1024 y 1279 el nav no deja lugar y el
+            avatar alcanza (el menú abierto dice el nombre completo). */}
+        <span className="hidden xl:inline text-sm font-semibold text-slate-800 max-w-[120px] truncate">
           {currentUser.name.split(' ')[0]}
         </span>
         <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", isOpen && "rotate-180")} />
@@ -220,6 +222,10 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
     href: string;
     icon: typeof Building | null;
     external?: boolean;
+    // Sólo en el drawer mobile: en desktop ya está en el menú del perfil.
+    soloMobile?: boolean;
+    // En desktop se agrupa en el desplegable "Más"; en mobile va suelto.
+    enMas?: boolean;
     children?: NavChild[];
     groups?: NavGroup[];
   };
@@ -241,8 +247,8 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
         { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
         { name: "Panel de Control", href: "/panel-de-control", icon: null },
         { name: "Boletín", href: "/boletin", icon: null },
-        { name: "Contacto", href: "/contacto", icon: null },
-        { name: "Nosotros", href: "/nosotros", icon: null },
+        { name: "Contacto", href: "/contacto", icon: Mail, enMas: true },
+        { name: "Nosotros", href: "/nosotros", icon: Info, enMas: true },
       ]
     : [
         { name: "Inicio", href: "/", icon: null },
@@ -320,7 +326,24 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
   }
 
   if (currentUser?.role === "admin") {
-    navigation.push({ name: "Panel Admin", href: "/admin", icon: Shield });
+    // En desktop no va en la barra: con Boletín el nav logueado llegó a 7
+    // ítems y no entraba (los rótulos largos se partían en dos líneas). El
+    // acceso de escritorio es el menú del perfil, que ya lo tenía.
+    navigation.push({ name: "Panel Admin", href: "/admin", icon: Shield, soloMobile: true });
+  }
+
+  // La barra de escritorio no entra con todo lo de una socia logueada: a 1024px
+  // faltaban ~150px y los rótulos se partían en dos líneas. Lo que se usa poco
+  // (Contacto, Nosotros) se pliega en "Más"; el drawer mobile sigue plano.
+  const plegados = navigation.filter((item) => item.enMas);
+  const navegacionDesktop: NavItem[] = navigation.filter((item) => !item.soloMobile && !item.enMas);
+  if (plegados.length > 0) {
+    navegacionDesktop.push({
+      name: "Más",
+      href: "#mas",
+      icon: null,
+      children: plegados.map((item) => ({ name: item.name, href: item.href, icon: item.icon ?? Info })),
+    });
   }
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -383,7 +406,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
         )}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-20 lg:h-24 items-center justify-between">
+          <div className="flex h-20 lg:h-24 items-center justify-between gap-4">
             {/* Logo */}
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
@@ -452,11 +475,12 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                   style={{ zIndex: 1 }}
                 />
 
-                {navigation.map((item) => {
+                {navegacionDesktop.map((item) => {
                   const allChildren = item.groups?.flatMap(g => g.items) ?? item.children ?? [];
                   const isActive = allChildren.length > 0
                     ? allChildren.some(c => hrefEsActivo(c.href))
-                    : pathname === item.href;
+                    // Las subrutas también cuentan: /boletin/<id> resalta "Boletín".
+                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
                   const Icon = item.icon;
 
                   if (item.children || item.groups) {
@@ -474,14 +498,14 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                           type="button"
                           onClick={() => setOpenDropdown(isOpen ? null : item.name)}
                           className={cn(
-                            "relative px-2.5 xl:px-4 py-2 text-[13px] xl:text-sm font-semibold transition-colors duration-300 rounded-xl flex w-full items-center gap-1.5 xl:gap-2",
+                            "relative px-2.5 xl:px-4 py-2 text-[13px] xl:text-sm font-semibold whitespace-nowrap transition-colors duration-300 rounded-xl flex w-full items-center gap-1.5 xl:gap-2",
                             isActive ? "text-primary-700" : "text-slate-600 hover:text-slate-900"
                           )}
                           style={{ zIndex: 10 }}
                         >
                           {Icon && (
                             <Icon className={cn(
-                              "w-4 h-4 transition-transform duration-300",
+                              "hidden xl:block w-4 h-4 transition-transform duration-300",
                               isActive ? "text-primary-600 scale-110" : "text-slate-400 opacity-70"
                             )} />
                           )}
@@ -589,7 +613,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                       className={cn(
                         // px/gap/tamaño compactados en el escalón lg (1024-1279):
                         // con los valores de xl el nav desbordaba ~133px en iPad apaisado.
-                        "relative px-2.5 xl:px-4 py-2 text-[13px] xl:text-sm font-semibold transition-colors duration-300 rounded-xl flex items-center gap-1.5 xl:gap-2",
+                        "relative px-2.5 xl:px-4 py-2 text-[13px] xl:text-sm font-semibold whitespace-nowrap transition-colors duration-300 rounded-xl flex items-center gap-1.5 xl:gap-2",
                         isActive ? "text-primary-700" : "text-slate-600 hover:text-slate-900"
                       )}
                       style={{ zIndex: 10 }}
@@ -597,7 +621,8 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                     >
                       {Icon && (
                         <Icon className={cn(
-                          "w-4 h-4 transition-transform duration-300",
+                          // Sin ícono en lg: a 1024px cada píxel cuenta.
+                          "hidden xl:block w-4 h-4 transition-transform duration-300",
                           isActive ? "text-primary-600 scale-110" : "text-slate-400 opacity-70"
                         )} />
                       )}
@@ -718,7 +743,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                 <div className="space-y-1">
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Navegación</h4>
                   {navigation.map((item, i) => {
-                    const isActive = pathname === item.href;
+                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                     const Icon = item.icon;
                     return (
                       <motion.div
