@@ -45,12 +45,36 @@ export async function getComunicadosPublicados(limite?: number): Promise<Comunic
     return [];
   }
 
-  return (data ?? []).map((c) => {
-    const fila = c as Comunicado;
-    const imagenUrl =
-      fila.bucket && fila.ruta_imagen
-        ? supabase.storage.from(fila.bucket).getPublicUrl(fila.ruta_imagen).data.publicUrl
-        : null;
-    return { ...fila, imagenUrl };
-  });
+  return (data ?? []).map((c) => conImagen(supabase, c as Comunicado));
+}
+
+/** Un comunicado publicado, para su página. Null si no existe o es borrador. */
+export async function getComunicadoPublicado(id: string): Promise<ComunicadoPublico | null> {
+  // Un id que no es UUID hace fallar la query en Postgres: es un 404, no un error.
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("comunicados")
+    .select(CAMPOS)
+    .eq("id", id)
+    .eq("estado", "publicado")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[boletin] no se pudo leer el comunicado:", error.message);
+    return null;
+  }
+  return data ? conImagen(supabase, data as Comunicado) : null;
+}
+
+function conImagen(
+  supabase: ReturnType<typeof createAdminClient>,
+  fila: Comunicado
+): ComunicadoPublico {
+  const imagenUrl =
+    fila.bucket && fila.ruta_imagen
+      ? supabase.storage.from(fila.bucket).getPublicUrl(fila.ruta_imagen).data.publicUrl
+      : null;
+  return { ...fila, imagenUrl };
 }

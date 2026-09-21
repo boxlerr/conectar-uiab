@@ -40,10 +40,11 @@ function revalidarBoletin() {
 
 /** Recorta y valida lo mínimo del lado del servidor (el form del panel valida lo mismo, pero un action es un POST invocable a mano). */
 function limpiar(datos: DatosComunicado) {
+  // El título es opcional (una publicación de red social no lo lleva): vacío se
+  // guarda como '' — la columna es NOT NULL. Lo que no puede faltar es contenido:
+  // texto, foto, o las dos cosas.
   const titulo = datos.titulo?.trim() ?? "";
   const cuerpo = datos.cuerpo?.trim() ?? "";
-  if (!titulo) return { error: "El título es obligatorio." as const };
-  if (!cuerpo) return { error: "El cuerpo del comunicado es obligatorio." as const };
 
   // La foto sólo puede vivir en la carpeta del boletín. Sin esto, un POST armado
   // a mano podría apuntar `ruta_imagen` al logo de una empresa, y al cambiar la
@@ -51,6 +52,10 @@ function limpiar(datos: DatosComunicado) {
   const ruta = datos.ruta_imagen || null;
   if (ruta && (!ruta.startsWith(`${CARPETA_BOLETIN}/`) || ruta.includes(".."))) {
     return { error: "Ruta de imagen inválida." as const };
+  }
+
+  if (!cuerpo && !ruta) {
+    return { error: "Escribí algo o agregá una foto." as const };
   }
 
   return {
@@ -201,6 +206,19 @@ export async function cambiarEstadoComunicado(id: string, estado: EstadoComunica
     .from("comunicados")
     .update({ estado, publicado_en: publicadoEn })
     .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidarBoletin();
+  return { success: true as const };
+}
+
+/** Fijar / desfijar arriba del feed, desde el menú de la publicación. */
+export async function fijarComunicado(id: string, fijado: boolean) {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
+  const db = adminClient();
+  const { error } = await db.from("comunicados").update({ fijado: Boolean(fijado) }).eq("id", id);
   if (error) return { error: error.message };
 
   revalidarBoletin();

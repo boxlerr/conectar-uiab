@@ -1,7 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Megaphone, Pin } from "lucide-react";
 import type { ComunicadoPublico } from "../tipos";
+import { fechaLegible, rutaComunicado } from "../formato";
+import { FotoComunicado } from "./foto-comunicado";
 
 /**
  * El Boletín UIAB dentro del panel: los últimos comunicados que publicó la UIAB.
@@ -12,17 +13,20 @@ import type { ComunicadoPublico } from "../tipos";
  * resto. Si no hay nada publicado, no dibuja nada (no deja un cajón vacío).
  */
 
-function fechaLegible(iso: string | null): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("es-AR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
+/**
+ * Columnas según cuántos haya: con uno solo la tarjeta va horizontal a lo
+ * ancho (foto | texto); con 3 columnas fijas quedaba en un tercio y el resto
+ * del bloque vacío.
+ */
+const COLUMNAS: Record<number, string> = {
+  1: "",
+  2: "tab:grid-cols-2",
+  3: "tab:grid-cols-3",
+};
 
 export function FeedBoletin({ comunicados }: { comunicados: ComunicadoPublico[] }) {
   if (comunicados.length === 0) return null;
+  const solo = comunicados.length === 1;
 
   return (
     <section
@@ -52,25 +56,23 @@ export function FeedBoletin({ comunicados }: { comunicados: ComunicadoPublico[] 
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-px bg-slate-100 tab:grid-cols-3">
+      <div className={`grid grid-cols-1 gap-px bg-slate-100 ${COLUMNAS[comunicados.length] ?? COLUMNAS[3]}`}>
         {comunicados.map((c) => (
           <Link
             key={c.id}
-            href="/boletin"
-            className="group flex flex-col bg-white transition-colors hover:bg-slate-50/60"
+            href={rutaComunicado(c.id)}
+            className={`group flex flex-col bg-white transition-colors hover:bg-slate-50/60 ${
+              solo && c.imagenUrl ? "tab:grid tab:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" : ""
+            }`}
           >
             {c.imagenUrl && (
-              <div className="relative h-36 w-full overflow-hidden bg-slate-100">
-                <Image
-                  src={c.imagenUrl}
-                  alt=""
-                  fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
+              <FotoComunicado
+                src={c.imagenUrl}
+                sizes={solo ? "(max-width: 768px) 100vw, 480px" : "(max-width: 768px) 100vw, 33vw"}
+                className={solo ? "h-40 w-full tab:h-full tab:min-h-52" : "h-40 w-full"}
+              />
             )}
-            <div className="flex flex-1 flex-col p-5">
+            <div className={`flex flex-1 flex-col p-5 ${solo ? "tab:justify-center tab:p-7" : ""}`}>
               <div className="mb-2 flex items-center gap-2">
                 <time
                   dateTime={c.publicado_en ?? undefined}
@@ -84,12 +86,18 @@ export function FeedBoletin({ comunicados }: { comunicados: ComunicadoPublico[] 
                   </span>
                 )}
               </div>
-              <h3 className="font-poppins text-[15px] font-bold leading-snug tracking-tight text-[#00213f]">
-                {c.titulo}
-              </h3>
-              <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-slate-500 whitespace-pre-line">
+              {c.titulo && (
+                <h3 className="mb-2 font-poppins text-[15px] font-bold leading-snug tracking-tight text-[#00213f]">
+                  {c.titulo}
+                </h3>
+              )}
+              <p className="line-clamp-3 text-[13px] leading-relaxed text-slate-500 whitespace-pre-line">
                 {c.cuerpo}
               </p>
+              <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-bold text-sky-700">
+                Leer más
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+              </span>
             </div>
           </Link>
         ))}

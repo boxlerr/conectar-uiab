@@ -62,6 +62,7 @@ const nextConfig: NextConfig = {
       { source: "/perfil/:path*", headers: noindex },
       { source: "/panel-de-control/:path*", headers: noindex },
       { source: "/boletin", headers: noindex },
+      { source: "/boletin/:path*", headers: noindex },
       { source: "/suscripcion/:path*", headers: noindex },
       { source: "/pendiente-aprobacion", headers: noindex },
       // Formularios de alta y edición: hoy hacen 307 al login, pero eso es el

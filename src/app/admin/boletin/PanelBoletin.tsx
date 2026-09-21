@@ -26,20 +26,19 @@ import {
   actualizarComunicado,
   cambiarEstadoComunicado,
   eliminarComunicado,
-  prepararSubidaImagen,
 } from "@/modulos/boletin/acciones";
+import { MIME_FOTO, subirFotoComunicado } from "@/modulos/boletin/subir-foto";
+import { resumenComunicado } from "@/modulos/boletin/formato";
+import { Articulo, contarPalabras, minutosDeLectura } from "@/modulos/boletin/componentes/articulo";
+import { Publicacion } from "@/modulos/boletin/componentes/publicacion";
 import {
   BUCKET_BOLETIN,
-  EXTENSION_POR_MIME,
   type Comunicado,
+  type ComunicadoPublico,
   type EstadoComunicado,
 } from "@/modulos/boletin/tipos";
 
 type Filtro = "todos" | "publicado" | "borrador";
-
-/** 4 MB: entra sobrado para una foto de nota y no castiga al que sube desde el cel. */
-const MAX_IMAGEN_BYTES = 4 * 1024 * 1024;
-const MIME_ACEPTADOS = Object.keys(EXTENSION_POR_MIME);
 
 const BADGE: Record<EstadoComunicado, { label: string; className: string }> = {
   publicado: { label: "Publicado", className: "bg-emerald-100 text-emerald-700" },
@@ -75,6 +74,26 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [subiendo, setSubiendo] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  // Editor: qué muestra la vista previa, y qué panel se ve en el celular.
+  const [vista, setVista] = useState<"articulo" | "feed">("articulo");
+  const [panelMovil, setPanelMovil] = useState<"editar" | "previa">("editar");
+
+  // La publicación tal como quedaría, para la vista previa en vivo.
+  const previa: ComunicadoPublico = {
+    id: editando?.id ?? "vista-previa",
+    titulo: titulo.trim(),
+    cuerpo: cuerpo.trim(),
+    bucket,
+    ruta_imagen: rutaImagen,
+    estado: editando?.estado ?? "borrador",
+    fijado,
+    publicado_en: editando?.publicado_en ?? new Date().toISOString(),
+    creado_por: null,
+    creado_en: editando?.creado_en ?? "",
+    actualizado_en: editando?.actualizado_en ?? "",
+    imagenUrl: previewUrl,
+  };
+  const palabras = contarPalabras(cuerpo);
 
   function refresh() {
     router.refresh();
@@ -93,6 +112,8 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
     setBucket(null);
     setRutaImagen(null);
     setPreviewUrl(null);
+    setVista("articulo");
+    setPanelMovil("editar");
     setFormAbierto(true);
   }
 
@@ -104,6 +125,8 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
     setBucket(c.bucket);
     setRutaImagen(c.ruta_imagen);
     setPreviewUrl(urlPublica(c.bucket, c.ruta_imagen));
+    setVista("articulo");
+    setPanelMovil("editar");
     setFormAbierto(true);
   }
 
@@ -117,40 +140,13 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
     e.target.value = ""; // permite re-elegir el mismo archivo
     if (!file) return;
 
-    if (!MIME_ACEPTADOS.includes(file.type)) {
-      toast.error("Formato no válido. Subí una imagen JPG, PNG o WebP.");
-      return;
-    }
-    if (file.size > MAX_IMAGEN_BYTES) {
-      toast.error("La imagen supera los 4 MB. Probá con una más liviana.");
-      return;
-    }
-
     setSubiendo(true);
-    try {
-      // El bucket no deja escribir en boletin/ desde el browser: el servidor
-      // firma una subida de un solo uso y arma la ruta (ver prepararSubidaImagen).
-      const firma = await llamarAccion(() => prepararSubidaImagen(file.type));
-      if (fallo(firma)) {
-        toast.error(firma.error);
-        return;
-      }
-      const { error } = await supabase.storage
-        .from(BUCKET_BOLETIN)
-        .uploadToSignedUrl(firma.ruta, firma.token, file, {
-          contentType: file.type,
-          cacheControl: "2678400",
-        });
-      if (error) {
-        toast.error("No pudimos subir la imagen. Intentá de nuevo.");
-        return;
-      }
-      setBucket(BUCKET_BOLETIN);
-      setRutaImagen(firma.ruta);
-      setPreviewUrl(urlPublica(BUCKET_BOLETIN, firma.ruta));
-    } finally {
-      setSubiendo(false);
-    }
+    const res = await subirFotoComunicado(supabase, file);
+    setSubiendo(false);
+    if ("error" in res) return toast.error(res.error);
+    setBucket(BUCKET_BOLETIN);
+    setRutaImagen(res.ruta);
+    setPreviewUrl(res.url);
   }
 
   function quitarImagen() {
@@ -160,8 +156,7 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
   }
 
   async function guardar(estado: EstadoComunicado) {
-    if (!titulo.trim()) return toast.error("Poné un título.");
-    if (!cuerpo.trim()) return toast.error("Escribí el cuerpo del comunicado.");
+    if (!cuerpo.trim() && !rutaImagen) return toast.error("Escribí algo o agregá una foto.");
 
     setGuardando(true);
     const datos = {
@@ -181,9 +176,9 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
 
     toast.success(
       editando
-        ? "Comunicado actualizado."
+        ? "Cambios guardados."
         : estado === "publicado"
-        ? "Comunicado publicado."
+        ? "Publicado. Ya lo ven todas las socias."
         : "Borrador guardado."
     );
     setFormAbierto(false);
@@ -209,7 +204,7 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
       setConfirmarEliminar(null);
       return toast.error(res.error);
     }
-    toast.success("Comunicado eliminado.");
+    toast.success("Publicación eliminada.");
     setConfirmarEliminar(null);
     refresh();
   }
@@ -247,7 +242,7 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
           </p>
         </div>
         <Button onClick={abrirNuevo} className="bg-sky-600 hover:bg-sky-700 text-white shrink-0">
-          <Plus className="w-4 h-4 mr-2" /> Nuevo comunicado
+          <Plus className="w-4 h-4 mr-2" /> Nueva publicación
         </Button>
       </div>
 
@@ -284,8 +279,8 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
             <Megaphone className="w-10 h-10 text-slate-300 mx-auto mb-3" />
             <p className="text-slate-500 font-medium">
               {comunicados.length === 0
-                ? "Todavía no cargaste ningún comunicado."
-                : "No hay comunicados con este filtro."}
+                ? "Todavía no cargaste ninguna publicación."
+                : "No hay publicaciones con este filtro."}
             </p>
           </div>
         ) : (
@@ -310,7 +305,7 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-bold text-slate-900 truncate">{c.titulo}</h3>
+                    <h3 className="font-bold text-slate-900 truncate">{resumenComunicado(c)}</h3>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badge.className}`}>
                       {badge.label}
                     </span>
@@ -371,111 +366,40 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
         )}
       </div>
 
-      {/* Slide-over: formulario alta / edición */}
+      {/* Editor de pantalla completa: formulario a la izquierda y, a la
+          derecha, la vista previa en vivo con los mismos componentes que ve la
+          socia (la nota entera y la tarjeta del feed). En el celular, pestañas
+          Escribir / Vista previa. */}
       {formAbierto && (
-        <>
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onClick={cerrarForm} />
-          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-white shadow-2xl overflow-y-auto border-l border-slate-200 animate-in slide-in-from-right duration-300">
-            <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-100 p-5 flex items-center justify-between z-10">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center">
-                  <Megaphone className="w-5 h-5 text-sky-600" />
-                </div>
-                <h2 className="font-bold text-slate-900 truncate">
-                  {editando ? "Editar comunicado" : "Nuevo comunicado"}
-                </h2>
-              </div>
+        <div className="fixed inset-0 z-50 flex flex-col bg-slate-50">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+            <div className="flex min-w-0 items-center gap-3">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={cerrarForm}
-                className="h-8 w-8 rounded-full bg-slate-100 hover:bg-rose-50 hover:text-rose-600 shrink-0"
+                aria-label="Cerrar editor"
+                className="h-9 w-9 shrink-0 rounded-full bg-slate-100 hover:bg-rose-50 hover:text-rose-600"
               >
                 <X className="h-4 w-4" />
               </Button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Título</label>
-                <input
-                  value={titulo}
-                  onChange={(e) => setTitulo(e.target.value)}
-                  placeholder="Ej: Nueva ronda de negocios en octubre"
-                  maxLength={140}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Cuerpo</label>
-                <textarea
-                  value={cuerpo}
-                  onChange={(e) => setCuerpo(e.target.value)}
-                  placeholder="Escribí la noticia o el aviso..."
-                  rows={7}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 resize-y"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Foto <span className="font-normal text-slate-400">(opcional)</span>
-                </label>
-                {previewUrl ? (
-                  <div className="relative overflow-hidden rounded-xl border border-slate-200">
-                    {/* h fija + object-cover: no depende de saber el ratio del archivo */}
-                    <div className="relative h-44 w-full bg-slate-100">
-                      <Image src={previewUrl} alt="" fill sizes="480px" className="object-cover" />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={quitarImagen}
-                      disabled={subiendo}
-                      className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-lg bg-white/90 px-2.5 py-1.5 text-xs font-semibold text-rose-600 shadow-sm hover:bg-white"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" /> Quitar
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 py-8 text-slate-400 transition-colors hover:border-sky-300 hover:text-sky-500">
-                    {subiendo ? (
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    ) : (
-                      <ImagePlus className="h-6 w-6" />
-                    )}
-                    <span className="text-sm font-medium">
-                      {subiendo ? "Subiendo..." : "Subir imagen (JPG, PNG o WebP)"}
-                    </span>
-                    <input
-                      type="file"
-                      accept={MIME_ACEPTADOS.join(",")}
-                      className="hidden"
-                      onChange={onElegirImagen}
-                      disabled={subiendo}
-                    />
-                  </label>
+              <div className="flex min-w-0 items-center gap-2">
+                <h2 className="truncate font-bold text-slate-900">
+                  {editando ? "Editar publicación" : "Nueva publicación"}
+                </h2>
+                {editando && (
+                  <span
+                    className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold sm:inline ${BADGE[editando.estado].className}`}
+                  >
+                    {BADGE[editando.estado].label}
+                  </span>
                 )}
               </div>
-
-              <label className="flex items-center gap-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={fijado}
-                  onChange={(e) => setFijado(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                />
-                <span className="text-sm text-slate-700">
-                  <span className="font-semibold">Fijar arriba</span>{" "}
-                  <span className="text-slate-400">— lo deja clavado sobre los demás en el feed.</span>
-                </span>
-              </label>
             </div>
-
-            <div className="sticky bottom-0 bg-white/95 border-t border-slate-100 p-5 flex flex-col sm:flex-row gap-3">
+            <div className="flex shrink-0 gap-2">
               {editando ? (
                 <Button
-                  className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
+                  className="bg-sky-600 hover:bg-sky-700 text-white"
                   disabled={guardando || subiendo}
                   onClick={() => guardar(editando.estado)}
                 >
@@ -486,14 +410,15 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
                 <>
                   <Button
                     variant="outline"
-                    className="flex-1 border-slate-200 text-slate-700"
+                    className="border-slate-200 text-slate-700"
                     disabled={guardando || subiendo}
                     onClick={() => guardar("borrador")}
                   >
-                    Guardar borrador
+                    <span className="sm:hidden">Borrador</span>
+                    <span className="hidden sm:inline">Guardar borrador</span>
                   </Button>
                   <Button
-                    className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
+                    className="bg-sky-600 hover:bg-sky-700 text-white"
                     disabled={guardando || subiendo}
                     onClick={() => guardar("publicado")}
                   >
@@ -504,7 +429,165 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
               )}
             </div>
           </div>
-        </>
+
+          {/* Pestañas sólo en el celular */}
+          <div className="flex gap-1 border-b border-slate-200 bg-white p-1.5 lg:hidden">
+            {(["editar", "previa"] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPanelMovil(p)}
+                className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
+                  panelMovil === p ? "bg-slate-100 text-slate-900" : "text-slate-500"
+                }`}
+              >
+                {p === "editar" ? "Escribir" : "Vista previa"}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+            {/* ── Formulario ── */}
+            <div
+              className={`min-h-0 overflow-y-auto border-slate-200 bg-white lg:border-r ${
+                panelMovil === "previa" ? "hidden lg:block" : ""
+              }`}
+            >
+              <div className="mx-auto max-w-2xl space-y-6 p-5 sm:p-8">
+                <div>
+                  <label htmlFor="boletin-titulo" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Título <span className="font-normal text-slate-400">(opcional)</span>
+                  </label>
+                  <input
+                    id="boletin-titulo"
+                    value={titulo}
+                    onChange={(e) => setTitulo(e.target.value)}
+                    placeholder="Ej: Nueva ronda de negocios en octubre"
+                    maxLength={140}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 font-poppins text-lg font-bold text-[#00213f] placeholder:font-normal placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
+
+                <div>
+                  <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                    <label htmlFor="boletin-texto" className="text-sm font-semibold text-slate-700">
+                      Texto
+                    </label>
+                    <span className="text-xs text-slate-400">
+                      {palabras} {palabras === 1 ? "palabra" : "palabras"} · {minutosDeLectura(cuerpo)} min de
+                      lectura
+                    </span>
+                  </div>
+                  <textarea
+                    id="boletin-texto"
+                    value={cuerpo}
+                    onChange={(e) => setCuerpo(e.target.value)}
+                    placeholder="Escribí la nota, la noticia o el aviso…"
+                    rows={16}
+                    className="w-full resize-y rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-base leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 sm:text-[15px]"
+                  />
+                  <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+                    Dejá una línea en blanco entre párrafos. Si la nota tiene título, el primer párrafo se
+                    muestra destacado como bajada.
+                  </p>
+                </div>
+
+                <div>
+                  <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Foto <span className="font-normal text-slate-400">(opcional)</span>
+                  </span>
+                  {previewUrl ? (
+                    <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
+                      <Image
+                        src={previewUrl}
+                        alt=""
+                        width={0}
+                        height={0}
+                        sizes="640px"
+                        className="block h-auto max-h-72 w-full object-contain"
+                      />
+                      <button
+                        type="button"
+                        onClick={quitarImagen}
+                        disabled={subiendo}
+                        className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-lg bg-white/90 px-2.5 py-1.5 text-xs font-semibold text-rose-600 shadow-sm hover:bg-white"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Quitar
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 py-8 text-slate-400 transition-colors hover:border-sky-300 hover:text-sky-500">
+                      {subiendo ? <Loader2 className="h-6 w-6 animate-spin" /> : <ImagePlus className="h-6 w-6" />}
+                      <span className="text-sm font-medium">
+                        {subiendo ? "Subiendo..." : "Subir imagen (JPG, PNG o WebP, hasta 4 MB)"}
+                      </span>
+                      <input
+                        type="file"
+                        accept={MIME_FOTO.join(",")}
+                        className="hidden"
+                        onChange={onElegirImagen}
+                        disabled={subiendo}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                <label className="flex cursor-pointer select-none items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={fijado}
+                    onChange={(e) => setFijado(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                  />
+                  <span className="text-sm text-slate-700">
+                    <span className="font-semibold">Fijar arriba</span>{" "}
+                    <span className="text-slate-400">— la deja primera en el boletín.</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* ── Vista previa ── */}
+            <div
+              className={`min-h-0 overflow-y-auto bg-slate-100 ${
+                panelMovil === "editar" ? "hidden lg:block" : ""
+              }`}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-100/90 px-5 py-3 backdrop-blur sm:px-8">
+                <span className="text-xs font-bold uppercase tracking-[0.1em] text-slate-400">Vista previa</span>
+                <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
+                  {(["articulo", "feed"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setVista(v)}
+                      className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                        vista === v ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      {v === "articulo" ? "Nota completa" : "En el feed"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="p-4 sm:p-8">
+                {!previa.titulo && !previa.cuerpo && !previa.imagenUrl ? (
+                  <div className="mx-auto max-w-md rounded-2xl border border-dashed border-slate-300 px-6 py-16 text-center text-sm text-slate-400">
+                    Empezá a escribir y acá ves cómo la van a ver las socias.
+                  </div>
+                ) : vista === "articulo" ? (
+                  <div className="mx-auto max-w-3xl">
+                    <Articulo c={previa} vistaPrevia />
+                  </div>
+                ) : (
+                  <div className="mx-auto max-w-[600px]">
+                    <Publicacion c={previa} vistaPrevia />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal confirmar eliminar */}
@@ -519,9 +602,9 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
               <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trash2 className="w-6 h-6 text-rose-600" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 text-center mb-1">¿Eliminar comunicado?</h3>
+              <h3 className="text-lg font-bold text-slate-900 text-center mb-1">¿Eliminar publicación?</h3>
               <p className="text-sm text-slate-500 text-center mb-6">
-                Se borra “{confirmarEliminar.titulo}” y su foto. Esta acción es irreversible.
+                Se borra “{resumenComunicado(confirmarEliminar)}” y su foto. Esta acción es irreversible.
               </p>
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={() => setConfirmarEliminar(null)}>
