@@ -240,6 +240,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
         { name: "Directorio", href: "/directorio", icon: BookOpen },
         { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
         { name: "Panel de Control", href: "/panel-de-control", icon: null },
+        { name: "Boletín", href: "/boletin", icon: null },
         { name: "Contacto", href: "/contacto", icon: null },
         { name: "Nosotros", href: "/nosotros", icon: null },
       ]

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
-import { ShieldAlert, LayoutDashboard, Award, Building, Wrench, MessageSquare, Users, Settings, DollarSign, Briefcase, Tag, Tags, UserPlus } from "lucide-react";
+import { ShieldAlert, LayoutDashboard, Award, Building, Wrench, MessageSquare, Users, Settings, DollarSign, Briefcase, Tag, Tags, UserPlus, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utilidades";
@@ -19,6 +19,7 @@ const adminNav = [
   { name: "Certificaciones", href: "/admin/certificaciones", icon: Award },
   { name: "Reseñas", href: "/admin/resenas", icon: MessageSquare },
   { name: "Oportunidades", href: "/admin/oportunidades", icon: Briefcase },
+  { name: "Boletín", href: "/admin/boletin", icon: Megaphone },
   { name: "Usuarios", href: "/admin/usuarios", icon: Users },
   { name: "Suscripciones", href: "/admin/suscripciones", icon: DollarSign },
   { name: "Configuración", href: "/admin/configuracion", icon: Settings },

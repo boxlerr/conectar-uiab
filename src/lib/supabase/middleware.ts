@@ -102,6 +102,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/proveedor/') ||
     pathname.startsWith('/perfil') ||
     pathname.startsWith('/panel-de-control') ||
+    pathname.startsWith('/boletin') ||
     pathname.startsWith('/pendiente-aprobacion');
 
   // 1. Authentication Check (Require JWT)

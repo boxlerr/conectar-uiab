@@ -23,6 +23,8 @@ import {
 } from '@/modulos/certificaciones/normas';
 import { SELECT_NOTIFICACION, type Notificacion } from '@/modulos/notificaciones/tipos';
 import { FeedNovedades } from '@/modulos/novedades/componentes/feed-novedades';
+import { FeedBoletin } from '@/modulos/boletin/componentes/feed-boletin';
+import { getComunicadosPublicados } from '@/modulos/boletin/consultas';
 import { AccionesRapidas, type AccionRapida } from '@/components/ui/panel/acciones-rapidas';
 import { HeroPanel } from '@/components/ui/panel/hero-panel';
 import { CabeceraPanel, TARJETA, TituloBloque } from '@/components/ui/panel/piezas';
@@ -172,6 +174,11 @@ export default async function DashboardPage() {
     conflictosPadron = conflictosPendientes(altas?.[0]?.conflictos_padron as ConflictoPadron[] | null);
   }
 
+  // Boletín: aparte del Promise.all de abajo porque lee con service role (ver
+  // consultas.ts) y no con el `supabase` de sesión que arma ese bloque. Se
+  // dispara en paralelo con el resto igual — sólo se espera después.
+  const comunicadosBoletinPromise = getComunicadosPublicados(3);
+
   // ── Parallel data fetch ──
   const [
     statsRes,
@@ -276,6 +283,8 @@ export default async function DashboardPage() {
       ? estadisticasDeVisitas(isCompany ? 'company' : 'provider', entityId)
       : Promise.resolve(estadisticasVacias()),
   ]);
+
+  const comunicadosBoletin = await comunicadosBoletinPromise;
 
   const empresasCount = statsRes[0].count ?? 0;
   const proveedoresCount = statsRes[1].count ?? 0;
@@ -1031,6 +1040,13 @@ export default async function DashboardPage() {
             </section>
           </div>
         </div>
+
+        {/* ── BOLETÍN UIAB ──
+            Noticias y avisos que carga el equipo de la UIAB desde /admin/boletin.
+            Distinto de "Novedades del sistema" de abajo: eso es el changelog de
+            la plataforma, esto es contenido editorial. No dibuja nada si no hay
+            comunicados publicados. */}
+        <FeedBoletin comunicados={comunicadosBoletin} />
 
         {/* ── NOVEDADES DEL SISTEMA ──
             A todo lo ancho: los carteles que hasta ahora se veían una sola vez
