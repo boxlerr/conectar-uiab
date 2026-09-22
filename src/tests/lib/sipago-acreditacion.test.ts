@@ -17,7 +17,10 @@ let db: ReturnType<typeof crearDb>;
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => db.cliente }));
 vi.mock("@/lib/email/cliente", () => ({
   enviarEmail: (...a: unknown[]) => enviarEmail(...a),
-  emailAdmin: () => "admin@uiab.com.ar",
+  // Dominio .test (RFC 6761): no se puede registrar, así que nunca va a mandar
+  // correo de verdad. Acá decía admin@uiab.com.ar, que es un dominio muerto real
+  // y se copiaba al .env creyendo que era válido.
+  emailAdmin: () => "admin@uiabconecta.test",
   appUrl: () => "https://app.test",
 }));
 vi.mock("@/modulos/notificaciones/acciones", () => ({
@@ -145,7 +148,7 @@ describe("un pago aprobado", () => {
 
     const destinatarios = enviarEmail.mock.calls.map((c) => (c[0] as { para: string }).para);
     expect(destinatarios).toContain("socio@empresa.com");
-    expect(destinatarios).toContain("admin@uiab.com.ar");
+    expect(destinatarios).toContain("admin@uiabconecta.test");
     expect(notificarEntidad).toHaveBeenCalledWith(expect.objectContaining({ tipo: "pago_confirmado" }));
   });
 });
@@ -260,7 +263,7 @@ describe("cuando el monto no cierra", () => {
     expect(r).toEqual({ estado: "monto_no_coincide", esperado: 50_000, recibido: 1 });
     expect(db.inserts).toHaveLength(0);
     expect(db.updates).toHaveLength(0);
-    expect(enviarEmail).toHaveBeenCalledWith(expect.objectContaining({ para: "admin@uiab.com.ar" }));
+    expect(enviarEmail).toHaveBeenCalledWith(expect.objectContaining({ para: "admin@uiabconecta.test" }));
   });
 
   it("acepta el pago cuando coincide exacto", async () => {

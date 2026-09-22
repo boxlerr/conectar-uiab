@@ -87,6 +87,13 @@ ADMIN_NOTIFICATION_EMAIL=julianboxler@vaxler.com.ar
 > El dominio institucional de la UIAB es **`uiab.org`**, no `uiab.com.ar`.
 > Verificalo antes de cambiar el valor: `dig +short <dominio> MX`.
 
+> **Estado al 2026-09-22 (verificado con `vercel env pull`):**
+> Production y Preview ya tenían `julianboxler@vaxler.com.ar`, que resuelve MX.
+> El `admin@uiab.com.ar` roto estaba **sólo en el `.env` local**, así que lo que
+> se perdía en silencio eran las pruebas en `next dev`, no las notificaciones de
+> producción. Ya quedó alineado. Antes de dar por sentado que algo se está
+> perdiendo en prod, mirá el valor real de Vercel: el `.env` local no manda ahí.
+
 ---
 
 ## 3. Supabase — Configuración única
