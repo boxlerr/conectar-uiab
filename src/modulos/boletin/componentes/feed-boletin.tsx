@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Megaphone, Pin } from "lucide-react";
+import { ArrowRight, Images, Megaphone, Pin } from "lucide-react";
 import type { ComunicadoPublico } from "../tipos";
-import { fechaLegible, rutaComunicado } from "../formato";
+import { cuerpoSinMarcas, fechaLegible, rutaComunicado } from "../formato";
 import { FotoComunicado } from "./foto-comunicado";
 
 /**
@@ -31,7 +31,7 @@ export function FeedBoletin({ comunicados }: { comunicados: ComunicadoPublico[] 
   return (
     <section
       id="boletin"
-      className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-[0_2px_16px_-6px_rgba(0,33,63,0.06)]"
+      className="scroll-mt-20 overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-[0_2px_16px_-6px_rgba(0,33,63,0.06)]"
     >
       <div className="flex items-center justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-[#f5f8ff] via-white to-white px-5 py-5 sm:px-6">
         <div className="flex items-center gap-3 min-w-0">
@@ -60,17 +60,27 @@ export function FeedBoletin({ comunicados }: { comunicados: ComunicadoPublico[] 
         {comunicados.map((c) => (
           <Link
             key={c.id}
-            href={rutaComunicado(c.id)}
+            href={rutaComunicado(c)}
             className={`group flex flex-col bg-white transition-colors hover:bg-slate-50/60 ${
               solo && c.imagenUrl ? "tab:grid tab:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" : ""
             }`}
           >
             {c.imagenUrl && (
-              <FotoComunicado
-                src={c.imagenUrl}
-                sizes={solo ? "(max-width: 768px) 100vw, 480px" : "(max-width: 768px) 100vw, 33vw"}
-                className={solo ? "h-40 w-full tab:h-full tab:min-h-52" : "h-40 w-full"}
-              />
+              <div className="relative">
+                <FotoComunicado
+                  src={c.imagenUrl}
+                  sizes={solo ? "(max-width: 768px) 100vw, 480px" : "(max-width: 768px) 100vw, 33vw"}
+                  className={solo ? "h-40 w-full tab:h-full tab:min-h-52" : "h-40 w-full"}
+                />
+                {/* Acá va la portada sola: el carrusel vive en la publicación.
+                    El contador avisa que adentro hay más. */}
+                {c.imagenes.length > 1 && (
+                  <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm">
+                    <Images className="h-3 w-3" />
+                    {c.imagenes.length}
+                  </span>
+                )}
+              </div>
             )}
             <div className={`flex flex-1 flex-col p-5 ${solo ? "tab:justify-center tab:p-7" : ""}`}>
               <div className="mb-2 flex items-center gap-2">
@@ -92,7 +102,7 @@ export function FeedBoletin({ comunicados }: { comunicados: ComunicadoPublico[] 
                 </h3>
               )}
               <p className="line-clamp-3 text-[13px] leading-relaxed text-slate-500 whitespace-pre-line">
-                {c.cuerpo}
+                {c.bajada?.trim() || cuerpoSinMarcas(c.cuerpo)}
               </p>
               <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-bold text-sky-700">
                 Leer más

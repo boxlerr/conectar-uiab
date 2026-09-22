@@ -8,6 +8,7 @@ import {
   BUCKET_BOLETIN,
   CARPETA_BOLETIN,
   EXTENSION_POR_MIME,
+  MAX_FOTOS,
   type DatosComunicado,
   type EstadoComunicado,
 } from "./tipos";
@@ -21,7 +22,7 @@ import {
  *
  * La foto la sube el browser directo a Storage con una URL firmada que arma
  * `prepararSubidaImagen` (mismo patrón que los adjuntos de oportunidades). Acá
- * sólo se guardan/borran `bucket` + `ruta_imagen`.
+ * sólo se guardan/borran `bucket` + `rutas_imagenes`.
  */
 
 function adminClient() {
@@ -44,27 +45,39 @@ function limpiar(datos: DatosComunicado) {
   // guarda como '' — la columna es NOT NULL. Lo que no puede faltar es contenido:
   // texto, foto, o las dos cosas.
   const titulo = datos.titulo?.trim() ?? "";
+  // La bajada sin título no se dibuja en ningún lado (cuelga del título): se
+  // descarta en vez de guardarse muerta.
+  const bajada = titulo ? (datos.bajada?.trim() ?? "") : "";
   const cuerpo = datos.cuerpo?.trim() ?? "";
 
-  // La foto sólo puede vivir en la carpeta del boletín. Sin esto, un POST armado
-  // a mano podría apuntar `ruta_imagen` al logo de una empresa, y al cambiar la
-  // foto o borrar el comunicado lo borraríamos con service role.
-  const ruta = datos.ruta_imagen || null;
-  if (ruta && (!ruta.startsWith(`${CARPETA_BOLETIN}/`) || ruta.includes(".."))) {
+  // Las fotos sólo pueden vivir en la carpeta del boletín. Sin esto, un POST
+  // armado a mano podría apuntar una ruta al logo de una empresa, y al cambiar
+  // las fotos o borrar el comunicado lo borraríamos con service role.
+  const rutas = (datos.rutas_imagenes ?? []).filter(Boolean);
+  if (rutas.some((r) => !r.startsWith(`${CARPETA_BOLETIN}/`) || r.includes(".."))) {
     return { error: "Ruta de imagen inválida." as const };
   }
+  if (rutas.length > MAX_FOTOS) {
+    return { error: `No se pueden subir más de ${MAX_FOTOS} fotos.` as const };
+  }
+  // Repetir una ruta duplicaría la foto en el carrusel y, peor, la borraría al
+  // sacar una sola de las dos copias.
+  if (new Set(rutas).size !== rutas.length) {
+    return { error: "Hay una foto repetida." as const };
+  }
 
-  if (!cuerpo && !ruta) {
+  if (!cuerpo && !bajada && rutas.length === 0) {
     return { error: "Escribí algo o agregá una foto." as const };
   }
 
   return {
     titulo,
+    bajada,
     cuerpo,
     estado: datos.estado === "publicado" ? "publicado" : "borrador",
     fijado: Boolean(datos.fijado),
-    bucket: ruta ? BUCKET_BOLETIN : null,
-    ruta_imagen: ruta,
+    bucket: rutas.length > 0 ? BUCKET_BOLETIN : null,
+    rutas_imagenes: rutas,
   };
 }
 
@@ -95,12 +108,12 @@ export async function prepararSubidaImagen(mime: string) {
   return { success: true as const, ruta: data.path, token: data.token };
 }
 
-/** Borra la foto del bucket, sin romper si falla (la fila ya es lo que manda). */
-async function borrarImagen(bucket: string | null, ruta: string | null) {
-  if (!bucket || !ruta) return;
+/** Borra fotos del bucket, sin romper si falla (la fila ya es lo que manda). */
+async function borrarImagenes(bucket: string | null, rutas: string[]) {
+  if (!bucket || rutas.length === 0) return;
   const db = adminClient();
-  const { error } = await db.storage.from(bucket).remove([ruta]);
-  if (error) console.error("[boletin] no se pudo borrar la imagen:", error.message);
+  const { error } = await db.storage.from(bucket).remove(rutas);
+  if (error) console.error("[boletin] no se pudieron borrar las imágenes:", error.message);
 }
 
 export async function crearComunicado(datos: DatosComunicado) {
@@ -119,11 +132,12 @@ export async function crearComunicado(datos: DatosComunicado) {
   const db = adminClient();
   const { error } = await db.from("comunicados").insert({
     titulo: limpio.titulo,
+    bajada: limpio.bajada,
     cuerpo: limpio.cuerpo,
     estado: limpio.estado,
     fijado: limpio.fijado,
     bucket: limpio.bucket,
-    ruta_imagen: limpio.ruta_imagen,
+    rutas_imagenes: limpio.rutas_imagenes,
     // Si nace publicado, lleva fecha ya; si es borrador, se completa al publicar.
     publicado_en: limpio.estado === "publicado" ? new Date().toISOString() : null,
     creado_por: user?.id ?? null,
@@ -147,7 +161,7 @@ export async function actualizarComunicado(id: string, datos: DatosComunicado) {
   // la foto vieja si la cambiaron.
   const { data: previo, error: errorLectura } = await db
     .from("comunicados")
-    .select("estado, publicado_en, bucket, ruta_imagen")
+    .select("estado, publicado_en, bucket, rutas_imagenes")
     .eq("id", id)
     .single();
   if (errorLectura) return { error: errorLectura.message };
@@ -163,21 +177,24 @@ export async function actualizarComunicado(id: string, datos: DatosComunicado) {
     .from("comunicados")
     .update({
       titulo: limpio.titulo,
+      bajada: limpio.bajada,
       cuerpo: limpio.cuerpo,
       estado: limpio.estado,
       fijado: limpio.fijado,
       bucket: limpio.bucket,
-      ruta_imagen: limpio.ruta_imagen,
+      rutas_imagenes: limpio.rutas_imagenes,
       publicado_en: publicadoEn,
     })
     .eq("id", id);
   if (error) return { error: error.message };
 
-  // Si cambiaron la foto (o la sacaron), la anterior queda huérfana en Storage.
-  const rutaAnterior = previo?.ruta_imagen ?? null;
-  if (rutaAnterior && rutaAnterior !== limpio.ruta_imagen) {
-    await borrarImagen(previo?.bucket ?? null, rutaAnterior);
-  }
+  // Las fotos que se sacaron de la publicación quedarían huérfanas en Storage.
+  const antes: string[] = previo?.rutas_imagenes ?? [];
+  const quedan = new Set(limpio.rutas_imagenes);
+  await borrarImagenes(
+    previo?.bucket ?? null,
+    antes.filter((r) => !quedan.has(r))
+  );
 
   revalidarBoletin();
   return { success: true as const };
@@ -231,17 +248,17 @@ export async function eliminarComunicado(id: string) {
 
   const db = adminClient();
 
-  // Traemos la foto para borrarla del bucket después de borrar la fila.
+  // Traemos las fotos para borrarlas del bucket después de borrar la fila.
   const { data: previo } = await db
     .from("comunicados")
-    .select("bucket, ruta_imagen")
+    .select("bucket, rutas_imagenes")
     .eq("id", id)
     .single();
 
   const { error } = await db.from("comunicados").delete().eq("id", id);
   if (error) return { error: error.message };
 
-  await borrarImagen(previo?.bucket ?? null, previo?.ruta_imagen ?? null);
+  await borrarImagenes(previo?.bucket ?? null, previo?.rutas_imagenes ?? []);
 
   revalidarBoletin();
   return { success: true as const };

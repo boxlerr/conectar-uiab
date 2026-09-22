@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
+  Heading2,
   Megaphone,
   Plus,
   Search,
@@ -27,12 +28,15 @@ import {
   cambiarEstadoComunicado,
   eliminarComunicado,
 } from "@/modulos/boletin/acciones";
-import { MIME_FOTO, subirFotoComunicado } from "@/modulos/boletin/subir-foto";
-import { resumenComunicado } from "@/modulos/boletin/formato";
+import { MIME_FOTO } from "@/modulos/boletin/subir-foto";
+import { useFotos } from "@/modulos/boletin/use-fotos";
+import { FotosEnEdicion } from "@/modulos/boletin/componentes/fotos-en-edicion";
+import { MARCA_SUBTITULO, resumenComunicado } from "@/modulos/boletin/formato";
 import { Articulo, contarPalabras, minutosDeLectura } from "@/modulos/boletin/componentes/articulo";
 import { Publicacion } from "@/modulos/boletin/componentes/publicacion";
 import {
   BUCKET_BOLETIN,
+  MAX_FOTOS,
   type Comunicado,
   type ComunicadoPublico,
   type EstadoComunicado,
@@ -67,31 +71,37 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
   const [formAbierto, setFormAbierto] = useState(false);
   const [editando, setEditando] = useState<Comunicado | null>(null);
   const [titulo, setTitulo] = useState("");
+  const [bajada, setBajada] = useState("");
   const [cuerpo, setCuerpo] = useState("");
+  const areaTexto = useRef<HTMLTextAreaElement>(null);
   const [fijado, setFijado] = useState(false);
-  const [bucket, setBucket] = useState<string | null>(null);
-  const [rutaImagen, setRutaImagen] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [subiendo, setSubiendo] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  // Las fotos de la publicación que se está editando, con su progreso de
+  // subida. El hook es el mismo que usa el cuadro del feed.
+  const { fotos, agregar, quitar, setFotos, limpiar, subiendo, rutas } = useFotos();
   // Editor: qué muestra la vista previa, y qué panel se ve en el celular.
   const [vista, setVista] = useState<"articulo" | "feed">("articulo");
   const [panelMovil, setPanelMovil] = useState<"editar" | "previa">("editar");
 
-  // La publicación tal como quedaría, para la vista previa en vivo.
+  // La publicación tal como quedaría, para la vista previa en vivo. Las fotos
+  // que todavía están subiendo YA se ven (con su `objectURL` local): lo que se
+  // previsualiza es lo que se eligió, no lo que terminó de viajar.
+  const imagenesPrevia = fotos.map((f) => f.url);
   const previa: ComunicadoPublico = {
     id: editando?.id ?? "vista-previa",
     titulo: titulo.trim(),
+    bajada: bajada.trim(),
     cuerpo: cuerpo.trim(),
-    bucket,
-    ruta_imagen: rutaImagen,
+    bucket: rutas.length > 0 ? BUCKET_BOLETIN : null,
+    rutas_imagenes: rutas,
     estado: editando?.estado ?? "borrador",
     fijado,
     publicado_en: editando?.publicado_en ?? new Date().toISOString(),
     creado_por: null,
     creado_en: editando?.creado_en ?? "",
     actualizado_en: editando?.actualizado_en ?? "",
-    imagenUrl: previewUrl,
+    imagenes: imagenesPrevia,
+    imagenUrl: imagenesPrevia[0] ?? null,
   };
   const palabras = contarPalabras(cuerpo);
 
@@ -107,11 +117,10 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
   function abrirNuevo() {
     setEditando(null);
     setTitulo("");
+    setBajada("");
     setCuerpo("");
     setFijado(false);
-    setBucket(null);
-    setRutaImagen(null);
-    setPreviewUrl(null);
+    limpiar();
     setVista("articulo");
     setPanelMovil("editar");
     setFormAbierto(true);
@@ -120,11 +129,17 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
   function abrirEdicion(c: Comunicado) {
     setEditando(c);
     setTitulo(c.titulo);
+    setBajada(c.bajada ?? "");
     setCuerpo(c.cuerpo);
     setFijado(c.fijado);
-    setBucket(c.bucket);
-    setRutaImagen(c.ruta_imagen);
-    setPreviewUrl(urlPublica(c.bucket, c.ruta_imagen));
+    setFotos(
+      (c.rutas_imagenes ?? []).map((ruta) => ({
+        id: ruta,
+        url: urlPublica(c.bucket, ruta) ?? "",
+        ruta,
+        progreso: 1,
+      }))
+    );
     setVista("articulo");
     setPanelMovil("editar");
     setFormAbierto(true);
@@ -135,37 +150,50 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
     setFormAbierto(false);
   }
 
-  async function onElegirImagen(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // permite re-elegir el mismo archivo
-    if (!file) return;
-
-    setSubiendo(true);
-    const res = await subirFotoComunicado(supabase, file);
-    setSubiendo(false);
-    if ("error" in res) return toast.error(res.error);
-    setBucket(BUCKET_BOLETIN);
-    setRutaImagen(res.ruta);
-    setPreviewUrl(res.url);
+  /**
+   * Inserta `## ` al principio de la línea donde está el cursor, en una línea
+   * nueva si hace falta. Existe para que no haya que saber Markdown: el que
+   * escribe aprieta "Subtítulo" y ve el resultado en la vista previa.
+   */
+  function insertarSubtitulo() {
+    const el = areaTexto.current;
+    if (!el) return;
+    const pos = el.selectionStart ?? cuerpo.length;
+    const antes = cuerpo.slice(0, pos);
+    const despues = cuerpo.slice(pos);
+    // Si ya estamos al principio de una línea vacía, no agregamos saltos.
+    const arranque = antes === "" || antes.endsWith("\n\n") ? "" : antes.endsWith("\n") ? "\n" : "\n\n";
+    const nuevo = `${antes}${arranque}${MARCA_SUBTITULO}`;
+    setCuerpo(nuevo + despues);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(nuevo.length, nuevo.length);
+    });
   }
 
-  function quitarImagen() {
-    setBucket(null);
-    setRutaImagen(null);
-    setPreviewUrl(null);
+  function onElegirImagenes(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivos = Array.from(e.target.files ?? []);
+    e.target.value = ""; // permite re-elegir el mismo archivo
+    agregar(archivos);
   }
 
   async function guardar(estado: EstadoComunicado) {
-    if (!cuerpo.trim() && !rutaImagen) return toast.error("Escribí algo o agregá una foto.");
+    if (!cuerpo.trim() && !bajada.trim() && fotos.length === 0) {
+      return toast.error("Escribí algo o agregá una foto.");
+    }
+    // Guardar con una subida a medias dejaría la publicación sin esa foto y la
+    // huérfana en el bucket.
+    if (subiendo) return toast.error("Esperá a que terminen de subir las fotos.");
 
     setGuardando(true);
     const datos = {
       titulo: titulo.trim(),
+      bajada: bajada.trim(),
       cuerpo: cuerpo.trim(),
       estado,
       fijado,
-      bucket,
-      ruta_imagen: rutaImagen,
+      bucket: rutas.length > 0 ? BUCKET_BOLETIN : null,
+      rutas_imagenes: rutas,
     };
     const res = await llamarAccion(() =>
       editando ? actualizarComunicado(editando.id, datos) : crearComunicado(datos)
@@ -178,7 +206,7 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
       editando
         ? "Cambios guardados."
         : estado === "publicado"
-        ? "Publicado. Ya lo ven todas las socias."
+        ? "Publicado. Ya está visible en el boletín público."
         : "Borrador guardado."
     );
     setFormAbierto(false);
@@ -238,7 +266,8 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
             Boletín UIAB
           </h1>
           <p className="text-slate-500 mt-1">
-            Noticias, avisos y fotos que ven las socias en su panel y en la página del boletín.
+            Noticias, avisos y fotos de la UIAB. El boletín es público: lo lee cualquiera,
+            con o sin cuenta, y las notas pueden aparecer en Google.
           </p>
         </div>
         <Button onClick={abrirNuevo} className="bg-sky-600 hover:bg-sky-700 text-white shrink-0">
@@ -286,7 +315,7 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
         ) : (
           filtrados.map((c) => {
             const badge = BADGE[c.estado];
-            const thumb = urlPublica(c.bucket, c.ruta_imagen);
+            const thumb = urlPublica(c.bucket, c.rutas_imagenes?.[0] ?? null);
             const ocupado = procesando === c.id;
             return (
               <Card
@@ -468,6 +497,29 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
                   />
                 </div>
 
+                {/* La bajada cuelga del título: sin título no se dibuja en
+                    ningún lado, así que el campo ni aparece. */}
+                {titulo.trim() !== "" && (
+                  <div>
+                    <label htmlFor="boletin-bajada" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                      Bajada <span className="font-normal text-slate-400">(opcional)</span>
+                    </label>
+                    <textarea
+                      id="boletin-bajada"
+                      value={bajada}
+                      onChange={(e) => setBajada(e.target.value)}
+                      placeholder="Una o dos líneas que resuman la nota. Se ven grandes abajo del título."
+                      rows={2}
+                      maxLength={300}
+                      className="w-full resize-y rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-base leading-relaxed text-slate-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 sm:text-[15px]"
+                    />
+                    <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+                      Es el resumen que sale en la tarjeta del feed y en Google. Si la dejás vacía, la nota
+                      arranca directo con el texto.
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <div className="mb-1.5 flex items-baseline justify-between gap-3">
                     <label htmlFor="boletin-texto" className="text-sm font-semibold text-slate-700">
@@ -480,55 +532,65 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
                   </div>
                   <textarea
                     id="boletin-texto"
+                    ref={areaTexto}
                     value={cuerpo}
                     onChange={(e) => setCuerpo(e.target.value)}
                     placeholder="Escribí la nota, la noticia o el aviso…"
                     rows={16}
                     className="w-full resize-y rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-base leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 sm:text-[15px]"
                   />
-                  <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
-                    Dejá una línea en blanco entre párrafos. Si la nota tiene título, el primer párrafo se
-                    muestra destacado como bajada.
-                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <button
+                      type="button"
+                      onClick={insertarSubtitulo}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:border-sky-300 hover:text-sky-700"
+                    >
+                      <Heading2 className="h-3.5 w-3.5" />
+                      Subtítulo
+                    </button>
+                    <p className="text-xs leading-relaxed text-slate-400">
+                      Una línea en blanco separa párrafos. Una línea que empieza con{" "}
+                      <code className="rounded bg-slate-100 px-1 font-mono text-[11px]">##</code> es un
+                      subtítulo de sección.
+                    </p>
+                  </div>
                 </div>
 
                 <div>
                   <span className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Foto <span className="font-normal text-slate-400">(opcional)</span>
+                    Fotos <span className="font-normal text-slate-400">(opcional, hasta {MAX_FOTOS})</span>
                   </span>
-                  {previewUrl ? (
-                    <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-950">
-                      <Image
-                        src={previewUrl}
-                        alt=""
-                        width={0}
-                        height={0}
-                        sizes="640px"
-                        className="block h-auto max-h-72 w-full object-contain"
-                      />
-                      <button
-                        type="button"
-                        onClick={quitarImagen}
-                        disabled={subiendo}
-                        className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-lg bg-white/90 px-2.5 py-1.5 text-xs font-semibold text-rose-600 shadow-sm hover:bg-white"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" /> Quitar
-                      </button>
+
+                  {fotos.length > 0 && (
+                    <div className="mb-2.5">
+                      <FotosEnEdicion fotos={fotos} onQuitar={quitar} deshabilitado={guardando} />
                     </div>
-                  ) : (
+                  )}
+
+                  {fotos.length < MAX_FOTOS && (
                     <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 py-8 text-slate-400 transition-colors hover:border-sky-300 hover:text-sky-500">
-                      {subiendo ? <Loader2 className="h-6 w-6 animate-spin" /> : <ImagePlus className="h-6 w-6" />}
+                      <ImagePlus className="h-6 w-6" />
                       <span className="text-sm font-medium">
-                        {subiendo ? "Subiendo..." : "Subir imagen (JPG, PNG o WebP, hasta 4 MB)"}
+                        {fotos.length === 0
+                          ? "Subir imágenes (JPG, PNG o WebP, hasta 4 MB cada una)"
+                          : "Agregar más fotos"}
                       </span>
                       <input
                         type="file"
                         accept={MIME_FOTO.join(",")}
+                        multiple
                         className="hidden"
-                        onChange={onElegirImagen}
-                        disabled={subiendo}
+                        onChange={onElegirImagenes}
+                        disabled={guardando}
                       />
                     </label>
+                  )}
+
+                  {fotos.length > 1 && (
+                    <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+                      Se ven en un carrusel, en este orden. La primera es la portada: es la que sale
+                      en la tarjeta del feed y al compartir el enlace.
+                    </p>
                   )}
                 </div>
 
@@ -573,7 +635,7 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
               <div className="p-4 sm:p-8">
                 {!previa.titulo && !previa.cuerpo && !previa.imagenUrl ? (
                   <div className="mx-auto max-w-md rounded-2xl border border-dashed border-slate-300 px-6 py-16 text-center text-sm text-slate-400">
-                    Empezá a escribir y acá ves cómo la van a ver las socias.
+                    Empezá a escribir y acá ves cómo se va a ver publicada.
                   </div>
                 ) : vista === "articulo" ? (
                   <div className="mx-auto max-w-3xl">

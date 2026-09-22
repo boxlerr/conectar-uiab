@@ -2,10 +2,12 @@
 
 import { useCallback, useState } from "react";
 import Image from "next/image";
-import { BadgeCheck, Link2, Pin } from "lucide-react";
-import { toast } from "sonner";
-import { fechaLegible, rutaComunicado } from "../formato";
+import Link from "next/link";
+import { BadgeCheck, Pin } from "lucide-react";
+import { bloquesDeCuerpo, fechaLegible } from "../formato";
 import type { ComunicadoPublico } from "../tipos";
+import { CarruselFotos } from "./carrusel-fotos";
+import { CompartirNota } from "./compartir-nota";
 import { MenuAdmin } from "./publicacion";
 import { VisorFoto } from "./visor-foto";
 
@@ -18,16 +20,18 @@ import { VisorFoto } from "./visor-foto";
  * de un párrafo, el primero se destaca como bajada — así una nota se "arma"
  * sin editor enriquecido ni columnas nuevas en la base.
  *
+ * ANCHO Y MEDIDA DE LECTURA
+ *
+ * La hoja la dimensiona la página (`/boletin/[slug]` la pone en una grilla de
+ * tres columnas, con el compartir a la izquierda y las otras notas a la
+ * derecha). Acá adentro lo único que se cuida es la MEDIDA: el cuerpo no pasa
+ * de ~70 caracteres por línea porque más ancho se lee peor, no mejor. Ensanchar
+ * la columna de texto no es "aprovechar el espacio": para eso están los
+ * costados.
+ *
  * `vistaPrevia` la dibuja en el editor del panel de admin: sin menú de admin
- * ni botón de copiar enlace (la publicación todavía no existe).
+ * ni botones de compartir (la publicación todavía no existe).
  */
-
-export function parrafos(texto: string): string[] {
-  return texto
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-}
 
 export function contarPalabras(texto: string): number {
   return texto.trim().split(/\s+/).filter(Boolean).length;
@@ -46,26 +50,17 @@ export function Articulo({
   esAdmin?: boolean;
   vistaPrevia?: boolean;
 }) {
-  const [visor, setVisor] = useState(false);
-  const cerrarVisor = useCallback(() => setVisor(false), []);
+  const [visor, setVisor] = useState<number | null>(null);
+  const cerrarVisor = useCallback(() => setVisor(null), []);
 
-  const todos = parrafos(c.cuerpo);
-  const conBajada = Boolean(c.titulo) && todos.length > 1;
-  const bajada = conBajada ? todos[0] : null;
-  const cuerpo = conBajada ? todos.slice(1) : todos;
-
-  async function copiarEnlace() {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}${rutaComunicado(c.id)}`);
-      toast.success("Enlace copiado. Pegalo donde quieras compartirlo.");
-    } catch {
-      toast.error("No pudimos copiar el enlace.");
-    }
-  }
+  // La bajada es un campo, no el primer párrafo: antes se agrandaba solo y no
+  // había forma de ponerlo a propósito ni de evitarlo.
+  const bajada = c.bajada?.trim() || null;
+  const bloques = bloquesDeCuerpo(c.cuerpo);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_2px_16px_-6px_rgba(0,33,63,0.08)]">
-      <div className="px-5 pt-7 sm:px-10 sm:pt-10">
+      <div className="px-5 pt-7 sm:px-10 sm:pt-11 lg:px-14">
         <div className="mb-4 flex items-center gap-3 text-[11.5px] font-bold uppercase tracking-[0.12em]">
           <span className="text-sky-700">Boletín UIAB</span>
           {c.fijado && (
@@ -76,18 +71,18 @@ export function Articulo({
         </div>
 
         {c.titulo && (
-          <h1 className="font-poppins text-[1.9rem] font-bold leading-[1.15] tracking-tight text-[#00213f] sm:text-[2.5rem]">
+          <h1 className="font-poppins text-[2rem] font-bold leading-[1.12] tracking-tight text-[#00213f] sm:text-[2.6rem]">
             {c.titulo}
           </h1>
         )}
         {bajada && (
-          <p className="mt-4 whitespace-pre-line text-[1.15rem] leading-relaxed text-slate-600 sm:text-[1.25rem]">
+          <p className="mt-5 max-w-[46ch] whitespace-pre-line text-[1.15rem] leading-[1.6] text-slate-600 sm:text-[1.3rem]">
             {bajada}
           </p>
         )}
 
-        {/* Autor, fecha y acciones */}
-        <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3 border-y border-slate-100 py-4">
+        {/* Firma, fecha y acciones */}
+        <div className="mt-7 flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-slate-100 pt-5">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white">
               <Image src="/icono-uiab.svg" alt="" width={30} height={30} />
@@ -107,53 +102,69 @@ export function Articulo({
             </div>
           </div>
           {!vistaPrevia && (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={copiarEnlace}
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-[13px] font-semibold text-slate-600 transition-colors hover:bg-slate-50"
-              >
-                <Link2 className="h-4 w-4" />
-                Copiar enlace
-              </button>
+            <div className="flex items-center gap-1.5">
+              {/* En xl el compartir vive en la columna pegajosa de la izquierda;
+                  acá abajo no hay costado, así que va en línea. */}
+              <div className="xl:hidden">
+                <CompartirNota c={c} />
+              </div>
               {esAdmin && <MenuAdmin c={c} volverAlFeed />}
             </div>
           )}
         </div>
       </div>
 
-      {c.imagenUrl && (
-        <div className="mt-6 px-0 sm:px-10">
-          <button
-            type="button"
-            onClick={() => setVisor(true)}
-            aria-label="Ver foto en grande"
-            className="block w-full cursor-zoom-in overflow-hidden bg-slate-950 sm:rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-          >
-            <Image
-              src={c.imagenUrl}
-              alt={c.titulo || "Foto de la publicación"}
-              width={0}
-              height={0}
+      {c.imagenes.length > 0 && (
+        <figure className="mt-7 px-0 sm:px-10 lg:px-14">
+          <div className="overflow-hidden sm:rounded-xl">
+            <CarruselFotos
+              imagenes={c.imagenes}
+              alto="aspect-[16/10]"
               sizes="(max-width: 768px) 100vw, 720px"
-              priority={!vistaPrevia}
-              className="block h-auto max-h-[36rem] w-full object-contain"
+              prioridad={!vistaPrevia}
+              alAbrir={vistaPrevia ? undefined : (i) => setVisor(i)}
             />
-          </button>
-          {visor && <VisorFoto c={c} onCerrar={cerrarVisor} />}
-        </div>
+          </div>
+          {visor !== null && <VisorFoto c={c} desde={visor} onCerrar={cerrarVisor} />}
+        </figure>
       )}
 
-      <div className="space-y-5 px-5 pb-10 pt-6 sm:px-10 sm:pt-8">
-        {cuerpo.map((p, i) => (
-          <p
-            key={i}
-            className="whitespace-pre-line break-words text-[17px] leading-[1.75] text-slate-800"
-          >
-            {p}
-          </p>
-        ))}
+      {/* El cuerpo: medida acotada aunque la hoja sea ancha. */}
+      <div className="px-5 pb-8 pt-7 sm:px-10 lg:px-14">
+        {bloques.map((b, i) =>
+          b.tipo === "subtitulo" ? (
+            // <h2> de verdad, no un párrafo en negrita: es la estructura que
+            // lee un lector de pantalla y la que Google usa para entender de
+            // qué habla cada tramo de la nota.
+            <h2
+              key={i}
+              className="mb-3 mt-9 max-w-[68ch] font-poppins text-[1.35rem] font-bold leading-snug tracking-tight text-[#00213f] first:mt-0 sm:text-[1.5rem]"
+            >
+              {b.texto}
+            </h2>
+          ) : (
+            <p
+              key={i}
+              className="mb-5 max-w-[68ch] whitespace-pre-line break-words text-[17.5px] leading-[1.78] text-slate-800 last:mb-0"
+            >
+              {b.texto}
+            </p>
+          )
+        )}
       </div>
+
+      {!vistaPrevia && (
+        <footer className="mt-2 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/60 px-5 py-5 sm:px-10 lg:px-14">
+          <p className="text-[13px] leading-snug text-slate-500">
+            Publicado por la{" "}
+            <Link href="/nosotros" className="font-semibold text-[#00213f] hover:text-sky-700">
+              Unión Industrial de Almirante Brown
+            </Link>
+            .
+          </p>
+          <CompartirNota c={c} />
+        </footer>
+      )}
     </article>
   );
 }

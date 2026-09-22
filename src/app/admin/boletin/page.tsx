@@ -13,7 +13,7 @@ async function getComunicados(): Promise<Comunicado[]> {
   const { data, error } = await supabase
     .from("comunicados")
     .select(
-      "id, titulo, cuerpo, bucket, ruta_imagen, estado, fijado, publicado_en, creado_por, creado_en, actualizado_en"
+      "id, titulo, bajada, cuerpo, bucket, rutas_imagenes, estado, fijado, publicado_en, creado_por, creado_en, actualizado_en"
     )
     // Borradores primero (lo que falta terminar), después lo publicado más nuevo.
     .order("estado", { ascending: true })

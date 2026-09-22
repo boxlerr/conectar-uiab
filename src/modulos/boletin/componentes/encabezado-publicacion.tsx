@@ -32,7 +32,7 @@ export function EncabezadoPublicacion({
         <div className="mt-0.5 text-[12.5px] text-slate-500">
           <span className="hidden sm:inline">Unión Industrial de Almirante Brown · </span>
           <Link
-            href={rutaComunicado(c.id)}
+            href={rutaComunicado(c)}
             onClick={alSeguirLink}
             className="hover:underline"
             title={fechaLegible(c.publicado_en)}

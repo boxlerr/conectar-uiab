@@ -1,25 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, MoreHorizontal, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { llamarAccion, fallo } from "@/lib/accion-segura";
 import { eliminarComunicado, fijarComunicado } from "../acciones";
-import { rutaComunicado } from "../formato";
+import { cuerpoSinMarcas, rutaComunicado } from "../formato";
 import type { ComunicadoPublico } from "../tipos";
+import { CarruselFotos } from "./carrusel-fotos";
 import { EncabezadoPublicacion } from "./encabezado-publicacion";
+import { VisorFoto } from "./visor-foto";
 
 /**
  * Una publicación en el feed del Boletín, con el formato de una red social
  * (Facebook, X, LinkedIn): quién publica y cuándo, el título y un adelanto del
- * texto, y la foto a lo ancho en su proporción real.
+ * texto, y las fotos a lo ancho — una sola en su proporción real, varias en un
+ * carrusel que se pasa con el dedo o con las flechas.
  *
- * Es la tapa de la nota: tocar el texto o la foto abre la publicación entera
- * en /boletin/[id] (ver `Articulo`), como pidió Juli — "que sea clickeable y
- * adentro ves el blog completo".
+ * Es la tapa de la nota: tocar el TEXTO abre la publicación entera en
+ * /boletin/[slug] (ver `Articulo`), como pidió Juli — "que sea clickeable y
+ * adentro ves el blog completo". Tocar una FOTO abre el visor, que es lo que
+ * hace cualquier red social.
  *
  * - `esAdmin` agrega el menú ··· para fijar, editar y eliminar sin ir al panel.
  * - `vistaPrevia` la dibuja en el editor del panel: sin links ni menú.
@@ -42,8 +45,16 @@ export function Publicacion({
   esAdmin?: boolean;
   vistaPrevia?: boolean;
 }) {
-  const largo = esLargo(c.cuerpo);
-  const href = rutaComunicado(c.id);
+  // El adelanto: la bajada si la nota tiene (para eso está, es el resumen que
+  // escribió la UIAB) y si no, el cuerpo sin las marcas de subtítulo.
+  const adelanto = c.bajada?.trim() || cuerpoSinMarcas(c.cuerpo);
+  const largo = esLargo(adelanto);
+  const href = rutaComunicado(c);
+
+  // Tocar una foto abre el visor, no la nota: es lo que espera cualquiera que
+  // usó una red social, y el texto entero se lee igual al costado del visor.
+  const [visor, setVisor] = useState<number | null>(null);
+  const cerrarVisor = useCallback(() => setVisor(null), []);
 
   // En la vista previa nada navega: los "links" son divs.
   const enlace = (className: string, children: React.ReactNode) =>
@@ -55,8 +66,12 @@ export function Publicacion({
       </Link>
     );
 
+  /* La tarjeta NO lleva `overflow-hidden`: el menú ··· es `absolute` dentro de
+     ella, y en una publicación corta quedaba recortado a la mitad — se veía
+     sólo la primera opción. El recorte lo hace ahora la foto, que es lo único
+     que necesita respetar la esquina redondeada de abajo. */
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_1px_3px_rgba(0,33,63,0.05)] transition-shadow hover:shadow-[0_6px_24px_-10px_rgba(0,33,63,0.18)]">
+    <article className="rounded-2xl border border-slate-200/70 bg-white shadow-[0_1px_3px_rgba(0,33,63,0.05)] transition-shadow hover:shadow-[0_6px_24px_-10px_rgba(0,33,63,0.18)]">
       {c.fijado && (
         <div className="flex items-center gap-1.5 px-4 pt-3 text-[12px] font-semibold text-slate-500 sm:px-5">
           <Pin className="h-3.5 w-3.5" />
@@ -71,7 +86,7 @@ export function Publicacion({
         />
       </div>
 
-      {(c.titulo || c.cuerpo) &&
+      {(c.titulo || adelanto) &&
         enlace(
           "group block px-4 pb-3 pt-3 sm:px-5",
           <>
@@ -80,13 +95,13 @@ export function Publicacion({
                 {c.titulo}
               </h2>
             )}
-            {c.cuerpo && (
+            {adelanto && (
               <p
                 className={`whitespace-pre-line break-words text-[15px] leading-relaxed text-slate-700 ${
                   largo ? "line-clamp-4" : ""
                 }`}
               >
-                {c.cuerpo}
+                {adelanto}
               </p>
             )}
             {(largo || c.titulo) && (
@@ -98,18 +113,17 @@ export function Publicacion({
           </>
         )}
 
-      {c.imagenUrl &&
-        enlace(
-          "block border-t border-slate-100 bg-slate-950",
-          <Image
-            src={c.imagenUrl}
-            alt={c.titulo || "Foto de la publicación"}
-            width={0}
-            height={0}
-            sizes="(max-width: 640px) 100vw, 600px"
-            className="block h-auto max-h-[36rem] w-full object-contain"
+      {c.imagenes.length > 0 && (
+        <div className="overflow-hidden rounded-b-2xl border-t border-slate-100">
+          <CarruselFotos
+            imagenes={c.imagenes}
+            sizes="(max-width: 640px) 100vw, 660px"
+            alAbrir={vistaPrevia ? undefined : (i) => setVisor(i)}
           />
-        )}
+        </div>
+      )}
+
+      {visor !== null && <VisorFoto c={c} desde={visor} onCerrar={cerrarVisor} />}
     </article>
   );
 }

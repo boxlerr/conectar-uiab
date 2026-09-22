@@ -10,9 +10,12 @@ export type EstadoComunicado = "borrador" | "publicado";
 export type Comunicado = {
   id: string;
   titulo: string;
+  /** El párrafo destacado bajo el título. Vacía = la nota no lleva bajada. */
+  bajada: string;
   cuerpo: string;
   bucket: string | null;
-  ruta_imagen: string | null;
+  /** Rutas de las fotos dentro de `bucket`, en orden. La primera es la portada. */
+  rutas_imagenes: string[];
   estado: EstadoComunicado;
   fijado: boolean;
   publicado_en: string | null;
@@ -28,21 +31,39 @@ export type Comunicado = {
  */
 export type DatosComunicado = {
   titulo: string;
+  bajada: string;
   cuerpo: string;
   estado: EstadoComunicado;
   fijado: boolean;
   bucket: string | null;
-  ruta_imagen: string | null;
+  rutas_imagenes: string[];
 };
 
-/** Un comunicado ya listo para mostrar: la foto resuelta a URL pública. */
-export type ComunicadoPublico = Comunicado & { imagenUrl: string | null };
+/**
+ * Un comunicado listo para mostrar: las fotos ya resueltas a URL pública.
+ *
+ * `imagenUrl` es la PORTADA y se deriva de `imagenes[0]` en un solo lugar
+ * (`conImagen`, en consultas.ts). Existe porque hay pantallas que muestran una
+ * sola foto —la tira del panel, la tarjeta de "Más novedades", la imagen de
+ * OpenGraph— y no tiene sentido que cada una repita `imagenes[0] ?? null`.
+ */
+export type ComunicadoPublico = Comunicado & {
+  imagenes: string[];
+  imagenUrl: string | null;
+};
 
 /** Bucket público donde vive la foto del comunicado (el mismo que logos/imágenes). */
 export const BUCKET_BOLETIN = "imagenes-publicas";
 
 /** Carpeta dentro del bucket. */
 export const CARPETA_BOLETIN = "boletin";
+
+/**
+ * Tope de fotos por publicación. No es una restricción técnica: es que un
+ * carrusel de más de 10 no lo mira nadie, y cada foto es una descarga más para
+ * la socia que abre el boletín desde el celular.
+ */
+export const MAX_FOTOS = 10;
 
 /**
  * Formatos de foto aceptados y la extensión con la que se guardan. La
