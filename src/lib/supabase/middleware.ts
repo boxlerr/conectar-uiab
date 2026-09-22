@@ -96,13 +96,18 @@ export async function updateSession(request: NextRequest) {
   // públicas. El gating de la búsqueda/listado lo hace el cliente según auth.
   // Los detalles (/empresa/[id], /proveedor/[id]) y áreas privadas siguen
   // protegidas.
+  //
+  // /boletin TAMBIÉN es pública desde que se abrió al índice: es el contenido
+  // fresco del dominio y cada nota tiene que poder aparecer en Google. Lo que
+  // sale de la base está filtrado por `estado = 'publicado'` (consultas.ts);
+  // los borradores siguen siendo sólo del panel, y publicar sigue siendo de
+  // admin. Escribirla acá de nuevo la volvería a esconder detrás del login.
   const isProtectedRoute =
     pathname.startsWith('/admin') ||
     pathname.startsWith('/empresa/') ||
     pathname.startsWith('/proveedor/') ||
     pathname.startsWith('/perfil') ||
     pathname.startsWith('/panel-de-control') ||
-    pathname.startsWith('/boletin') ||
     pathname.startsWith('/pendiente-aprobacion');
 
   // 1. Authentication Check (Require JWT)

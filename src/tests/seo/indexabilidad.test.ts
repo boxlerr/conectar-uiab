@@ -22,6 +22,7 @@ const RUTAS_PUBLICAS: Array<{ ruta: string; archivo: string[] }> = [
   { ruta: '/instituciones-educativas',  archivo: ['instituciones-educativas', 'layout.tsx'] },
   { ruta: '/nosotros',                  archivo: ['nosotros', 'page.tsx'] },
   { ruta: '/rubros',                    archivo: ['rubros', 'page.tsx'] },
+  { ruta: '/boletin',                   archivo: ['boletin', 'page.tsx'] },
   { ruta: '/sumate',                    archivo: ['sumate', 'page.tsx'] },
   { ruta: '/contacto',                  archivo: ['contacto', 'page.tsx'] },
   { ruta: '/terminos',                  archivo: ['terminos', 'page.tsx'] },
@@ -110,6 +111,23 @@ describe('rutas dinámicas', () => {
     const fuente = leer('oportunidades', '[id]', 'page.tsx');
     expect(fuente).not.toContain('"use client"');
     expect(fuente).toContain('estado');
+  });
+
+  it('/boletin/[slug] interpola su canonical y deja fuera del índice a las notas flacas', () => {
+    const fuente = leer('boletin', '[slug]', 'page.tsx');
+    expect(fuente).toContain('alternates: { canonical: url }');
+    // Un aviso de dos líneas o una foto suelta se leen igual, pero no se
+    // indexan: son thin content y arrastran al dominio entero.
+    expect(fuente).toMatch(/esNotaIndexable\(c\)\s*\?\s*undefined\s*:\s*\{\s*index:\s*false/);
+  });
+
+  it('/boletin/[slug] unifica la URL con un 301, no con un canonical solo', () => {
+    // El slug se calcula del título: si el título se corrige, la URL vieja
+    // sigue resolviendo por el sufijo de id y tiene que mandar a la nueva.
+    // Con `redirect()` de RSC sería un 200 con meta-refresh; acá hace falta
+    // el permanente.
+    const fuente = leer('boletin', '[slug]', 'page.tsx');
+    expect(fuente).toContain('permanentRedirect');
   });
 
   it('/oportunidades/nueva es noindex (gate de login con redirect() de RSC)', () => {
@@ -208,6 +226,38 @@ describe('noindex', () => {
     ]) {
       expect(config).toContain(ruta);
     }
+  });
+});
+
+describe('el boletín es público', () => {
+  /**
+   * Nació detrás del login y con `noindex`: el middleware protegía todo
+   * `/boletin*` y next.config le ponía la cabecera. Es la única fuente de
+   * contenido fresco del dominio, así que se abrió. Estos tres tests existen
+   * porque volver a cerrarlo es una línea en cada archivo, y el síntoma —que
+   * Google deje de ver las notas— tarda semanas en aparecer.
+   */
+  it('el middleware no lo trata como ruta protegida', () => {
+    for (const archivo of [
+      join(process.cwd(), 'src', 'middleware.ts'),
+      join(process.cwd(), 'src', 'lib', 'supabase', 'middleware.ts'),
+    ]) {
+      const fuente = readFileSync(archivo, 'utf8');
+      const sinComentarios = fuente.replace(/\/\/.*$/gm, '');
+      expect(sinComentarios).not.toMatch(/startsWith\(['"]\/boletin/);
+    }
+  });
+
+  it('no lleva X-Robots-Tag de noindex', () => {
+    const config = readFileSync(join(process.cwd(), 'next.config.ts'), 'utf8');
+    const headers = config.slice(config.indexOf('async headers()'), config.indexOf('async redirects()'));
+    expect(headers).not.toContain('/boletin');
+  });
+
+  it('el sitemap publica la sección y las notas que sí son notas', () => {
+    const fuente = leer('sitemap.ts');
+    expect(fuente).toContain('/boletin');
+    expect(fuente).toContain('esNotaIndexable');
   });
 });
 

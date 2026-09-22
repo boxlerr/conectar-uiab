@@ -2,6 +2,7 @@ import { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { crearSlug, nombreDeFichaParticular } from "@/lib/utilidades";
 import { RUBROS_SEO } from "@/lib/datos/rubros-seo";
+import { esNotaIndexable, rutaComunicado } from "@/modulos/boletin/formato";
 
 const BASE_URL = "https://www.uiabconecta.com";
 
@@ -66,12 +67,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // /proveedores NO va: es un 308 a /empresas?categoria=proveedores
     // (ver next.config.ts). Publicar un redirect en el sitemap es pedirle a
     // Google que gaste rastreo en una URL que no existe más.
+    //
+    // /boletin y sus notas se agregan abajo: su lastmod sale de la última
+    // publicación, no del alta de una socia.
   ];
 
   try {
     const supabase = adminClient();
 
-    const [{ data: empresas }, { data: proveedores }, { data: oportunidades }] =
+    const [{ data: empresas }, { data: proveedores }, { data: oportunidades }, { data: comunicados }] =
       await Promise.all([
         supabase.from("empresas").select("razon_social, creado_en, actualizado_en").eq("estado", "aprobada"),
         supabase
@@ -79,6 +83,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           .select("nombre, apellido, nombre_comercial, creado_en, actualizado_en")
           .eq("estado", "aprobado"),
         supabase.from("oportunidades").select("id, creado_en").eq("estado", "abierta"),
+        supabase
+          .from("comunicados")
+          .select("id, titulo, cuerpo, publicado_en, actualizado_en")
+          .eq("estado", "publicado"),
       ]);
 
     const fecha = (v: string | null | undefined) => (v ? new Date(v) : ACTUALIZACION_PAGINAS_FIJAS);
@@ -140,6 +148,40 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.7,
       }));
 
+    /**
+     * Las notas del Boletín. Entran SÓLO las que pasan `esNotaIndexable`: un
+     * aviso de dos líneas o una publicación que es sólo una foto se leen y se
+     * comparten igual, pero publicarlas acá es pedirle a Google que indexe
+     * páginas flacas — el problema que este sitio ya tiene con las fichas sin
+     * descripción. Su página además va con `noindex`, así que listarlas sería
+     * contradecirse.
+     */
+    const notas = (comunicados ?? []).filter((c) =>
+      esNotaIndexable({ titulo: c.titulo ?? "", cuerpo: c.cuerpo ?? "" })
+    );
+
+    const notaRoutes: MetadataRoute.Sitemap = notas.map((c) => ({
+      url: `${BASE_URL}${rutaComunicado({ id: c.id, titulo: c.titulo ?? "", cuerpo: c.cuerpo ?? "" })}`,
+      lastModified: ultimoCambio({ creado_en: c.publicado_en, actualizado_en: c.actualizado_en }),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    }));
+
+    // El índice de la sección cambia cuando cambia la nota más nueva.
+    const ultimaNota = notaRoutes.reduce<Date>(
+      (max, r) => ((r.lastModified as Date) > max ? (r.lastModified as Date) : max),
+      ACTUALIZACION_PAGINAS_FIJAS
+    );
+    const boletinRoutes: MetadataRoute.Sitemap = [
+      {
+        url: `${BASE_URL}/boletin`,
+        lastModified: ultimaNota,
+        changeFrequency: "weekly",
+        priority: 0.7,
+      },
+      ...notaRoutes,
+    ];
+
     const fichas = [...empresaRoutes, ...proveedorRoutes];
 
     // Una empresa y un particular podrían compartir razón social y colapsar en
@@ -151,7 +193,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ACTUALIZACION_PAGINAS_FIJAS
     );
 
-    return [...construirEstaticas(ultimaAlta), ...unicas.values(), ...oportunidadRoutes];
+    return [
+      ...construirEstaticas(ultimaAlta),
+      ...unicas.values(),
+      ...oportunidadRoutes,
+      ...boletinRoutes,
+    ];
   } catch {
     return construirEstaticas(ACTUALIZACION_PAGINAS_FIJAS);
   }

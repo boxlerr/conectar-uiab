@@ -9,7 +9,6 @@ function esRutaProtegida(pathname: string) {
     pathname.startsWith('/proveedor/') ||
     pathname.startsWith('/perfil') ||
     pathname.startsWith('/panel-de-control') ||
-    pathname.startsWith('/boletin') ||
     pathname.startsWith('/pendiente-aprobacion')
   )
 }

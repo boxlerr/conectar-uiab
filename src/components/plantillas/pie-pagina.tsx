@@ -55,6 +55,10 @@ const quickLinks = [
   { label: "Empresas", href: "/empresas" },
   { label: "Rubros industriales", href: "/rubros" },
   { label: "Oportunidades", href: "/oportunidades" },
+  // El Boletín es la única sección que suma URLs nuevas con el tiempo: el
+  // enlace site-wide del pie es lo que hace que Google vuelva a pasar por
+  // ella sin esperar al sitemap.
+  { label: "Boletín", href: "/boletin" },
   { label: "Qué es UIAB Conecta", href: "/nosotros" },
   { label: "Contacto", href: "/contacto" },
 ];
