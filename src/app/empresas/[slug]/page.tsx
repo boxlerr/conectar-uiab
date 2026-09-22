@@ -1483,8 +1483,8 @@ async function EmpresaProfile({
           </main>
 
           <aside className="w-full tab:w-[38%] lg:w-[28%]">
-            {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo */}
-            <div className="sticky top-24 space-y-6">
+            {/* top-20 = alto del header (h-16 lg:h-20), el canon del repo */}
+            <div className="sticky top-20 space-y-6">
               <div data-tour="ficha-sidebar-contacto" className={`${TARJETA} overflow-hidden`}>
                 <div className="border-b border-slate-200 bg-slate-50/60 px-5 py-3.5">
                   <h3 className="font-manrope text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
@@ -1939,8 +1939,8 @@ async function ProveedorProfile({
 
           {/* Sidebar */}
           <aside className="w-full tab:w-[40%] lg:w-[35%]">
-            {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo */}
-            <div className="sticky top-24 space-y-6">
+            {/* top-20 = alto del header (h-16 lg:h-20), el canon del repo */}
+            <div className="sticky top-20 space-y-6">
               <div className={`${TARJETA} overflow-hidden`}>
                 <div className="border-b border-slate-200 bg-slate-50/60 px-5 py-3.5">
                   <h3 className="font-manrope text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">

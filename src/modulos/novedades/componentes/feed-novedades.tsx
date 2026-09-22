@@ -126,7 +126,7 @@ export function FeedNovedades({ tieneFicha, vistas }: FeedNovedadesProps) {
   return (
     <section
       id="novedades"
-      className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-[0_2px_16px_-6px_rgba(0,33,63,0.06)]"
+      className="scroll-mt-20 overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-[0_2px_16px_-6px_rgba(0,33,63,0.06)]"
     >
       {/* Cabecera con una banda apenas teñida: separa el bloque del resto del
           panel sin meter otra línea divisoria. */}

@@ -54,7 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         `useSearchParams`. Acotarlo acá deja el contenido de la página dentro
         del primer flush.
       */}
-      <Suspense fallback={<div className="h-20 lg:h-24" aria-hidden />}>
+      <Suspense fallback={<div className="h-16 lg:h-20" aria-hidden />}>
         <Header
           currentUser={currentUser}
           onLogout={logout}

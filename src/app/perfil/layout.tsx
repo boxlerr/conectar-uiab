@@ -97,13 +97,13 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
   ];
 
   // svh (viewport chico) y no vh: en iOS la barra de Safari hace que 100vh no entre en pantalla.
-  // Los offsets siguen el alto real del header (h-20 lg:h-24).
+  // Los offsets siguen el alto real del header (h-16 lg:h-20).
   return (
-    <div className="flex min-h-[calc(100svh-5rem)] lg:min-h-[calc(100svh-6rem)]">
+    <div className="flex min-h-[calc(100svh-4rem)] lg:min-h-[calc(100svh-5rem)]">
       {/* Sidebar Navigation */}
       <aside
         data-tour="perfil-nav"
-        className="w-64 bg-white border-r border-slate-200 hidden lg:flex flex-col flex-shrink-0 sticky top-24 h-[calc(100svh-6rem)] overflow-y-auto"
+        className="w-64 bg-white border-r border-slate-200 hidden lg:flex flex-col flex-shrink-0 sticky top-20 h-[calc(100svh-5rem)] overflow-y-auto"
       >
         <div className="py-6 px-4 space-y-6">
           <div className="px-2">

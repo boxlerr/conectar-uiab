@@ -684,7 +684,7 @@ export default async function DashboardPage() {
 
             {/* Actividad + Estadísticas, lado a lado como en el mockup */}
             {tieneFicha ? (
-              <div id="estadisticas" className="grid scroll-mt-24 animate-in grid-cols-1 gap-5 duration-700 fade-in slide-in-from-bottom-3 lg:grid-cols-5 [animation-delay:220ms] [animation-fill-mode:both]">
+              <div id="estadisticas" className="grid scroll-mt-20 animate-in grid-cols-1 gap-5 duration-700 fade-in slide-in-from-bottom-3 lg:grid-cols-5 [animation-delay:220ms] [animation-fill-mode:both]">
                 <div data-tour="dash-feed" className="lg:col-span-2">
                   <TarjetaActividad eventos={actividad} />
                 </div>

@@ -172,8 +172,8 @@ export function PublicEmpresasLanding({
           SECTION 1: CINEMATIC HERO
       ═══════════════════════════════════════════ */}
       {/* El margen negativo tiene que ser igual al spacer del header
-          (h-20 lg:h-24), si no queda una franja del fondo de la página. */}
-      <section className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-20 lg:-mt-24">
+          (h-16 lg:h-20), si no queda una franja del fondo de la página. */}
+      <section className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-16 lg:-mt-20">
         {/* Background Image (sin parallax para evitar reflows en notebooks) */}
         <div className="absolute inset-0 z-0 overflow-hidden">
           <Image
@@ -800,7 +800,7 @@ export function PublicEmpresasLanding({
       {/* ═══════════════════════════════════════════
           SECTION 7: LIMITED PREVIEW — DIRECTORY SNEAK PEEK
       ═══════════════════════════════════════════ */}
-      <section id="preview" className="py-24 lg:py-32 bg-[#f2f4f6] scroll-mt-24">
+      <section id="preview" className="py-24 lg:py-32 bg-[#f2f4f6] scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial="hidden"

@@ -44,9 +44,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // svh y no vh: en iOS el 100vh incluye la barra de Safari y deja contenido tapado
   return (
-    <div className="flex min-h-[calc(100svh-5rem)] lg:min-h-[calc(100svh-6rem)]">
+    <div className="flex min-h-[calc(100svh-4rem)] lg:min-h-[calc(100svh-5rem)]">
       {/* Sidebar Navigation — a lg: en md el aside se comía 256px de los 768 y dejaba 464px de contenido */}
-      <aside className="w-64 bg-white border-r border-slate-200 hidden lg:block flex-shrink-0 sticky top-24 h-[calc(100svh-6rem)] overflow-y-auto">
+      <aside className="w-64 bg-white border-r border-slate-200 hidden lg:block flex-shrink-0 sticky top-20 h-[calc(100svh-5rem)] overflow-y-auto">
         <div className="h-full py-6 px-4 space-y-2">
           <div className="mb-8 px-2">
             <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">

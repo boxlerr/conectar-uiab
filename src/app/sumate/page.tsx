@@ -249,7 +249,7 @@ export default async function SumatePage({
 
           {/* ─── Listado en vivo ─── */}
           <aside className="lg:col-span-5">
-            <div className="bg-white rounded-xl shadow-2xl shadow-primary/5 overflow-hidden sticky top-24">
+            <div className="bg-white rounded-xl shadow-2xl shadow-primary/5 overflow-hidden sticky top-20">
               <div className="bg-[#00213f] text-white px-6 py-5 flex items-center gap-3">
                 <div className="w-10 h-10 rounded bg-white/10 flex items-center justify-center shrink-0">
                   <Users className="w-5 h-5" />

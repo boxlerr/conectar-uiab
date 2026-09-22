@@ -247,11 +247,11 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
     // termina cortada. Nunca dvh, que hace reflow mientras la barra entra/sale.
     <div className="min-h-svh bg-[#f7f9fb] font-inter pb-20">
       {/* ─── Hero Header ───
-          El margen negativo compensa el spacer del header (h-20 lg:h-24), así
+          El margen negativo compensa el spacer del header (h-16 lg:h-20), así
           que tiene que escalar igual que él: -20 abajo de lg, -24 arriba. */}
       <div
         data-tour="directorio-hero"
-        className="relative overflow-hidden -mt-20 lg:-mt-24 pt-28 lg:pt-32 pb-16 mb-8 bg-[#00182e]"
+        className="relative overflow-hidden -mt-16 lg:-mt-20 pt-24 lg:pt-28 pb-16 mb-8 bg-[#00182e]"
       >
         {/* Fondo estable: gradiente profundo + textura industrial con opacidad
             FIJA + grilla fina + orbes de profundidad. Solo parallax de posición,
@@ -451,7 +451,7 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
           {/* Sidebar */}
           <aside
             data-tour="directorio-sidebar"
-            className="w-full tab:w-52 md:w-60 lg:w-3/12 xl:w-1/4 shrink-0 tab:sticky tab:top-24 tab:self-start"
+            className="w-full tab:w-52 md:w-60 lg:w-3/12 xl:w-1/4 shrink-0 tab:sticky tab:top-20 tab:self-start"
           >
             <FilterSidebar
               categorias={categoriasActivas}

@@ -362,7 +362,7 @@ export function OportunidadesCliente({
 
   return (
     /*
-      Sin `pt-20 lg:pt-24`: el Header ya emite su propio spacer de esa misma
+      Sin `pt-16 lg:pt-20`: el Header ya emite su propio spacer de esa misma
       altura (encabezado.tsx), así que repetirlo acá sumaba una franja en blanco
       de 96px antes de la tarjeta. El hero viejo, que iba a sangre, lo
       compensaba con un margen negativo; este no lo necesita.

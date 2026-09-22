@@ -21,7 +21,7 @@ export default function LoadingDirectorio() {
             hay layout shift en cada navegación al directorio. */}
         <div className="flex flex-col tab:flex-row gap-8 tab:gap-6 lg:gap-14">
           {/* Sidebar filtros */}
-          <aside className="w-full tab:w-52 md:w-60 lg:w-3/12 xl:w-1/4 shrink-0 tab:sticky tab:top-24 tab:self-start">
+          <aside className="w-full tab:w-52 md:w-60 lg:w-3/12 xl:w-1/4 shrink-0 tab:sticky tab:top-20 tab:self-start">
             <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
               <div className="h-10 w-full bg-slate-100 rounded" />
               {Array.from({ length: 6 }).map((_, i) => (

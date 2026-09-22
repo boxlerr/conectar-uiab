@@ -601,7 +601,7 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
           PRECIO — MEMBRESÍA ÚNICA (visible desde el inicio)
           Los montos reales del billing viven en src/lib/mercadopago/suscripciones.ts
       ═══════════════════════════════════════════ */}
-      <section id="precio" className="py-14 lg:py-16 bg-white scroll-mt-24">
+      <section id="precio" className="py-14 lg:py-16 bg-white scroll-mt-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* initial={false}: con "reducir movimiento" activo, whileInView deja
               el contenido en opacity:0 para siempre (gotcha ya conocido). */}

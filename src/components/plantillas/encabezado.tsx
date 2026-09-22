@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { User, Shield, Building, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase, BookOpen, GraduationCap, Landmark, Factory, Users, UserPlus } from "lucide-react";
+import { User, Shield, Building, Menu, X, Mail, Info, ChevronRight, LogOut, Briefcase, BookOpen, GraduationCap, Landmark, Factory, Users, UserPlus, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utilidades";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad-del-perfil";
@@ -246,16 +246,31 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
         { name: "Directorio", href: "/directorio", icon: BookOpen },
         { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
         { name: "Panel de Control", href: "/panel-de-control", icon: null },
-        { name: "Boletín", href: "/boletin", icon: null },
+        { name: "Boletín", href: "/boletin", icon: Megaphone },
         { name: "Contacto", href: "/contacto", icon: Mail, enMas: true },
         { name: "Nosotros", href: "/nosotros", icon: Info, enMas: true },
       ]
     : [
-        { name: "Inicio", href: "/", icon: null },
+        // Sin sesión la barra tenía SIETE ítems y llegaba de punta a punta:
+        // "gigante y amontonada", y encima sin jerarquía —"Contacto" pesaba lo
+        // mismo que "Directorio"—. Ahora la barra dice sólo las cuatro
+        // secciones que alguien viene a buscar, y el resto se pliega:
+        //   · "Inicio" sale del escritorio: el logo ya va a la portada, y un
+        //     ítem que repite al logo ocupa lugar sin agregar destino. En el
+        //     drawer se queda, porque ahí el logo no está a mano.
+        //   · "Nosotros" y "Contacto" van a "Más", como en la vista logueada.
+        //   · "Sumate" sale de la barra y pasa a ser BOTÓN al lado de
+        //     "Ingresar": es una acción, no una sección, y ahí se lee como tal.
+        { name: "Inicio", href: "/", icon: null, soloMobile: true },
         { name: "Directorio", href: "/directorio", icon: BookOpen },
         { name: "Oportunidades", href: "/oportunidades", icon: Briefcase },
-        { name: "Nosotros", href: "/nosotros", icon: null },
-        { name: "Contacto", href: "/contacto", icon: null },
+        // El Boletín es público desde que se abrió al índice, así que también
+        // se muestra sin sesión: es el enlace interno más fuerte que tiene la
+        // sección, y hasta ahora era invisible para cualquiera que no entrara.
+        { name: "Boletín", href: "/boletin", icon: Megaphone },
+        { name: "Sumate", href: "/sumate", icon: UserPlus, soloMobile: true },
+        { name: "Nosotros", href: "/nosotros", icon: Info, enMas: true },
+        { name: "Contacto", href: "/contacto", icon: Mail, enMas: true },
       ];
 
   // Visitantes sin sesión: desplegable informativo con las categorías de la red.
@@ -314,15 +329,6 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
       ],
     });
 
-    // La puerta de entrada, que hasta ahora no existía en ningún lado del sitio
-    // público: sin `groups` el header lo renderiza como <Link> y navega de
-    // verdad. Va después del desplegable a propósito — primero se muestra lo que
-    // hay, después se invita a entrar.
-    navigation.splice(3, 0, {
-      name: "Sumate",
-      href: "/sumate",
-      icon: UserPlus,
-    });
   }
 
   if (currentUser?.role === "admin") {
@@ -406,7 +412,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
         )}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-20 lg:h-24 items-center justify-between gap-4">
+          <div className="flex h-16 lg:h-20 items-center justify-between gap-3 xl:gap-4">
             {/* Logo */}
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
@@ -416,16 +422,17 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
               <Link href="/" className="flex items-center group" aria-label="UIAB Conecta">
                 {/* Logo completo (UIAB Conecta) en desktop.
                     Este SVG viene sin margen interno —el trazo toca los bordes
-                    del viewBox—, así que a la misma altura que el anterior se
-                    veía un 6% más grande: por eso h-11/h-[52px] y no h-12/h-14.
-                    El salto a 52px va en xl: y no en lg: porque entre 1024 y 1279
-                    (iPad apaisado) el nav completo necesita ese ancho. */}
+                    del viewBox—, así que a la misma altura que otro se ve un 6%
+                    más grande: por eso los valores son bajos.
+                    Bajó de h-11/h-[52px] a h-10/h-11 junto con la barra: en
+                    80px de alto, un logo de 52 dejaba 14px de aire y era la
+                    mitad de por qué el header se sentía enorme. */}
                 <Image
                   src="/logo-uiab-conecta.svg"
                   alt="UIAB Conecta"
                   width={189}
                   height={36}
-                  className="hidden sm:block h-11 xl:h-[52px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                  className="hidden sm:block h-10 xl:h-11 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   priority
                 />
                 {/* Solo isotipo en mobile */}
@@ -434,7 +441,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                   alt="UIAB Conecta"
                   width={1536}
                   height={1536}
-                  className="sm:hidden h-14 w-14 object-contain transition-transform duration-300 group-hover:scale-105"
+                  className="sm:hidden h-11 w-11 object-contain transition-transform duration-300 group-hover:scale-105"
                   priority
                 />
               </Link>
@@ -498,7 +505,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                           type="button"
                           onClick={() => setOpenDropdown(isOpen ? null : item.name)}
                           className={cn(
-                            "relative px-2.5 xl:px-4 py-2 text-[13px] xl:text-sm font-semibold whitespace-nowrap transition-colors duration-300 rounded-xl flex w-full items-center gap-1.5 xl:gap-2",
+                            "relative px-2 xl:px-4 py-2 text-[13px] xl:text-sm font-semibold whitespace-nowrap transition-colors duration-300 rounded-xl flex w-full items-center gap-1.5 xl:gap-2",
                             isActive ? "text-primary-700" : "text-slate-600 hover:text-slate-900"
                           )}
                           style={{ zIndex: 10 }}
@@ -612,8 +619,12 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                       rel={item.external ? "noopener noreferrer" : undefined}
                       className={cn(
                         // px/gap/tamaño compactados en el escalón lg (1024-1279):
-                        // con los valores de xl el nav desbordaba ~133px en iPad apaisado.
-                        "relative px-2.5 xl:px-4 py-2 text-[13px] xl:text-sm font-semibold whitespace-nowrap transition-colors duration-300 rounded-xl flex items-center gap-1.5 xl:gap-2",
+                        // con los valores de xl el nav desbordaba ~133px en iPad
+                        // apaisado. El px-2 (en vez de 2.5) es de la pasada en la
+                        // que "Boletín" y el botón "Sumate" entraron a la barra:
+                        // a 1024 sobraban 14px y se los comía el padding del
+                        // contenedor.
+                        "relative px-2 xl:px-4 py-2 text-[13px] xl:text-sm font-semibold whitespace-nowrap transition-colors duration-300 rounded-xl flex items-center gap-1.5 xl:gap-2",
                         isActive ? "text-primary-700" : "text-slate-600 hover:text-slate-900"
                       )}
                       style={{ zIndex: 10 }}
@@ -637,7 +648,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="hidden lg:flex items-center gap-4"
+              className="hidden lg:flex items-center gap-2 xl:gap-3"
             >
               {currentUser ? (
                 <div className="flex items-center gap-2" onMouseLeave={() => setHoveredPath(null)}>
@@ -645,13 +656,26 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                   <ProfileDropdownMenu currentUser={currentUser} onLogout={onLogout} />
                 </div>
               ) : (
-                <Button 
-                  onClick={openAuthModal}
-                  className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-xl font-semibold bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5 text-white"
-                >
-                  <User className="w-4 h-4" />
-                  Ingresar
-                </Button>
+                // Dos acciones con jerarquía: "Sumate" para el que todavía no
+                // está (secundario, contorneado) e "Ingresar" para el que ya es
+                // socia (primario). Antes "Sumate" era un ítem más de la barra,
+                // perdido entre las secciones.
+                <>
+                  <Link
+                    href="/sumate"
+                    className="inline-flex items-center justify-center gap-2 h-10 px-4 xl:px-5 rounded-xl text-[13px] xl:text-sm font-semibold border border-slate-200 bg-white/70 text-slate-700 transition-all hover:border-slate-300 hover:bg-white hover:text-[#00213f]"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Sumate
+                  </Link>
+                  <Button
+                    onClick={openAuthModal}
+                    className="inline-flex items-center justify-center gap-2 h-10 px-4 xl:px-6 rounded-xl text-[13px] xl:text-sm font-semibold bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 transition-all hover:-translate-y-0.5 text-white"
+                  >
+                    <User className="w-4 h-4" />
+                    Ingresar
+                  </Button>
+                </>
               )}
             </motion.div>
 
@@ -670,10 +694,12 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
         </div>
       </header>
 
-      {/* spacer to prevent content from going under the fixed header.
-          Tiene que coincidir exacto con el h-20 lg:h-24 del header: antes
-          era h-16 sm:h-20 y quedaban 16px de contenido tapado. */}
-      <div className="h-20 lg:h-24 w-full" />
+      {/* Spacer: el header es `fixed`, así que sin esto el contenido arranca
+          tapado. Tiene que coincidir EXACTO con el alto del header — hoy
+          h-16 lg:h-20 (64/80px). Si cambia uno, cambian los dos, y con ellos
+          los `top-20` pegajosos, los `-mt-16 lg:-mt-20` de los heros a sangre
+          y los `scroll-mt-20` de las anclas. */}
+      <div className="h-16 lg:h-20 w-full" />
 
       {/* Mobile menu overlay */}
       <AnimatePresence>
@@ -696,7 +722,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed inset-y-0 right-0 z-40 w-full max-w-sm bg-white shadow-2xl lg:hidden overflow-y-auto"
             >
-              <div className="flex flex-col h-full pt-20 lg:pt-24 px-6 pb-6">
+              <div className="flex flex-col h-full pt-16 lg:pt-20 px-6 pb-6">
                 
                 {/* Mobile User Profile or Login */}
                 <div className="mb-8">

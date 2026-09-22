@@ -126,9 +126,9 @@ export function PublicProveedoresParticularesLanding({
           SECTION 1: HERO — FULL BLEED CINEMATIC
       ═══════════════════════════════════════════ */}
       {/* El margen negativo tiene que ser igual al spacer del header
-          (h-20 lg:h-24), si no queda una franja del fondo de la página. */}
+          (h-16 lg:h-20), si no queda una franja del fondo de la página. */}
       <section
-        className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-20 lg:-mt-24"
+        className="relative overflow-hidden w-full min-h-[100svh] flex flex-col bg-[#00213f] -mt-16 lg:-mt-20"
       >
         {/* Background Image (static — sin parallax para mejor performance) */}
         <div className="absolute inset-0 z-0 overflow-hidden">
@@ -756,7 +756,7 @@ export function PublicProveedoresParticularesLanding({
       {/* ═══════════════════════════════════════════
           SECTION 6: CÓMO FUNCIONA — 3 STEPS
       ═══════════════════════════════════════════ */}
-      <section id="como-funciona" className="py-24 lg:py-36 scroll-mt-24 bg-[#f7f9fb]">
+      <section id="como-funciona" className="py-24 lg:py-36 scroll-mt-20 bg-[#f7f9fb]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial="hidden"

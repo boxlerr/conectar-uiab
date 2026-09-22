@@ -86,7 +86,7 @@ export default function TerminosPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* TOC */}
           <aside className="lg:col-span-3">
-            <div className="sticky top-24">
+            <div className="sticky top-20">
               <div className="bg-white border border-slate-200/70 rounded-xl p-5 shadow-sm shadow-primary/5">
                 <div className="flex items-center gap-2 mb-4">
                   <FileText className="w-4 h-4 text-primary" />

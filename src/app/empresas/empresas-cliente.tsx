@@ -465,8 +465,8 @@ export function EmpresasCliente({
         <div className="flex flex-col tab:flex-row gap-8 md:gap-10 lg:gap-14">
           {/* Sidebar */}
           <aside className="w-full tab:w-[38%] lg:w-3/12 xl:w-1/4 shrink-0">
-            {/* top-24 = alto del header (h-20 lg:h-24), el canon del repo */}
-            <div className="tab:sticky tab:top-24">
+            {/* top-20 = alto del header (h-16 lg:h-20), el canon del repo */}
+            <div className="tab:sticky tab:top-20">
               <FilterSidebar
                 categorias={categorias}
                 categoriaSeleccionada={categoriaSeleccionada}

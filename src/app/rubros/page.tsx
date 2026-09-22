@@ -31,7 +31,7 @@ export default async function RubrosPage() {
 
   return (
     <div className="min-h-svh bg-[#f7f9fb]">
-      <section className="relative bg-[#00213f] -mt-20 lg:-mt-24 pt-20 lg:pt-24 overflow-hidden">
+      <section className="relative bg-[#00213f] -mt-16 lg:-mt-20 pt-16 lg:pt-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#00182e] via-[#00213f] to-[#10375c]" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-18">
           <Migas
