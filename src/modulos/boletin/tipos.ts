@@ -25,6 +25,23 @@ export type Comunicado = {
 };
 
 /**
+ * Una fila con lo que además necesita el PANEL: el estado del aviso por email.
+ *
+ * Son tres columnas más de `comunicados`, pero no van en `Comunicado` porque
+ * `ComunicadoPublico` lo extiende, y ése viaja al browser en /boletin, que lee
+ * cualquiera sin cuenta. A un visitante no le incumbe a cuántas socias se le
+ * mandó la nota ni cuándo: lo ve sólo quien entra a /admin.
+ */
+export type ComunicadoAdmin = Comunicado & {
+  /** ¿Avisar por email al publicarla? Se tilda en el compositor. */
+  avisar_por_email: boolean;
+  /** Cuándo salió el aviso. Null = todavía no salió (y puede salir). */
+  aviso_enviado_en: string | null;
+  /** A cuántas casillas se mandó. Null si nunca se mandó o si se cortó a mitad. */
+  aviso_destinatarios: number | null;
+};
+
+/**
  * Lo que el panel manda al crear o editar. La foto ya se subió a Storage desde
  * el browser (mismo flujo que los logos): acá viajan sólo `bucket` + `ruta` para
  * guardarlos, no el archivo.
@@ -37,6 +54,14 @@ export type DatosComunicado = {
   fijado: boolean;
   bucket: string | null;
   rutas_imagenes: string[];
+  /**
+   * ¿Avisar por email a las socias cuando se publique?
+   *
+   * Es la INTENCIÓN, no la orden de mandar: se guarda en la fila y el aviso
+   * sale cuando la nota efectivamente pase a `publicado`, una sola vez. Guardar
+   * un borrador con esto en `true` no manda nada.
+   */
+  avisar_por_email: boolean;
 };
 
 /**

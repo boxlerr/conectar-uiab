@@ -2,8 +2,11 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient as createClienteSSR } from "@/lib/supabase/servidor";
 import { exigirAdmin } from "@/lib/autenticacion/exigir-admin";
+import { dispararAvisoDelBoletin } from "./aviso";
+import { destinatariosDelBoletin } from "./destinatarios";
 import {
   BUCKET_BOLETIN,
   CARPETA_BOLETIN,
@@ -37,6 +40,22 @@ function revalidarBoletin() {
   revalidatePath("/admin/boletin");
   revalidatePath("/boletin");
   revalidatePath("/panel-de-control");
+}
+
+/**
+ * Agenda el aviso por email para después de responderle al panel.
+ *
+ * Va en un `after()` porque la tanda son ~103 correos de a uno contra el SMTP:
+ * medio minuto largo en el que el admin estaría mirando un spinner sin saber si
+ * la nota se publicó o no. Con `after()` el panel dice "Publicado" en cuanto la
+ * fila está escrita, y los correos salen después, con la función todavía viva.
+ *
+ * Se llama en TODA transición a publicado sin preguntar nada: quien decide si
+ * corresponde mandar es `dispararAvisoDelBoletin`, con el candado en la base.
+ * Acá no hay que repetir esa regla —repetirla es la forma de que se desincronice.
+ */
+function agendarAviso(id: string) {
+  after(() => dispararAvisoDelBoletin(adminClient(), id));
 }
 
 /** Recorta y valida lo mínimo del lado del servidor (el form del panel valida lo mismo, pero un action es un POST invocable a mano). */
@@ -78,6 +97,7 @@ function limpiar(datos: DatosComunicado) {
     fijado: Boolean(datos.fijado),
     bucket: rutas.length > 0 ? BUCKET_BOLETIN : null,
     rutas_imagenes: rutas,
+    avisar_por_email: Boolean(datos.avisar_por_email),
   };
 }
 
@@ -130,19 +150,27 @@ export async function crearComunicado(datos: DatosComunicado) {
   } = await ssr.auth.getUser();
 
   const db = adminClient();
-  const { error } = await db.from("comunicados").insert({
-    titulo: limpio.titulo,
-    bajada: limpio.bajada,
-    cuerpo: limpio.cuerpo,
-    estado: limpio.estado,
-    fijado: limpio.fijado,
-    bucket: limpio.bucket,
-    rutas_imagenes: limpio.rutas_imagenes,
-    // Si nace publicado, lleva fecha ya; si es borrador, se completa al publicar.
-    publicado_en: limpio.estado === "publicado" ? new Date().toISOString() : null,
-    creado_por: user?.id ?? null,
-  });
+  const { data: creado, error } = await db
+    .from("comunicados")
+    .insert({
+      titulo: limpio.titulo,
+      bajada: limpio.bajada,
+      cuerpo: limpio.cuerpo,
+      estado: limpio.estado,
+      fijado: limpio.fijado,
+      bucket: limpio.bucket,
+      rutas_imagenes: limpio.rutas_imagenes,
+      avisar_por_email: limpio.avisar_por_email,
+      // Si nace publicado, lleva fecha ya; si es borrador, se completa al publicar.
+      publicado_en: limpio.estado === "publicado" ? new Date().toISOString() : null,
+      creado_por: user?.id ?? null,
+    })
+    .select("id")
+    .single();
   if (error) return { error: error.message };
+
+  // Una nota que nace publicada ya es una transición a publicado.
+  if (creado?.id) agendarAviso(creado.id);
 
   revalidarBoletin();
   return { success: true as const };
@@ -183,10 +211,16 @@ export async function actualizarComunicado(id: string, datos: DatosComunicado) {
       fijado: limpio.fijado,
       bucket: limpio.bucket,
       rutas_imagenes: limpio.rutas_imagenes,
+      avisar_por_email: limpio.avisar_por_email,
       publicado_en: publicadoEn,
     })
     .eq("id", id);
   if (error) return { error: error.message };
+
+  // También cubre el caso de tildar el aviso DESPUÉS: una nota que se publicó
+  // con la casilla destildada y más tarde se edita con la casilla tildada sale
+  // ahora. Si ya se avisó, el candado de la base no la deja salir de nuevo.
+  agendarAviso(id);
 
   // Las fotos que se sacaron de la publicación quedarían huérfanas en Storage.
   const antes: string[] = previo?.rutas_imagenes ?? [];
@@ -225,6 +259,10 @@ export async function cambiarEstadoComunicado(id: string, estado: EstadoComunica
     .eq("id", id);
   if (error) return { error: error.message };
 
+  // Publicar desde el ojito de la lista avisa igual que publicar desde el
+  // compositor: la casilla que decide ya está guardada en la fila.
+  if (estado === "publicado") agendarAviso(id);
+
   revalidarBoletin();
   return { success: true as const };
 }
@@ -262,4 +300,30 @@ export async function eliminarComunicado(id: string) {
 
   revalidarBoletin();
   return { success: true as const };
+}
+
+/**
+ * Cuántas casillas recibirían el aviso del boletín ahora mismo.
+ *
+ * Lo pide el panel para poder decir "le va a llegar a 103 casillas" antes de
+ * publicar, en vez de mandar a ciegas. Se calcula en vivo y no se cachea: el
+ * padrón cambia cuando se aprueba una ficha o alguien corrige un email, y un
+ * número viejo acá es peor que ninguno.
+ */
+export async function contarDestinatariosDelBoletin() {
+  const noAutorizado = await exigirAdmin();
+  if (noAutorizado) return noAutorizado;
+
+  try {
+    const { emails, empresas, sinEmail } = await destinatariosDelBoletin(adminClient());
+    return {
+      success: true as const,
+      casillas: emails.length,
+      empresas,
+      sinEmail: sinEmail.length,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error desconocido";
+    return { error: msg };
+  }
 }

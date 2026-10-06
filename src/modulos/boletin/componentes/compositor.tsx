@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Loader2 } from "lucide-react";
+import { ImagePlus, Loader2, Mail, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { llamarAccion, fallo } from "@/lib/accion-segura";
 import { crearComunicado } from "../acciones";
@@ -29,6 +29,10 @@ export function Compositor() {
 
   const [texto, setTexto] = useState("");
   const [publicando, setPublicando] = useState(false);
+  // Este cuadro publica DIRECTO, sin pasar por borrador: la decisión de avisar
+  // tiene que estar acá o no está en ningún lado. Arranca en sí, igual que la
+  // casilla del compositor de /admin — una novedad de la UIAB se anuncia.
+  const [avisar, setAvisar] = useState(true);
   const { fotos, agregar, quitar, limpiar, subiendo, rutas } = useFotos();
 
   const vacio = !texto.trim() && fotos.length === 0;
@@ -55,6 +59,7 @@ export function Compositor() {
         fijado: false,
         bucket: rutas.length > 0 ? BUCKET_BOLETIN : null,
         rutas_imagenes: rutas,
+        avisar_por_email: avisar,
       })
     );
     setPublicando(false);
@@ -62,7 +67,12 @@ export function Compositor() {
 
     setTexto("");
     limpiar();
-    toast.success("Publicado. Ya está visible en el boletín público.");
+    setAvisar(true);
+    toast.success(
+      avisar
+        ? "Publicado. El aviso a las socias sale en unos segundos."
+        : "Publicado. Ya está visible en el boletín público."
+    );
     router.refresh();
   }
 
@@ -111,6 +121,27 @@ export function Compositor() {
             onChange={elegirFotos}
             className="hidden"
           />
+          <button
+            type="button"
+            onClick={() => setAvisar((v) => !v)}
+            disabled={publicando}
+            aria-pressed={avisar}
+            title={
+              avisar
+                ? "Al publicar le llega un correo a cada socia del padrón."
+                : "Se publica sin avisar por email."
+            }
+            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[14px] font-semibold transition-colors hover:bg-slate-100 disabled:opacity-40 ${
+              avisar ? "text-slate-600" : "text-slate-400"
+            }`}
+          >
+            {avisar ? (
+              <MailCheck className="h-5 w-5 text-sky-600" />
+            ) : (
+              <Mail className="h-5 w-5 text-slate-400" />
+            )}
+            <span className="hidden sm:inline">{avisar ? "Avisa a las socias" : "Sin aviso"}</span>
+          </button>
           <Link
             href="/admin/boletin"
             className="hidden rounded-lg px-3 py-2 text-[13px] font-medium text-slate-400 hover:bg-slate-100 hover:text-slate-600 sm:inline-block"

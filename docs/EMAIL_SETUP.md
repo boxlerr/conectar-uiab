@@ -389,6 +389,7 @@ que Supabase define.
 | Inserción en `empresas`/`proveedores` desde `/api/auth/register-sync` | nodemailer | `plantillaNotificacionAdmin`                       | `ADMIN_NOTIFICATION_EMAIL` |
 | `aprobarEmpresa` / `aprobarProveedor`                          | nodemailer       | `plantillaAprobacion`                              | Email de la entidad    |
 | `rechazarEmpresa` / `rechazarProveedor`                        | nodemailer       | `plantillaRechazo`                                 | Email de la entidad    |
+| Una nota del Boletín pasa a `publicado`                        | nodemailer       | `plantillaBoletinNuevo`                            | Todas las socias (ver §8) |
 
 Ambos caminos usan el **mismo servidor SMTP** — una sola fuente de verdad.
 
@@ -496,3 +497,101 @@ texto plano como respaldo.
 **todo dato que venga de un formulario público y termine ahí tiene que pasar
 por `escapeText()`**. Un nombre con `&` rompe la maqueta; uno malicioso mete
 enlaces con la marca de la UIAB en la casilla del admin.
+
+---
+
+## 8. El aviso del Boletín — el único envío masivo
+
+Todos los correos de arriba son **transaccionales**: uno por vez, a una
+persona, como consecuencia de algo que esa persona hizo. El aviso del Boletín
+es distinto —un mensaje a **todo el padrón a la vez**— y por eso tiene reglas
+propias.
+
+### 8.1. Cuándo sale
+
+Cuando una nota **pasa a `publicado`**, y sólo si su casilla
+`avisar_por_email` está tildada. Una sola vez en la vida de la nota:
+despublicar y volver a publicar **no** reenvía.
+
+Hay tres puertas a `publicado` y las tres terminan en el mismo lugar
+(`dispararAvisoDelBoletin`):
+
+| Puerta                                        | Dónde se elige avisar                         |
+|-----------------------------------------------|-----------------------------------------------|
+| Compositor de `/admin/boletin`                | Casilla «Avisar por email a las socias»       |
+| Ojito «Publicar» de la lista de `/admin/boletin` | La casilla ya guardada + un diálogo de confirmación |
+| Cuadro «Compartí una novedad…» del feed       | Botón «Avisa a las socias» de la barra        |
+
+Las tres arrancan **tildadas**. La decisión se guarda en la fila
+(`comunicados.avisar_por_email`) y no viaja como parámetro: así ninguna puerta
+puede olvidarse de pasarla, y la regla vive en un solo lugar.
+
+### 8.2. A quién le llega
+
+A las dos casillas de cada ficha **aprobada**: `empresas.email` y
+`empresas.email_referente`. Hoy son **103 direcciones únicas sobre 57 socias**
+(de 59 aprobadas, 2 no tienen ninguna casilla cargada).
+
+Se deduplica por dirección en minúsculas —seis dominios del padrón tienen dos
+fichas, y en varias el referente cargó la misma casilla que la empresa— y se
+descarta lo que no tenga formato de email. Está en
+`src/modulos/boletin/destinatarios.ts`.
+
+> Cambiar el filtro de estado ahí cambia a quién le llega correo. `aprobada` es
+> deliberado: `pausada` y `oculta` son fichas que la UIAB sacó de circulación.
+
+### 8.3. Por qué no se manda dos veces
+
+`comunicados.aviso_enviado_en` es un **candado**, no un dato de auditoría. Se
+estampa con un UPDATE condicionado (`... WHERE aviso_enviado_en IS NULL
+RETURNING`) **antes** de abrir el SMTP: quien se lleva la fila manda, y quien
+llega segundo se va con cero filas. Sin eso, un doble click en «Publicar» o un
+reintento de Vercel sobre el mismo POST mete la misma nota dos veces en 103
+casillas, y eso no se deshace.
+
+El candado **se suelta** si no salió ni un correo (SMTP sin configurar, cuota
+de Gmail agotada), para poder reintentar. **No** se suelta en un envío parcial:
+reintentar después de mandar 60 de 103 le duplicaría el correo a esos 60.
+
+### 8.4. El techo de Gmail — la deuda que hay que mirar
+
+Hoy el SMTP es **una cuenta de Gmail**, con un tope de **~500 destinatarios por
+día para toda la cuenta**. Un aviso del boletín se come **103**. O sea:
+
+- Entran **~4 avisos por día**, contando los transaccionales (altas,
+  aprobaciones, cobros) que salen por el mismo lado.
+- Pasado el tope, Gmail **no avisa**: devuelve un 550 por mensaje. Los correos
+  se pierden y el único rastro es el log (`[email] tanda ...: N fallidos`).
+- Una cuenta personal mandando 103 correos a dominios ajenos también es el
+  patrón que dispara los límites antiabuso de Google.
+
+**Cuando el boletín se mande seguido, esto tiene que mudarse a un SMTP de
+envío** (Brevo da 300/día gratis; los planes pagos arrancan bajo). Es cambiar
+las cuatro variables `SMTP_*` y nada más: el código no distingue proveedor.
+
+### 8.5. Cómo se manda
+
+`enviarTanda()` en `src/lib/email/cliente.ts`, con transporter **propio y
+pooled** (dos conexiones reusadas, tope de 4 mensajes por segundo). Un mensaje
+por destinatario, **nunca un BCC con 103 casillas**: un BCC largo es la firma
+de una lista comprada y manda el correo a Spam para todos a la vez.
+
+La tanda corre dentro de un `after()` del server action, así que el panel
+responde «Publicado» enseguida y los ~103 correos salen después, con la
+función todavía viva.
+
+### 8.6. El correo
+
+`plantillaBoletinNuevo` en `src/lib/email/plantillas-boletin.ts`. Es un
+**adelanto**, no la nota entera: foto de portada, bajada, ~420 caracteres de
+cuerpo y un botón a la nota. El boletín es público, así que el enlace abre sin
+cuenta.
+
+La portada va como **imagen remota** (no adjunta como el logo): una foto de
+evento por 103 correos son decenas de megas. Outlook la bloquea por defecto y
+está bien — a diferencia del logo, si la foto no se pinta no falta nada, y el
+`alt` describe la nota.
+
+El `Reply-To` es `UIAB_EMAIL`, y el pie dice que para darse de baja hay que
+responder el correo. **No hay link de baja automático**: si alguien pide la
+baja, hay que sacarle la casilla a mano de la ficha (o pausar la ficha).

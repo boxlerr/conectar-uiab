@@ -201,3 +201,135 @@ export function appUrl(): string {
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return "http://localhost:3000";
 }
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ *  ENVÍO EN TANDA — para el aviso del Boletín
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * `enviarEmail` está pensado para UN correo: sin `pool`, nodemailer abre una
+ * conexión SMTP, manda y la cierra. Para un aviso del boletín eso son 103
+ * handshakes TLS contra Gmail, uno detrás del otro — más de un minuto de
+ * function, y con buenas chances de que Gmail empiece a cortar por ráfaga antes
+ * de terminar. Por eso la tanda tiene su propio transporter, con pool.
+ *
+ * UN MENSAJE POR DESTINATARIO, NUNCA UN BCC CON 103 CASILLAS. No es prolijidad:
+ * un BCC largo es la firma clásica de una lista comprada y es lo que hace que
+ * el correo caiga en Spam para todos a la vez. Además, un solo `to` deja que
+ * cada socia responda sin arrastrar a las otras 102.
+ *
+ * EL TECHO DE GMAIL. Hoy el SMTP es una cuenta de Gmail (`smtp.gmail.com`), que
+ * tiene un tope de ~500 destinatarios por día para toda la cuenta. Un aviso del
+ * boletín se come 103 de esos 500, o sea que entran cuatro por día contando los
+ * transaccionales (altas, aprobaciones, cobros). Con dos boletines al día ya se
+ * empieza a rebotar, y Gmail no avisa: devuelve un 550 por mensaje. El día que
+ * el boletín se mande seguido, esto tiene que mudarse a un SMTP de envío
+ * (Brevo, 300/día gratis; o el plan pago) — está anotado en `docs/EMAIL_SETUP.md`.
+ *
+ * NUNCA TIRA. Un destinatario que falla se cuenta y se sigue con el resto: que
+ * una casilla esté dada de baja no puede dejar sin aviso a las otras 102.
+ */
+
+/** Techo de mensajes por segundo contra el SMTP. Gmail tolera bastante más, pero la tanda no tiene apuro y una ráfaga es justo lo que dispara los cortes. */
+const TANDA_POR_SEGUNDO = 4;
+
+let transporterTandaSingleton: Transporter | null = null;
+
+function obtenerTransporterTanda(): Transporter | null {
+  if (transporterTandaSingleton) return transporterTandaSingleton;
+  const cfg = leerConfigSmtp();
+  if (!cfg) return null;
+
+  transporterTandaSingleton = nodemailer.createTransport({
+    host: cfg.host,
+    port: cfg.port,
+    secure: cfg.secure,
+    auth: { user: cfg.user, pass: cfg.pass },
+    // El pool es todo el punto de este transporter: dos conexiones que se
+    // reusan para los 103 mensajes en vez de 103 handshakes.
+    pool: true,
+    maxConnections: 2,
+    maxMessages: 100,
+    rateDelta: 1_000,
+    rateLimit: TANDA_POR_SEGUNDO,
+    connectionTimeout: 10_000,
+    socketTimeout: 20_000,
+    greetingTimeout: 10_000,
+  });
+  return transporterTandaSingleton;
+}
+
+export interface EnviarTandaInput {
+  /** Direcciones ya normalizadas y deduplicadas (ver `destinatariosDelBoletin`). */
+  destinatarios: string[];
+  asunto: string;
+  html: string;
+  texto?: string;
+  responderA?: string;
+}
+
+export interface ResultadoTanda {
+  enviados: number;
+  fallidos: number;
+  /** SMTP sin configurar: no se intentó nada (dev, CI). */
+  skipped?: boolean;
+  /** Hasta 10 pares "casilla: motivo", para el log. No se muestran en pantalla. */
+  errores: string[];
+}
+
+/**
+ * Manda el mismo correo a muchas casillas, una por una, sin propagar errores.
+ *
+ * Es secuencial a propósito. El pool ya reusa la conexión, así que lo que se
+ * ganaría paralelizando es poco, y en cambio se pierde lo único que importa
+ * acá: que el ritmo contra el SMTP sea previsible. Con `rateLimit` puesto,
+ * nodemailer encola solo.
+ */
+export async function enviarTanda(input: EnviarTandaInput): Promise<ResultadoTanda> {
+  const transporter = obtenerTransporterTanda();
+  if (!transporter) {
+    console.warn(
+      `[email] SMTP no configurado — saltando tanda de ${input.destinatarios.length} correos: "${input.asunto}"`
+    );
+    return { enviados: 0, fallidos: 0, skipped: true, errores: [] };
+  }
+
+  const adjuntos = adjuntosDelHtml(input.html);
+  let enviados = 0;
+  let fallidos = 0;
+  const errores: string[] = [];
+
+  for (const para of input.destinatarios) {
+    try {
+      await transporter.sendMail({
+        from: remitentePorDefecto(),
+        to: para,
+        subject: input.asunto,
+        html: input.html,
+        text: input.texto,
+        replyTo: input.responderA,
+        attachments: adjuntos,
+      });
+      enviados++;
+    } catch (err: unknown) {
+      fallidos++;
+      const motivo = err instanceof Error ? err.message : "Error desconocido";
+      if (errores.length < 10) errores.push(`${para}: ${motivo}`);
+    }
+  }
+
+  if (fallidos > 0) {
+    console.error(
+      `[email] tanda "${input.asunto}": ${enviados} ok, ${fallidos} fallidos.`,
+      errores
+    );
+    // El pool pudo quedar en un estado raro (auth revocada, cuota diaria
+    // agotada). Se cierra para que la próxima tanda arranque limpia.
+    transporter.close();
+    transporterTandaSingleton = null;
+  } else {
+    console.log(`[email] tanda "${input.asunto}": ${enviados} enviados.`);
+  }
+
+  return { enviados, fallidos, errores };
+}

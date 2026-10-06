@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -15,6 +15,8 @@ import {
   Pin,
   ImagePlus,
   Loader2,
+  Mail,
+  MailCheck,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ import {
   actualizarComunicado,
   cambiarEstadoComunicado,
   eliminarComunicado,
+  contarDestinatariosDelBoletin,
 } from "@/modulos/boletin/acciones";
 import { MIME_FOTO } from "@/modulos/boletin/subir-foto";
 import { useFotos } from "@/modulos/boletin/use-fotos";
@@ -37,7 +40,7 @@ import { Publicacion } from "@/modulos/boletin/componentes/publicacion";
 import {
   BUCKET_BOLETIN,
   MAX_FOTOS,
-  type Comunicado,
+  type ComunicadoAdmin,
   type ComunicadoPublico,
   type EstadoComunicado,
 } from "@/modulos/boletin/tipos";
@@ -58,23 +61,46 @@ function fecha(iso: string | null): string {
   });
 }
 
-export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
+export function PanelBoletin({ comunicados }: { comunicados: ComunicadoAdmin[] }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [busqueda, setBusqueda] = useState("");
-  const [confirmarEliminar, setConfirmarEliminar] = useState<Comunicado | null>(null);
+  const [confirmarEliminar, setConfirmarEliminar] = useState<ComunicadoAdmin | null>(null);
+  const [confirmarPublicar, setConfirmarPublicar] = useState<ComunicadoAdmin | null>(null);
+  /**
+   * A cuántas casillas llega el aviso hoy. Se pide una vez al abrir el panel,
+   * para poder decir el número ANTES de publicar en vez de después. Si la
+   * consulta falla queda en null y la pantalla habla sin número — es
+   * informativo, no puede bloquear la publicación.
+   */
+  const [padron, setPadron] = useState<{ casillas: number; socias: number } | null>(null);
+
+  useEffect(() => {
+    let vigente = true;
+    llamarAccion(() => contarDestinatariosDelBoletin()).then((res) => {
+      if (!vigente || fallo(res) || !("casillas" in res)) return;
+      setPadron({ casillas: res.casillas, socias: res.empresas - res.sinEmail });
+    });
+    return () => {
+      vigente = false;
+    };
+  }, []);
   const [procesando, setProcesando] = useState<string | null>(null);
 
   // Formulario (alta / edición). `editando` null = alta nueva.
   const [formAbierto, setFormAbierto] = useState(false);
-  const [editando, setEditando] = useState<Comunicado | null>(null);
+  const [editando, setEditando] = useState<ComunicadoAdmin | null>(null);
   const [titulo, setTitulo] = useState("");
   const [bajada, setBajada] = useState("");
   const [cuerpo, setCuerpo] = useState("");
   const areaTexto = useRef<HTMLTextAreaElement>(null);
   const [fijado, setFijado] = useState(false);
+  // Aviso por email a las socias. Arranca tildado: el caso normal es que una
+  // nota del boletín se anuncie. Se destilda para una corrección de tipeo o un
+  // aviso menor que no justifica 103 correos.
+  const [avisar, setAvisar] = useState(true);
   const [guardando, setGuardando] = useState(false);
   // Las fotos de la publicación que se está editando, con su progreso de
   // subida. El hook es el mismo que usa el cuadro del feed.
@@ -120,18 +146,20 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
     setBajada("");
     setCuerpo("");
     setFijado(false);
+    setAvisar(true);
     limpiar();
     setVista("articulo");
     setPanelMovil("editar");
     setFormAbierto(true);
   }
 
-  function abrirEdicion(c: Comunicado) {
+  function abrirEdicion(c: ComunicadoAdmin) {
     setEditando(c);
     setTitulo(c.titulo);
     setBajada(c.bajada ?? "");
     setCuerpo(c.cuerpo);
     setFijado(c.fijado);
+    setAvisar(c.avisar_por_email);
     setFotos(
       (c.rutas_imagenes ?? []).map((ruta) => ({
         id: ruta,
@@ -194,6 +222,7 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
       fijado,
       bucket: rutas.length > 0 ? BUCKET_BOLETIN : null,
       rutas_imagenes: rutas,
+      avisar_por_email: avisar,
     };
     const res = await llamarAccion(() =>
       editando ? actualizarComunicado(editando.id, datos) : crearComunicado(datos)
@@ -202,24 +231,48 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
 
     if (fallo(res)) return toast.error(res.error);
 
+    // El aviso sale sólo en la transición a publicado y una sola vez: si la
+    // nota ya se avisó, guardar cambios no manda nada y el toast no lo promete.
+    const saleAviso = estado === "publicado" && avisar && !editando?.aviso_enviado_en;
     toast.success(
       editando
-        ? "Cambios guardados."
+        ? saleAviso
+          ? "Cambios guardados. El aviso a las socias sale en unos segundos."
+          : "Cambios guardados."
         : estado === "publicado"
-        ? "Publicado. Ya está visible en el boletín público."
+        ? saleAviso
+          ? "Publicado. El aviso a las socias sale en unos segundos."
+          : "Publicado. Ya está visible en el boletín público."
         : "Borrador guardado."
     );
     setFormAbierto(false);
     refresh();
   }
 
-  async function alternarEstado(c: Comunicado) {
+  async function alternarEstado(c: ComunicadoAdmin) {
     const nuevo: EstadoComunicado = c.estado === "publicado" ? "borrador" : "publicado";
+    // El ojito de la lista es el único camino a publicado que NO muestra la
+    // casilla del aviso: acá el correo a las socias saldría sin que nadie haya
+    // visto en pantalla que iba a salir. Por eso se pregunta, y sólo acá.
+    if (nuevo === "publicado" && c.avisar_por_email && !c.aviso_enviado_en) {
+      return setConfirmarPublicar(c);
+    }
+    await aplicarEstado(c, nuevo);
+  }
+
+  async function aplicarEstado(c: ComunicadoAdmin, nuevo: EstadoComunicado) {
     setProcesando(c.id);
     const res = await llamarAccion(() => cambiarEstadoComunicado(c.id, nuevo));
     setProcesando(null);
+    setConfirmarPublicar(null);
     if (fallo(res)) return toast.error(res.error);
-    toast.success(nuevo === "publicado" ? "Publicado." : "Pasado a borrador.");
+    toast.success(
+      nuevo === "borrador"
+        ? "Pasado a borrador."
+        : c.avisar_por_email && !c.aviso_enviado_en
+        ? "Publicado. El aviso a las socias sale en unos segundos."
+        : "Publicado."
+    );
     refresh();
   }
 
@@ -343,6 +396,27 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
                         <Pin className="h-3 w-3" /> Fijado
                       </span>
                     )}
+                    {c.aviso_enviado_en ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"
+                        title={`Aviso enviado el ${fecha(c.aviso_enviado_en)}`}
+                      >
+                        <MailCheck className="h-3 w-3" />
+                        Avisado{c.aviso_destinatarios ? ` a ${c.aviso_destinatarios}` : ""}
+                      </span>
+                    ) : c.avisar_por_email ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400"
+                        title={
+                          c.estado === "publicado"
+                            ? "Está publicada y el aviso todavía no salió. Si pasaron varios minutos, revisá el log: puede haber fallado el SMTP."
+                            : "Al publicarla sale el aviso por email a las socias."
+                        }
+                      >
+                        <Mail className="h-3 w-3" />
+                        {c.estado === "publicado" ? "Aviso pendiente" : "Avisa al publicar"}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="text-sm text-slate-500 line-clamp-2">{c.cuerpo}</p>
                   <p className="text-xs text-slate-400 mt-1">
@@ -606,6 +680,36 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
                     <span className="text-slate-400">— la deja primera en el boletín.</span>
                   </span>
                 </label>
+
+                {/* El aviso por email. Deshabilitado si ya salió: el correo no
+                    se puede desmandar, y volver a tildarlo no lo reenvía. */}
+                <label
+                  className={`flex select-none items-start gap-3 ${
+                    editando?.aviso_enviado_en ? "cursor-default" : "cursor-pointer"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={avisar}
+                    disabled={Boolean(editando?.aviso_enviado_en)}
+                    onChange={(e) => setAvisar(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50"
+                  />
+                  <span className="text-sm text-slate-700">
+                    <span className="font-semibold">Avisar por email a las socias</span>{" "}
+                    <span className="text-slate-400">
+                      {editando?.aviso_enviado_en
+                        ? `— ya se avisó${
+                            editando.aviso_destinatarios
+                              ? ` a ${editando.aviso_destinatarios} casillas`
+                              : ""
+                          } el ${fecha(editando.aviso_enviado_en)}. No se vuelve a mandar.`
+                        : `— al publicarla sale un correo${
+                            padron ? ` a ${padron.casillas} casillas de ${padron.socias} socias` : " a las socias del padrón"
+                          }, una sola vez. Destildalo para una corrección o un aviso menor.`}
+                    </span>
+                  </span>
+                </label>
               </div>
             </div>
 
@@ -650,6 +754,47 @@ export function PanelBoletin({ comunicados }: { comunicados: Comunicado[] }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal confirmar publicar — sólo aparece cuando además sale el aviso
+          por email, que es lo irreversible. Publicar en sí se deshace con un
+          click; 103 correos, no. */}
+      {confirmarPublicar && (
+        <>
+          <div
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50"
+            onClick={() => setConfirmarPublicar(null)}
+          />
+          <div className="fixed z-50 inset-0 flex items-start justify-center overflow-y-auto p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 mt-24 animate-in zoom-in-95 duration-200">
+              <div className="w-12 h-12 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-6 h-6 text-sky-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 text-center mb-1">
+                ¿Publicar y avisar?
+              </h3>
+              <p className="text-sm text-slate-500 text-center mb-6">
+                “{resumenComunicado(confirmarPublicar)}” se publica y sale un correo{" "}
+                {padron
+                  ? `a ${padron.casillas} casillas de ${padron.socias} socias`
+                  : "a todas las socias del padrón"}
+                . El correo no se puede deshacer y se manda una sola vez.
+              </p>
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setConfirmarPublicar(null)}>
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
+                  disabled={procesando === confirmarPublicar.id}
+                  onClick={() => aplicarEstado(confirmarPublicar, "publicado")}
+                >
+                  Publicar y avisar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Modal confirmar eliminar */}
