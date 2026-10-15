@@ -345,12 +345,23 @@ export function FormularioItem({ itemInit, onSuccess, onCancel }: FormularioItem
         for (const img of imagenesLocales) {
           const ext = (img.file.name.split(".").pop() || "bin").toLowerCase();
           const path = `items/${itemId}/${Date.now()}-${orden}.${ext}`;
-          const { error: upErr } = await supabase.storage
-            .from(BUCKET)
-            // 31 días: la ruta lleva timestamp, el archivo nunca se reemplaza.
-            .upload(path, img.file, { contentType: img.file.type, cacheControl: "2678400" });
+          // Tope propio: el timeout de 15s de cliente.ts sólo corre una vez que
+          // sale el fetch, y si el cliente se traba antes (pidiendo el token) la
+          // subida no vuelve nunca y el botón queda girando. El ítem ya está
+          // creado a esta altura, así que hay que decirlo para que no lo dupliquen.
+          const { error: upErr } = await Promise.race([
+            supabase.storage
+              .from(BUCKET)
+              // 31 días: la ruta lleva timestamp, el archivo nunca se reemplaza.
+              .upload(path, img.file, { contentType: img.file.type, cacheControl: "2678400" }),
+            new Promise<{ error: { message: string } }>((resolve) =>
+              setTimeout(() => resolve({ error: { message: "La subida tardó demasiado." } }), 60_000)
+            ),
+          ]);
           if (upErr) {
-            toast.error(`No se pudo subir "${img.file.name}"`, { description: upErr.message });
+            toast.error(`No se pudo subir "${img.file.name}"`, {
+              description: `${upErr.message} El ítem quedó guardado: recargá la página, editalo y volvé a agregar la imagen.`,
+            });
             continue;
           }
           await llamarAccion(() => registrarImagenItem({

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { useRouter } from "next/navigation";
 import type { User } from "@/tipos";
 import { createClient } from "@/lib/supabase/cliente";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 // ─── Logger condicional ──────────────────────────────────────────────────────
 // Activá logs detallados con `localStorage.setItem('auth-debug', '1')` en la
@@ -195,8 +196,28 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
     }
 
     // Listen for auth state changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
+    //
+    // El callback NO puede ser async ni awaitear nada de Supabase: auth-js lo
+    // invoca DENTRO de su lock interno (`_acquireLock`) y espera a que termine.
+    // Cualquier query adentro pide el token con getSession(), que se encola
+    // detrás de ese mismo lock → deadlock permanente del cliente del browser.
+    // El `lockNoOp` de cliente.ts no lo evita (ése es el lock entre pestañas;
+    // la cola `pendingInLock` es otra) y el timeout de 15s tampoco, porque el
+    // fetch nunca llega a salir.
+    //
+    // Se disparaba al VOLVER A LA PESTAÑA: auth-js emite SIGNED_IN en cada
+    // visibilitychange. Síntoma (15-oct, Tecza): fue a Mercado Libre a copiar el
+    // link, volvió, "Crear ítem" creó el ítem (Server Action, no usa este
+    // cliente) y la subida de la foto quedó girando para siempre hasta F5.
+    //
+    // Fix recomendado por Supabase: diferir el trabajo con setTimeout(0) para
+    // que corra después de que auth-js suelte el lock.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       dbg('onAuthStateChange:', event, session ? 'session=yes' : 'session=no');
+      setTimeout(() => { void manejarCambioDeSesion(event, session); }, 0);
+    });
+
+    const manejarCambioDeSesion = async (event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         // El try/finally y el guard de abajo son los mismos que ya tenía
         // `refreshUser`. Este handler se quedó afuera del fix de 188623b y era el
@@ -222,7 +243,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
         if (typeof window !== 'undefined') window.location.href = '/';
       }
       // Ignore INITIAL_SESSION — we handle it ourselves via initialUser or refreshUser
-    });
+    };
 
     // ── Health check periódico (cada 60s) ────────────────────────────────────
     // Detecta el caso "navegué un rato y quedó colgado": cada minuto validamos
