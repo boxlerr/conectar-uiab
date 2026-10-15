@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Entidad } from "@/lib/datos/directorio";
+import { entidadCoincideConBusqueda } from "@/lib/datos/busqueda-directorio";
 import {
   TIPOS_ENTIDAD,
   TIPOS_ENTIDAD_META,
@@ -173,23 +174,14 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
   }, [entidadesDelTipo]);
 
   const entidadesFiltradas = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
     return entidadesDelTipo.filter((e) => {
       // El sector elegido matchea la categoría principal O cualquier secundaria.
       const matchCategoria = categoriaSeleccionada
         ? e.categoria === categoriaSeleccionada ||
           e.servicios.includes(categoriaSeleccionada)
         : true;
-      const matchSearch =
-        term === "" ||
-        e.nombre.toLowerCase().includes(term) ||
-        e.categoria.toLowerCase().includes(term) ||
-        e.descripcionCorta.toLowerCase().includes(term) ||
-        e.ubicacion.toLowerCase().includes(term) ||
-        e.servicios.some((s: string) => s.toLowerCase().includes(term)) ||
-        e.tags.some((t: string) => t.toLowerCase().includes(term)) ||
-        (e.certificaciones ?? []).some((c) => c.etiqueta.toLowerCase().includes(term));
-      return matchCategoria && matchSearch;
+      // Sin tildes de los dos lados: "metalurgica" encuentra "Metalúrgica".
+      return matchCategoria && entidadCoincideConBusqueda(e, searchTerm);
     });
   }, [entidadesDelTipo, categoriaSeleccionada, searchTerm]);
 

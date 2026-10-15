@@ -1,8 +1,13 @@
-import { normalizarTexto } from "@/modulos/compartido/etiquetas";
+import { normalizarTexto } from "./etiquetas";
 
 /**
- * Filtro del buscador de rubros del registro (`BuscadorJerarquico` en
- * `register/page.tsx`).
+ * Filtro de los buscadores de rubro. Lo usan las tres pantallas que eligen una
+ * categoría del catálogo:
+ *  - el registro (`BuscadorJerarquico` en `register/page.tsx`),
+ *  - el rubro de un producto o servicio (`CategoriaCombobox` en
+ *    `perfil/productos-servicios/FormularioItem.tsx`),
+ *  - las especialidades de la ficha (`perfil/servicios/page.tsx`).
+ * Las tres tenían el mismo filtro copiado, con el mismo bug.
  *
  * El catálogo tiene dos niveles: macro-rubros ("METALMECÁNICA Y METALURGIA") y
  * especialidades colgadas de ellos ("Tornería y Mecanizado CNC"). La lista se
