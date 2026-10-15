@@ -4,6 +4,7 @@ import { enviarEmail, emailAdmin, appUrl } from '@/lib/email/cliente'
 import { plantillaNotificacionAdmin } from '@/lib/email/plantillas'
 import { plantillaSuscripcionPendiente } from '@/lib/email/plantillas-suscripciones'
 import { calcularMontoMensual, nombrePlan } from '@/lib/suscripciones/modelo'
+import { leerPrecios } from '@/lib/suscripciones/precios'
 import { normalizarSitioWeb } from '@/lib/utilidades'
 import { buscarEnPadron, type EmpresaDelPadron } from '@/modulos/altas/buscar-en-padron'
 import {
@@ -518,13 +519,17 @@ export async function POST(request: Request) {
     try {
       if (entityId && (role === 'company' || role === 'provider')) {
         const sinCargo = esPrueba
-        // El monto es plano: no depende del rol, los empleados ni la tarifa.
-        const monto = calcularMontoMensual()
+        // El monto es plano (no depende del rol, los empleados ni la tarifa),
+        // pero sale del precio que el admin edita en el panel, igual que en
+        // /api/suscripcion/solicitar. Con la constante del código, un aumento
+        // cargado en el panel no llegaba ni a esta fila ni al mail de abajo:
+        // la persona leía un precio y el checkout le cobraba otro.
+        const monto = sinCargo ? 0 : calcularMontoMensual({ precios: await leerPrecios() })
 
         await supabaseAdmin.from('suscripciones').insert({
           empresa_id: role === 'company' ? entityId : null,
           proveedor_id: role === 'provider' ? entityId : null,
-          monto: sinCargo ? 0 : monto,
+          monto,
           moneda: 'ARS',
           nombre_plan: esPrueba ? 'Cortesía (prueba)' : nombrePlan(),
           estado: sinCargo ? 'activa' : 'pendiente_pago',
