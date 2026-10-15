@@ -306,7 +306,8 @@ checkout de la plataforma le muestra su CUIT antes de mandarlo a Sipago.
 **El parser no mira los nombres de las columnas.** Reconoce cada dato por su
 forma —un CUIT son once dígitos con prefijo válido, un importe tiene coma
 decimal, una fecha se parece a una fecha—, así que sobrevive a que Sipago cambie
-el formato del reporte. Está en `src/lib/sipago/conciliacion.ts` con 31 tests.
+el formato del reporte. Está en `src/lib/sipago/conciliacion.ts`, con sus tests
+en `src/tests/lib/sipago-conciliacion.test.ts`.
 
 ### Lo que la conciliación NO hace
 
@@ -315,7 +316,41 @@ el formato del reporte. Está en `src/lib/sipago/conciliacion.ts` con 31 tests.
 | **No toca a las socias del padrón** | Las 57 empresas con `metodo_pago='cortesia'` tienen acceso sin cargo por decisión de la UIAB. **Sólo se cobra a las altas nuevas que entran por el registro.** Si una socia de cortesía apareciera en un reporte, se marca y se saltea. |
 | **No aplica sin preview** | Escribe plata contra fichas reales y matchea por contenido. El botón de confirmar recién aparece después de mostrar la lista. |
 | **No carga dos veces el mismo cobro** | La clave `rec-<cuit>-<fecha>` va a `sipago_order_uuid` y el índice único de la base rechaza el duplicado. Pegar el mismo reporte dos veces no extiende la suscripción. |
-| **No activa si el importe no cierra** | Se compara contra lo que la suscripción debería costar; una diferencia mayor a $0,50 se marca para revisar. |
+| **No activa si el importe no cierra** | Se compara contra lo que figura en la suscripción y contra el precio vigente del panel para su ciclo (ver abajo); una diferencia mayor a $0,50 con los dos se marca para revisar. |
+
+### Después de un cambio de precio
+
+`suscripciones.monto` es el precio que se le anotó a cada socio cuando se
+suscribió, y cambiar el precio en el panel no lo toca. La conciliación compara
+cada cobro contra **dos** referencias: ese `monto` y el precio vigente del panel
+para el ciclo de la suscripción (`leerPrecios()`).
+
+| El reporte trae… | Acción | Qué pasa al confirmar |
+|---|---|---|
+| El precio que figura en la suscripción | `activar` | Lo de siempre. Es lo que llega mientras nadie editó el plan del portal. |
+| El precio vigente del panel, distinto del de la suscripción | `precio_nuevo` ("Precio nuevo") | Se registra el pago, y la suscripción **pasa al precio nuevo**. La nota del pago guarda cuánto figuraba antes. |
+| Un prorrateo de cualquiera de los dos (primer cobro anual) | `primer_cobro_anual` | Igual que antes; `monto` no se pisa. Si el prorrateo era del precio nuevo, la renovación del 10 de enero entra como `precio_nuevo`. |
+| Ninguno de los dos | `monto_no_coincide` | No se aplica. El detalle muestra lo cobrado, lo que figura y el precio vigente si es otro. |
+
+Así, después de un aumento cada suscriptor pasa al precio nuevo con su propio
+cobro, y el pago que lo movió queda en `pagos_suscripciones` con el monto
+anterior en la nota. Para el anual importa más que para nadie: cobra a todos el
+mismo día, y antes un aumento en diciembre dejaba a **todos** los anuales en
+"monto no coincide" el 10 de enero.
+
+**Por qué no se reescribe `monto` al guardar el precio.** Era la otra opción, y
+rompía dos cosas:
+
+- Hasta que alguien edita el plan, el portal sigue debitando el precio viejo. Con
+  `monto` ya reescrito, esos débitos pasaban a caer en "monto no coincide".
+- `/api/suscripcion/solicitar` anota el `monto` y crea la orden del Checkout con
+  el mismo número, y `acreditacion.ts` rechaza la orden si no coinciden. Una
+  orden creada antes del cambio dejaba de cerrar: el socio pagaba y no se
+  activaba.
+
+Lo que este camino no cubre: si se cambia el precio en el portal y **no** en el
+panel, el cobro no coincide con ninguna de las dos referencias y se marca. Está
+bien que se marque: es justamente el desfasaje que hay que mirar.
 
 ### El precio está en dos lados
 

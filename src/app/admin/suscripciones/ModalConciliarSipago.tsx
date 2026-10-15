@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, X, RefreshCw, CheckCircle2, AlertTriangle, Gift, Ban, HelpCircle, CalendarClock } from "lucide-react";
+import { Loader2, X, RefreshCw, CheckCircle2, AlertTriangle, Gift, Ban, HelpCircle, CalendarClock, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { activaLaSuscripcion, type AccionConciliacion } from "@/lib/sipago/conciliacion";
 
 /**
  * Conciliar los cobros del plan recurrente de Sipago.
@@ -21,9 +22,7 @@ import { toast } from "sonner";
  * aplicar recién aparece cuando hay algo que aplicar.
  */
 
-type Accion =
-  | "activar" | "primer_cobro_anual" | "ya_registrado"
-  | "cuit_desconocido" | "rechazado" | "cortesia" | "monto_no_coincide";
+type Accion = AccionConciliacion;
 
 interface Resultado {
   cuit: string;
@@ -36,6 +35,7 @@ interface Resultado {
 
 const ESTILOS: Record<Accion, { icono: React.ReactNode; etiqueta: string; clase: string }> = {
   activar:            { icono: <CheckCircle2 className="w-4 h-4" />,   etiqueta: "Activar",        clase: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+  precio_nuevo:       { icono: <TrendingUp className="w-4 h-4" />,     etiqueta: "Precio nuevo",   clase: "text-emerald-700 bg-emerald-50 border-emerald-200" },
   primer_cobro_anual: { icono: <CalendarClock className="w-4 h-4" />,  etiqueta: "1er a\u00f1o prorrateado", clase: "text-sky-700 bg-sky-50 border-sky-200" },
   ya_registrado:      { icono: <RefreshCw className="w-4 h-4" />,      etiqueta: "Ya estaba",      clase: "text-slate-600 bg-slate-50 border-slate-200" },
   cortesia:           { icono: <Gift className="w-4 h-4" />,           etiqueta: "Cortesía",       clase: "text-violet-700 bg-violet-50 border-violet-200" },
@@ -71,7 +71,8 @@ export function ModalConciliarSipago({ onClose }: { onClose: () => void }) {
       setAplicado(aplicar);
 
       if (aplicar) {
-        toast.success(`${data.resumen.activar} suscripción(es) activadas`);
+        const activadas = (data.resultados as Resultado[]).filter((r) => activaLaSuscripcion(r.accion)).length;
+        toast.success(`${activadas} suscripción(es) activadas`);
         router.refresh();
       }
     } catch (err) {
@@ -81,11 +82,10 @@ export function ModalConciliarSipago({ onClose }: { onClose: () => void }) {
     }
   }
 
-  // El prorrateado tambien activa: si no se aplicara, el socio anual paga, tiene
-  // el debito automatico andando y queda sin acceso.
-  const aActivar = (resultados ?? []).filter(
-    (r) => r.accion === "activar" || r.accion === "primer_cobro_anual"
-  ).length;
+  // El prorrateado y el cobrado al precio nuevo tambien activan: si no se
+  // aplicaran, el socio paga, tiene el debito automatico andando y queda sin
+  // acceso. La lista sale de la misma funcion que usa el endpoint.
+  const aActivar = (resultados ?? []).filter((r) => activaLaSuscripcion(r.accion)).length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
