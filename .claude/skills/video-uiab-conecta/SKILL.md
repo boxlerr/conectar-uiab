@@ -115,6 +115,17 @@ Datos verificados de uiabconecta.com — usalos y no los inventes:
 - **Verificación UIAB**: el CUIT se contrasta contra el padrón de socias antes de
   publicar. Es el diferencial institucional y merece su propio plano.
 
+## Segunda pieza: instructivo de registro (no socias)
+
+Existe desde el 2026-10-15: `guion-registro.json`, `escenas/registro.mjs`,
+`node grabar.mjs --pieza registro` / `node montar.mjs --pieza registro --planos`
+(ver el README de la herramienta). Va **contra producción con todas las
+escrituras interceptadas** —nunca dejes pasar un POST— y no filma Sipago (tiene
+anti-bots). Los datos de ejemplo son "Tu Empresa S.A." con el CUIT que el sitio
+usa de placeholder: no se registra a ninguna empresa real. Lo que se dice del
+final del circuito tiene que coincidir con el código: después del pago la ficha
+la **aprueba un admin**, no se publica sola.
+
 ## guion.json
 
 Fuente de verdad del video. Vive en la raíz del proyecto. Antes de tocar código

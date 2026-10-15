@@ -25,3 +25,8 @@ prueba-*.png
 # apertura y cierre. El resto de assets/ (logos y marco) sí está versionado
 # porque son livianos y sin ellos el montaje no arranca.
 assets/musica.mp3
+
+# La pieza de registro (node grabar.mjs --pieza registro) y los planos sueltos
+# que deja `montar.mjs --planos` para mirarlos de a uno.
+grabaciones-registro/
+renders/

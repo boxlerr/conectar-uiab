@@ -363,6 +363,10 @@ export async function plano(page, opts, accion) {
     // "Cargando oportunidades…" sobre una pantalla en blanco dentro de la
     // pieza. Eso es lo que el cliente vio como "se ven pantallas de carga".
     navega = false,
+    // Dónde va el cartel: "abajo" (el de siempre) o "arriba", para los planos
+    // cuyo sujeto está en la parte baja de la pantalla. El cartel tapa ~un
+    // tercio del cuadro; si cae sobre el botón que se clickea, el click no se ve.
+    cartel = "abajo",
   } = opts;
 
   const medir = async () => {
@@ -450,7 +454,7 @@ export async function plano(page, opts, accion) {
     // render, sin volver a filmar.
     escala: escala === "auto" ? escalaAuto(rect) : Math.min(TOPE_ESCALA, escala),
     escalaPedida: escala,
-    rotulo, texto, sello, velocidad,
+    rotulo, texto, sello, velocidad, cartel,
   });
   return guion.marcas.at(-1);
 }

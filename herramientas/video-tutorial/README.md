@@ -254,3 +254,33 @@ Necesita `SUPABASE_SERVICE_ROLE_KEY` en el `.env` de la raíz del repo.
 Ni **"Enviar postulación"** ni **"Publicar requerimiento"**. Los dos se muestran
 enfocados y se sale por Cancelar o navegando, así que grabar el tutorial no
 genera registros reales.
+
+---
+
+## La otra pieza: el instructivo de registro
+
+Para empresas **no socias** que quieren sumarse (lo pidió la UIAB el
+2026-10-15). Recorre home → `/register` (los 6 pasos) → mail de confirmación →
+checkout → débito automático de Sipago, y cierra en el directorio y una ficha.
+Su guion es `guion-registro.json`; el código, `escenas/registro.mjs`.
+
+```bash
+node grabar.mjs --pieza registro              # graba contra www.uiabconecta.com
+node montar.mjs --pieza registro --planos     # monta y deja cada plano en renders/registro/planos/
+```
+
+Tres cosas que la hacen distinta del tutorial:
+
+- **Se filma contra producción**, no contra `next dev`: en dev el último paso
+  del registro tiene un botón "Acceso gratis (solo para pruebas · dev)" que cae
+  justo en el plano de la membresía.
+- **Nada se escribe.** Cada pasada intercepta en el navegador el alta, el
+  chequeo de CUIT, la solicitud de pago y cualquier otro POST (incluido el
+  registro de visitas de la ficha). La interfaz es la real; los envíos no
+  salen. Sin eso, cada grabación dejaría una cuenta y una ficha "Tu Empresa
+  S.A." pendientes, y un mail de alta en la casilla de la UIAB.
+- **La página de Sipago no se filma**: tiene verificación anti-bots. El
+  recorrido termina en el botón "Ir a Sipago y adherir mi tarjeta".
+
+`plano()` acepta `cartel: "arriba"` para los planos cuyo sujeto está en el
+tercio de abajo de la pantalla (el cartel de siempre lo tapaba).

@@ -19,12 +19,24 @@ import { CAPA_VISUAL, dormir, guion, claqueta } from "./piloto.mjs";
 
 import { escenaDirectorio } from "./escenas/directorio.mjs";
 import { escenaOportunidades } from "./escenas/oportunidades.mjs";
+import { escenaRegistro, escenaPago, simularAlta, simularPago } from "./escenas/registro.mjs";
+
+// Qué pieza se filma. `tutorial` es la de siempre (Directorio + Oportunidades);
+// `registro` es el instructivo para empresas no socias (alta + pago), que va
+// contra producción y con todas las escrituras interceptadas — ver
+// escenas/registro.mjs.
+const PIEZA = (() => {
+  const i = process.argv.indexOf("--pieza");
+  return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : "tutorial";
+})();
+const ES_REGISTRO = PIEZA === "registro";
 
 // 3000 y no un puerto suelto: es el que usa `next dev` y el que da por sentado
 // el resto de la herramienta. Tener dos valores por defecto distintos entre
 // este archivo y video.mjs ya hizo que la grabación fuera a parar a otro lado.
-const BASE = process.env.BASE_URL || "http://localhost:3000";
-const SALIDA = join(process.cwd(), "grabaciones");
+const BASE = process.env.BASE_URL
+  || (ES_REGISTRO ? "https://www.uiabconecta.com" : "http://localhost:3000");
+const SALIDA = join(process.cwd(), ES_REGISTRO ? "grabaciones-registro" : "grabaciones");
 const ESTADO = join(process.cwd(), "sesion.json");
 
 // Playwright graba SIEMPRE al tamaño CSS del viewport: pedirle a recordVideo
@@ -134,7 +146,10 @@ async function iniciarSesion(navegador) {
     const token = datos.hashed_token ?? datos.properties?.hashed_token;
     if (!token) throw new Error(`El magic link vino sin hashed_token: ${JSON.stringify(datos).slice(0, 200)}`);
     console.log(`  · entrando por magic link como ${CREDENCIALES.email}`);
-    await page.goto(`${BASE}/api/auth/callback?token_hash=${token}&type=magiclink&next=/oportunidades`,
+    // El registro entra derecho al checkout: es la única pantalla logueada que
+    // filma, y así esta pasada sin cámara no recorre nada más de producción.
+    const despues = ES_REGISTRO ? "/suscripcion/checkout" : "/oportunidades";
+    await page.goto(`${BASE}/api/auth/callback?token_hash=${token}&type=magiclink&next=${despues}`,
       { waitUntil: "domcontentloaded" });
   } else {
     await page.locator('input[type="email"]').first().fill(CREDENCIALES.email);
@@ -161,6 +176,13 @@ async function iniciarSesion(navegador) {
   await page.waitForLoadState("networkidle").catch(() => {});
 
   await ctx.storageState({ path: ESTADO });
+
+  // Contra producción no hay nada que compilar.
+  if (ES_REGISTRO) {
+    await ctx.close();
+    console.log("  ✓ sesión iniciada y guardada");
+    return;
+  }
 
   // Calentar las rutas ANTES de encender la cámara. `next dev` compila cada
   // ruta la primera vez que se la visita, y esos segundos quedaban grabados:
@@ -189,11 +211,15 @@ async function iniciarSesion(navegador) {
   console.log("  ✓ sesión iniciada y guardada");
 }
 
-async function pasada({ navegador, nombre, libreto, logueado, indice }) {
+async function pasada({ navegador, nombre, libreto, logueado, indice, preparar }) {
   const ctx = await navegador.newContext({
     ...opcionesContexto(true),
     ...(logueado ? { storageState: ESTADO } : {}),
   });
+  // Las intercepciones de red de la pasada (las del registro: que nada se
+  // escriba en producción). Van antes de abrir la página para que no se escape
+  // ni el primer request.
+  if (preparar) await preparar(ctx);
   // La capa visual se inyecta en cada documento, también tras navegar duro.
   await ctx.addInitScript({ content: CAPA_VISUAL });
   // El tour de react-joyride no arranca solo, pero si algo lo dispara se nos
@@ -231,6 +257,9 @@ async function pasada({ navegador, nombre, libreto, logueado, indice }) {
     // Un `return` dentro de finally se come la excepción: la guardamos
     // aparte para no quedarnos con una toma corta y sin explicación.
     fallo = e;
+    // Y una foto del momento: el mensaje de Playwright dice qué se esperaba,
+    // no qué había en pantalla (un error de validación, un modal, otra ruta).
+    await page.screenshot({ path: join(SALIDA, `${nombre}-fallo.png`) }).catch(() => {});
   } finally {
     const dur = ((Date.now() - t0) / 1000).toFixed(1);
     if (fallo) console.log(`    ✗ ${nombre} cortó a los ${dur}s: ${fallo.message.split("\n")[0]}`);
@@ -283,6 +312,29 @@ async function main() {
     }
 
     const partes = [];
+
+    if (ES_REGISTRO) {
+      // La primera pasada va SIN sesión —es alguien que todavía no tiene
+      // cuenta— y la segunda con la de filmación, porque el checkout la exige.
+      console.log("▸ Pasada 1/2 — Registro");
+      partes.push(await pasada({
+        navegador, nombre: "01-registro", libreto: escenaRegistro,
+        logueado: false, indice: 1, preparar: simularAlta,
+      }));
+      console.log("▸ Pasada 2/2 — Pago");
+      partes.push(await pasada({
+        navegador, nombre: "02-pago", libreto: escenaPago, logueado: true, indice: 2,
+        preparar: (ctx) => simularPago(ctx, {
+          urlPlanMensual: process.env.SIPAGO_PLAN_MENSUAL_URL || env.SIPAGO_PLAN_MENSUAL_URL,
+        }),
+      }));
+      writeFileSync(join(SALIDA, "partes.json"), JSON.stringify(partes, null, 2));
+      const util = partes.reduce(
+        (a, p) => a + (p.planos ?? []).reduce((b, x) => b + (x.tOut - x.tIn), 0), 0) / 1000;
+      console.log(`\n▸ Listo. ${partes.reduce((a, p) => a + (p.planos?.length ?? 0), 0)} planos, ${util.toFixed(1)}s útiles.`);
+      return;
+    }
+
     // Las dos pasadas van CON sesión: el público del video son las socias, y
     // sin sesión la ficha de empresa tapa catálogo y reseñas con el cartel
     // "Contenido exclusivo para miembros".
