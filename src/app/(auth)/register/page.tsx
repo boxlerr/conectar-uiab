@@ -30,6 +30,7 @@ import { LOCALIDADES_ALMIRANTE_BROWN, PROVINCIAS_AR } from '@/lib/datos/geografi
 import { useAuth } from '@/modulos/autenticacion/contexto-autenticacion'
 import { PRECIO_MENSUAL, PRECIO_ANUAL } from '@/lib/suscripciones/modelo'
 import { validarEspecialidadLibre } from '@/modulos/compartido/especialidades'
+import { filtrarCategoriasJerarquicas } from '@/modulos/registro/buscador-categorias'
 
 // Mismo número que se muestra en la landing para el plan anual: comparar
 // siempre en $/mes es lo que hace evidente el descuento.
@@ -1758,22 +1759,12 @@ function BuscadorJerarquico({
   }, []);
 
   const seleccionada = categorias.find((c) => c.id === value);
-  const padreDe = (c: { categoria_padre_id: string | null }) =>
-    c.categoria_padre_id ? categorias.find((x) => x.id === c.categoria_padre_id) : null;
-
-  const q = query.trim().toLowerCase();
-  const filtradas = q
-    ? categorias.filter((c) => {
-      const padre = padreDe(c);
-      return (
-        c.nombre.toLowerCase().includes(q) ||
-        (padre?.nombre.toLowerCase().includes(q) ?? false)
-      );
-    })
-    : categorias;
-
-  const raices = filtradas.filter((c) => !c.categoria_padre_id);
-  const hijasDe = (id: string) => filtradas.filter((c) => c.categoria_padre_id === id);
+  // Ver buscador-categorias.ts: antes una especialidad sólo aparecía si su
+  // macro-rubro también coincidía, y "Torner" daba "Sin coincidencias".
+  const grupos = useMemo(
+    () => filtrarCategoriasJerarquicas(categorias, query),
+    [categorias, query]
+  );
 
   return (
     <div className="relative" ref={ref}>
@@ -1821,31 +1812,32 @@ function BuscadorJerarquico({
             </div>
           </div>
           <div className="max-h-80 overflow-y-auto">
-            {raices.length === 0 && (
+            {grupos.length === 0 && (
               <div className="p-4 text-center text-xs text-slate-500">Sin coincidencias.</div>
             )}
-            {raices.map((raiz) => {
-              const hijas = hijasDe(raiz.id);
+            {grupos.map(({ raiz, raizCoincide, hijas }) => {
               return (
                 <div key={raiz.id} className="py-1">
                   <div className="px-3 py-1 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50">
                     {raiz.nombre}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onChange(raiz.id, raiz.nombre);
-                      setOpen(false);
-                      setQuery('');
-                    }}
-                    className={cn(
-                      'w-full text-left px-3 py-1.5 text-sm hover:bg-primary-50 flex items-center gap-2',
-                      value === raiz.id && 'bg-primary-50 text-primary-700 font-semibold'
-                    )}
-                  >
-                    <span className="text-slate-400 text-xs">—</span>
-                    General
-                  </button>
+                  {raizCoincide && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange(raiz.id, raiz.nombre);
+                        setOpen(false);
+                        setQuery('');
+                      }}
+                      className={cn(
+                        'w-full text-left px-3 py-1.5 text-sm hover:bg-primary-50 flex items-center gap-2',
+                        value === raiz.id && 'bg-primary-50 text-primary-700 font-semibold'
+                      )}
+                    >
+                      <span className="text-slate-400 text-xs">—</span>
+                      General
+                    </button>
+                  )}
                   {hijas.map((h) => (
                     <button
                       key={h.id}
