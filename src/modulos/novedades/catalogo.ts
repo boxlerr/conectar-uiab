@@ -23,10 +23,12 @@ import {
   Bell,
   Building2,
   CalendarClock,
+  ImagePlus,
   KeyRound,
   LayoutGrid,
   LineChart,
   Phone,
+  RefreshCw,
   SlidersHorizontal,
   Users,
   UserX,
@@ -65,6 +67,41 @@ export interface ContenidoNovedad {
  * reescribió nada al mudarlo: son cambios que ya se anunciaron.
  */
 export const CATALOGO_NOVEDADES: Record<NovedadId, ContenidoNovedad> = {
+  catalogo_fotos: {
+    id: "catalogo_fotos",
+    titulo: "Arreglamos la carga de productos con foto",
+    resumen:
+      "Si al cargar un producto o servicio el botón «Crear ítem» se quedaba girando y no terminaba nunca, ya está resuelto.",
+    cambios: [
+      {
+        icono: ImagePlus,
+        titulo: "Las fotos se suben",
+        texto: "Pasaba al ir a otra pestaña —por ejemplo, a copiar un link— y volver al formulario.",
+      },
+      {
+        icono: RefreshCw,
+        titulo: "Sin tener que apretar F5",
+        texto: "El mismo trabón podía dejar cargando otras pantallas al volver a la pestaña. También quedó resuelto.",
+      },
+      {
+        icono: Bell,
+        titulo: "Si algo falla, te avisa",
+        texto: "Si una foto no se puede subir, te lo dice y te aclara que el ítem quedó guardado.",
+      },
+    ],
+    aviso: {
+      tono: "ambar",
+      titulo: "Si te pasó, revisá esto",
+      items: [
+        "El ítem pudo haber quedado guardado sin la foto. Fijate en tu catálogo antes de cargarlo de nuevo, así no lo duplicás.",
+        "Si lo ves sin imagen, tocá Editar y agregale la foto desde ahí.",
+      ],
+      pie: "Gracias por avisarnos. Si algo sigue sin funcionar, escribinos desde Contacto.",
+    },
+    cta: { href: "/perfil/productos-servicios", label: "Ir a mis productos" },
+    fecha: NOVEDAD_PUBLICADA_EL.catalogo_fotos,
+  },
+
   panel_control: {
     id: "panel_control",
     titulo: "Rediseñamos tu panel de control",

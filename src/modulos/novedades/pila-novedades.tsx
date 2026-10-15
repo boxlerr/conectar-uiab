@@ -13,6 +13,7 @@ import { ModalNovedadPerfil } from "./modal-novedad-perfil";
 import { ModalNovedadOportunidades } from "./modal-novedad-oportunidades";
 import { ModalNovedadGenerico } from "./modal-novedad-generico";
 import { MaquetaPanel } from "./maqueta-panel";
+import { MaquetaCatalogo } from "./maqueta-catalogo";
 
 /**
  * Pila de novedades: los carteles pendientes, de a uno y en orden.
@@ -57,6 +58,14 @@ const RUTAS_SIN_CARTEL = [
  * leerlo de este archivo le arrastraría los tres modales al bundle.
  */
 const REGISTRO: Record<NovedadId, React.ComponentType<PropsNovedad>> = {
+  catalogo_fotos: (props) => (
+    <ModalNovedadGenerico
+      {...props}
+      id="catalogo_fotos"
+      maqueta={<MaquetaCatalogo />}
+      epigrafe="La foto se sube y el botón termina, aunque vayas y vuelvas de otra pestaña."
+    />
+  ),
   // Los tres primeros tienen su maqueta dibujada a mano. Del panel en adelante
   // el cartel se arma solo desde el catálogo — ver `modal-novedad-generico`.
   panel_control: (props) => (

@@ -39,6 +39,12 @@ import {
 
 /** Un acento por novedad: en tres tarjetas iguales no se distingue una de otra. */
 const ACENTO: Record<NovedadId, { barra: string; chip: string; icono: string; halo: string }> = {
+  catalogo_fotos: {
+    barra: "from-rose-400 to-pink-600",
+    chip: "bg-rose-50 text-rose-700",
+    icono: "bg-rose-50 text-rose-500",
+    halo: "group-hover:border-rose-200/70",
+  },
   panel_control: {
     barra: "from-emerald-400 to-teal-500",
     chip: "bg-emerald-50 text-emerald-700",

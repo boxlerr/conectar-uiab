@@ -7,6 +7,7 @@
  * de build (la app entera devuelve 500).
  */
 export type NovedadId =
+  | "catalogo_fotos"
   | "usuarios_empresa"
   | "perfil_directorio"
   | "oportunidades_cartelera"
@@ -40,6 +41,8 @@ export const NOVEDAD_PUBLICADA_EL: Record<NovedadId, string> = {
   oportunidades_cartelera: "2026-08-14T23:30:00-03:00",
   // Rediseño del panel de control (2026-08-25, de noche).
   panel_control: "2026-08-25T22:00:00-03:00",
+  // Arreglo de "Crear ítem" que quedaba girando al subir la foto (2026-10-15).
+  catalogo_fotos: "2026-10-15T10:10:00-03:00",
 };
 
 /**
@@ -57,6 +60,8 @@ export const NOVEDAD_EXIGE_FICHA: Record<NovedadId, boolean> = {
   panel_control: false,
   perfil_directorio: true,
   usuarios_empresa: true,
+  // El catálogo es de la ficha: sin ficha no hay productos que cargar.
+  catalogo_fotos: true,
 };
 
 /**
@@ -70,6 +75,7 @@ export const NOVEDAD_EXIGE_FICHA: Record<NovedadId, boolean> = {
  * `pila-novedades.tsx`.
  */
 export const NOVEDADES_POR_PRIORIDAD: NovedadId[] = [
+  "catalogo_fotos",
   "panel_control",
   "oportunidades_cartelera",
   "perfil_directorio",
