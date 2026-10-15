@@ -8,6 +8,7 @@ import { ID_ORG_CONECTA, ID_ORG_UIAB, SITE_URL } from "@/lib/seo/entidad";
 import { getComunicadoPorSlug, getComunicadosPublicados } from "@/modulos/boletin/consultas";
 import { Articulo } from "@/modulos/boletin/componentes/articulo";
 import { CompartirNota } from "@/modulos/boletin/componentes/compartir-nota";
+import { RegistrarVistaNota } from "@/modulos/boletin/componentes/registrar-vista";
 import {
   ListaNovedades,
   TarjetaQueEs,
@@ -21,6 +22,7 @@ import {
   slugComunicado,
 } from "@/modulos/boletin/formato";
 import type { ComunicadoPublico } from "@/modulos/boletin/tipos";
+import { contarVistasDeNota } from "@/modulos/boletin/vistas";
 
 /**
  * Una nota del Boletín, en formato de blog: la nota al medio, el compartir
@@ -127,6 +129,14 @@ export default async function NotaBoletinPage({ params }: Props) {
 
   const otros = recientes.filter((r) => r.id !== c.id).slice(0, 4);
   const haySesion = rol !== null;
+  const esAdmin = rol === "admin";
+
+  // El contador de vistas es SÓLO para admins, y por eso se pide acá, después
+  // de confirmar el rol en el servidor: para cualquier otro, `vistas` ni
+  // existe, así que el número no viaja en el HTML ni en el RSC. La página ya
+  // es dinámica (lee la sesión), así que esto no le cambia nada al render del
+  // resto: no hay skeleton ni pedido desde el navegador.
+  const vistas = esAdmin ? await contarVistasDeNota(c.id) : undefined;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-10">
@@ -168,7 +178,10 @@ export default async function NotaBoletinPage({ params }: Props) {
             Boletín
           </Link>
 
-          <Articulo c={c} esAdmin={rol === "admin"} />
+          {/* La prop sólo existe para el admin: ni siquiera la clave viaja en el
+              RSC de los demás. */}
+          <Articulo c={c} esAdmin={esAdmin} {...(esAdmin ? { vistas } : {})} />
+          {!esAdmin && <RegistrarVistaNota id={c.id} />}
 
           {/* Sin costado, las otras notas van abajo. */}
           <div className="mt-6 space-y-4 lg:hidden">

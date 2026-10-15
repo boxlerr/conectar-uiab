@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, Pin } from "lucide-react";
+import { BadgeCheck, Eye, Pin } from "lucide-react";
 import { bloquesDeCuerpo, fechaLegible } from "../formato";
 import type { ComunicadoPublico } from "../tipos";
 import { CarruselFotos } from "./carrusel-fotos";
@@ -31,6 +31,12 @@ import { VisorFoto } from "./visor-foto";
  *
  * `vistaPrevia` la dibuja en el editor del panel de admin: sin menú de admin
  * ni botones de compartir (la publicación todavía no existe).
+ *
+ * `vistas` es el contador del ojito, y lo pasa la página SÓLO cuando el rol es
+ * admin (confirmado en el servidor). Este componente es de cliente: lo que
+ * recibe por props viaja en el RSC, así que para una socia o un visitante la
+ * prop tiene que llegar `undefined`, no "oculta". `null` = la base no contestó:
+ * no se muestra nada antes que un 0 que nadie midió.
  */
 
 export function contarPalabras(texto: string): number {
@@ -45,10 +51,12 @@ export function Articulo({
   c,
   esAdmin = false,
   vistaPrevia = false,
+  vistas,
 }: {
   c: ComunicadoPublico;
   esAdmin?: boolean;
   vistaPrevia?: boolean;
+  vistas?: number | null;
 }) {
   const [visor, setVisor] = useState<number | null>(null);
   const cerrarVisor = useCallback(() => setVisor(null), []);
@@ -108,6 +116,7 @@ export function Articulo({
               <div className="xl:hidden">
                 <CompartirNota c={c} />
               </div>
+              {esAdmin && typeof vistas === "number" && <ContadorVistas vistas={vistas} />}
               {esAdmin && <MenuAdmin c={c} volverAlFeed />}
             </div>
           )}
@@ -166,5 +175,23 @@ export function Articulo({
         </footer>
       )}
     </article>
+  );
+}
+
+/**
+ * El ojito con las vistas de la nota. Se pinta distinto del resto de la firma
+ * (fondo, borde punteado) porque no es parte de la nota: lo ve sólo el admin.
+ */
+function ContadorVistas({ vistas }: { vistas: number }) {
+  const texto = `${vistas.toLocaleString("es-AR")} ${vistas === 1 ? "persona la vio" : "personas la vieron"}`;
+  return (
+    <span
+      title={`${texto}. Visitantes únicos por día; no cuenta bots ni admins. Sólo lo ven los admins.`}
+      className="inline-flex h-9 items-center gap-1.5 rounded-full border border-dashed border-slate-300 bg-slate-50 px-3 text-[13px] font-semibold tabular-nums text-slate-600"
+    >
+      <Eye className="h-4 w-4" aria-hidden />
+      {vistas.toLocaleString("es-AR")}
+      <span className="sr-only"> {vistas === 1 ? "vista" : "vistas"} (sólo admins)</span>
+    </span>
   );
 }

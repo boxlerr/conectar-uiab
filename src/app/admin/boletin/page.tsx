@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { ComunicadoAdmin } from "@/modulos/boletin/tipos";
+import { vistasPorComunicado } from "@/modulos/boletin/vistas";
 import { PanelBoletin } from "./PanelBoletin";
 
 // El panel ve TODO (borradores incluidos), así que lee con service role igual
@@ -28,6 +29,9 @@ async function getComunicados(): Promise<ComunicadoAdmin[]> {
 }
 
 export default async function AdminBoletinPage() {
-  const comunicados = await getComunicados();
-  return <PanelBoletin comunicados={comunicados} />;
+  // /admin está cortado por rol en el middleware (del lado del servidor), así
+  // que las vistas sólo llegan a un admin. `null` si la base no contestó: el
+  // panel no muestra el ojito antes que mostrar ceros.
+  const [comunicados, vistas] = await Promise.all([getComunicados(), vistasPorComunicado()]);
+  return <PanelBoletin comunicados={comunicados} vistas={vistas} />;
 }

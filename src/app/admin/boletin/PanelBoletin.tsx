@@ -61,7 +61,14 @@ function fecha(iso: string | null): string {
   });
 }
 
-export function PanelBoletin({ comunicados }: { comunicados: ComunicadoAdmin[] }) {
+export function PanelBoletin({
+  comunicados,
+  vistas,
+}: {
+  comunicados: ComunicadoAdmin[];
+  /** Visitantes únicos por día de cada nota. `null` = no se pudo leer. */
+  vistas: Record<string, number> | null;
+}) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -419,10 +426,23 @@ export function PanelBoletin({ comunicados }: { comunicados: ComunicadoAdmin[] }
                     ) : null}
                   </div>
                   <p className="text-sm text-slate-500 line-clamp-2">{c.cuerpo}</p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {c.estado === "publicado"
-                      ? `Publicado: ${fecha(c.publicado_en)}`
-                      : `Creado: ${fecha(c.creado_en)}`}
+                  <p className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span>
+                      {c.estado === "publicado"
+                        ? `Publicado: ${fecha(c.publicado_en)}`
+                        : `Creado: ${fecha(c.creado_en)}`}
+                    </span>
+                    {/* Un borrador no lo abre nadie: el ojito sólo en lo publicado. */}
+                    {vistas && c.estado === "publicado" && (
+                      <span
+                        className="inline-flex items-center gap-1 font-semibold tabular-nums text-slate-500"
+                        title="Visitantes únicos por día. No cuenta bots ni admins."
+                      >
+                        <Eye className="h-3 w-3" aria-hidden />
+                        {(vistas[c.id] ?? 0).toLocaleString("es-AR")}{" "}
+                        {(vistas[c.id] ?? 0) === 1 ? "vista" : "vistas"}
+                      </span>
+                    )}
                   </p>
                 </div>
 
