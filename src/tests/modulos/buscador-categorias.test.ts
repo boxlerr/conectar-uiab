@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filtrarCategoriasJerarquicas } from "@/modulos/registro/buscador-categorias";
+import { filtrarCategoriasJerarquicas } from "@/modulos/compartido/buscador-categorias";
 
 /**
  * El buscador de rubros del registro mostraba "Sin coincidencias" al buscar una
@@ -73,6 +73,21 @@ describe("filtrarCategoriasJerarquicas", () => {
 
   it("sin coincidencias devuelve una lista vacía", () => {
     expect(vista("panadería")).toEqual([]);
+  });
+
+  // /perfil/servicios separa los rubros con especialidades (encabezado + hijas)
+  // de los sueltos según `hijas.length`. Eso sólo vale si un grupo sin hijas es
+  // siempre un rubro que no tiene ninguna, nunca uno al que se le filtraron.
+  it("un grupo sin hijas es un rubro sin especialidades, con cualquier búsqueda", () => {
+    const tieneHijasEnElCatalogo = (id: string) => CATALOGO.some((c) => c.categoria_padre_id === id);
+    for (const consulta of ["", "metal", "metalmecanica", "metalurgia", "torner", "soldadura", "mantenimiento", "y"]) {
+      for (const g of filtrarCategoriasJerarquicas(CATALOGO, consulta)) {
+        if (g.hijas.length === 0) {
+          expect(g.raizCoincide, `"${consulta}" → ${g.raiz.id}`).toBe(true);
+          expect(tieneHijasEnElCatalogo(g.raiz.id), `"${consulta}" → ${g.raiz.id}`).toBe(false);
+        }
+      }
+    }
   });
 
   it("ignora una hija cuyo padre no vino en la lista", () => {
