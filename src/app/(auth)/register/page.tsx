@@ -661,9 +661,14 @@ function RegisterContent() {
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#00213f] text-xs font-bold text-white">2</span>
               <span>Al confirmar entrás y elegís cómo pagar tu membresía.</span>
             </p>
+            {/* Decía "Con el pago acreditado, tu ficha sale publicada", como si
+                el pago la publicara solo. No: la ficha nace `pendiente_revision`
+                y la aprueba un admin en /admin/empresas, que no puede hacerlo
+                hasta que la suscripción esté activa; aprobarla manda el mail.
+                Mismas palabras que la columna de la izquierda y /confirmar-email. */}
             <p className="flex items-start gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#00213f] text-xs font-bold text-white">3</span>
-              <span>Con el pago acreditado, tu ficha sale publicada en el directorio.</span>
+              <span>Después de pagar, la UIAB confirma el pago y aprueba tu ficha. Cuando quede publicada en el directorio, te avisamos por mail.</span>
             </p>
           </div>
           <a
@@ -704,8 +709,11 @@ function RegisterContent() {
                   {step > 1 && selectedRole === 'company' && "Empresa u organización."}
                   {step > 1 && selectedRole === 'provider' && "Particular o profesional."}
                 </h1>
+                {/* Prometía "en unos minutos tu empresa queda publicada". Nada en
+                    el código lo sostiene: después del pago la ficha espera la
+                    aprobación de un admin, sin plazo. Ver el paso 3 del éxito. */}
                 <p className="text-white/60 text-sm lg:text-base leading-relaxed mb-6 lg:mb-8 font-inter max-w-sm">
-                  {step === 1 && "Una sola membresía, sin planes recortados ni funciones bloqueadas. Contanos quién se registra y en unos minutos tu empresa queda publicada en el directorio."}
+                  {step === 1 && "Una sola membresía, sin planes recortados ni funciones bloqueadas. Te registrás y pagás; después, la UIAB confirma el pago y aprueba tu ficha. Cuando quede publicada en el directorio, te avisamos por mail."}
                   {step > 1 && selectedRole === 'company' && "Tu empresa en el directorio de la red industrial de Almirante Brown: te encuentran, publicás lo que necesitás y contactás directo."}
                   {step > 1 && selectedRole === 'provider' && "Ofrecé tus productos y servicios a las empresas de la red, respondé sus búsquedas y ganá presencia en el directorio oficial."}
                 </p>

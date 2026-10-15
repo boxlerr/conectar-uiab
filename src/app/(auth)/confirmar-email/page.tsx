@@ -8,9 +8,16 @@ import { Button } from '@/components/ui/button'
  * Flujo: Supabase Auth → `/api/auth/callback?type=signup&token_hash=...` →
  * el callback canjea el token, establece la sesión y redirige acá.
  *
+ * El link que manda /register trae `?next=/suscripcion/checkout`, así que el
+ * alta normal salta directo al pago; acá se cae cuando el link vino sin `next`.
+ *
  * El usuario ya está logueado cuando llega, pero su empresa/particular
  * sigue en estado `pendiente_revision` hasta que un administrador la
- * apruebe — ese momento dispara el email que lleva a `/bienvenido`.
+ * apruebe — ese momento dispara el email que lleva a `/bienvenido`. Y el
+ * admin no puede aprobarla sin la suscripción activa, así que lo próximo es
+ * PAGAR: esta pantalla decía "quedás en la cola de revisión" sin nombrar el
+ * pago, y el botón llevaba al panel, que sin pago rebota a /suscripcion/bloqueado.
+ * Mismas palabras que el registro (columna izquierda y pantalla de éxito).
  */
 export default function ConfirmarEmailPage() {
   return (
@@ -44,17 +51,17 @@ export default function ConfirmarEmailPage() {
             Cuenta confirmada
           </h1>
           <p className="mx-auto mt-3 max-w-md text-center text-[15px] leading-relaxed text-[#525b63]">
-            Tu dirección de correo fue verificada correctamente. Tu solicitud
-            queda ahora en la cola de revisión del equipo de la UIAB.
+            Tu dirección de correo fue verificada correctamente. Ahora falta
+            pagar la membresía.
           </p>
 
           <div className="mx-auto mt-8 max-w-md rounded-md bg-[#f2f4f6] p-5 text-sm leading-relaxed text-[#191c1e]">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#525b63]">
               Próximo paso
             </p>
-            Un administrador va a validar los datos de tu empresa o perfil. En
-            cuanto sea aprobado, vas a recibir un correo con el enlace para
-            acceder a la plataforma.
+            Pagá tu membresía. Después de pagar, la UIAB confirma el pago y
+            aprueba tu ficha. Cuando quede publicada en el directorio, te
+            avisamos por mail.
           </div>
 
           <div className="mt-10 flex flex-col items-center gap-3">
@@ -63,8 +70,8 @@ export default function ConfirmarEmailPage() {
               size="lg"
               className="h-11 w-full max-w-xs rounded-md bg-[#00213f] text-white hover:bg-[#10375c]"
             >
-              <Link href="/panel-de-control">
-                Ir a mi panel
+              <Link href="/suscripcion/checkout">
+                Pagar la membresía
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
