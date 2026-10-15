@@ -49,6 +49,17 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/boletin`,
     siteName: "UIAB Conecta",
     locale: "es_AR",
+    // Hay que declararla acá: un `openGraph` propio REEMPLAZA entero al del
+    // layout raíz, así que sin `images` el link compartido caía en la foto
+    // genérica del sitio (el render del edificio). 1200×630 reales; el HTML
+    // con el que se renderizó no vive en el repo, se rehace con Playwright.
+    images: [{ url: "/og-boletin.jpg", width: 1200, height: 630, alt: "Boletín UIAB" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITULO,
+    description: DESCRIPCION,
+    images: ["/og-boletin.jpg"],
   },
 };
 
