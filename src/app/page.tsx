@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Inicio from "./inicio-cliente";
 import { obtenerSociasConLogo } from "@/lib/datos/socias-logos";
+import { leerPrecios } from "@/lib/suscripciones/precios";
 import { ExplorarPorRubro } from "@/components/ui/directorio/explorar-por-rubro";
 
 /**
@@ -26,10 +27,13 @@ export const metadata: Metadata = {
  * que el proyecto estaba tirando a la basura.
  */
 export default async function Page() {
-  const sociasLogos = await obtenerSociasConLogo();
+  // El precio también baja de acá: el bloque de precios de la portada mostraba
+  // la constante del código, y un aumento cargado en el panel no le llegaba.
+  // Ninguna de las dos lecturas tira; si la base falla, cae a lo de siempre.
+  const [sociasLogos, precios] = await Promise.all([obtenerSociasConLogo(), leerPrecios()]);
   return (
     <>
-      <Inicio sociasLogos={sociasLogos} />
+      <Inicio sociasLogos={sociasLogos} precios={precios} />
       {/*
         La portada no enlazaba NINGUNA de las 13 landings de rubro (medido con
         curl: 0 href="/rubros/..."), así que colgaban sólo de /directorio y

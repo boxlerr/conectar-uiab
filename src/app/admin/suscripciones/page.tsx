@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { leerPrecios } from "@/lib/suscripciones/precios";
+import { avisoDeDesfasaje } from "@/lib/sipago/planes";
 import { PanelSuscripciones, type FilaSocio, type Pago } from "./PanelSuscripciones";
 
 function adminClient() {
@@ -124,5 +125,9 @@ async function getDatos() {
 
 export default async function AdminSuscripcionesPage() {
   const { socios, pagos, precios } = await getDatos();
-  return <PanelSuscripciones socios={socios} pagos={pagos} precios={precios} />;
+  // Los planes recurrentes de Sipago tienen el monto fijado en su portal: cambiar
+  // el precio acá no cambia lo que debitan. docs/SIPAGO.md decía que el panel
+  // avisaba, pero `avisoDeDesfasaje()` no lo llamaba nadie.
+  const avisoSipago = avisoDeDesfasaje("mensual") ?? avisoDeDesfasaje("anual");
+  return <PanelSuscripciones socios={socios} pagos={pagos} precios={precios} avisoSipago={avisoSipago} />;
 }

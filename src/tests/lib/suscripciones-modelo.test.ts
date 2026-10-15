@@ -12,9 +12,11 @@ import {
   montoPorCiclo,
   nombrePlan,
   proximoCobro,
+  resumenPrecios,
   rutaExigeSuscripcion,
   sumarUnMes,
   sumarUnAnio,
+  textoMeses,
   tieneAcceso,
 } from "@/lib/suscripciones/modelo";
 
@@ -45,6 +47,79 @@ describe("el precio único", () => {
 
   it("no promete ahorro donde no lo hay", () => {
     expect(mesesGratis({ mensual: 50_000, anual: 600_000 })).toBe(0);
+  });
+
+  it("no redondea para arriba: medio mes de ahorro no es un mes gratis", () => {
+    // 50.000 × 12 = 600.000 − 575.000 = 25.000 = medio mes.
+    expect(mesesGratis({ mensual: 50_000, anual: 575_000 })).toBe(0);
+    // 1,9 meses son 1, no 2.
+    expect(mesesGratis({ mensual: 50_000, anual: 505_000 })).toBe(1);
+  });
+});
+
+/**
+ * Lo que muestran la home, /register, el checkout y /perfil/suscripcion. Antes
+ * cada pantalla hacía la cuenta contra las constantes y tenía el "2 meses
+ * gratis" escrito a mano; con el precio editable desde el panel, el copy tiene
+ * que salir de los números que se muestran.
+ */
+describe("resumenPrecios", () => {
+  it("con el precio de lista da los mismos números que antes estaban a mano", () => {
+    expect(resumenPrecios(PRECIOS_POR_DEFECTO)).toEqual({
+      mensual: 50_000,
+      anual: 500_000,
+      pagandoMesAMes: 600_000,
+      ahorro: 100_000,
+      equivalenteMensual: 41_667,
+      mesesGratis: 2,
+      mesesGratisTexto: "2 meses",
+      hayDescuento: true,
+    });
+  });
+
+  it("sigue al precio que le pasan, no a la constante", () => {
+    const r = resumenPrecios({ mensual: 65_000, anual: 650_000 });
+    expect(r.mensual).toBe(65_000);
+    expect(r.anual).toBe(650_000);
+    expect(r.pagandoMesAMes).toBe(780_000);
+    expect(r.ahorro).toBe(130_000);
+    expect(r.equivalenteMensual).toBe(54_167);
+    expect(r.mesesGratisTexto).toBe("2 meses");
+  });
+
+  it("un solo mes va en singular", () => {
+    expect(resumenPrecios({ mensual: 50_000, anual: 550_000 }).mesesGratisTexto).toBe("1 mes");
+  });
+
+  it("con ahorro de menos de un mes no habla en meses, pero el descuento existe", () => {
+    const r = resumenPrecios({ mensual: 50_000, anual: 575_000 });
+    expect(r.mesesGratisTexto).toBeNull();
+    expect(r.hayDescuento).toBe(true);
+    expect(r.ahorro).toBe(25_000);
+  });
+
+  it("si el anual son doce mensuales no hay descuento que mostrar", () => {
+    // El panel lo acepta: validarPrecios() sólo rechaza un anual MÁS caro.
+    const r = resumenPrecios({ mensual: 50_000, anual: 600_000 });
+    expect(r.hayDescuento).toBe(false);
+    expect(r.ahorro).toBe(0);
+    expect(r.mesesGratisTexto).toBeNull();
+  });
+
+  it("un anual más caro que doce mensuales no da ahorro negativo", () => {
+    // leerPrecios() no chequea esa relación; la pantalla no puede decir "ahorrás -$10.000".
+    const r = resumenPrecios({ mensual: 50_000, anual: 610_000 });
+    expect(r.ahorro).toBe(0);
+    expect(r.hayDescuento).toBe(false);
+    expect(r.mesesGratis).toBe(0);
+  });
+});
+
+describe("textoMeses", () => {
+  it("singular y plural", () => {
+    expect(textoMeses(1)).toBe("1 mes");
+    expect(textoMeses(2)).toBe("2 meses");
+    expect(textoMeses(12)).toBe("12 meses");
   });
 });
 
