@@ -396,11 +396,190 @@ describe("el primer cobro prorrateado del plan anual", () => {
     ).toBe("cortesia");
   });
 
-  it("las dos acciones que escriben plata son exactamente esas dos", () => {
+  it("las tres acciones que escriben plata son exactamente esas tres", () => {
     expect(activaLaSuscripcion("activar")).toBe(true);
+    expect(activaLaSuscripcion("precio_nuevo")).toBe(true);
     expect(activaLaSuscripcion("primer_cobro_anual")).toBe(true);
     for (const a of ["ya_registrado", "cuit_desconocido", "rechazado", "cortesia", "monto_no_coincide"] as const) {
       expect(activaLaSuscripcion(a)).toBe(false);
     }
+  });
+});
+
+// ─── Después de un cambio de precio ─────────────────────────────────────────
+
+describe("después de un aumento de precio", () => {
+  // Cambiar el precio en el panel no toca `suscripciones.monto` de quienes ya
+  // están suscriptos: ahí sigue el precio que se les anotó al suscribirse. El
+  // plan del portal, una vez que alguien lo edita, debita el nuevo. Antes cada
+  // uno de esos débitos caía en "monto no coincide" y el socio que había pagado
+  // no se activaba solo.
+  const socia = { nombre: "Metalúrgica del Sur SA" };
+  const mensualViejo = { metodo_pago: "sipago_suscripcion", monto: 50000, ciclo: "mensual" };
+
+  const mensual = (monto: number, precioVigente: number | null) =>
+    decidirAccion({
+      fila: cobro({ monto }),
+      entidad: socia,
+      suscripcion: mensualViejo,
+      yaCargado: false,
+      esPrimerCobro: false,
+      precioVigente,
+    });
+
+  it("el débito al precio nuevo se activa y queda marcado como precio nuevo", () => {
+    const r = mensual(65000, 65000);
+    expect(r.accion).toBe("precio_nuevo");
+    expect(activaLaSuscripcion(r.accion)).toBe(true);
+    // El admin tiene que ver los dos números antes de confirmar.
+    expect(r.detalle).toContain("65.000");
+    expect(r.detalle).toContain("50.000");
+  });
+
+  it("mientras el portal no se actualiza, el débito al precio viejo sigue entrando", () => {
+    // Es la mitad que se rompía si el arreglo hubiera sido reescribir `monto`
+    // al guardar el precio: el portal sigue debitando el viejo hasta que
+    // alguien edita el plan, y esos cobros también son legítimos.
+    expect(mensual(50000, 65000).accion).toBe("activar");
+  });
+
+  it("una baja de precio funciona igual", () => {
+    expect(mensual(40000, 40000).accion).toBe("precio_nuevo");
+  });
+
+  it("tolera los mismos centavos que contra la suscripción", () => {
+    expect(mensual(65000.4, 65000).accion).toBe("precio_nuevo");
+    expect(mensual(65001, 65000).accion).toBe("monto_no_coincide");
+  });
+
+  it("un importe que no es ni el viejo ni el nuevo se sigue marcando", () => {
+    const r = mensual(58000, 65000);
+    expect(r.accion).toBe("monto_no_coincide");
+    // Y el detalle dice los tres números, para que se vea que no es ninguno.
+    expect(r.detalle).toContain("58.000");
+    expect(r.detalle).toContain("50.000");
+    expect(r.detalle).toContain("65.000");
+  });
+
+  it("sin precio vigente se comporta como antes", () => {
+    expect(mensual(65000, null).accion).toBe("monto_no_coincide");
+    expect(mensual(65000, 0).accion).toBe("monto_no_coincide");
+  });
+
+  it("el precio del otro ciclo no cuenta", () => {
+    // El llamador pasa el precio del ciclo de la suscripción. Un mensual
+    // cobrado al precio del anual es un plan equivocado, no un aumento.
+    expect(mensual(650000, 65000).accion).toBe("monto_no_coincide");
+  });
+
+  it("A LAS SOCIAS DEL PADRÓN NO SE LES COBRA, aunque el cobro sea justo el precio de lista", () => {
+    expect(
+      decidirAccion({
+        fila: cobro({ monto: 65000 }),
+        entidad: socia,
+        suscripcion: { metodo_pago: "cortesia", monto: 0, ciclo: "mensual" },
+        yaCargado: false,
+        precioVigente: 65000,
+      }).accion
+    ).toBe("cortesia");
+  });
+
+  it("pegar dos veces el reporte tampoco cobra dos veces al precio nuevo", () => {
+    expect(
+      decidirAccion({
+        fila: cobro({ monto: 65000 }),
+        entidad: socia,
+        suscripcion: mensualViejo,
+        yaCargado: true,
+        precioVigente: 65000,
+      }).accion
+    ).toBe("ya_registrado");
+  });
+
+  it("la renovación anual del 10 de enero al precio nuevo se activa", () => {
+    // El anual cobra a todos el mismo día: sin esto, un aumento en diciembre
+    // dejaba a TODOS los anuales en "monto no coincide" el 10 de enero.
+    expect(
+      decidirAccion({
+        fila: cobro({ monto: 650000, fecha: "2027-01-10" }),
+        entidad: socia,
+        suscripcion: { metodo_pago: "sipago_suscripcion", monto: 500000, ciclo: "anual" },
+        yaCargado: false,
+        esPrimerCobro: false,
+        precioVigente: 650000,
+      }).accion
+    ).toBe("precio_nuevo");
+  });
+});
+
+describe("el primer cobro anual después de un aumento", () => {
+  // Se anotó a $500.000 y se adhirió al plan cuando el portal ya decía
+  // $650.000: Sipago le prorratea el precio nuevo. Los prorrateos son los que
+  // da `primerCobroAnualEstimado()` para esas fechas.
+  const socia = { nombre: "Metalúrgica del Sur SA" };
+  const anualViejo = { metodo_pago: "sipago_suscripcion", monto: 500000, ciclo: "anual" };
+
+  const primerCobro = (
+    monto: number,
+    prorrateoEsperado: number,
+    prorrateoVigente: number | null,
+    precioVigente: number | null = 650000
+  ) =>
+    decidirAccion({
+      fila: cobro({ monto }),
+      entidad: socia,
+      suscripcion: anualViejo,
+      yaCargado: false,
+      esPrimerCobro: true,
+      prorrateoEsperado,
+      precioVigente,
+      prorrateoVigente,
+    });
+
+  it("se reconoce el prorrateo del precio nuevo", () => {
+    // 20/08 → 10/01 son 143 días: $254.658 sobre $650.000. Contra el prorrateo
+    // del precio viejo ($195.890) se pasa de la banda: un aumento de más de
+    // 15% lo dejaba afuera.
+    const r = primerCobro(254_658, 195_890, 254_658);
+    expect(r.accion).toBe("primer_cobro_anual");
+    expect(r.detalle).toContain("650.000");
+  });
+
+  it("y si no se le pasa el prorrateo nuevo, se marca como antes", () => {
+    expect(primerCobro(254_658, 195_890, null).accion).toBe("monto_no_coincide");
+  });
+
+  it("el que se adhiere justo después del 10 de enero paga más que el precio viejo, y entra igual", () => {
+    // 12/01: 363 días de $650.000 son $646.438, más que los $500.000 que
+    // figuraban. Comparado sólo contra lo viejo, "pagar de más" lo descartaba.
+    expect(primerCobro(646_438, 497_260, 646_438).accion).toBe("primer_cobro_anual");
+  });
+
+  it("el prorrateo del precio viejo sigue entrando", () => {
+    // Se adhirió antes de que alguien editara el plan del portal.
+    const r = primerCobro(195_890, 195_890, 254_658);
+    expect(r.accion).toBe("primer_cobro_anual");
+    expect(r.detalle).toContain("500.000");
+  });
+
+  it("la banda del prorrateo nuevo deja afuera lo mismo que la del viejo", () => {
+    expect(primerCobro(1, 195_890, 254_658).accion).toBe("monto_no_coincide");
+    expect(primerCobro(100, 195_890, 254_658).accion).toBe("monto_no_coincide");
+    expect(primerCobro(900_000, 195_890, 254_658).accion).toBe("monto_no_coincide");
+  });
+
+  it("del segundo cobro en adelante, un prorrateo del precio nuevo no se acepta", () => {
+    expect(
+      decidirAccion({
+        fila: cobro({ monto: 254_658 }),
+        entidad: socia,
+        suscripcion: anualViejo,
+        yaCargado: false,
+        esPrimerCobro: false,
+        prorrateoEsperado: 195_890,
+        precioVigente: 650000,
+        prorrateoVigente: 254_658,
+      }).accion
+    ).toBe("monto_no_coincide");
   });
 });

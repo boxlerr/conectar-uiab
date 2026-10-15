@@ -8,7 +8,8 @@ import {
   type FilaCobro,
   type AccionConciliacion,
 } from "@/lib/sipago/conciliacion";
-import { proximoCobro, nombrePlan, type CicloSuscripcion } from "@/lib/suscripciones/modelo";
+import { proximoCobro, nombrePlan, montoPorCiclo, type CicloSuscripcion, type Precios } from "@/lib/suscripciones/modelo";
+import { leerPrecios } from "@/lib/suscripciones/precios";
 import { primerCobroAnualEstimado } from "@/lib/sipago/planes";
 import { enviarEmail } from "@/lib/email/cliente";
 import { plantillaPagoManualRegistrado } from "@/lib/email/plantillas-suscripciones";
@@ -84,11 +85,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const porCuit = await indicePorCuit(admin);
+  // El precio del panel se lee una vez: después de un aumento, el plan del
+  // portal debita el nuevo y `suscripciones.monto` todavía tiene el viejo.
+  const [porCuit, precios] = await Promise.all([indicePorCuit(admin), leerPrecios()]);
   const resultados: Resultado[] = [];
 
   for (const fila of filas) {
-    resultados.push(await procesar(admin, fila, porCuit, aplicar));
+    resultados.push(await procesar(admin, fila, porCuit, precios, aplicar));
   }
 
   return NextResponse.json({
@@ -132,6 +135,7 @@ async function procesar(
   admin: ReturnType<typeof createAdminClient>,
   fila: FilaCobro,
   porCuit: Map<string, Entidad>,
+  precios: Precios,
   aplicar: boolean
 ): Promise<Resultado> {
   const entidad = porCuit.get(fila.cuit) ?? null;
@@ -182,15 +186,22 @@ async function procesar(
     esPrimerCobro = !previo;
   }
 
+  const precioVigente = montoPorCiclo(suscripcion?.ciclo === "anual" ? "anual" : "mensual", precios);
+
   // Cuanto deberia haber salido ese primer cobro, segun el dia en que se
   // cobro. Es lo que distingue un prorrateo legitimo de un importe equivocado.
-  const prorrateoEsperado =
-    suscripcion?.ciclo === "anual" && fila.fecha
-      ? primerCobroAnualEstimado(Number(suscripcion.monto) || 0, new Date(`${fila.fecha}T12:00:00Z`))
-      : null;
+  // Se calcula sobre los dos precios: si se adhirio despues de un aumento, el
+  // portal le prorrateo el nuevo.
+  const diaDelCobro = fila.fecha ? new Date(`${fila.fecha}T12:00:00Z`) : null;
+  const prorratea = suscripcion?.ciclo === "anual" && diaDelCobro !== null;
+  const prorrateoEsperado = prorratea
+    ? primerCobroAnualEstimado(Number(suscripcion?.monto) || 0, diaDelCobro)
+    : null;
+  const prorrateoVigente = prorratea ? primerCobroAnualEstimado(precioVigente, diaDelCobro) : null;
 
   const { accion, detalle } = decidirAccion({
-    fila, entidad, suscripcion, yaCargado, esPrimerCobro, prorrateoEsperado,
+    fila, entidad, suscripcion, yaCargado, esPrimerCobro,
+    prorrateoEsperado, precioVigente, prorrateoVigente,
   });
 
   if (!activaLaSuscripcion(accion) || !aplicar || !entidad) {
@@ -217,6 +228,15 @@ async function aplicarCobro(
   const proveedorId = entidad.tipo === "particular" ? entidad.id : null;
   const monto = fila.monto ?? Number(sus?.monto) ?? 0;
   const pagadoEn = fila.fecha ? new Date(`${fila.fecha}T12:00:00Z`) : new Date();
+
+  // Con `precio_nuevo` la nota es el rastro del cambio de precio: este pago es
+  // el que mueve `suscripciones.monto`, y acá queda cuánto valía antes.
+  const nota =
+    accion === "primer_cobro_anual"
+      ? "Conciliado de Sipago — primer cobro anual prorrateado"
+      : accion === "precio_nuevo"
+        ? `Conciliado de Sipago — al precio vigente; la suscripción figuraba en $${Number(sus?.monto).toLocaleString("es-AR")}`
+        : "Conciliado del reporte de Cobros de Sipago";
 
   let suscripcionId = sus?.id;
   if (!suscripcionId) {
@@ -249,10 +269,7 @@ async function aplicarCobro(
     ciclo,
     sipago_order_uuid: clave,
     external_reference: fila.referencia,
-    nota:
-      accion === "primer_cobro_anual"
-        ? "Conciliado de Sipago — primer cobro anual prorrateado"
-        : "Conciliado del reporte de Cobros de Sipago",
+    nota,
     pagado_en: pagadoEn.toISOString(),
   });
 
@@ -270,6 +287,7 @@ async function aplicarCobro(
       // Un prorrateo NO cambia lo que vale la suscripcion: el ano que viene se
       // le cobra el precio de lista. Pisar `monto` con el importe prorrateado
       // haria que el proximo cobro completo cayera en "monto no coincide".
+      // Con `precio_nuevo` si se pisa, y es lo que la pasa al precio nuevo.
       ...(accion === "primer_cobro_anual" ? {} : { monto }),
       proximo_cobro_en: proximo,
       gracia_hasta: null,
@@ -307,7 +325,7 @@ async function aplicarCobro(
 
 function contar(rs: Resultado[]): Record<Accion, number> {
   const base: Record<Accion, number> = {
-    activar: 0, primer_cobro_anual: 0, ya_registrado: 0,
+    activar: 0, precio_nuevo: 0, primer_cobro_anual: 0, ya_registrado: 0,
     cuit_desconocido: 0, rechazado: 0, cortesia: 0, monto_no_coincide: 0,
   };
   for (const r of rs) base[r.accion]++;
