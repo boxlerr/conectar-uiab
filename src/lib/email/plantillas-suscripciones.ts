@@ -4,7 +4,7 @@
  * que la búsqueda y el mantenimiento sean más directos.
  */
 
-import { renderEmailBase, tarjetaDatos, chip } from "./plantillas";
+import { renderEmailBase, tarjetaDatos, chip, bloqueDestacado, escapeText } from "./plantillas";
 
 function appUrl(): string {
   return (
@@ -47,28 +47,68 @@ function montoConPeriodo(monto: number, ciclo?: "mensual" | "anual"): string {
 
 // ─── 1. Completar pago (tras registro) ──────────────────────────────────────
 
+/** La misma frase del registro, /confirmar-email y el video del alta. */
+const FRASE_DESPUES_DE_PAGAR =
+  "Después de pagar, la UIAB confirma el pago y aprueba tu ficha. Cuando quede publicada en el directorio, te avisamos por mail.";
+
+/**
+ * Sale de /api/auth/register-sync apenas termina el alta, a la par del mail de
+ * Supabase para confirmar el correo.
+ *
+ * Decía "Desde la UIAB te contactamos para coordinar el cobro. Cuando
+ * registremos el pago, tu perfil queda publicado." Las dos mitades eran falsas:
+ * - Nadie llama. El cobro es autoservicio en Sipago desde /suscripcion/checkout;
+ *   el contacto sólo existe como red cuando no hay pasarela (el camino manual
+ *   de /api/suscripcion/solicitar), y en ese caso es el checkout el que lo avisa.
+ * - Pagar no publica. La ficha nace `pendiente_revision` y la aprueba un admin
+ *   en /admin/empresas, que no lo deja hasta que la suscripción esté activa;
+ *   `aprobarEmpresa` es la que manda el mail de "ya estás publicada".
+ *
+ * El aviso de confirmar el correo está porque el checkout pide sesión y con
+ * "Confirm email" prendido no se entra sin haber tocado el otro mail: el que
+ * aprieta "Pagar la membresía" antes termina en un login que lo rebota.
+ */
 export function plantillaSuscripcionPendiente(d: DatosSuscripcionComun & {
   urlCheckout: string;
 }): { asunto: string; html: string; texto: string } {
   const cuerpo = `
-    <p style="margin: 0 0 16px 0;">Hola <strong>${d.nombre}</strong>, ¡te damos la bienvenida a UIAB Conecta!</p>
-    <p style="margin: 0 0 16px 0;">Para activar tu perfil y aparecer en el directorio, resta un último paso: completar el pago de tu suscripción.</p>
+    <p style="margin: 0 0 16px 0;">Hola <strong>${escapeText(d.nombre)}</strong>, ¡te damos la bienvenida a UIAB Conecta!</p>
+    <p style="margin: 0 0 8px 0;">Así sigue el alta:</p>
+    <ol style="margin: 0 0 16px 0; padding-left: 20px;">
+      <li style="margin-bottom: 6px;"><strong>Pagá la membresía</strong> con el botón de abajo: elegís el plan mensual o el anual y pagás con tarjeta en Sipago.</li>
+      <li style="margin-bottom: 6px;"><strong>Después de pagar, la UIAB confirma el pago y aprueba tu ficha.</strong> Cuando quede publicada en el directorio, te avisamos por mail.</li>
+    </ol>
     ${tarjetaDatos([
       { etiqueta: "Plan", valor: d.plan },
       { etiqueta: rotuloMonto(d.ciclo), valor: formatARS(d.monto) },
     ])}
-    <p style="margin: 20px 0 0 0;">Desde la UIAB te contactamos para coordinar el cobro. Cuando registremos el pago, tu perfil queda publicado.</p>
+    ${bloqueDestacado(
+      "<strong>¿Todavía no confirmaste tu correo?</strong> Hacelo primero con el enlace del otro mail que te mandamos: sin eso no vas a poder entrar a pagar. Si no lo ves, fijate en Correo no deseado o Promociones."
+    )}
   `;
   return {
     asunto: "Completá tu suscripción a UIAB Conecta",
     html: renderEmailBase({
-      preheader: "Un paso más para activar tu perfil",
+      preheader: "Pagá la membresía y la UIAB aprueba tu ficha para el directorio.",
       titulo: "Activá tu suscripción",
-      intro: "Te falta solo un paso para formar parte del directorio.",
+      intro: "Para aparecer en el directorio faltan dos pasos: pagar la membresía y que la UIAB apruebe tu ficha.",
       cuerpo,
-      cta: { etiqueta: "Completar pago", href: d.urlCheckout },
+      cta: { etiqueta: "Pagar la membresía", href: d.urlCheckout },
     }),
-    texto: `Hola ${d.nombre}, completá tu suscripción a UIAB Conecta: ${d.urlCheckout}`,
+    texto: [
+      `Hola ${d.nombre}, ¡te damos la bienvenida a UIAB Conecta!`,
+      "",
+      "Para que tu ficha aparezca en el directorio faltan dos pasos:",
+      "",
+      `1. Pagá la membresía: ${d.urlCheckout}`,
+      "   Elegís el plan mensual o el anual y pagás con tarjeta en Sipago.",
+      `2. ${FRASE_DESPUES_DE_PAGAR}`,
+      "",
+      `Plan: ${d.plan}`,
+      `${rotuloMonto(d.ciclo)}: ${formatARS(d.monto)}`,
+      "",
+      "¿Todavía no confirmaste tu correo? Hacelo primero con el enlace del otro mail que te mandamos: sin eso no vas a poder entrar a pagar.",
+    ].join("\n"),
   };
 }
 
