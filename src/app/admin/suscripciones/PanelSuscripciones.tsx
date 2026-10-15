@@ -102,10 +102,13 @@ export function PanelSuscripciones({
   socios,
   pagos,
   precios,
+  avisoSipago = null,
 }: {
   socios: FilaSocio[];
   pagos: Pago[];
   precios: Precios;
+  /** No null si hay un plan recurrente de Sipago con su propio monto. */
+  avisoSipago?: string | null;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -223,7 +226,10 @@ export function PanelSuscripciones({
       return;
     }
     toast.success("Precio actualizado", {
-      description: "Ya se ve así en la home, el registro y el panel de cada socio.",
+      description: avisoSipago
+        ? `Ya se ve así en la home, el registro, el checkout y el panel de cada socio. ${avisoSipago}`
+        : "Ya se ve así en la home, el registro, el checkout y el panel de cada socio.",
+      duration: avisoSipago ? 12_000 : undefined,
     });
     setEditandoPrecio(false);
     refresh();
@@ -354,6 +360,13 @@ export function PanelSuscripciones({
             )}
           </div>
         </div>
+
+        {editandoPrecio && avisoSipago && (
+          <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-800">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p>{avisoSipago}</p>
+          </div>
+        )}
       </Card>
 
       {/* ── Socios ── */}
