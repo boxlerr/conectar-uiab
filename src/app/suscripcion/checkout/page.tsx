@@ -7,17 +7,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utilidades";
 import { Loader2, CreditCard, ShieldCheck, AlertCircle, Check, Clock, RefreshCw, Copy } from "lucide-react";
-import {
-  PRECIO_MENSUAL,
-  PRECIO_ANUAL,
-  type CicloSuscripcion,
-} from "@/lib/suscripciones/modelo";
+import { resumenPrecios, type CicloSuscripcion } from "@/lib/suscripciones/modelo";
+import { usePrecios } from "@/modulos/suscripciones/contexto-precios";
 
 const formatARS = (n: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
-
-// 50.000 × 12 = 600.000 vs 500.000 → ahorro anual.
-const AHORRO_ANUAL = PRECIO_MENSUAL * 12 - PRECIO_ANUAL;
 
 export default function CheckoutSuscripcionPage() {
   return (
@@ -37,6 +31,9 @@ function CheckoutContenido() {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  // El precio del panel (lo trae layout.tsx): es el mismo que después anota
+  // /api/suscripcion/solicitar para cobrar.
+  const precio = resumenPrecios(usePrecios());
   // El ciclo puede venir preelegido desde la landing (?ciclo=anual). Si no
   // viene, arrancamos en mensual como siempre.
   const [ciclo, setCiclo] = useState<CicloSuscripcion>(
@@ -134,13 +131,13 @@ function CheckoutContenido() {
     unidad: string;
     badge?: string;
   }> = [
-    { valor: "mensual", titulo: "Mensual", precio: PRECIO_MENSUAL, unidad: "/ mes" },
+    { valor: "mensual", titulo: "Mensual", precio: precio.mensual, unidad: "/ mes" },
     {
       valor: "anual",
       titulo: "Anual",
-      precio: PRECIO_ANUAL,
+      precio: precio.anual,
       unidad: "/ año",
-      badge: `Ahorrás ${formatARS(AHORRO_ANUAL)}`,
+      badge: precio.hayDescuento ? `Ahorrás ${formatARS(precio.ahorro)}` : undefined,
     },
   ];
 
@@ -257,7 +254,7 @@ function CheckoutContenido() {
                   </div>
                   <div className="flex items-baseline justify-between gap-3 text-sm">
                     <span className="text-slate-600">Después, cada {adhesion.prorrateo.fechaCobro}</span>
-                    <span className="font-bold text-slate-900 whitespace-nowrap">{formatARS(PRECIO_ANUAL)}</span>
+                    <span className="font-bold text-slate-900 whitespace-nowrap">{formatARS(monto ?? precio.anual)}</span>
                   </div>
                   <p className="text-xs text-slate-500 pt-1">
                     Todos los planes anuales renuevan el mismo día, así que el primer año pagás sólo la parte

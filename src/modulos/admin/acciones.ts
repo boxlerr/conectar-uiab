@@ -221,9 +221,11 @@ export async function actualizarPrecios(mensual: number, anual: number) {
   if (error) return { error: error.message };
 
   // El precio se muestra en media plataforma: la home, el registro, el checkout,
-  // el panel del socio y el del admin.
+  // el panel del socio y el del admin. Esas páginas se prerenderizan con el
+  // precio adentro, así que sin esto seguirían mostrando el viejo.
   for (const ruta of [
     "/",
+    "/register",
     "/admin",
     "/admin/suscripciones",
     "/perfil/suscripcion",

@@ -323,8 +323,21 @@ El del plan lo fija el portal; el de la plataforma sale de
 `configuraciones_sistema`. Sipago no expone una API para leer el plan, así que
 **no hay forma de verificar desde el código que coincidan**: si se cambia el
 precio en el panel de la UIAB hay que cambiarlo también en el portal. El panel
-avisa (`avisoDeDesfasaje()` en `src/lib/sipago/planes.ts`), que es todo lo que se
-puede hacer.
+avisa (`avisoDeDesfasaje()` en `src/lib/sipago/planes.ts`, mientras se edita el
+precio y en el aviso de "Precio actualizado"), que es todo lo que se puede hacer.
+Hasta octubre de 2026 esta línea decía que avisaba y la función no la llamaba
+nadie.
+
+Lo que sí sigue al panel sin tocar nada: las pantallas que muestran el precio
+(home, `/register`, `/suscripcion/checkout`, `/perfil/suscripcion`), el monto que
+anota `/api/suscripcion/solicitar` y las órdenes del Checkout (pago suelto), que
+se crean con ese monto.
+
+Y un segundo desfasaje que el aviso no cubre: cambiar el precio no actualiza
+`suscripciones.monto` de quienes ya están suscriptos, y la conciliación compara
+cada cobro contra ese campo. Después de un aumento (con el portal actualizado),
+el primer débito de cada suscriptor viejo cae en "monto no coincide" y no se
+activa solo: hay que revisarlo a mano.
 
 ---
 

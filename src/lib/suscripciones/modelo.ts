@@ -47,15 +47,62 @@ export function ahorroAnual(precios: Precios = PRECIOS_POR_DEFECTO): number {
  * El ahorro expresado en meses, que es como se comunica ("te ahorrás 2 meses").
  * Sale de la cuenta y no de un número escrito a mano: si mañana cambian los
  * precios, el copy sigue diciendo la verdad.
+ *
+ * Redondea para ABAJO. Con `Math.round`, un anual que ahorra medio mes salía
+ * como "1 mes gratis": el copy prometía un mes que no se regala.
  */
 export function mesesGratis(precios: Precios = PRECIOS_POR_DEFECTO): number {
   if (precios.mensual <= 0) return 0;
-  return Math.round(ahorroAnual(precios) / precios.mensual);
+  return Math.max(0, Math.floor(ahorroAnual(precios) / precios.mensual));
 }
 
 /** El anual llevado a $/mes, para poder compararlo con el mensual. */
 export function equivalenteMensual(precios: Precios = PRECIOS_POR_DEFECTO): number {
   return Math.round(precios.anual / 12);
+}
+
+/** "1 mes", "2 meses". */
+export function textoMeses(n: number): string {
+  return `${n} ${n === 1 ? "mes" : "meses"}`;
+}
+
+/** Todo lo que una pantalla muestra del precio, sacado de un solo par de precios. */
+export type ResumenPrecios = Precios & {
+  /** Doce mensuales: el ancla tachada contra la que se compara el anual. */
+  pagandoMesAMes: number;
+  /** Lo que se ahorra con el anual. Nunca negativo. */
+  ahorro: number;
+  equivalenteMensual: number;
+  mesesGratis: number;
+  /** "2 meses", o null si el ahorro no llega a un mes entero. */
+  mesesGratisTexto: string | null;
+  /** false si el anual no sale más barato que doce mensuales. */
+  hayDescuento: boolean;
+};
+
+/**
+ * Las pantallas tenían la cuenta escrita a mano contra las constantes, y el
+ * "2 meses gratis" escrito a mano también. Con el precio editable desde el
+ * panel eso deja de ser cierto en cuanto el admin lo toca: el panel acepta un
+ * anual igual a doce mensuales, o uno que ahorra menos de un mes.
+ *
+ * Por eso `mesesGratisTexto` y `hayDescuento`: la pantalla habla en meses sólo
+ * si hay al menos uno, y muestra ancla tachada y "te ahorrás" sólo si hay
+ * ahorro. Nunca "0 meses gratis".
+ */
+export function resumenPrecios(precios: Precios = PRECIOS_POR_DEFECTO): ResumenPrecios {
+  const ahorro = Math.max(0, ahorroAnual(precios));
+  const meses = mesesGratis(precios);
+  return {
+    mensual: precios.mensual,
+    anual: precios.anual,
+    pagandoMesAMes: precios.mensual * 12,
+    ahorro,
+    equivalenteMensual: equivalenteMensual(precios),
+    mesesGratis: meses,
+    mesesGratisTexto: meses > 0 ? textoMeses(meses) : null,
+    hayDescuento: ahorro > 0,
+  };
 }
 
 /**

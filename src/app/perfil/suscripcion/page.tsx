@@ -10,13 +10,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/cliente";
 import { toast } from "sonner";
-import {
-  PRECIO_MENSUAL,
-  PRECIO_ANUAL,
-  mesesGratis,
-  ahorroAnual,
-  type CicloSuscripcion,
-} from "@/lib/suscripciones/modelo";
+import { montoPorCiclo, resumenPrecios, type CicloSuscripcion } from "@/lib/suscripciones/modelo";
+import { usePrecios } from "@/modulos/suscripciones/contexto-precios";
 
 const formatARS = (n: number) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
@@ -24,6 +19,7 @@ const formatARS = (n: number) =>
 export default function MiPerfilSuscripcionPage() {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
+  const precios = usePrecios();
   const supabase = useMemo(() => createClient(), []);
 
   const [payments, setPayments] = useState<any[]>([]);
@@ -94,11 +90,11 @@ export default function MiPerfilSuscripcionPage() {
     loadData();
   }, [authLoading, currentUser?.entityId, currentUser?.role]);
 
-  // Modelo único: $50.000/mes ó $500.000/año (el anual tiene descuento, no es ×12).
-  const montoMensual = PRECIO_MENSUAL;
-  const montoAnual = PRECIO_ANUAL;
+  // Modelo único, con el precio que el admin carga en el panel (lo trae
+  // layout.tsx). El anual tiene descuento: no es el mensual ×12.
+  const precio = resumenPrecios(precios);
   const ciclo: CicloSuscripcion = suscripcion?.ciclo === 'anual' ? 'anual' : 'mensual';
-  const montoCiclo = ciclo === 'anual' ? montoAnual : montoMensual;
+  const montoCiclo = montoPorCiclo(ciclo, precios);
   // Las socias UIAB no pagan: acceso de cortesía (metodo_pago 'cortesia' o monto 0).
   const esCortesia = !!suscripcion && (
     suscripcion.metodo_pago === 'cortesia' ||
@@ -311,9 +307,11 @@ export default function MiPerfilSuscripcionPage() {
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 mb-6">
+                      {/* El anual decía "Equivale a $50.000/mes": mostraba el
+                          mensual, no el anual llevado a mes. */}
                       {ciclo === 'anual'
-                        ? `Equivale a ${formatARS(montoMensual)}/mes`
-                        : `O ${formatARS(montoAnual)}/año pagando de una (ahorrás ${formatARS(montoMensual * 12 - montoAnual)})`}
+                        ? `Equivale a ${formatARS(precio.equivalenteMensual)}/mes`
+                        : `O ${formatARS(precio.anual)}/año pagando de una${precio.hayDescuento ? ` (ahorrás ${formatARS(precio.ahorro)})` : ''}`}
                     </p>
 
                     <div className="space-y-3">

@@ -28,13 +28,10 @@ import { Badge } from '@/components/ui/badge'
 import { cn, normalizarSitioWeb } from '@/lib/utilidades'
 import { LOCALIDADES_ALMIRANTE_BROWN, PROVINCIAS_AR } from '@/lib/datos/geografia-ar'
 import { useAuth } from '@/modulos/autenticacion/contexto-autenticacion'
-import { PRECIO_MENSUAL, PRECIO_ANUAL } from '@/lib/suscripciones/modelo'
+import { resumenPrecios } from '@/lib/suscripciones/modelo'
+import { usePrecios } from '@/modulos/suscripciones/contexto-precios'
 import { validarEspecialidadLibre } from '@/modulos/compartido/especialidades'
 import { filtrarCategoriasJerarquicas } from '@/modulos/registro/buscador-categorias'
-
-// Mismo número que se muestra en la landing para el plan anual: comparar
-// siempre en $/mes es lo que hace evidente el descuento.
-const EQUIVALENTE_MENSUAL = Math.round(PRECIO_ANUAL / 12) // 41.667
 
 // ─── OFFICIAL TAXONOMY ───
 
@@ -231,6 +228,9 @@ function RegisterContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { refreshUser, currentUser } = useAuth()
+  // El precio que el admin carga en el panel (lo trae layout.tsx). Los mismos
+  // números que la landing: si eligió anual, se compara en $/mes.
+  const precio = resumenPrecios(usePrecios())
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -738,18 +738,18 @@ function RegisterContent() {
                       {/* Mostramos el mismo número que vio en la landing: si eligió
                           anual, el precio por mes ya viene con el descuento. */}
                       <p className="text-white font-black text-2xl tracking-tight mt-0.5">
-                        ${(cicloElegido === 'anual' ? EQUIVALENTE_MENSUAL : PRECIO_MENSUAL).toLocaleString('es-AR')}
+                        ${(cicloElegido === 'anual' ? precio.equivalenteMensual : precio.mensual).toLocaleString('es-AR')}
                         <span className="text-sm font-semibold text-white/40 ml-1">/ mes</span>
-                        {cicloElegido === 'anual' && (
+                        {cicloElegido === 'anual' && precio.hayDescuento && (
                           <span className="text-sm font-semibold text-white/30 ml-2 line-through">
-                            ${PRECIO_MENSUAL.toLocaleString('es-AR')}
+                            ${precio.mensual.toLocaleString('es-AR')}
                           </span>
                         )}
                       </p>
                       <p className="text-white/50 text-xs mt-1">
                         {cicloElegido === 'anual'
-                          ? `Un solo pago de $${PRECIO_ANUAL.toLocaleString('es-AR')} al año — 2 meses gratis.`
-                          : `O $${PRECIO_ANUAL.toLocaleString('es-AR')} al año y te ahorrás 2 meses. Cancelás cuando quieras.`}
+                          ? `Un solo pago de $${precio.anual.toLocaleString('es-AR')} al año${precio.mesesGratisTexto ? ` — ${precio.mesesGratisTexto} gratis` : ''}.`
+                          : `O $${precio.anual.toLocaleString('es-AR')} al año${precio.mesesGratisTexto ? ` y te ahorrás ${precio.mesesGratisTexto}` : ''}. Cancelás cuando quieras.`}
                       </p>
                     </motion.div>
                   </div>
@@ -957,9 +957,9 @@ function RegisterContent() {
                               directo.
                             </p>
                             <p className="text-xs text-slate-500 mt-1.5">
-                              <span className="font-black text-[#00213f]">${PRECIO_MENSUAL.toLocaleString('es-AR')}</span> por mes o{' '}
-                              <span className="font-black text-[#00213f]">${PRECIO_ANUAL.toLocaleString('es-AR')}</span> al año
-                              (2 meses bonificados). Cancelás cuando quieras.
+                              <span className="font-black text-[#00213f]">${precio.mensual.toLocaleString('es-AR')}</span> por mes o{' '}
+                              <span className="font-black text-[#00213f]">${precio.anual.toLocaleString('es-AR')}</span> al año
+                              {precio.mesesGratisTexto && ` (${precio.mesesGratisTexto} gratis)`}. Cancelás cuando quieras.
                             </p>
                           </div>
                           <p className="text-[11px] text-slate-400 text-center">
@@ -1500,7 +1500,7 @@ function RegisterContent() {
                                     que el precio no le cambie de golpe acá. */}
                                 <div className="text-right">
                                   <span className="text-2xl font-black text-white tracking-tighter">
-                                    ${(cicloElegido === 'anual' ? PRECIO_ANUAL : PRECIO_MENSUAL).toLocaleString('es-AR')}
+                                    ${(cicloElegido === 'anual' ? precio.anual : precio.mensual).toLocaleString('es-AR')}
                                   </span>
                                   <span className="text-xs text-white/60 ml-1">
                                     {cicloElegido === 'anual' ? '/ año' : '/ mes'}
@@ -1530,14 +1530,16 @@ function RegisterContent() {
                                     {cicloElegido === 'anual' ? 'Total anual' : 'Total mensual'}
                                   </p>
                                   <p className="text-lg font-black text-[#00213f] tracking-tighter">
-                                    ${(cicloElegido === 'anual' ? PRECIO_ANUAL : PRECIO_MENSUAL).toLocaleString('es-AR')}{' '}
+                                    ${(cicloElegido === 'anual' ? precio.anual : precio.mensual).toLocaleString('es-AR')}{' '}
                                     <span className="text-xs font-semibold text-slate-400">
                                       {cicloElegido === 'anual' ? '/ año' : '/ mes'}
                                     </span>
                                   </p>
                                 </div>
                                 <p className="text-[11px] sm:text-[10px] font-semibold text-slate-400">
-                                  {cicloElegido === 'anual' ? 'Un pago al año · 2 meses bonificados' : 'Mes a mes · sin permanencia'}
+                                  {cicloElegido === 'anual'
+                                    ? `Un pago al año${precio.mesesGratisTexto ? ` · ${precio.mesesGratisTexto} gratis` : ''}`
+                                    : 'Mes a mes · sin permanencia'}
                                 </p>
                               </div>
                             </div>
@@ -1548,9 +1550,9 @@ function RegisterContent() {
                                 <Sparkles className="h-3.5 w-3.5 text-primary-600 shrink-0 mt-0.5" />
                                 <span>
                                   {cicloElegido === 'anual' ? (
-                                    <>Si preferís, también podés pagar mes a mes por <span className="font-black">${PRECIO_MENSUAL.toLocaleString('es-AR')}</span>.</>
+                                    <>Si preferís, también podés pagar mes a mes por <span className="font-black">${precio.mensual.toLocaleString('es-AR')}</span>.</>
                                   ) : (
-                                    <>También podés pagar el año completo por <span className="font-black">${PRECIO_ANUAL.toLocaleString('es-AR')}</span>.</>
+                                    <>También podés pagar el año completo por <span className="font-black">${precio.anual.toLocaleString('es-AR')}</span>.</>
                                   )}
                                 </span>
                               </p>

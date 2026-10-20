@@ -27,7 +27,7 @@ import { PreviewDirectorio } from "@/components/ui/directorio/preview-directorio
 import { SeccionBeneficios } from "@/components/ui/directorio/seccion-beneficios";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { useRouter } from "next/navigation";
-import { PRECIO_MENSUAL, PRECIO_ANUAL } from "@/lib/suscripciones/modelo";
+import { resumenPrecios, type Precios } from "@/lib/suscripciones/modelo";
 
 /* ─── Animations ─── */
 const fadeUp = {
@@ -63,13 +63,10 @@ const float = {
 };
 
 /* ─── Precio ───────────────────────────────────────────────────────────────
-   Los montos salen de lib/mercadopago/suscripciones para que la landing no se
-   desincronice del billing: si cambia el precio, cambia acá solo.          */
+   Los montos llegan por props desde page.tsx, que lee el precio que el admin
+   edita en el panel (`leerPrecios()`). Antes salían de las constantes del
+   código y un aumento cargado en el panel no llegaba a la portada.        */
 const ars = (n: number) => `$${n.toLocaleString("es-AR")}`;
-const PAGANDO_MES_A_MES = PRECIO_MENSUAL * 12; // 600.000 → ancla del plan anual
-const AHORRO_ANUAL = PAGANDO_MES_A_MES - PRECIO_ANUAL; // 100.000
-const EQUIVALENTE_MENSUAL = Math.round(PRECIO_ANUAL / 12); // 41.667
-const MESES_GRATIS = Math.round(AHORRO_ANUAL / PRECIO_MENSUAL); // 2
 
 /* Tres promesas, no seis features: la lista larga hacía que nadie la leyera.
    Cada una es una SECCIÓN real de la plataforma y se llama igual que en el
@@ -111,12 +108,19 @@ const TAMBIEN_INCLUYE = [
   "Acompañamiento UIAB",
 ];
 
-export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
+export default function Home({
+  sociasLogos,
+  precios,
+}: {
+  sociasLogos: SociaConLogo[];
+  precios: Precios;
+}) {
   const { openAuthModal, currentUser, loading } = useAuth();
   const router = useRouter();
   // Anual por defecto: es el plan que conviene y el que queremos comparar.
   const [ciclo, setCiclo] = useState<"mensual" | "anual">("anual");
   const esAnual = ciclo === "anual";
+  const precio = resumenPrecios(precios);
   useEffect(() => {
     if (!loading && currentUser) {
       router.replace('/panel-de-control');
@@ -745,9 +749,11 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                     }`}
                   >
                     Anual
-                    <span className="rounded-full bg-amber-400 text-[#00213f] text-[11px] sm:text-[10px] font-black uppercase tracking-wide px-1.5 sm:px-2 py-0.5">
-                      {MESES_GRATIS} meses gratis
-                    </span>
+                    {precio.mesesGratisTexto && (
+                      <span className="rounded-full bg-amber-400 text-[#00213f] text-[11px] sm:text-[10px] font-black uppercase tracking-wide px-1.5 sm:px-2 py-0.5">
+                        {precio.mesesGratisTexto} gratis
+                      </span>
+                    )}
                   </button>
                 </div>
 
@@ -762,7 +768,7 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                       className="text-[3.25rem] sm:text-6xl font-black text-white tracking-tight leading-none tabular-nums"
                       style={{ fontFamily: "var(--font-manrope, 'Manrope', sans-serif)" }}
                     >
-                      {ars(esAnual ? EQUIVALENTE_MENSUAL : PRECIO_MENSUAL)}
+                      {ars(esAnual ? precio.equivalenteMensual : precio.mensual)}
                     </span>
                     <span className="text-white/40 font-semibold text-[15px]">/mes</span>
                   </div>
@@ -770,9 +776,9 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                   {/* El ancla tachada sólo aparece en anual: es la prueba visual
                       del descuento. En mensual no hay nada que tachar. */}
                   <div className="mt-2 min-h-[22px]">
-                    {esAnual && (
+                    {esAnual && precio.hayDescuento && (
                       <p className="text-[13.5px] text-white/50">
-                        <span className="line-through">{ars(PRECIO_MENSUAL)}/mes</span> pagando mes a mes
+                        <span className="line-through">{ars(precio.mensual)}/mes</span> pagando mes a mes
                       </p>
                     )}
                   </div>
@@ -781,8 +787,8 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                     {esAnual ? (
                       <>
                         Un solo pago de{" "}
-                        <span className="font-bold text-white">{ars(PRECIO_ANUAL)}</span> al año, en
-                        lugar de {ars(PAGANDO_MES_A_MES)}.
+                        <span className="font-bold text-white">{ars(precio.anual)}</span> al año
+                        {precio.hayDescuento && <>, en lugar de {ars(precio.pagandoMesAMes)}</>}.
                       </>
                     ) : (
                       <>Se cobra todos los meses. Cancelás cuando quieras desde tu perfil.</>
@@ -793,10 +799,10 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                       ciclo. En mensual el espacio no queda vacío: ofrece el
                       anual justo en el momento de decidir. */}
                   <div className="mt-3 min-h-[34px]">
-                    {esAnual ? (
+                    {!precio.hayDescuento ? null : esAnual ? (
                       <p className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-400/15 border border-emerald-300/25 px-3 py-1.5 text-[13px] font-bold text-emerald-300">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        Te quedan {ars(AHORRO_ANUAL)} en el bolsillo
+                        Te quedan {ars(precio.ahorro)} en el bolsillo
                       </p>
                     ) : (
                       <button
@@ -804,7 +810,7 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                         onClick={() => setCiclo("anual")}
                         className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400/10 border border-amber-300/25 px-3 py-1.5 text-[13px] font-bold text-amber-300 hover:bg-amber-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 transition-colors"
                       >
-                        Pagá el año y te queda en {ars(EQUIVALENTE_MENSUAL)}/mes
+                        Pagá el año y te queda en {ars(precio.equivalenteMensual)}/mes
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -814,8 +820,8 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                     href={`/register?ciclo=${ciclo}`}
                     aria-label={
                       esAnual
-                        ? `Empezar con el plan anual: ${ars(PRECIO_ANUAL)} al año, ${ars(AHORRO_ANUAL)} de ahorro`
-                        : `Empezar con el plan mensual: ${ars(PRECIO_MENSUAL)} por mes`
+                        ? `Empezar con el plan anual: ${ars(precio.anual)} al año${precio.hayDescuento ? `, ${ars(precio.ahorro)} de ahorro` : ""}`
+                        : `Empezar con el plan mensual: ${ars(precio.mensual)} por mes`
                     }
                     className="mt-6 flex items-center justify-center gap-2 h-14 w-full rounded-xl bg-amber-400 text-[15px] font-black text-[#00213f] hover:bg-amber-300 shadow-lg shadow-black/15 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#00213f] transition-all"
                   >
