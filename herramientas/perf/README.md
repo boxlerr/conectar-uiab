@@ -33,6 +33,7 @@ node comparar.mjs /tmp/perf-antes/medir.json /tmp/perf-despues/medir.json
 | `renders.mjs` | renders de React por interacción (volver a la pestaña, tipear, scroll) vía el hook de DevTools, en el build de producción |
 | `recursos.mjs` | qué baja una página, ordenado por peso |
 | `e2e.mjs` | recorrido de humo de 22 rutas: 200, sin error boundary, sin errores de JS |
+| `header.mjs` | el header visible, resuelto, entre los dos servidores, y por qué estados pasó en la rama mientras se resolvía la sesión (que nadie logueado vea "Ingresar") |
 | `diff-texto.mjs` | compara el texto visible de cada ruta entre dos servidores (`main` en :3200 vs. la rama en :3100): prueba que un refactor no cambió lo que se ve |
 
 La sesión logueada sale de un magic link de un solo uso (`sesion.mjs`, cacheada

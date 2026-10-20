@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@/tipos";
 import { createClient } from "@/lib/supabase/cliente";
@@ -32,24 +32,83 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * El usuario que resolvió el servidor para un subárbol (ver `SemillaUsuario`).
+ * `undefined` = ese subárbol no tiene semilla.
+ */
+const SemillaContext = createContext<User | undefined>(undefined);
+const AdoptarSemillaContext = createContext<((usuario: User) => void) | null>(null);
+
+/**
+ * Copia del último perfil resuelto, para pintar el header al toque en la
+ * próxima carga en vez de esperar las tres queries del perfil. Es sólo para
+ * DIBUJAR: se usa nada más si la sesión de las cookies es del mismo usuario,
+ * se vuelve a validar enseguida contra Supabase y los permisos los decide el
+ * servidor (middleware, Server Actions, RLS), nunca esta copia.
+ */
+const CLAVE_CACHE = "uiab:usuario";
+
+function leerCache(userId: string): User | null {
+  try {
+    const crudo = window.localStorage.getItem(CLAVE_CACHE);
+    if (!crudo) return null;
+    const u = JSON.parse(crudo) as User;
+    return u?.id === userId ? u : null;
+  } catch {
+    return null;
+  }
+}
+
+function escribirCache(usuario: User | null) {
+  try {
+    if (usuario) window.localStorage.setItem(CLAVE_CACHE, JSON.stringify(usuario));
+    else window.localStorage.removeItem(CLAVE_CACHE);
+  } catch { /* localStorage bloqueado: sin caché, se resuelve por red */ }
+}
+
 interface AuthProviderProps {
   children: ReactNode;
-  /** Initial user resolved on the server — avoids loading flash on first render */
+  /**
+   * Usuario ya resuelto. El layout raíz NO lo pasa: leer la sesión ahí (cookies)
+   * hacía dinámicas las 81 rutas del sitio, y las páginas públicas no podían
+   * salir del CDN. Las privadas siembran el suyo con `SemillaUsuario`.
+   */
   initialUser?: User | null;
 }
 
+/**
+ * Sin `initialUser` el provider arranca en estado DESCONOCIDO: `loading: true`
+ * y `currentUser: null`. Es el mismo HTML para todos (por eso la página puede
+ * ser estática) y se resuelve en el cliente al montar.
+ *
+ * Contrato para los ~40 consumidores de `useAuth()`: con `loading` en true NO
+ * se sabe si hay sesión. No se redirige ni se esconde contenido público en ese
+ * estado — lo que va en el HTML es la versión sin sesión, que es la que tiene
+ * que ver Google.
+ */
 export function AuthProvider({ children, initialUser = null }: AuthProviderProps) {
-  // When initialUser is provided from the server, we skip the loading state entirely
   const [currentUser, setCurrentUser] = useState<User | null>(initialUser);
   const [loading, setLoading] = useState(!initialUser);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const supabase = createClient();
   const router = useRouter();
-  // Guard against running the initial fetch if we already have a server user
+  // Ya hay usuario resuelto: `initialUser`, o una página privada que sembró el
+  // del servidor antes de que montara el provider (los layout effects de los
+  // hijos corren antes que el useEffect de abajo). No se vuelve a resolver.
   const initialFetchDone = useRef(!!initialUser);
+  // Mientras corre la resolución inicial, el SIGNED_IN que auth-js emite al
+  // levantar la sesión de las cookies es el mismo trabajo: se ignora.
+  const resolviendoInicial = useRef(false);
   // Ref al currentUser para leer valor actual dentro de listeners sin re-suscribir
   const currentUserRef = useRef(currentUser);
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
+
+  // La copia local sigue al usuario resuelto. Nunca se borra en el estado
+  // desconocido: ahí todavía no se sabe nada.
+  useEffect(() => {
+    if (loading) return;
+    escribirCache(currentUser);
+  }, [currentUser, loading]);
 
   const openAuthModal = useCallback(() => setIsAuthModalOpen(true), []);
   const closeAuthModal = useCallback(() => setIsAuthModalOpen(false), []);
@@ -70,11 +129,21 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
   const fetchProfile = useCallback(async (userId: string, email: string): Promise<User | null> => {
     dbg('fetchProfile:start', userId);
     try {
-      const { data, error } = await supabase
-        .from('perfiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // Perfil y membresía en paralelo: las dos dependen sólo del userId, y en
+      // serie era un viaje más antes de poder pintar el header.
+      const [{ data, error }, { data: memberEmpresa }] = await Promise.all([
+        supabase
+          .from('perfiles')
+          .select('*')
+          .eq('id', userId)
+          .single(),
+        supabase
+          .from('miembros_empresa')
+          .select('empresa_id, empresas:empresa_id(estado, ruta_logo, bucket_logo)')
+          .eq('perfil_id', userId)
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
       if (error) {
         // PGRST116 = no rows found; expected right after signUp before register-sync creates the row
@@ -103,13 +172,6 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
         // Antes esto colgaba de `rol_sistema === 'company'` y a los admin les
         // dejaba entityId en null (panel vacío, /perfil rebotado a /admin).
         let entityRole: 'company' | 'provider' | null = null;
-
-        const { data: memberEmpresa } = await supabase
-          .from('miembros_empresa')
-          .select('empresa_id, empresas:empresa_id(estado, ruta_logo, bucket_logo)')
-          .eq('perfil_id', userId)
-          .limit(1)
-          .maybeSingle();
 
         if (memberEmpresa?.empresa_id) {
           entityRole = 'company';
@@ -201,11 +263,66 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
     }
   }, [supabase, fetchProfile, aplicarPerfil]);
 
+  /**
+   * Primera resolución en el cliente, pensada para que el estado desconocido
+   * dure lo menos posible:
+   *  - `getSession()` lee la sesión de las cookies sin red. Sin sesión (la
+   *    mayoría de las visitas) se resuelve "deslogueado" en el acto.
+   *  - Con sesión y una copia local del mismo usuario, se pinta esa copia ya y
+   *    `refreshUser()` la valida contra Supabase (getUser + perfil) de fondo.
+   *  - Sin copia, el perfil se lee directo con la sesión de las cookies, SIN
+   *    `getUser()` antes: auth-js retiene su lock durante ese viaje a Auth y las
+   *    queries del perfil se encolaban detrás (4 viajes en serie, ~650 ms
+   *    medido; con los picos de Auth, 2-4 s). Una sesión revocada la sigue
+   *    detectando el health-check, como antes.
+   */
+  const resolverInicial = useCallback(async () => {
+    resolviendoInicial.current = true;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        dbg('resolverInicial: sin sesión');
+        if (!currentUserRef.current) setCurrentUser(null);
+        setLoading(false);
+        return;
+      }
+      const copia = leerCache(session.user.id);
+      if (copia) {
+        dbg('resolverInicial: copia local');
+        currentUserRef.current = copia;
+        aplicarPerfil(copia);
+        setLoading(false);
+        await refreshUser();
+        return;
+      }
+      const perfil = await fetchProfile(session.user.id, session.user.email ?? '');
+      if (perfil) {
+        currentUserRef.current = perfil;
+        aplicarPerfil(perfil);
+      } else if (!currentUserRef.current) {
+        setCurrentUser(null);
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('[auth] resolverInicial error', err);
+      setLoading(false);
+    } finally {
+      resolviendoInicial.current = false;
+    }
+  }, [supabase, aplicarPerfil, refreshUser, fetchProfile]);
+
+  const adoptarSemilla = useCallback((usuario: User) => {
+    initialFetchDone.current = true;
+    currentUserRef.current = usuario;
+    aplicarPerfil(usuario);
+    setLoading(false);
+  }, [aplicarPerfil]);
+
   useEffect(() => {
-    // Only fetch on mount if we didn't receive initialUser from the server
+    // Sólo si nadie resolvió todavía: ni `initialUser` ni una semilla del servidor.
     if (!initialFetchDone.current) {
       initialFetchDone.current = true;
-      refreshUser();
+      void resolverInicial();
     }
 
     // Listen for auth state changes (login, logout, token refresh)
@@ -238,12 +355,13 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
         // suscripción) y re-renderizaba la app entera — 191 componentes en el
         // panel por cada vez que alguien volvía a la pestaña (medido el
         // 2026-10-20). Los datos se siguen refrescando: con TOKEN_REFRESHED
-        // (~cada 50 min), con `refreshUser()` después de guardar, y en cada
-        // navegación completa (el servidor manda `initialUser` nuevo).
+        // (~cada 50 min), con `refreshUser()` después de guardar, en cada
+        // carga completa (`resolverInicial`) y con la semilla de las privadas.
         if (event === 'SIGNED_IN' && session?.user && currentUserRef.current?.id === session.user.id) {
           setLoading(false);
           return;
         }
+        if (event === 'SIGNED_IN' && resolviendoInicial.current) return;
         // El try/finally y el guard de abajo son los mismos que ya tenía
         // `refreshUser`. Este handler se quedó afuera del fix de 188623b y era el
         // agujero por donde volvía el bug: TOKEN_REFRESHED llega solo cada ~50
@@ -328,7 +446,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
       document.removeEventListener('visibilitychange', handleVisibility);
       clearInterval(healthInterval);
     };
-  }, [supabase, fetchProfile, refreshUser, aplicarPerfil]);
+  }, [supabase, fetchProfile, resolverInicial, aplicarPerfil]);
 
   const isLoggingOut = useRef(false);
 
@@ -348,6 +466,8 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
 
     // Feedback inmediato al usuario (antes incluso del roundtrip al servidor).
     setCurrentUser(null);
+    // A mano y no por el efecto: el redirect de abajo puede salir antes.
+    escribirCache(null);
 
     // Llamar al endpoint server-side con timeout de 4s.
     // `credentials: 'same-origin'` para que envíe las cookies sb-*.
@@ -406,15 +526,49 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
 
   return (
     <AuthContext.Provider value={valor}>
-      {children}
+      <AdoptarSemillaContext.Provider value={adoptarSemilla}>
+        {children}
+      </AdoptarSemillaContext.Provider>
     </AuthContext.Provider>
+  );
+}
+
+/**
+ * Siembra el usuario que ya resolvió el servidor, para las páginas privadas
+ * (dinámicas de todos modos). La pone `ConUsuarioDelServidor`.
+ *
+ * Dos efectos:
+ *  - Su subárbol lee la semilla mientras el provider está en estado
+ *    desconocido, así que el HTML del servidor ya sale con el panel armado y
+ *    la hidratación coincide (el provider arranca igual en los dos lados).
+ *  - Al hidratar, el provider la adopta (layout effect: antes de que el
+ *    provider decida resolver por su cuenta) y el header sale de su
+ *    placeholder sin ir a la red.
+ *
+ * Una semilla en null (sin sesión) no siembra nada: decide el provider.
+ */
+export function SemillaUsuario({ usuario, children }: { usuario: User | null; children: ReactNode }) {
+  const adoptar = useContext(AdoptarSemillaContext);
+  useLayoutEffect(() => {
+    if (usuario) adoptar?.(usuario);
+  }, [usuario, adoptar]);
+  return (
+    <SemillaContext.Provider value={usuario ?? undefined}>
+      {children}
+    </SemillaContext.Provider>
   );
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
+  const semilla = useContext(SemillaContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context;
+  // En el estado desconocido, adentro de una página privada manda la semilla.
+  const usaSemilla = context.loading && !context.currentUser && semilla !== undefined;
+  return useMemo(
+    () => (usaSemilla ? { ...context, currentUser: semilla!, loading: false } : context),
+    [usaSemilla, context, semilla]
+  );
 }

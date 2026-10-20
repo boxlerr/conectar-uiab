@@ -17,6 +17,7 @@ import {
 } from "@/modulos/compartido/especialidades";
 import { resolverEntidadDePerfil } from "@/modulos/autenticacion/entidad-del-perfil";
 import { exigirSuscripcion } from "@/lib/autenticacion/exigir-suscripcion";
+import { revalidarFichasPublicas } from "@/lib/cache/fichas-publicas";
 
 // Server Action strictly bypassing RLS (if needed) for Profile Syncing using the Service Role Key
 const supabaseAdmin = createClient(
@@ -96,6 +97,7 @@ export async function updateCompanyOrProvider(
       return { error: parseSupabaseError(memberError.message) };
     }
 
+    revalidarFichasPublicas();
     return { success: true, newEntityId: newRow.id };
 
   } else {
@@ -110,6 +112,7 @@ export async function updateCompanyOrProvider(
       return { error: parseSupabaseError(error.message) };
     }
 
+    revalidarFichasPublicas();
     return { success: true };
   }
   } catch (err: any) {
@@ -232,6 +235,7 @@ export async function saveTags(
     }
   }
 
+  revalidarFichasPublicas();
   return { success: true };
 }
 
@@ -489,5 +493,6 @@ export async function saveCategories(
     }
   }
 
+  revalidarFichasPublicas();
   return { success: true };
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ConUsuarioDelServidor } from "@/modulos/autenticacion/usuario-del-servidor";
 import type { ReactNode } from "react";
 import { ogPorRuta } from "@/lib/seo/og";
 
@@ -81,7 +82,7 @@ export default function OportunidadesLayout({ children }: { children: ReactNode 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {children}
+      <ConUsuarioDelServidor>{children}</ConUsuarioDelServidor>
     </>
   );
 }

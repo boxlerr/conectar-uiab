@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
 import { Megaphone } from "lucide-react";
-import { getRole } from "@/lib/autenticacion/obtener-rol";
 import { Migas } from "@/components/ui/migas";
 import { ID_ORG_CONECTA, ID_ORG_UIAB, SITE_URL } from "@/lib/seo/entidad";
 import { getComunicadosPublicados } from "@/modulos/boletin/consultas";
-import { Compositor } from "@/modulos/boletin/componentes/compositor";
+import { CompositorSoloAdmin, TarjetaSiguienteSegunSesion } from "@/modulos/boletin/componentes/segun-sesion";
 import { Publicacion } from "@/modulos/boletin/componentes/publicacion";
-import {
-  TarjetaQueEs,
-  TarjetaSiguiente,
-} from "@/modulos/boletin/componentes/rieles";
+import { TarjetaQueEs } from "@/modulos/boletin/componentes/rieles";
 import { resumenComunicado, rutaComunicado } from "@/modulos/boletin/formato";
 import type { ComunicadoPublico } from "@/modulos/boletin/tipos";
 
@@ -28,11 +24,15 @@ import type { ComunicadoPublico } from "@/modulos/boletin/tipos";
  * lo que se lee cómodo. El costado lo ocupa el riel de la derecha.
  *
  * Un admin ve además el cuadro para publicar y el menú ··· de cada
- * publicación. Dinámica porque se publica en cualquier momento y tiene que
- * verse al toque.
+ * publicación; eso se resuelve en el navegador (ver segun-sesion.tsx).
+ *
+ * Sale del CDN (ISR). Lo que publica la UIAB se ve al toque igual: toda acción
+ * que toca un comunicado llama a `revalidarBoletin()` (acciones.ts), que
+ * invalida esta página. El `revalidate` es la red de seguridad por si algo
+ * cambia en la base por fuera de esas acciones.
  */
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 const TITULO = "Boletín UIAB — novedades industriales";
 const DESCRIPCION =
@@ -88,9 +88,7 @@ function jsonLdBoletin(comunicados: ComunicadoPublico[]) {
 }
 
 export default async function BoletinPage() {
-  const [comunicados, rol] = await Promise.all([getComunicadosPublicados(), getRole()]);
-  const esAdmin = rol === "admin";
-  const haySesion = rol !== null;
+  const comunicados = await getComunicadosPublicados();
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-10">
@@ -121,7 +119,7 @@ export default async function BoletinPage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,660px)_300px] lg:justify-center xl:gap-8">
         <div className="min-w-0 space-y-4">
-          {esAdmin && <Compositor />}
+          <CompositorSoloAdmin />
 
           {comunicados.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-14 text-center">
@@ -132,20 +130,20 @@ export default async function BoletinPage() {
               </p>
             </div>
           ) : (
-            comunicados.map((c) => <Publicacion key={c.id} c={c} esAdmin={esAdmin} />)
+            comunicados.map((c) => <Publicacion key={c.id} c={c} />)
           )}
 
           {/* Sin costado (mobile/tablet) las tarjetas del riel van al final. */}
           <div className="space-y-4 pt-2 lg:hidden">
             <TarjetaQueEs />
-            <TarjetaSiguiente haySesion={haySesion} />
+            <TarjetaSiguienteSegunSesion />
           </div>
         </div>
 
         <aside className="hidden lg:block">
           <div className="sticky top-28 space-y-4">
             <TarjetaQueEs />
-            <TarjetaSiguiente haySesion={haySesion} />
+            <TarjetaSiguienteSegunSesion />
           </div>
         </aside>
       </div>

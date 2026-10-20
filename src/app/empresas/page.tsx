@@ -1,3 +1,4 @@
+import { ConUsuarioDelServidor } from "@/modulos/autenticacion/usuario-del-servidor";
 import { obtenerDirectorio } from "@/app/directorio/datos";
 import { EmpresasCliente } from "./empresas-cliente";
 import { IndiceEmpresas } from "@/components/ui/directorio/indice-empresas";
@@ -57,12 +58,16 @@ export default async function EmpresasPage() {
           El navegador pintaba primero el índice A-Z arriba de todo y después
           el hero lo empujaba fuera de pantalla: CLS 0,92 en Lighthouse móvil
           (el umbral "malo" es 0,25), y el <h1> quedaba último en el documento. */}
-      <EmpresasCliente
-        empresasPreview={empresas.slice(0, 3)}
-        sectores={sectores}
-        totalEmpresas={socias.length}
-        sociasLogos={sociasLogos}
-      />
+      {/* Con el usuario del servidor: la socia ve el listado y el visitante
+          la landing, y sin esto la socia vería la landing hasta hidratar. */}
+      <ConUsuarioDelServidor>
+        <EmpresasCliente
+          empresasPreview={empresas.slice(0, 3)}
+          sectores={sectores}
+          totalEmpresas={socias.length}
+          sociasLogos={sociasLogos}
+        />
+      </ConUsuarioDelServidor>
       <IndiceEmpresas entidades={entidades} />
     </>
   );

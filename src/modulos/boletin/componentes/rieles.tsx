@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, BookOpen, Megaphone, Pin } from "lucide-react";
-import { resumenComunicado, rutaComunicado, tiempoCorto } from "../formato";
+import { resumenComunicado, rutaComunicado } from "../formato";
+import { TiempoCorto } from "./tiempo-corto";
 import type { ComunicadoPublico } from "../tipos";
 
 /**
@@ -91,7 +92,7 @@ export function ListaNovedades({
               </p>
               <p className="mt-1 flex items-center gap-1.5 text-[12px] text-slate-400" suppressHydrationWarning>
                 {c.fijado && <Pin className="h-3 w-3 text-sky-500" />}
-                {tiempoCorto(c.publicado_en)}
+                <TiempoCorto iso={c.publicado_en} />
               </p>
             </div>
           </Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -15,7 +15,27 @@ import { CampanaNotificaciones } from "@/components/ui/campana-notificaciones";
 
 interface HeaderProps {
   currentUser: UserType | null;
+  /**
+   * Todavía no se sabe si hay sesión (el provider resuelve en el cliente). Se
+   * dibuja la versión sin sesión con las piezas que cambian INVISIBLES y del
+   * mismo tamaño: el visitante anónimo —casi todo el tráfico, y lo que mide
+   * Lighthouse— no ve ningún salto, y la socia no ve un "Ingresar" que
+   * desaparece medio segundo después.
+   */
+  sesionDesconocida?: boolean;
   onLogout: () => Promise<void>;
+}
+
+/**
+ * Lee el query string y se lo pasa al Header. Va aparte y con su propio
+ * Suspense porque `useSearchParams` en una página estática corta el prerender
+ * en el boundary más cercano: si lo llamara el Header, el HTML saldría sin nav.
+ * Así el que se queda afuera del HTML es este componente, que no dibuja nada.
+ */
+function LectorQuery({ alCambiar }: { alCambiar: (query: string) => void }) {
+  const query = useSearchParams().toString();
+  useEffect(() => { alCambiar(query); }, [query, alCambiar]);
+  return null;
 }
 
 import { ChevronDown, Sparkles, Loader2 } from "lucide-react";
@@ -148,9 +168,10 @@ function ProfileDropdownMenu({ currentUser, onLogout }: { currentUser: UserType,
   );
 }
 
-export function Header({ currentUser, onLogout }: HeaderProps) {
+export function Header({ currentUser, sesionDesconocida = false, onLogout }: HeaderProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const [query, setQuery] = useState("");
+  const searchParams = useMemo(() => new URLSearchParams(query), [query]);
   const currentCategoria = searchParams.get("categoria");
   const currentTab = searchParams.get("tab");
 
@@ -228,6 +249,9 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
     enMas?: boolean;
     children?: NavChild[];
     groups?: NavGroup[];
+    // Sólo existe sin sesión: con la sesión todavía desconocida ocupa su lugar
+    // pero invisible (ver `sesionDesconocida`).
+    sinSesion?: boolean;
   };
 
   // Logueado: el Directorio va primero (es a donde caés al entrar y donde más
@@ -288,6 +312,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
       name: "Empresas y entidades",
       href: "/empresas",
       icon: Building,
+      sinSesion: true,
       groups: [
         {
           name: "Categorías del directorio",
@@ -403,6 +428,9 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <LectorQuery alCambiar={setQuery} />
+      </Suspense>
       <header 
         className={cn(
           "fixed top-0 inset-x-0 z-50 transition-all duration-300 border-b",
@@ -493,10 +521,13 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                   if (item.children || item.groups) {
                     const isOpen = openDropdown === item.name;
                     const hasGroups = !!item.groups;
+                    const reservado = sesionDesconocida && item.sinSesion;
                     return (
                       <div 
                         key={item.name} 
-                        className="relative flex" 
+                        className={cn("relative flex", reservado && "invisible")}
+                        aria-hidden={reservado || undefined}
+                        inert={reservado || undefined}
                         ref={isOpen ? dropdownRef : undefined}
                         data-active={isActive}
                         onMouseEnter={(e) => handleHover(e as unknown as React.MouseEvent<HTMLAnchorElement>, item.href)}
@@ -660,7 +691,14 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                 // está (secundario, contorneado) e "Ingresar" para el que ya es
                 // socia (primario). Antes "Sumate" era un ítem más de la barra,
                 // perdido entre las secciones.
-                <>
+                //
+                // Con la sesión desconocida van igual, invisibles: reservan el
+                // ancho exacto del caso más común.
+                <div
+                  className={cn("contents", sesionDesconocida && "invisible")}
+                  aria-hidden={sesionDesconocida || undefined}
+                  inert={sesionDesconocida || undefined}
+                >
                   <Link
                     href="/sumate"
                     className="inline-flex items-center justify-center gap-2 h-10 px-4 xl:px-5 rounded-xl text-[13px] xl:text-sm font-semibold border border-slate-200 bg-white/70 text-slate-700 transition-all hover:border-slate-300 hover:bg-white hover:text-[#00213f]"
@@ -675,7 +713,7 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                     <User className="w-4 h-4" />
                     Ingresar
                   </Button>
-                </>
+                </div>
               )}
             </motion.div>
 
@@ -726,7 +764,9 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                 
                 {/* Mobile User Profile or Login */}
                 <div className="mb-8">
-                  {currentUser ? (
+                  {sesionDesconocida ? (
+                    <div className="h-[76px] rounded-2xl bg-slate-50 border border-slate-100" aria-hidden />
+                  ) : currentUser ? (
                     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {currentUser.logoUrl ? (

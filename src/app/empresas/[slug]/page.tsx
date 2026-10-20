@@ -274,6 +274,40 @@ function PanelCertificaciones({ certs, accent }: { certs: CertFicha[]; accent: "
 // vista en la barra lateral. Decisión de producto: fichas lo más públicas
 // posible, que es lo que empuja el posicionamiento.
 
+// ── Caché (ISR) ──────────────────────────────────────────────────────────────
+// La ficha no lee la sesión (las visitas las registra `RegistrarVisita` desde el
+// navegador), así que sale del CDN: ~130 ms en vez de ~600. Se regenera cada
+// 5 minutos como red de seguridad, y al toque cuando la socia guarda algo
+// desde /perfil o el admin la edita (`revalidarFichasPublicas()`).
+export const revalidate = 300;
+
+/**
+ * Las fichas publicadas se generan en el build, así ninguna sale en frío
+ * después de un deploy. Un slug nuevo (una socia aprobada después) se genera
+ * en su primera visita y queda cacheado igual (`dynamicParams` en true, el
+ * default). Si la base no contesta durante el build se sigue sin pre-generar:
+ * un build no puede caerse por esto.
+ */
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  try {
+    const db = createAdminClient();
+    const [{ data: empresas }, { data: provs }] = await Promise.all([
+      db.from("empresas").select("razon_social").eq("estado", "aprobada"),
+      db.from("proveedores").select("nombre, apellido, nombre_comercial").eq("estado", "aprobado"),
+    ]);
+    const slugs = new Set<string>();
+    for (const e of empresas ?? []) if (e.razon_social) slugs.add(crearSlug(e.razon_social));
+    for (const p of provs ?? []) {
+      const nombre = nombreDeFichaParticular(p);
+      if (nombre) slugs.add(crearSlug(nombre));
+    }
+    return [...slugs].filter(Boolean).map((slug) => ({ slug }));
+  } catch (e) {
+    console.error("[ficha] generateStaticParams sin datos:", e);
+    return [];
+  }
+}
+
 // ── SEO: datos mínimos por slug (empresa o proveedor) para metadata + JSON-LD ──
 async function datosSeoPorSlug(slug: string) {
   const db = createAdminClient();
