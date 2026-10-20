@@ -9,8 +9,14 @@ import { PRECIOS_POR_DEFECTO, type Precios } from "./modelo";
  * Antes había dos fuentes que no se hablaban: la tabla `tarifas_precios`, que el
  * admin editaba desde el panel, y las constantes del código, que eran las que
  * efectivamente se cobraban. Subir el precio en el panel no cambiaba nada — una
- * perilla desconectada. Ahora hay una sola clave en `configuraciones_sistema` y
- * la lee todo el mundo: el checkout, la home, el registro, los mails y el panel.
+ * perilla desconectada. Ahora hay una sola clave en `configuraciones_sistema`.
+ * La leen el panel, lo que se anota para cobrar (/api/suscripcion/solicitar) y
+ * el alta (register-sync: la fila inicial y el mail de "Completá tu
+ * suscripción").
+ *
+ * OJO: las pantallas que MUESTRAN el precio —la home, /register, el checkout y
+ * /perfil/suscripcion— todavía usan las constantes de ./modelo. Son componentes
+ * de cliente y un cambio en el panel no les llega.
  *
  * Si la lectura falla se devuelven los valores por defecto en vez de romper:
  * una página pública no puede quedarse en blanco porque no se pudo leer una
