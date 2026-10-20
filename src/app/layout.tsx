@@ -37,7 +37,7 @@ import { GuardiaNavegacion } from "@/components/plantillas/guardia-navegacion";
 import { cn } from "@/lib/utilidades";
 import { Toaster } from "@/components/ui/sonner";
 import { createClient } from "@/lib/supabase/servidor";
-import { resolverEntidadDePerfil } from "@/modulos/autenticacion/entidad-del-perfil";
+import { obtenerEntidadSesion, obtenerPerfilSesion, obtenerSesion } from "@/lib/supabase/sesion-servidor";
 import type { User } from "@/tipos";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
@@ -91,12 +91,14 @@ export const metadata: Metadata = {
     "empresas Almirante Brown",
     "proveedores industriales",
   ],
+  // Los íconos van en PNG del tamaño justo. `icono-uiab.svg` (467 KB) e
+  // `icono-uiab.png` (406 KB, 2048 px) son exportes de Canva con el PNG
+  // embebido: el navegador elegía el SVG como favicon y bajaba casi medio
+  // mega en la primera visita a cualquier página. Los archivos viejos siguen
+  // en public/ porque hay URLs externas que los citan (JSON-LD, mails).
   icons: {
-    icon: [
-      { url: "/icono-uiab.svg", type: "image/svg+xml" },
-      { url: "/icono-uiab.png", type: "image/png" },
-    ],
-    apple: "/icono-uiab.png",
+    icon: [{ url: "/icono-uiab-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
     type: "website",
@@ -118,32 +120,21 @@ export const metadata: Metadata = {
 };
 
 /**
- * Resolves the current user on the server using getUser() (JWT-validated).
- * Returns null if no session or on error — never throws.
+ * Usuario de la sesión para el header y el `AuthProvider`. Nunca tira: sin
+ * sesión o ante cualquier error devuelve null.
+ *
+ * Corre en CADA render con sesión y el layout lo espera antes de mandar el
+ * primer byte de HTML, así que lo que importa son los viajes EN SERIE a
+ * Supabase. Eran 5 (getUser → perfil → membresía → ficha → suscripción); ahora
+ * son 2 rondas en paralelo: perfil ∥ membresía, y después ficha ∥ suscripción.
+ * La sesión sale de `getClaims()`, que se verifica sin red, y perfil/membresía
+ * vienen de `sesion-servidor.ts`, cacheados por request: si la página pide lo
+ * mismo (el panel lo hace) no se vuelve a consultar.
  */
 async function getServerUser(): Promise<User | null> {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error || !user) return null;
-
-    const { data: profile } = await supabase
-      .from('perfiles')
-      .select('id, nombre_completo, rol_sistema, activo, tutoriales_vistos, creado_en')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile) return null;
-
-    let entidadEstado: string | null = null;
-    let logoUrl: string | null = null;
-
-    const resolverLogoUrl = (bucket?: string | null, ruta?: string | null): string | null => {
-      if (!bucket || !ruta) return null;
-      const { data: pub } = supabase.storage.from(bucket).getPublicUrl(ruta);
-      return pub?.publicUrl ?? null;
-    };
+    const sesion = await obtenerSesion();
+    if (!sesion) return null;
 
     // La ficha se resuelve por MEMBRESÍA, no por `rol_sistema`.
     //
@@ -155,53 +146,56 @@ async function getServerUser(): Promise<User | null> {
     // esta versión incompleta. Resultado: /perfil rebotaba al admin con "Debes
     // dirigirte al panel de administración" aunque su ficha estuviera bien
     // vinculada, mientras /panel-de-control (que resuelve aparte) sí la mostraba.
-    const entidad = await resolverEntidadDePerfil(supabase, user.id);
+    const [profile, entidad] = await Promise.all([
+      obtenerPerfilSesion(sesion.id),
+      obtenerEntidadSesion(sesion.id),
+    ]);
+    if (!profile) return null;
+
+    const supabase = await createClient();
     const entityId = entidad?.id ?? null;
     const entityRole = entidad?.tipo ?? null;
+    const tablaFicha = entidad?.tipo === 'company' ? 'empresas' : 'proveedores';
+    const fk = entidad?.tipo === 'company' ? 'empresa_id' : 'proveedor_id';
 
-    if (entidad?.tipo === 'company') {
-      const { data: emp } = await supabase
-        .from('empresas')
-        .select('estado, ruta_logo, bucket_logo')
-        .eq('id', entidad.id)
-        .maybeSingle();
-      entidadEstado = emp?.estado ?? null;
-      logoUrl = resolverLogoUrl(emp?.bucket_logo, emp?.ruta_logo);
-    } else if (entidad?.tipo === 'provider') {
-      const { data: prov } = await supabase
-        .from('proveedores')
-        .select('estado, ruta_logo, bucket_logo')
-        .eq('id', entidad.id)
-        .maybeSingle();
-      entidadEstado = prov?.estado ?? null;
-      logoUrl = resolverLogoUrl(prov?.bucket_logo, prov?.ruta_logo);
-    }
+    const [fichaRes, subRes] = await Promise.all([
+      entidad
+        ? supabase
+            .from(tablaFicha)
+            .select('estado, ruta_logo, bucket_logo')
+            .eq('id', entidad.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      entidad
+        ? supabase
+            .from('suscripciones')
+            .select('estado')
+            .eq(fk, entidad.id)
+            .order('creado_en', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
 
-    let subscriptionEstado: string | null = null;
-    if (entidad) {
-      const fk = entidad.tipo === 'company' ? 'empresa_id' : 'proveedor_id';
-      const { data: sub } = await supabase
-        .from('suscripciones')
-        .select('estado')
-        .eq(fk, entidad.id)
-        .order('creado_en', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      subscriptionEstado = sub?.estado ?? null;
-    }
+    const ficha = fichaRes.data as { estado: string | null; ruta_logo: string | null; bucket_logo: string | null } | null;
+    const logoUrl =
+      ficha?.bucket_logo && ficha?.ruta_logo
+        ? supabase.storage.from(ficha.bucket_logo).getPublicUrl(ficha.ruta_logo).data?.publicUrl ?? null
+        : null;
+    const email = sesion.email ?? profile.email ?? '';
 
     return {
       id: profile.id,
-      name: profile.nombre_completo || user.email!.split('@')[0],
-      email: user.email!,
+      name: profile.nombre_completo || email.split('@')[0],
+      email,
       role: profile.rol_sistema as User['role'],
       isMember: profile.activo || false,
       entityId,
       entityRole,
-      subscriptionEstado,
-      tutorialesVistos: ((profile as any).tutoriales_vistos ?? {}) as Record<string, string | null>,
-      creadoEn: (profile as any).creado_en ?? null,
-      entidadEstado,
+      subscriptionEstado: (subRes.data as { estado: string | null } | null)?.estado ?? null,
+      tutorialesVistos: profile.tutoriales_vistos ?? {},
+      creadoEn: profile.creado_en ?? null,
+      entidadEstado: ficha?.estado ?? null,
       logoUrl,
     };
   } catch {

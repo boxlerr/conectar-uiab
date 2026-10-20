@@ -451,7 +451,7 @@ export function PreviewDirectorio() {
                         style={{ background: active.accentSoft }}
                       >
                         <Image
-                          src="/icono-uiab.svg"
+                          src="/icono-uiab-512.png"
                           alt="Logo UIAB Conecta"
                           width={32}
                           height={32}

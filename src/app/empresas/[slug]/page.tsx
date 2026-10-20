@@ -917,122 +917,100 @@ async function EmpresaProfile({
     ? supabase.storage.from(empresaDb.bucket_logo).getPublicUrl(empresaDb.ruta_logo).data.publicUrl
     : null;
 
-  // Certificaciones: contenido público (se ve sin cuenta). Query O(1) por id,
-  // fuera del gate de auth.
-  const certs = await fetchCertificaciones(supabase, "empresa_id", empresaDb.id);
-
-  // Señales de la barra de identidad. Van FUERA del gate de auth a propósito:
-  // son contadores, no contenido. Que un visitante sin cuenta vea "12 reseñas ·
-  // 6 productos" es justamente lo que lo empuja a registrarse para leerlos, y
-  // de paso le dice de un vistazo qué tan viva está la ficha. Dos queries
-  // `head: true` (sólo el count, sin traer filas) y una de calificaciones.
-  const [resenasPub, itemsPub] = await Promise.all([
-    supabase
-      .from("resenas")
-      .select("calificacion")
-      .eq("empresa_resenada_id", empresaDb.id)
-      .eq("estado", "aprobada"),
+  /**
+   * TODO lo que sigue depende sólo de `empresaDb.id`, así que va en UNA ronda.
+   *
+   * Antes eran cinco viajes a Supabase en serie (certificaciones → reseñas y
+   * conteo de ítems → miembros → reseñas, oportunidades y catálogo), medido el
+   * 2026-10-20: el último arrancaba 324 ms después de tener la empresa. Y las
+   * reseñas aprobadas se pedían DOS veces con el mismo filtro, una sólo para el
+   * promedio; ahora el promedio sale de la misma lista.
+   *
+   * Qué es cada cosa:
+   *  - Certificaciones: contenido público (se ve sin cuenta).
+   *  - Conteo de ítems publicados: señal de la barra de identidad. Va fuera del
+   *    gate de auth a propósito: que un visitante sin cuenta vea "12 reseñas · 6
+   *    productos" es justamente lo que lo empuja a registrarse, y de paso le dice
+   *    de un vistazo qué tan viva está la ficha. `head: true`, sólo el número.
+   *  - ¿Tiene dueño? 35 de las 59 fichas publicadas no tienen ninguna fila en
+   *    `miembros_empresa` — medido el 2026-09-15, y son exactamente las mismas
+   *    35 que no tienen descripción propia. Para esas fichas mostramos el botón
+   *    de reclamo; para el resto sería ruido, y encima una invitación a que un
+   *    tercero pida acceso a una empresa que ya está adentro.
+   *  - Catálogo, oportunidades y reseñas: se traen SIEMPRE, con o sin sesión.
+   *    Antes vivían dentro de `if (isAuthenticated)` y era la mayor pérdida de
+   *    SEO del proyecto: 29 ítems de 7 socias, ~1.243 palabras de texto único
+   *    escrito por ellas, que Googlebot no veía nunca. Sin ese texto la ficha
+   *    quedaba en puro boilerplate compartido con las otras 58 — el problema de
+   *    thin content que ninguna optimización de metadata compensa. Y sin los
+   *    ítems renderizados tampoco se podía emitir `Product`/`OfferCatalog`.
+   *    Qué se expone: nada que no fuera ya público. El contacto ya se veía sin
+   *    cuenta en la barra lateral, las oportunidades ya se sirven sin sesión en
+   *    /oportunidades, y los ítems tienen `estado = 'publicado'`: la socia ya
+   *    eligió publicarlos. Ninguno tiene precio cargado (17 de 29 son "a
+   *    consultar"). Decisión de producto de Julián (2026-09-15): las fichas lo
+   *    más públicas posible, porque es lo que empuja el posicionamiento.
+   */
+  const [certs, itemsPub, { count: miembros }, resenasRes, opsRes, catalogo] = await Promise.all([
+    fetchCertificaciones(supabase, "empresa_id", empresaDb.id),
     supabase
       .from("items")
       .select("id", { count: "exact", head: true })
       .eq("empresa_id", empresaDb.id)
       .eq("estado", "publicado"),
+    supabase
+      .from("miembros_empresa")
+      .select("perfil_id", { count: "exact", head: true })
+      .eq("empresa_id", empresaDb.id),
+    supabase
+      .from('resenas')
+      .select(`
+        id,
+        calificacion,
+        comentario,
+        creada_en,
+        empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
+        proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
+      `)
+      .eq('empresa_resenada_id', empresaDb.id)
+      .eq('estado', 'aprobada')
+      .order('creada_en', { ascending: false }),
+    supabase
+      .from('oportunidades')
+      .select(`
+        id,
+        titulo,
+        descripcion,
+        localidad,
+        creado_en,
+        categoria:categorias(nombre)
+      `)
+      .eq('empresa_solicitante_id', empresaDb.id)
+      .eq('estado', 'abierta')
+      .order('creado_en', { ascending: false }),
+    fetchCatalogoItems(supabase, "company", empresaDb.id),
   ]);
 
-  const notas = (resenasPub.data ?? []).map((r: any) => Number(r.calificacion)).filter(Number.isFinite);
+  let finalResenas: any[] = resenasRes.data ?? [];
+  if (!resenasRes.data) {
+    // El join con autores falló: se reintenta sin él, para no perder las reseñas.
+    const { data: fallbackData } = await supabase
+      .from('resenas')
+      .select('id, calificacion, comentario, creada_en')
+      .eq('empresa_resenada_id', empresaDb.id)
+      .eq('estado', 'aprobada')
+      .order('creada_en', { ascending: false });
+    finalResenas = fallbackData || [];
+  }
+  const oportunidadesActivas: any[] = opsRes.data || [];
+  const catalogoItems: CatalogoItem[] = catalogo;
+
+  const notas = finalResenas.map((r: any) => Number(r.calificacion)).filter(Number.isFinite);
   const totalResenas = notas.length;
   const promedioResenas =
     totalResenas > 0 ? notas.reduce((a: number, b: number) => a + b, 0) / totalResenas : null;
   const totalItems = itemsPub.count ?? 0;
-
-  /**
-   * ¿Esta ficha tiene dueño? (o sea: ¿alguien de la empresa tiene cuenta?)
-   *
-   * 35 de las 59 fichas publicadas no tienen ninguna fila en `miembros_empresa`
-   * — medido el 2026-09-15, y son exactamente las mismas 35 que no tienen
-   * descripción propia. Para esas fichas mostramos el botón de reclamo; para el
-   * resto sería ruido, y encima una invitación a que un tercero pida acceso a
-   * una empresa que ya está adentro.
-   *
-   * `head: true` con count exacto: no trae filas, sólo el número.
-   */
-  const { count: miembros } = await supabase
-    .from("miembros_empresa")
-    .select("perfil_id", { count: "exact", head: true })
-    .eq("empresa_id", empresaDb.id);
   const sinDueno = (miembros ?? 0) === 0;
-
-  /**
-   * Catálogo, oportunidades y reseñas: se traen SIEMPRE, con o sin sesión.
-   *
-   * Antes esto vivía dentro de `if (isAuthenticated)` y era la mayor pérdida de
-   * SEO del proyecto: 29 ítems de 7 socias, ~1.243 palabras de texto único
-   * escrito por ellas, que Googlebot no veía nunca. Sin ese texto la ficha
-   * quedaba en puro boilerplate compartido con las otras 58 — el problema de
-   * thin content que ninguna optimización de metadata compensa. Y sin los ítems
-   * renderizados tampoco se podía emitir `Product`/`OfferCatalog`.
-   *
-   * Qué se expone de nuevo: nada que no fuera ya público. El contacto (correo,
-   * teléfono, WhatsApp, web) ya se veía sin cuenta en la barra lateral, las
-   * oportunidades ya se sirven sin sesión en /oportunidades, y los ítems tienen
-   * `estado = 'publicado'`: la socia ya eligió publicarlos. Verificado además
-   * que ninguno tiene precio cargado (17 de 29 son "a consultar"), así que no
-   * se publica ni un número que la empresa no haya querido mostrar.
-   *
-   * Decisión de producto de Julián (2026-09-15): las fichas lo más públicas
-   * posible, porque es lo que empuja el posicionamiento.
-   */
-  let finalResenas: any[] = [];
-  let oportunidadesActivas: any[] = [];
-  let catalogoItems: CatalogoItem[] = [];
-
-  {
-    // Las tres consultas son independientes → en paralelo
-    const [resenasRes, opsRes, catalogo] = await Promise.all([
-      supabase
-        .from('resenas')
-        .select(`
-          id,
-          calificacion,
-          comentario,
-          creada_en,
-          empresa_autora:empresas!resenas_empresa_autora_id_fkey(razon_social),
-          proveedor_autor:proveedores!resenas_proveedor_autor_id_fkey(nombre, apellido)
-        `)
-        .eq('empresa_resenada_id', empresaDb.id)
-        .eq('estado', 'aprobada')
-        .order('creada_en', { ascending: false }),
-      supabase
-        .from('oportunidades')
-        .select(`
-          id,
-          titulo,
-          descripcion,
-          localidad,
-          creado_en,
-          categoria:categorias(nombre)
-        `)
-        .eq('empresa_solicitante_id', empresaDb.id)
-        .eq('estado', 'abierta')
-        .order('creado_en', { ascending: false }),
-      fetchCatalogoItems(supabase, "company", empresaDb.id),
-    ]);
-
-    if (!resenasRes.data) {
-      const { data: fallbackData } = await supabase
-        .from('resenas')
-        .select('id, calificacion, comentario, creada_en')
-        .eq('empresa_resenada_id', empresaDb.id)
-        .eq('estado', 'aprobada')
-        .order('creada_en', { ascending: false });
-      finalResenas = fallbackData || [];
-    } else {
-      finalResenas = resenasRes.data;
-    }
-
-    oportunidadesActivas = opsRes.data || [];
-    catalogoItems = catalogo;
-  }
 
   // `descripcion` es lo que escribe la socia (formulario de alta y /perfil/datos);
   // `actividad` es el rubro que trajo el padrón. Mandan sus palabras, y caemos

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import type { SociaConLogo } from "@/lib/datos/socias-logos";
 
@@ -21,20 +22,24 @@ import type { SociaConLogo } from "@/lib/datos/socias-logos";
  * pasó a hacerse en el servidor con semilla del día. Con la mezcla en el
  * cliente el HTML del servidor y el primer render no coincidían.
  *
- * POR QUÉ `<img>` NATIVO Y NO `next/image`
+ * POR QUÉ `next/image` CON `loading="eager"` Y `fetchPriority="low"`
  *
  * Los logos tienen que cargar sí o sí (con `loading="lazy"` quedan en blanco:
  * medido, con el marquee en pantalla y tres segundos de espera, los cuatro
  * logos visibles seguían sin bajar — el observer del lazy no acompaña el
- * `transform` del track). Pero `next/image` con `loading="eager"` no sólo baja
- * la imagen: emite un `<link rel="preload" as="image">` por URL, y el track
- * repite las 58 socias ocho veces. La home mandaba 58 preloads (~1,2 MB) que
- * competían con el hero, que es el LCP.
+ * `transform` del track). Pero React 19 emite un `<link rel="preload"
+ * as="image">` por cada `<img>` eager que renderiza en el servidor, y el track
+ * repite las 58 socias: la home mandaba 58 preloads (~1,2 MB) compitiendo con
+ * el hero, que es el LCP.
  *
- * Un `<img>` nativo eager baja las mismas imágenes pero SIN preload: el
- * navegador las pide con prioridad normal, detrás de lo crítico. Los logos
- * pesan 21 KB de media (máximo 60), así que saltear el resize de `/_next/image`
- * cuesta poco — y de paso no gasta transformaciones de Vercel.
+ * La salida es `fetchPriority="low"`: es una de las condiciones con las que
+ * React NO preloadea (ver `case "img"` en react-dom-server). Antes esto era un
+ * `background-image` con la URL original de Supabase, que también esquivaba el
+ * preload pero bajaba el PNG sin optimizar: 58 pedidos directos a Storage,
+ * ~1,8 MB en la home. Con `next/image` cada logo baja como WebP del ancho justo
+ * (256 o 640 px) y conserva el `onError` → wordmark. Las variantes son las
+ * mismas que ya pide `slider-logos-directorio.tsx` en /directorio, así que no
+ * suman transformaciones de Vercel nuevas.
  */
 export function BannerLogosSocias({ empresas }: { empresas: SociaConLogo[] }) {
   if (empresas.length === 0) return null;
@@ -111,23 +116,20 @@ function LogoSocia({ empresa }: { empresa: SociaConLogo }) {
         </span>
       ) : (
         /*
-          El logo va como `background-image` y no como `<img>`.
-          Es la única variante que carga el logo de entrada SIN meter un
-          `<link rel="preload">` por socia en el `<head>` — ver el comentario
-          de arriba. El nombre de la empresa no se pierde para lectores de
-          pantalla ni para Google: ya viaja en el `aria-label` y el `title` del
-          enlace que envuelve esto, así que el `alt` sería redundante y este
-          nodo queda como decoración pura.
+          `alt=""`: el nombre de la empresa ya viaja en el `aria-label` y el
+          `title` del enlace que envuelve esto, así que repetirlo sería ruido
+          para los lectores de pantalla. Ver el comentario de arriba por el
+          `fetchPriority="low"` (sin él vuelven los 58 preloads).
         */
-        <span
-          aria-hidden="true"
-          className="block w-[200px] h-[90px] transition-transform duration-300"
-          style={{
-            backgroundImage: `url("${empresa.logoUrl}")`,
-            backgroundSize: "contain",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-          }}
+        <Image
+          src={empresa.logoUrl}
+          alt=""
+          width={200}
+          height={90}
+          loading="eager"
+          fetchPriority="low"
+          className="w-[200px] h-[90px] object-contain transition-transform duration-300"
+          onError={() => setErrorLogo(true)}
         />
       )}
     </Link>

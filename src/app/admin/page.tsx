@@ -63,6 +63,84 @@ async function getDashboardData() {
   const hace24h = new Date(Date.now() - MS_DIA).toISOString();
   const hace7d = new Date(Date.now() - MS_SEMANA).toISOString();
 
+  // Todos los lotes salen JUNTOS y cada uno se espera donde se usa. Antes eran
+  // seis `await Promise.all(...)` uno detrás del otro aunque ninguno depende del
+  // anterior: el panel de admin esperaba seis viajes a Supabase en serie
+  // (medido el 2026-10-20: el último lote arrancaba 458 ms después del primero).
+  const loteFeed = Promise.all([
+    supabase
+      .from("altas_socios")
+      .select("id, razon_social, nombre_comercial, estado, origen, creado_en")
+      .order("creado_en", { ascending: false })
+      .limit(6),
+    supabase
+      .from("miembros_empresa")
+      .select("id, creado_en, empresas:empresa_id(razon_social, nombre_comercial), perfiles:perfil_id(nombre_completo)")
+      .order("creado_en", { ascending: false })
+      .limit(6),
+    supabase
+      .from("certificaciones")
+      .select("id, codigo_norma, creado_en, empresas:empresa_id(razon_social, nombre_comercial)")
+      .order("creado_en", { ascending: false })
+      .limit(6),
+  ]);
+  const lotePersonas = (async () => {
+    try {
+      const [{ data: perfilesAcceso }, estadoAuth] = await Promise.all([
+        supabase.from("perfiles").select("id, nombre_completo, email, activo, creado_en"),
+        leerEstadoAuth(supabase),
+      ]);
+      return (perfilesAcceso ?? [])
+        .filter((p) => {
+          const auth = estadoAuth.get(p.id as string);
+          return esperaHabilitacion({
+            activo: Boolean(p.activo),
+            baneado_hasta: auth?.baneadoHasta ?? null,
+            email_confirmado: auth ? auth.emailConfirmado : null,
+            sin_usuario_auth: estadoAuth.size > 0 && !auth,
+          });
+        })
+        .map((p) => ({
+          id: p.id as string,
+          nombre: (p.nombre_completo as string | null) ?? (p.email as string),
+          email: p.email as string,
+          fecha: p.creado_en as string,
+        }));
+    } catch (e) {
+      // El dashboard entero no se cae por esto: se muestra vacío y queda el log.
+      console.error("[admin] no se pudo listar a las personas sin acceso:", e);
+      return [] as { id: string; nombre: string; email: string; fecha: string }[];
+    }
+  })();
+  const lotePlata = Promise.all([
+    supabase.from("suscripciones").select("estado, monto"),
+    supabase.from("pagos_suscripciones").select("monto, estado, pagado_en"),
+  ]);
+  const loteEmbudo = Promise.all([
+    supabase.from("empresas").select("id, estado"),
+    supabase.from("miembros_empresa").select("empresa_id"),
+  ]);
+  const loteBandeja = Promise.all([
+    supabase
+      .from("altas_socios")
+      .select("id, razon_social, nombre_comercial, referente_nombre, email, origen, estado, empresa_id, creado_en")
+      .in("estado", ["pendiente", "contactado"])
+      .order("creado_en", { ascending: true })
+      .limit(8),
+    supabase
+      .from("empresas")
+      .select("id, razon_social, nombre_comercial, email, localidad, creado_en")
+      .eq("estado", "pendiente_revision")
+      .order("creado_en", { ascending: true })
+      .limit(8),
+    supabase
+      .from("resenas")
+      .select("id, calificacion, comentario, creada_en")
+      .eq("estado", "pendiente_revision")
+      .order("creada_en", { ascending: true })
+      .limit(8),
+  ]);
+
   const [
     { count: totalEmpresas },
     { count: totalProveedores },
@@ -135,23 +213,7 @@ async function getDashboardData() {
   // toda la historia de la plataforma: el "movimientos de toda la plataforma"
   // eran literalmente las últimas 6 filas de `empresas`.
   const [{ data: ultimasAltas }, { data: ultimosIngresos }, { data: ultimasCertificaciones }] =
-    await Promise.all([
-      supabase
-        .from("altas_socios")
-        .select("id, razon_social, nombre_comercial, estado, origen, creado_en")
-        .order("creado_en", { ascending: false })
-        .limit(6),
-      supabase
-        .from("miembros_empresa")
-        .select("id, creado_en, empresas:empresa_id(razon_social, nombre_comercial), perfiles:perfil_id(nombre_completo)")
-        .order("creado_en", { ascending: false })
-        .limit(6),
-      supabase
-        .from("certificaciones")
-        .select("id, codigo_norma, creado_en, empresas:empresa_id(razon_social, nombre_comercial)")
-        .order("creado_en", { ascending: false })
-        .limit(6),
-    ]);
+    await loteFeed;
 
   // Personas que hoy no pueden entrar. Las "acciones pendientes" contaban
   // empresas, proveedores, reseñas y altas — todo menos gente, que es lo único
@@ -160,34 +222,7 @@ async function getDashboardData() {
   //
   // No sale de una query sola porque dos de los tres frenos viven en auth.users
   // (el ban y la confirmación del correo) y no en `perfiles`.
-  const personasEsperando = await (async () => {
-    try {
-      const [{ data: perfilesAcceso }, estadoAuth] = await Promise.all([
-        supabase.from("perfiles").select("id, nombre_completo, email, activo, creado_en"),
-        leerEstadoAuth(supabase),
-      ]);
-      return (perfilesAcceso ?? [])
-        .filter((p) => {
-          const auth = estadoAuth.get(p.id as string);
-          return esperaHabilitacion({
-            activo: Boolean(p.activo),
-            baneado_hasta: auth?.baneadoHasta ?? null,
-            email_confirmado: auth ? auth.emailConfirmado : null,
-            sin_usuario_auth: estadoAuth.size > 0 && !auth,
-          });
-        })
-        .map((p) => ({
-          id: p.id as string,
-          nombre: (p.nombre_completo as string | null) ?? (p.email as string),
-          email: p.email as string,
-          fecha: p.creado_en as string,
-        }));
-    } catch (e) {
-      // El dashboard entero no se cae por esto: se muestra vacío y queda el log.
-      console.error("[admin] no se pudo listar a las personas sin acceso:", e);
-      return [] as { id: string; nombre: string; email: string; fecha: string }[];
-    }
-  })();
+  const personasEsperando = await lotePersonas;
 
   // ── Plata ──────────────────────────────────────────────────────────────────
   //
@@ -213,10 +248,7 @@ async function getDashboardData() {
     0
   );
 
-  const [{ data: suscripcionesVivas }, { data: pagosAcreditados }] = await Promise.all([
-    supabase.from("suscripciones").select("estado, monto"),
-    supabase.from("pagos_suscripciones").select("monto, estado, pagado_en"),
-  ]);
+  const [{ data: suscripcionesVivas }, { data: pagosAcreditados }] = await lotePlata;
 
   const activas = ((suscripcionesVivas ?? []) as FilaSuscripcion[]).filter((s) => s.estado === "activa");
   const ingresoReal = activas.reduce((acc, s) => acc + (Number(s.monto) || 0), 0);
@@ -234,10 +266,7 @@ async function getDashboardData() {
   // "¿Cuántas de nuestras socias ya están usando esto?" es la pregunta real, y
   // el panel no la contestaba en ningún lado: mostraba el total de fichas (60),
   // que incluye a las 41 que están publicadas pero sin una sola persona adentro.
-  const [{ data: fichasEstado }, { data: membresias }] = await Promise.all([
-    supabase.from("empresas").select("id, estado"),
-    supabase.from("miembros_empresa").select("empresa_id"),
-  ]);
+  const [{ data: fichasEstado }, { data: membresias }] = await loteEmbudo;
   const conCuenta = new Set(((membresias ?? []) as FilaMembresia[]).map((m) => m.empresa_id));
   const publicadas = ((fichasEstado ?? []) as FilaEmpresaEstado[]).filter((e) => e.estado === "aprobada");
   const socias = {
@@ -247,26 +276,7 @@ async function getDashboardData() {
 
   // ── Los ítems de la bandeja, con lo justo para decidir sin salir del panel ──
   const [{ data: altasAbiertas }, { data: empresasPorRevisar }, { data: resenasPorModerar }] =
-    await Promise.all([
-      supabase
-        .from("altas_socios")
-        .select("id, razon_social, nombre_comercial, referente_nombre, email, origen, estado, empresa_id, creado_en")
-        .in("estado", ["pendiente", "contactado"])
-        .order("creado_en", { ascending: true })
-        .limit(8),
-      supabase
-        .from("empresas")
-        .select("id, razon_social, nombre_comercial, email, localidad, creado_en")
-        .eq("estado", "pendiente_revision")
-        .order("creado_en", { ascending: true })
-        .limit(8),
-      supabase
-        .from("resenas")
-        .select("id, calificacion, comentario, creada_en")
-        .eq("estado", "pendiente_revision")
-        .order("creada_en", { ascending: true })
-        .limit(8),
-    ]);
+    await loteBandeja;
 
   // Armar feed unificado
   const actividad: ActividadItem[] = [];

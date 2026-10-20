@@ -80,7 +80,7 @@ export function Compositor() {
     <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_1px_3px_rgba(0,33,63,0.05)] sm:p-5">
       <div className="flex gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white">
-          <Image src="/icono-uiab.svg" alt="" width={30} height={30} />
+          <Image src="/icono-uiab-512.png" alt="" width={30} height={30} />
         </span>
         <textarea
           value={texto}

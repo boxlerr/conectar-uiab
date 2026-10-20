@@ -437,10 +437,10 @@ export function Header({ currentUser, onLogout }: HeaderProps) {
                 />
                 {/* Solo isotipo en mobile */}
                 <Image
-                  src="/icono-uiab.svg"
+                  src="/icono-uiab-512.png"
                   alt="UIAB Conecta"
-                  width={1536}
-                  height={1536}
+                  width={44}
+                  height={44}
                   className="sm:hidden h-11 w-11 object-contain transition-transform duration-300 group-hover:scale-105"
                   priority
                 />

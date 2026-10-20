@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { obtenerDirectorio } from "@/app/directorio/datos";
 import { EmpresasCliente } from "./empresas-cliente";
 import { IndiceEmpresas } from "@/components/ui/directorio/indice-empresas";
@@ -50,16 +49,20 @@ export default async function EmpresasPage() {
 
   return (
     <>
-      {/* El cliente usa useSearchParams (?categoria=), así que necesita su
-          propio boundary de Suspense o Next tira el error de CSR bailout. */}
-      <Suspense fallback={null}>
-        <EmpresasCliente
-          empresasPreview={empresas.slice(0, 3)}
-          sectores={sectores}
-          totalEmpresas={socias.length}
-          sociasLogos={sociasLogos}
-        />
-      </Suspense>
+      {/* SIN <Suspense> a propósito. Estaba "porque el cliente usa
+          useSearchParams", pero esa regla es para rutas que se prerenderizan;
+          esta es force-dynamic y el hook no suspende. Y el boundary hacía daño:
+          React saca los boundaries grandes del primer flush, así que el hero
+          viajaba al FINAL del HTML (después del footer) con `fallback={null}`.
+          El navegador pintaba primero el índice A-Z arriba de todo y después
+          el hero lo empujaba fuera de pantalla: CLS 0,92 en Lighthouse móvil
+          (el umbral "malo" es 0,25), y el <h1> quedaba último en el documento. */}
+      <EmpresasCliente
+        empresasPreview={empresas.slice(0, 3)}
+        sectores={sectores}
+        totalEmpresas={socias.length}
+        sociasLogos={sociasLogos}
+      />
       <IndiceEmpresas entidades={entidades} />
     </>
   );

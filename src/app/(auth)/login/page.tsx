@@ -2,9 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/cliente'
 import { Loader2 } from 'lucide-react'
@@ -21,13 +18,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { traducirErrorAuth } from '@/lib/autenticacion/errores-auth'
-
-// Form schema with Zod
-const loginSchema = z.object({
-  email: z.string().email({ message: 'Email inválido' }),
-  password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres' }),
-})
-
 
 function LoginContent() {
   const router = useRouter()
