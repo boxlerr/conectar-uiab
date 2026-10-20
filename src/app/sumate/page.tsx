@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Building2, CheckCircle2 } from "lucide-react";
 import { SumateSegunQuery, type EmpresaPublicada } from "./sumate-segun-query";
 import { ayudaWhatsApp, CONSULTAS } from "@/lib/soporte";
+import { exigirDatos } from "@/lib/cache/isr";
 
 export const metadata = {
   // Sin pipe adentro: el template raíz ya agrega " | UIAB Conecta" y el
@@ -45,12 +46,17 @@ async function getEmpresasPublicadas(): Promise<EmpresaPublicada[]> {
   );
 
   // Sólo columnas públicas: lo mismo que ya muestra /directorio sin sesión.
-  const { data } = await supabase
-    .from("empresas")
-    .select("razon_social, nombre_comercial, localidad, bucket_logo, ruta_logo")
-    .eq("estado", "aprobada")
-    .order("razon_social", { ascending: true })
-    .limit(120);
+  // ISR: si falla, que tire en vez de cachear "Todavía no hay empresas
+  // publicadas" (ver lib/cache/isr.ts).
+  const { data } = exigirDatos(
+    await supabase
+      .from("empresas")
+      .select("razon_social, nombre_comercial, localidad, bucket_logo, ruta_logo")
+      .eq("estado", "aprobada")
+      .order("razon_social", { ascending: true })
+      .limit(120),
+    "las empresas publicadas"
+  );
 
   return ((data as EmpresaFila[] | null) ?? []).map((emp) => ({
     nombre: emp.nombre_comercial || emp.razon_social,

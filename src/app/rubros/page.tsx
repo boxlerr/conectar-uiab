@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RubrosPage() {
-  const { entidades } = await obtenerDirectorio();
+  const { entidades } = await obtenerDirectorio({ tirarSiFalla: true });
   const socias = entidades.filter((e) => !esEmpresaInstitucional(e.id));
 
   const rubros = RUBROS_SEO.map((r) => ({

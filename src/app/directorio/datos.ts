@@ -2,6 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { crearSlug } from "@/lib/utilidades";
+import { exigirDatos } from "@/lib/cache/isr";
 import type { Entidad } from "@/lib/datos/directorio";
 import type { TipoEntidad } from "@/lib/datos/tipos-entidad";
 import {
@@ -98,7 +99,14 @@ const TIPO_POR_CATEGORIA_SOCIO: Record<string, TipoEntidad> = {
  * `empresas.categoria_socio` (o `prestador` si viene de la tabla `proveedores`),
  * así el buscador corre sobre el conjunto completo y el tipo queda como filtro.
  */
-export async function obtenerDirectorio(): Promise<DatosDirectorio> {
+export async function obtenerDirectorio(
+  /**
+   * Para las páginas ISR (/nosotros, /rubros…): si una query falla, tira en vez
+   * de seguir con listas vacías que quedarían cacheadas (ver lib/cache/isr.ts).
+   * Las dinámicas (/directorio, /empresas) siguen degradándose como siempre.
+   */
+  { tirarSiFalla = false }: { tirarSiFalla?: boolean } = {}
+): Promise<DatosDirectorio> {
   const supabase = createAdminClient();
 
   const [empresasRes, proveedoresRes, resenasEmpRes, certsRes] =
@@ -148,6 +156,13 @@ export async function obtenerDirectorio(): Promise<DatosDirectorio> {
         .from("certificaciones")
         .select(SELECT_CERTIFICACIONES_DIRECTORIO),
     ]);
+
+  if (tirarSiFalla) {
+    exigirDatos(empresasRes, "las empresas del directorio");
+    exigirDatos(proveedoresRes, "los prestadores del directorio");
+    exigirDatos(resenasEmpRes, "las reseñas del directorio");
+    exigirDatos(certsRes, "las certificaciones del directorio");
+  }
 
   const certsPorEntidad = mapearCertificaciones(certsRes.data);
 

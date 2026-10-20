@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function Page() {
-  const sociasLogos = await obtenerSociasConLogo();
+  const sociasLogos = await obtenerSociasConLogo({ tirarSiFalla: true });
   return (
     <>
       <Inicio sociasLogos={sociasLogos} />
