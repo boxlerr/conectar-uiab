@@ -1,9 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ogPorRuta } from "@/lib/seo/og";
 import { createClient } from "@supabase/supabase-js";
-import { Building2, CheckCircle2, Users } from "lucide-react";
-import { SumateSegunQuery } from "./sumate-segun-query";
+import { Building2, CheckCircle2 } from "lucide-react";
+import { SumateSegunQuery, type EmpresaPublicada } from "./sumate-segun-query";
 import { ayudaWhatsApp, CONSULTAS } from "@/lib/soporte";
 
 export const metadata = {
@@ -23,11 +22,6 @@ export const metadata = {
 // El listado se actualiza a medida que las empresas completan el formulario.
 export const revalidate = 60;
 
-type EmpresaPublicada = {
-  nombre: string;
-  localidad: string | null;
-  logoUrl: string | null;
-};
 
 /**
  * Las empresas que YA están publicadas en el directorio.
@@ -140,70 +134,6 @@ export default async function SumatePage() {
     </div>
   );
 
-  // ─── Listado en vivo ───
-  const listado = (
-    <aside className="lg:col-span-5">
-      <div className="bg-white rounded-xl shadow-2xl shadow-primary/5 overflow-hidden sticky top-20">
-        <div className="bg-[#00213f] text-white px-6 py-5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-white/10 flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="font-bold tracking-tight">Ya están en el directorio</h2>
-            <p className="text-white/50 text-xs">
-              {publicadas.length}{" "}
-              {publicadas.length === 1
-                ? "empresa de la red UIAB"
-                : "empresas y entidades de la red UIAB"}
-            </p>
-          </div>
-        </div>
-
-        {publicadas.length === 0 ? (
-          <div className="p-10 text-center">
-            <Building2 className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-500">
-              Todavía no hay empresas publicadas. <br />¡Sé la primera!
-            </p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-slate-100 max-h-[560px] overflow-y-auto">
-            {publicadas.map((a, i) => {
-              const nombre = a.nombre;
-              return (
-                <li key={i} className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50/60 transition-colors">
-                  {a.logoUrl ? (
-                    // Caja apaisada: la mayoría de los logos son horizontales
-                    // y en un cuadrado de 40px quedan ilegibles.
-                    <div className="w-16 h-12 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
-                      <Image
-                        src={a.logoUrl}
-                        alt={`Logo de ${nombre}`}
-                        width={128}
-                        height={96}
-                        className="w-full h-full object-contain p-1.5"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-16 h-12 rounded-lg bg-primary-50 text-primary-700 flex items-center justify-center font-bold uppercase shrink-0 text-base">
-                      {nombre.charAt(0)}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-800 text-sm truncate">{nombre}</p>
-                    <p className="text-xs text-slate-400 truncate">
-                      {a.localidad ?? "Almirante Brown"}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </aside>
-  );
-
   return (
     <div className="min-h-svh bg-[#f7f9fb] selection:bg-primary/10">
       {/* ─── Hero ─── */}
@@ -260,7 +190,7 @@ export default async function SumatePage() {
       {/* Sin sesión ni query en el servidor: la página sale estática del CDN.
           Qué se muestra abajo (la pregunta o el formulario precargado) lo
           decide el navegador mirando el query. */}
-      <SumateSegunQuery pregunta={pregunta} listado={listado} />
+      <SumateSegunQuery pregunta={pregunta} publicadas={publicadas} />
     </div>
   );
 }
