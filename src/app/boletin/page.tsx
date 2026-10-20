@@ -88,7 +88,7 @@ function jsonLdBoletin(comunicados: ComunicadoPublico[]) {
 }
 
 export default async function BoletinPage() {
-  const comunicados = await getComunicadosPublicados();
+  const comunicados = await getComunicadosPublicados(undefined, { tirarSiFalla: true });
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-10">

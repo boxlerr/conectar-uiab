@@ -69,13 +69,17 @@ function barajarConSemilla<T>(arr: T[], seed: number): T[] {
   return copia;
 }
 
-export async function obtenerSociasConLogo(): Promise<SociaConLogo[]> {
+export async function obtenerSociasConLogo(
+  /** Para la portada, que es ISR: ver lib/cache/isr.ts. */
+  { tirarSiFalla = false }: { tirarSiFalla?: boolean } = {}
+): Promise<SociaConLogo[]> {
   try {
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("empresas_publicas_logos")
       .select("id, razon_social, bucket_logo, ruta_logo");
 
+    if (error && tirarSiFalla) throw new Error(`[isr] no se pudieron leer los logos: ${error.message}`);
     if (error || !data) return [];
 
     const socias = data
@@ -90,7 +94,9 @@ export async function obtenerSociasConLogo(): Promise<SociaConLogo[]> {
       }));
 
     return barajarConSemilla(socias, semillaDelDia());
-  } catch {
+  } catch (e) {
+    // En una página ISR, que tire: si no, el marquee vacío queda cacheado.
+    if (tirarSiFalla) throw e;
     // El marquee es decorativo: si la consulta falla, la página se sirve igual.
     return [];
   }

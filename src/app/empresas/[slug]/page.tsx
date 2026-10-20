@@ -25,6 +25,7 @@ import { esEmpresaInstitucional } from "@/lib/datos/empresa-institucional";
 import { landingDeCategoria, perteneceAlRubro, RUBROS_SEO } from "@/lib/datos/rubros-seo";
 import { Migas } from "@/components/ui/migas";
 import { normalizarMayusculas } from "@/modulos/compartido/texto-ficha";
+import { exigirDatos } from "@/lib/cache/isr";
 
 async function fetchCatalogoItems(
   supabase: any,
@@ -45,7 +46,9 @@ async function fetchCatalogoItems(
     .order("destacado", { ascending: false })
     .order("creado_en", { ascending: false });
 
-  if (error || !data) return [];
+  // La ficha es ISR: un catálogo vacío por un error quedaría cacheado.
+  if (error) throw new Error(`[isr] no se pudo leer el catálogo: ${error.message}`);
+  if (!data) return [];
 
   return (data as any[]).map((it) => {
     const imagenesOrdenadas = [...(it.imagenes || [])].sort(
@@ -99,13 +102,16 @@ async function fetchCertificaciones(
   key: "empresa_id" | "proveedor_id",
   id: string
 ): Promise<CertFicha[]> {
-  const { data } = await supabase
-    .from("certificaciones")
-    .select(
-      "id, codigo_norma, nombre_libre, verificada, alcance, organismo_certificador, numero_certificado, fecha_vencimiento, ruta_archivo"
-    )
-    .eq(key, id)
-    .order("verificada", { ascending: false });
+  const { data } = exigirDatos(
+    await supabase
+      .from("certificaciones")
+      .select(
+        "id, codigo_norma, nombre_libre, verificada, alcance, organismo_certificador, numero_certificado, fecha_vencimiento, ruta_archivo"
+      )
+      .eq(key, id)
+      .order("verificada", { ascending: false }),
+    "las certificaciones de la ficha"
+  );
   return (data as CertFicha[]) ?? [];
 }
 
@@ -276,10 +282,16 @@ function PanelCertificaciones({ certs, accent }: { certs: CertFicha[]; accent: "
 
 // ── Caché (ISR) ──────────────────────────────────────────────────────────────
 // La ficha no lee la sesión (las visitas las registra `RegistrarVisita` desde el
-// navegador), así que sale del CDN: ~130 ms en vez de ~600. Se regenera cada
-// 5 minutos como red de seguridad, y al toque cuando la socia guarda algo
-// desde /perfil o el admin la edita (`revalidarFichasPublicas()`).
-export const revalidate = 300;
+// navegador), así que sale del CDN: ~130 ms en vez de ~600. Se regenera al
+// toque cuando la socia guarda algo desde /perfil o el admin la edita
+// (`revalidarFichasPublicas()`), y cada 1 h como red de seguridad.
+//
+// 1 h y no 5 min: Next prefetchea ENTERA cada ficha que aparece en pantalla
+// (la portada linkea 58), y en Vercel un prefetch de una página vencida
+// dispara su regeneración. Con 5 min, una visita a la portada eran hasta ~500
+// queries contra Supabase Free (cada ficha hace ~9, dos sobre toda la tabla de
+// empresas). Medido el 2026-10-20, recién salido el ISR.
+export const revalidate = 3600;
 
 /**
  * Las fichas publicadas se generan en el build, así ninguna sale en frío
@@ -312,12 +324,13 @@ export async function generateStaticParams(): Promise<{ slug: string }[]> {
 async function datosSeoPorSlug(slug: string) {
   const db = createAdminClient();
 
-  const { data: empresas } = await db
+  // Sin la fila, la ficha cachearía "Perfil no encontrado" con noindex.
+  const { data: empresas } = exigirDatos(await db
     .from("empresas")
     .select(
       "razon_social, actividad, descripcion, localidad, provincia, sitio_web, bucket_logo, ruta_logo, empresas_categorias(categorias(nombre))"
     )
-    .eq("estado", "aprobada");
+    .eq("estado", "aprobada"), "las empresas (metadata)");
   const emp = empresas?.find((e: any) => crearSlug(e.razon_social) === slug);
   if (emp) {
     return {
@@ -337,10 +350,10 @@ async function datosSeoPorSlug(slug: string) {
     };
   }
 
-  const { data: provs } = await db
+  const { data: provs } = exigirDatos(await db
     .from("proveedores")
     .select("nombre, apellido, nombre_comercial, descripcion, localidad, provincia, sitio_web, bucket_logo, ruta_logo")
-    .eq("estado", "aprobado");
+    .eq("estado", "aprobado"), "los prestadores (metadata)");
   const prov = provs?.find((p: any) => {
     const dn = nombreDeFichaParticular(p);
     return dn !== "" && crearSlug(dn) === slug;
@@ -806,7 +819,7 @@ export default async function EmpresaProfilePage({
   // en cada visita, que es la mayoría del tráfico de estas páginas.
   const supabase = createAdminClient();
 
-  const [{ data: empresasData }] = await Promise.all([
+  const [empresasRes] = await Promise.all([
     supabase
       .from('empresas')
       .select(`
@@ -847,13 +860,17 @@ export default async function EmpresaProfilePage({
       .eq('estado', 'aprobada'),
   ]);
 
+  const empresasData = empresasRes.data;
+  // Sin esto, un timeout terminaba en `notFound()` y la ficha quedaba
+  // cacheada como 404 (ver lib/cache/isr.ts).
+  exigirDatos(empresasRes, "las empresas");
   const empresaDb = empresasData?.find((emp: any) => crearSlug(emp.razon_social) === slug);
 
   if (!empresaDb) {
     // `sitio_web` no se traía y el JSON-LD lo leía igual: `sameAs` salía siempre
     // vacío en las fichas de prestador, que es justo la corroboración externa
     // que le dice a Google de quién estamos hablando.
-    const { data: provData } = await supabase
+    const { data: provData, error: provError } = await supabase
       .from('proveedores')
       .select(`
         id,
@@ -880,6 +897,7 @@ export default async function EmpresaProfilePage({
         )
       `)
       .eq('estado', 'aprobado');
+    exigirDatos({ error: provError }, "los prestadores");
 
     const provDb = provData?.find((p: any) => {
       // Antes caía a "Sin nombre" y generateMetadata a "": para un particular
@@ -985,7 +1003,7 @@ async function EmpresaProfile({
    *    consultar"). Decisión de producto de Julián (2026-09-15): las fichas lo
    *    más públicas posible, porque es lo que empuja el posicionamiento.
    */
-  const [certs, itemsPub, { count: miembros }, resenasRes, opsRes, catalogo] = await Promise.all([
+  const [certs, itemsPub, miembrosRes, resenasRes, opsRes, catalogo] = await Promise.all([
     fetchCertificaciones(supabase, "empresa_id", empresaDb.id),
     supabase
       .from("items")
@@ -1025,15 +1043,24 @@ async function EmpresaProfile({
     fetchCatalogoItems(supabase, "company", empresaDb.id),
   ]);
 
+  exigirDatos(itemsPub, "el conteo de ítems");
+  exigirDatos(miembrosRes, "el conteo de miembros");
+  exigirDatos(opsRes, "las oportunidades de la ficha");
+  const miembros = miembrosRes.count;
+
   let finalResenas: any[] = resenasRes.data ?? [];
   if (!resenasRes.data) {
     // El join con autores falló: se reintenta sin él, para no perder las reseñas.
-    const { data: fallbackData } = await supabase
-      .from('resenas')
-      .select('id, calificacion, comentario, creada_en')
-      .eq('empresa_resenada_id', empresaDb.id)
-      .eq('estado', 'aprobada')
-      .order('creada_en', { ascending: false });
+    // Si falla también el reintento, tira (ISR: ver lib/cache/isr.ts).
+    const { data: fallbackData } = exigirDatos(
+      await supabase
+        .from('resenas')
+        .select('id, calificacion, comentario, creada_en')
+        .eq('empresa_resenada_id', empresaDb.id)
+        .eq('estado', 'aprobada')
+        .order('creada_en', { ascending: false }),
+      "las reseñas"
+    );
     finalResenas = fallbackData || [];
   }
   const oportunidadesActivas: any[] = opsRes.data || [];
@@ -1728,6 +1755,8 @@ async function ProveedorProfile({
       .eq("estado", "publicado"),
   ]);
 
+  exigirDatos(resenasPub, "las reseñas del prestador");
+  exigirDatos(itemsPub, "el conteo de ítems del prestador");
   const notas = (resenasPub.data ?? []).map((r: any) => Number(r.calificacion)).filter(Number.isFinite);
   const totalResenas = notas.length;
   const promedioResenas =

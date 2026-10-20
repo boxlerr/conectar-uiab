@@ -123,7 +123,7 @@ function Seccion({
 }
 
 export default async function NosotrosPage() {
-  const { entidades } = await obtenerDirectorio();
+  const { entidades } = await obtenerDirectorio({ tirarSiFalla: true });
   const socias = entidades.filter((e) => !esEmpresaInstitucional(e.id));
   const localidades = Array.from(
     new Set(socias.map((e) => e.ubicacion?.split(",")[0]?.trim()).filter(Boolean))

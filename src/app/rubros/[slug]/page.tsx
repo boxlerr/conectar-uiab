@@ -57,7 +57,7 @@ export default async function RubroPage({
   const rubro = getRubroSeo(slug);
   if (!rubro) notFound();
 
-  const { entidades } = await obtenerDirectorio();
+  const { entidades } = await obtenerDirectorio({ tirarSiFalla: true });
 
   // La ficha institucional de la UIAB no es una socia más del rubro: la cámara
   // no compite en su propio directorio (mismo criterio que el marquee de logos).

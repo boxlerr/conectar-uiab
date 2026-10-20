@@ -31,7 +31,11 @@ const CAMPOS =
  * Publicados, primero los fijados y después por fecha de publicación.
  * `limite` acota (el feed del panel pide pocos); sin él, trae todos (la página).
  */
-export async function getComunicadosPublicados(limite?: number): Promise<ComunicadoPublico[]> {
+export async function getComunicadosPublicados(
+  limite?: number,
+  /** Para /boletin, que es ISR: ver lib/cache/isr.ts. */
+  { tirarSiFalla = false }: { tirarSiFalla?: boolean } = {}
+): Promise<ComunicadoPublico[]> {
   const supabase = createAdminClient();
 
   let consulta = supabase
@@ -44,6 +48,9 @@ export async function getComunicadosPublicados(limite?: number): Promise<Comunic
   if (limite) consulta = consulta.limit(limite);
 
   const { data, error } = await consulta;
+  if (error && tirarSiFalla) {
+    throw new Error(`[isr] no se pudieron leer los comunicados: ${error.message}`);
+  }
   if (error) {
     // Una nota que no carga no puede tirar abajo el panel entero.
     console.error("[boletin] no se pudieron leer los comunicados:", error.message);
