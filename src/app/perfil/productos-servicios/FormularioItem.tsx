@@ -43,6 +43,7 @@ import { esFichaDeEmpresa, tipoEntidadDe } from "@/modulos/autenticacion/entidad
 import { createClient } from "@/lib/supabase/cliente";
 import { TarjetaItem } from "@/components/ui/catalogo/TarjetaItem";
 import { fallo, llamarAccion } from "@/lib/accion-segura";
+import { filtrarCategoriasJerarquicas } from "@/modulos/compartido/buscador-categorias";
 
 interface FormularioItemProps {
   itemInit?: any;
@@ -1050,22 +1051,12 @@ function CategoriaCombobox({
   }, []);
 
   const seleccionada = categorias.find((c) => c.id === value);
-  const padreDe = (c: { categoria_padre_id: string | null }) =>
-    c.categoria_padre_id ? categorias.find((x) => x.id === c.categoria_padre_id) : null;
-
-  const q = query.trim().toLowerCase();
-  const filtradas = q
-    ? categorias.filter((c) => {
-        const padre = padreDe(c);
-        return (
-          c.nombre.toLowerCase().includes(q) ||
-          (padre?.nombre.toLowerCase().includes(q) ?? false)
-        );
-      })
-    : categorias;
-
-  const raices = filtradas.filter((c) => !c.categoria_padre_id);
-  const hijasDe = (id: string) => filtradas.filter((c) => c.categoria_padre_id === id);
+  // Ver buscador-categorias.ts: antes una especialidad sólo aparecía si su
+  // macro-rubro también coincidía, y "Torner" daba "Sin coincidencias".
+  const grupos = useMemo(
+    () => filtrarCategoriasJerarquicas(categorias, query),
+    [categorias, query]
+  );
 
   return (
     <div className="relative" ref={ref}>
@@ -1108,32 +1099,33 @@ function CategoriaCombobox({
             </div>
           </div>
           <div className="max-h-72 overflow-y-auto">
-            {raices.length === 0 && (
+            {grupos.length === 0 && (
               <div className="p-4 text-center text-xs text-slate-500">
                 Sin coincidencias.
               </div>
             )}
-            {raices.map((raiz) => {
-              const hijas = hijasDe(raiz.id);
+            {grupos.map(({ raiz, raizCoincide, hijas }) => {
               return (
                 <div key={raiz.id} className="py-1">
                   <div className="px-3 py-1 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50">
                     {raiz.nombre}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onChange(raiz.id);
-                      setOpen(false);
-                    }}
-                    className={cls(
-                      "w-full text-left px-3 py-1.5 text-sm hover:bg-primary-50 flex items-center gap-2",
-                      value === raiz.id && "bg-primary-50 text-primary-700 font-semibold"
-                    )}
-                  >
-                    <span className="text-slate-400 text-xs">—</span>
-                    General
-                  </button>
+                  {raizCoincide && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange(raiz.id);
+                        setOpen(false);
+                      }}
+                      className={cls(
+                        "w-full text-left px-3 py-1.5 text-sm hover:bg-primary-50 flex items-center gap-2",
+                        value === raiz.id && "bg-primary-50 text-primary-700 font-semibold"
+                      )}
+                    >
+                      <span className="text-slate-400 text-xs">—</span>
+                      General
+                    </button>
+                  )}
                   {hijas.map((h) => (
                     <button
                       key={h.id}
@@ -1154,27 +1146,6 @@ function CategoriaCombobox({
                 </div>
               );
             })}
-            {q &&
-              filtradas.length > 0 &&
-              raices.length === 0 &&
-              filtradas.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => {
-                    onChange(c.id);
-                    setOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50"
-                >
-                  {padreDe(c)?.nombre && (
-                    <span className="text-[11px] sm:text-[10px] text-slate-400 mr-1">
-                      {padreDe(c)!.nombre} ›
-                    </span>
-                  )}
-                  {c.nombre}
-                </button>
-              ))}
           </div>
         </div>
       )}

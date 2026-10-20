@@ -30,7 +30,7 @@ import { LOCALIDADES_ALMIRANTE_BROWN, PROVINCIAS_AR } from '@/lib/datos/geografi
 import { useAuth } from '@/modulos/autenticacion/contexto-autenticacion'
 import { PRECIO_MENSUAL, PRECIO_ANUAL } from '@/lib/suscripciones/modelo'
 import { validarEspecialidadLibre } from '@/modulos/compartido/especialidades'
-import { filtrarCategoriasJerarquicas } from '@/modulos/registro/buscador-categorias'
+import { filtrarCategoriasJerarquicas } from '@/modulos/compartido/buscador-categorias'
 
 // Mismo número que se muestra en la landing para el plan anual: comparar
 // siempre en $/mes es lo que hace evidente el descuento.
