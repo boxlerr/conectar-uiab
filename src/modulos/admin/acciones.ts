@@ -1037,7 +1037,7 @@ function revalidarEtiquetas() {
   revalidatePath("/admin/etiquetas");
   revalidatePath("/perfil/etiquetas");
   revalidatePath("/directorio");
-  revalidatePath("/empresas");
+  revalidatePath("/empresas", "layout");
 }
 
 /** Sube una etiqueta propuesta por un socio al catálogo que ven todos. */

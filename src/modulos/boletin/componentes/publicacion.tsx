@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, MoreHorizontal, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { llamarAccion, fallo } from "@/lib/accion-segura";
+import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { eliminarComunicado, fijarComunicado } from "../acciones";
 import { cuerpoSinMarcas, rutaComunicado } from "../formato";
 import type { ComunicadoPublico } from "../tipos";
@@ -25,6 +26,8 @@ import { VisorFoto } from "./visor-foto";
  * hace cualquier red social.
  *
  * - `esAdmin` agrega el menú ··· para fijar, editar y eliminar sin ir al panel.
+ *   Sin la prop se decide en el navegador por el rol de la sesión: el /boletin
+ *   sale estático del CDN y el servidor ya no pregunta quién mira.
  * - `vistaPrevia` la dibuja en el editor del panel: sin links ni menú.
  */
 
@@ -38,13 +41,16 @@ function esLargo(texto: string) {
 
 export function Publicacion({
   c,
-  esAdmin = false,
+  esAdmin: esAdminProp,
   vistaPrevia = false,
 }: {
   c: ComunicadoPublico;
   esAdmin?: boolean;
   vistaPrevia?: boolean;
 }) {
+  const { currentUser } = useAuth();
+  const esAdmin = esAdminProp ?? currentUser?.role === "admin";
+
   // El adelanto: la bajada si la nota tiene (para eso está, es el resumen que
   // escribió la UIAB) y si no, el cuerpo sin las marcas de subtítulo.
   const adelanto = c.bajada?.trim() || cuerpoSinMarcas(c.cuerpo);

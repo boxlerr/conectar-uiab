@@ -85,6 +85,7 @@ export async function crearResena(
     return { error: error.message };
   }
 
-  revalidatePath(`/empresas`);
+  // La reseña aparece en la ficha, que sale del caché del CDN (ISR).
+  revalidatePath(`/empresas`, "layout");
   return { success: true };
 }

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/servidor";
 import { CODIGO_OTRA } from "@/modulos/certificaciones/normas";
 import { exigirSuscripcion } from "@/lib/autenticacion/exigir-suscripcion";
+import { revalidarFichasPublicas } from "@/lib/cache/fichas-publicas";
 
 /**
  * Server actions de certificaciones del socio. Usan el cliente SSR (RLS real,
@@ -103,6 +104,7 @@ export async function guardarCertificacion(
       .select("id")
       .single();
     if (error) return { error: traducirError(error.message) };
+    revalidarFichasPublicas();
     return { success: true, id: data.id };
   }
 
@@ -112,6 +114,7 @@ export async function guardarCertificacion(
     .select("id")
     .single();
   if (error) return { error: traducirError(error.message) };
+  revalidarFichasPublicas();
   return { success: true, id: data.id };
 }
 
@@ -143,6 +146,7 @@ export async function eliminarCertificacion(
       console.error("[certificaciones/eliminar] archivo:", storageError.message);
     }
   }
+  revalidarFichasPublicas();
   return { success: true };
 }
 

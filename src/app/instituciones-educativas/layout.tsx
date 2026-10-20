@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ConUsuarioDelServidor } from "@/modulos/autenticacion/usuario-del-servidor";
 
 export const metadata: Metadata = {
   title: "Entidades educativas y centros de formación",
@@ -17,5 +18,8 @@ export const metadata: Metadata = {
 };
 
 export default function InstitucionesEducativasLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  // Sigue dinámica a propósito: la socia ve el directorio y el visitante la
+  // landing, y sin el usuario del servidor la socia vería la landing hasta que
+  // hidrata. Ver ConUsuarioDelServidor.
+  return <ConUsuarioDelServidor>{children}</ConUsuarioDelServidor>;
 }

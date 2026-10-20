@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/modulos/autenticacion/contexto-autenticacion";
 import { Header } from "@/components/plantillas/encabezado";
@@ -10,7 +9,7 @@ import { RecordarSesionGuard } from "@/modulos/autenticacion/componentes/recorda
 import { PilaNovedades } from "@/modulos/novedades/pila-novedades";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, loading, logout } = useAuth();
   const pathname = usePathname();
 
   // Define paths where Header and Footer should be specialized or hidden
@@ -40,26 +39,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-svh">
       {/*
-        El Suspense vive acá y no en el layout raíz.
+        Sin Suspense alrededor del Header, y que siga así.
 
-        Cuando envolvía a TODO el AppShell, React difería el body entero: en la
-        ficha de una socia salían 14 bloques `<div hidden id="S:n">` y el <h1>
-        aparecía recién en el byte 99.357 — después del footer en orden de
-        documento. Googlebot resuelve esos chunks, así que no bloqueaba la
-        indexación, pero GPTBot, ClaudeBot, PerplexityBot y parte de Bingbot ven
-        una página sin texto. Para un directorio que quiere ser descubrible, eso
-        es medio canal apagado.
+        Cuando un boundary envolvía a TODO el AppShell, React difería el body
+        entero: en la ficha de una socia salían 14 bloques `<div hidden id="S:n">`
+        y el <h1> aparecía recién en el byte 99.357 — después del footer en orden
+        de documento. Googlebot resuelve esos chunks, pero GPTBot, ClaudeBot,
+        PerplexityBot y parte de Bingbot ven una página sin texto.
 
-        El único que necesita el boundary es el Header, que usa
-        `useSearchParams`. Acotarlo acá deja el contenido de la página dentro
-        del primer flush.
+        Después quedó uno acotado al Header, porque usaba `useSearchParams`. En
+        una página ESTÁTICA eso ya no sirve: el prerender corta en el boundary y
+        el HTML sale con el fallback, o sea sin el nav. El query ahora lo lee un
+        componente chiquito adentro del Header, con su propio boundary.
       */}
-      <Suspense fallback={<div className="h-16 lg:h-20" aria-hidden />}>
-        <Header
-          currentUser={currentUser}
-          onLogout={logout}
-        />
-      </Suspense>
+      <Header
+        currentUser={currentUser}
+        sesionDesconocida={loading && !currentUser}
+        onLogout={logout}
+      />
       
       <main className="flex-grow flex flex-col min-h-0">
         {children}

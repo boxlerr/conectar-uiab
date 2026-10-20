@@ -36,9 +36,6 @@ import { RecargaTrasDeploy } from "@/components/plantillas/recarga-tras-deploy";
 import { GuardiaNavegacion } from "@/components/plantillas/guardia-navegacion";
 import { cn } from "@/lib/utilidades";
 import { Toaster } from "@/components/ui/sonner";
-import { createClient } from "@/lib/supabase/servidor";
-import { obtenerEntidadSesion, obtenerPerfilSesion, obtenerSesion } from "@/lib/supabase/sesion-servidor";
-import type { User } from "@/tipos";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -120,96 +117,21 @@ export const metadata: Metadata = {
 };
 
 /**
- * Usuario de la sesión para el header y el `AuthProvider`. Nunca tira: sin
- * sesión o ante cualquier error devuelve null.
+ * El layout raíz NO lee la sesión. Cuando lo hacía (`getServerUser()`, ahora en
+ * modulos/autenticacion/usuario-del-servidor.tsx) leía cookies en cada request
+ * y eso volvía dinámicas a las 81 rutas: ni /nosotros ni las fichas podían
+ * salir del CDN, y sus `revalidate` no hacían nada.
  *
- * Corre en CADA render con sesión y el layout lo espera antes de mandar el
- * primer byte de HTML, así que lo que importa son los viajes EN SERIE a
- * Supabase. Eran 5 (getUser → perfil → membresía → ficha → suscripción); ahora
- * son 2 rondas en paralelo: perfil ∥ membresía, y después ficha ∥ suscripción.
- * La sesión sale de `getClaims()`, que se verifica sin red, y perfil/membresía
- * vienen de `sesion-servidor.ts`, cacheados por request: si la página pide lo
- * mismo (el panel lo hace) no se vuelve a consultar.
+ * El `AuthProvider` arranca en estado desconocido y resuelve en el cliente; las
+ * secciones privadas, que igual son dinámicas, siembran el usuario del servidor
+ * con `ConUsuarioDelServidor`. Antes de agregar acá cualquier cosa que lea
+ * cookies, headers o searchParams: rompe el caché de TODO el sitio.
  */
-async function getServerUser(): Promise<User | null> {
-  try {
-    const sesion = await obtenerSesion();
-    if (!sesion) return null;
-
-    // La ficha se resuelve por MEMBRESÍA, no por `rol_sistema`.
-    //
-    // Este archivo se quedó afuera de la migración a `entidad-del-perfil` y era
-    // el que rompía: ramificaba en `rol_sistema === 'company' | 'provider'`, así
-    // que un ADMIN con ficha propia (Vaxler) no matcheaba ninguna rama, salía con
-    // `entityId: null` y sin `entityRole`. Y como el AuthProvider recibe este
-    // objeto como `initialUser`, el cliente NO vuelve a resolverlo: se queda con
-    // esta versión incompleta. Resultado: /perfil rebotaba al admin con "Debes
-    // dirigirte al panel de administración" aunque su ficha estuviera bien
-    // vinculada, mientras /panel-de-control (que resuelve aparte) sí la mostraba.
-    const [profile, entidad] = await Promise.all([
-      obtenerPerfilSesion(sesion.id),
-      obtenerEntidadSesion(sesion.id),
-    ]);
-    if (!profile) return null;
-
-    const supabase = await createClient();
-    const entityId = entidad?.id ?? null;
-    const entityRole = entidad?.tipo ?? null;
-    const tablaFicha = entidad?.tipo === 'company' ? 'empresas' : 'proveedores';
-    const fk = entidad?.tipo === 'company' ? 'empresa_id' : 'proveedor_id';
-
-    const [fichaRes, subRes] = await Promise.all([
-      entidad
-        ? supabase
-            .from(tablaFicha)
-            .select('estado, ruta_logo, bucket_logo')
-            .eq('id', entidad.id)
-            .maybeSingle()
-        : Promise.resolve({ data: null }),
-      entidad
-        ? supabase
-            .from('suscripciones')
-            .select('estado')
-            .eq(fk, entidad.id)
-            .order('creado_en', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-        : Promise.resolve({ data: null }),
-    ]);
-
-    const ficha = fichaRes.data as { estado: string | null; ruta_logo: string | null; bucket_logo: string | null } | null;
-    const logoUrl =
-      ficha?.bucket_logo && ficha?.ruta_logo
-        ? supabase.storage.from(ficha.bucket_logo).getPublicUrl(ficha.ruta_logo).data?.publicUrl ?? null
-        : null;
-    const email = sesion.email ?? profile.email ?? '';
-
-    return {
-      id: profile.id,
-      name: profile.nombre_completo || email.split('@')[0],
-      email,
-      role: profile.rol_sistema as User['role'],
-      isMember: profile.activo || false,
-      entityId,
-      entityRole,
-      subscriptionEstado: (subRes.data as { estado: string | null } | null)?.estado ?? null,
-      tutorialesVistos: profile.tutoriales_vistos ?? {},
-      creadoEn: profile.creado_en ?? null,
-      entidadEstado: ficha?.estado ?? null,
-      logoUrl,
-    };
-  } catch {
-    return null;
-  }
-}
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const initialUser = await getServerUser();
-
   return (
     <html lang="es-AR" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body
@@ -219,7 +141,7 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SITIO) }}
         />
-        <AuthProvider initialUser={initialUser}>
+        <AuthProvider>
           <TourProvider>
             <AppShell>{children}</AppShell>
           </TourProvider>

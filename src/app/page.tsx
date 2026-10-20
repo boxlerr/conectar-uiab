@@ -25,6 +25,13 @@ export const metadata: Metadata = {
  * (/directorio) y sin backlinks externos, ese era el enlace interno más caro
  * que el proyecto estaba tirando a la basura.
  */
+/**
+ * Sale del CDN desde que el layout raíz dejó de leer la sesión. Lo único que
+ * lee de la base es el banner de logos de las socias: con una hora alcanza
+ * (sin `revalidate` quedaría congelado hasta el próximo deploy).
+ */
+export const revalidate = 3600;
+
 export default async function Page() {
   const sociasLogos = await obtenerSociasConLogo();
   return (

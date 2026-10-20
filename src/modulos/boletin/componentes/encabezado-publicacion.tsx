@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck } from "lucide-react";
-import { fechaLegible, rutaComunicado, tiempoCorto } from "../formato";
+import { fechaLegible, rutaComunicado } from "../formato";
+import { TiempoCorto } from "./tiempo-corto";
 import type { ComunicadoPublico } from "../tipos";
 
 /**
@@ -37,9 +38,7 @@ export function EncabezadoPublicacion({
             className="hover:underline"
             title={fechaLegible(c.publicado_en)}
           >
-            <time dateTime={c.publicado_en ?? undefined} suppressHydrationWarning>
-              {tiempoCorto(c.publicado_en)}
-            </time>
+            <TiempoCorto iso={c.publicado_en} />
           </Link>
         </div>
       </div>

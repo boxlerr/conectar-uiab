@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/servidor";
 import { revalidatePath } from "next/cache";
 import { exigirSuscripcion } from "@/lib/autenticacion/exigir-suscripcion";
+import { revalidarFichasPublicas } from "@/lib/cache/fichas-publicas";
 
 export type EnlaceItem = {
   tipo: "web" | "video" | "ficha" | "catalogo" | "otro";
@@ -123,6 +124,7 @@ export async function createItem(
   }
 
   revalidatePath("/perfil/productos-servicios");
+  revalidarFichasPublicas();
   return { success: true, id: data.id };
 }
 
@@ -167,6 +169,7 @@ export async function createItemsBulk(
   }
 
   revalidatePath("/perfil/productos-servicios");
+  revalidarFichasPublicas();
   return { success: true, count: count ?? rows.length };
 }
 
@@ -202,6 +205,7 @@ export async function updateItem(id: string, payload: ItemPayload) {
     return { error: error.message };
   }
   revalidatePath("/perfil/productos-servicios");
+  revalidarFichasPublicas();
   return { success: true };
 }
 
@@ -234,6 +238,7 @@ export async function deleteItem(id: string) {
     return { error: error.message };
   }
   revalidatePath("/perfil/productos-servicios");
+  revalidarFichasPublicas();
   return { success: true };
 }
 
@@ -272,6 +277,7 @@ export async function registrarImagenItem(args: {
     return { error: error.message };
   }
   revalidatePath("/perfil/productos-servicios");
+  revalidarFichasPublicas();
   return { success: true, imagen: data };
 }
 
@@ -297,6 +303,7 @@ export async function eliminarImagenItem(imagen_id: string) {
   if (error) return { error: error.message };
 
   revalidatePath("/perfil/productos-servicios");
+  revalidarFichasPublicas();
   return { success: true };
 }
 
@@ -309,5 +316,6 @@ export async function reordenarImagenesItem(ordenes: { id: string; orden: number
     await supabase.from("imagenes_item").update({ orden: o.orden }).eq("id", o.id);
   }
   revalidatePath("/perfil/productos-servicios");
+  revalidarFichasPublicas();
   return { success: true };
 }
