@@ -216,6 +216,12 @@ export function parsearReporteCobros(texto: string): ResultadoParseo {
 
 export type AccionConciliacion =
   | "activar"
+  /**
+   * Cobrado al precio vigente del panel, que ya no es el que figura en la
+   * suscripción: hubo un cambio de precio y el plan del portal ya lo tiene. Se
+   * aplica, y la suscripción queda en el precio nuevo.
+   */
+  | "precio_nuevo"
   /** Anual: primer cobro prorrateado hasta la fecha comun del plan. Se aplica igual. */
   | "primer_cobro_anual"
   | "ya_registrado"
@@ -226,7 +232,7 @@ export type AccionConciliacion =
 
 /** Acciones que, al confirmar, escriben el pago y activan la suscripcion. */
 export function activaLaSuscripcion(accion: AccionConciliacion): boolean {
-  return accion === "activar" || accion === "primer_cobro_anual";
+  return accion === "activar" || accion === "precio_nuevo" || accion === "primer_cobro_anual";
 }
 
 export interface EntradaDecision {
@@ -245,6 +251,20 @@ export interface EntradaDecision {
    * este módulo se mantiene puro a propósito.
    */
   prorrateoEsperado?: number | null;
+  /**
+   * El precio de lista vigente para el ciclo de esta suscripción, el del panel
+   * (`leerPrecios()`). Lo pasa el llamador, como el prorrateo.
+   *
+   * Hace falta porque `suscripciones.monto` es el precio que se le anotó al
+   * socio cuando se suscribió, y cambiar el precio en el panel no lo toca. Sin
+   * esto, después de un aumento —con el plan del portal ya actualizado— el
+   * primer débito de cada suscriptor viejo caía en "monto no coincide" y no se
+   * activaba solo. Ver `decidirAccion()` sobre por qué se compara contra los
+   * dos en vez de reescribir `monto` al cambiar el precio.
+   */
+  precioVigente?: number | null;
+  /** El prorrateo del primer cobro anual calculado sobre `precioVigente`. */
+  prorrateoVigente?: number | null;
 }
 
 /**
@@ -267,6 +287,28 @@ export interface EntradaDecision {
 const PRORRATEO_MINIMO = 0.5;
 const PRORRATEO_MAXIMO = 1.15;
 
+/** Una diferencia de centavos —redondeos del reporte— no frena un cobro. */
+const TOLERANCIA = 0.5;
+
+function coincide(a: number, b: number): boolean {
+  return Math.abs(a - b) <= TOLERANCIA;
+}
+
+/** ¿`cobrado` es el primer cobro prorrateado de un anual que vale `precioLleno`? */
+function pareceProrrateo(cobrado: number, prorrateo: number | null, precioLleno: number): boolean {
+  return (
+    prorrateo !== null &&
+    prorrateo > 0 &&
+    cobrado >= prorrateo * PRORRATEO_MINIMO &&
+    cobrado <= prorrateo * PRORRATEO_MAXIMO &&
+    cobrado < precioLleno
+  );
+}
+
+function pesos(n: number): string {
+  return n.toLocaleString("es-AR");
+}
+
 /**
  * La decisión, sin base de datos de por medio.
  *
@@ -280,6 +322,21 @@ const PRORRATEO_MAXIMO = 1.15;
  * El orden de los chequeos importa: cortesía se pregunta ANTES que el monto y
  * que cualquier otra cosa, así que ninguna rama posterior puede pasarla por
  * arriba.
+ *
+ * EL IMPORTE SE ACEPTA CONTRA DOS REFERENCIAS: lo que figura en la suscripción
+ * y el precio vigente del panel. Después de un cambio de precio hay un tiempo
+ * en que conviven: hasta que alguien edita el plan en el portal Sipago sigue
+ * debitando el viejo, y después debita el nuevo. Las dos cosas son cobros
+ * legítimos.
+ *
+ * La alternativa era que `actualizarPrecios()` reescribiera el `monto` de todos
+ * los suscriptos al guardar, y rompía más de lo que arreglaba: los débitos al
+ * precio viejo —mientras el portal no se actualiza— pasaban a caer en "monto no
+ * coincide", y una orden del Checkout creada antes del cambio dejaba de cerrar
+ * contra la suscripción en `acreditacion.ts`, así que quien ya había pagado
+ * quedaba sin activar. Así, en cambio, cada suscripción pasa al precio nuevo
+ * con su propio cobro, y el pago que la movió queda registrado con el monto
+ * anterior en la nota.
  */
 export function decidirAccion(e: EntradaDecision): { accion: AccionConciliacion; detalle: string } {
   if (!e.fila.aprobado) {
@@ -303,35 +360,51 @@ export function decidirAccion(e: EntradaDecision): { accion: AccionConciliacion;
   }
 
   const esperado = Number(e.suscripcion?.monto) || 0;
-  if (e.fila.monto !== null && esperado > 0 && Math.abs(e.fila.monto - esperado) > 0.5) {
-    const esAnual = e.suscripcion?.ciclo === "anual";
-    const prorrateo = e.prorrateoEsperado ?? null;
-    const pareceProrrateo =
-      esAnual &&
-      e.esPrimerCobro === true &&
-      prorrateo !== null &&
-      prorrateo > 0 &&
-      e.fila.monto >= prorrateo * PRORRATEO_MINIMO &&
-      e.fila.monto <= prorrateo * PRORRATEO_MAXIMO &&
-      e.fila.monto < esperado;
+  const cobrado = e.fila.monto;
+  if (cobrado === null || esperado <= 0 || coincide(cobrado, esperado)) {
+    return { accion: "activar", detalle: "Se va a registrar el pago y activar la suscripción." };
+  }
 
-    if (pareceProrrateo) {
-      return {
-        accion: "primer_cobro_anual",
-        detalle:
-          `Primer cobro prorrateado hasta la fecha común del plan: ` +
-          `$${e.fila.monto.toLocaleString("es-AR")} de $${esperado.toLocaleString("es-AR")}. ` +
-          `El año que viene se le cobra el precio completo.`,
-      };
-    }
+  const vigente = e.precioVigente != null && e.precioVigente > 0 ? e.precioVigente : null;
 
+  // Después de la cortesía y del duplicado, nunca antes: una socia del padrón
+  // cobrada justo al precio de lista sigue sin tocarse.
+  if (vigente !== null && coincide(cobrado, vigente)) {
     return {
-      accion: "monto_no_coincide",
+      accion: "precio_nuevo",
       detalle:
-        `El reporte dice $${e.fila.monto.toLocaleString("es-AR")} y ` +
-        `la suscripción figura en $${esperado.toLocaleString("es-AR")}.`,
+        `Cobrado al precio vigente del panel, $${pesos(vigente)}. La suscripción figuraba en ` +
+        `$${pesos(esperado)}, de antes del cambio de precio: al confirmar queda en $${pesos(vigente)}.`,
     };
   }
 
-  return { accion: "activar", detalle: "Se va a registrar el pago y activar la suscripción." };
+  // El prorrateo puede venir calculado sobre cualquiera de los dos precios: el
+  // que se le anotó al socio, o el nuevo si se adhirió después del aumento.
+  let precioDelProrrateo: number | null = null;
+  if (e.suscripcion?.ciclo === "anual" && e.esPrimerCobro === true) {
+    if (pareceProrrateo(cobrado, e.prorrateoEsperado ?? null, esperado)) {
+      precioDelProrrateo = esperado;
+    } else if (vigente !== null && pareceProrrateo(cobrado, e.prorrateoVigente ?? null, vigente)) {
+      precioDelProrrateo = vigente;
+    }
+  }
+
+  if (precioDelProrrateo !== null) {
+    return {
+      accion: "primer_cobro_anual",
+      detalle:
+        `Primer cobro prorrateado hasta la fecha común del plan: ` +
+        `$${pesos(cobrado)} de $${pesos(precioDelProrrateo)}. ` +
+        `El año que viene se le cobra el precio completo.`,
+    };
+  }
+
+  return {
+    accion: "monto_no_coincide",
+    detalle:
+      `El reporte dice $${pesos(cobrado)} y la suscripción figura en $${pesos(esperado)}` +
+      (vigente !== null && !coincide(vigente, esperado)
+        ? `; el precio vigente del panel es $${pesos(vigente)}.`
+        : "."),
+  };
 }
