@@ -1,0 +1,16 @@
+IGUAL  anon     /nosotros          final: Directorio Empresas y entidades Oportunidades Boletín Más Sumate Ingresar
+IGUAL  anon     /empresas/vaxler   final: Directorio Empresas y entidades Oportunidades Boletín Más Sumate Ingresar
+IGUAL  anon     /boletin           final: Directorio Empresas y entidades Oportunidades Boletín Más Sumate Ingresar
+IGUAL  anon     /rubros            final: Directorio Empresas y entidades Oportunidades Boletín Más Sumate Ingresar
+IGUAL  anon     /sumate            final: Directorio Empresas y entidades Oportunidades Boletín Más Sumate Ingresar
+IGUAL  anon     /privacidad        final: Directorio Empresas y entidades Oportunidades Boletín Más Sumate Ingresar
+IGUAL  anon     /directorio        final: Directorio Empresas y entidades Oportunidades Boletín Más Sumate Ingresar
+IGUAL  logueado /nosotros          final: Directorio Oportunidades Panel de Control Boletín Más Lucas
+IGUAL  logueado /empresas/vaxler   final: Directorio Oportunidades Panel de Control Boletín Más Lucas
+IGUAL  logueado /boletin           final: Directorio Oportunidades Panel de Control Boletín Más Lucas
+IGUAL  logueado /rubros            final: Directorio Oportunidades Panel de Control Boletín Más Lucas
+IGUAL  logueado /sumate            final: Directorio Oportunidades Panel de Control Boletín Más Lucas
+IGUAL  logueado /privacidad        final: Directorio Oportunidades Panel de Control Boletín Más Lucas
+IGUAL  logueado /directorio        final: Directorio Oportunidades Panel de Control Boletín Más Lucas
+IGUAL  logueado /panel-de-control  final: Directorio Oportunidades Panel de Control Boletín Más Lucas
+Header igual en todas

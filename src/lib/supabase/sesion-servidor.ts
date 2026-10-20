@@ -20,9 +20,11 @@ import { resolverEntidadDePerfil } from '@/modulos/autenticacion/entidad-del-per
  * verifica la firma y el vencimiento en el servidor, con la JWKS cacheada a
  * nivel de módulo, sin ir a Supabase Auth: un viaje menos por render. Lo que
  * NO detecta es una sesión revocada antes de vencer (≤ 1 h). No hace falta acá
- * porque el middleware ya llama a `getUser()` —con red— en cada request y es
- * el que decide el acceso a las rutas privadas; estas lecturas son para
- * renderizar. Las RLS siguen validando el JWT en Postgres igual que antes.
+ * porque el middleware llama a `getUser()` —con red— en cada request a una
+ * ruta privada, paga o de entrada, y es el que decide el acceso; estas
+ * lecturas son para renderizar. En las rutas de lectura (públicas) el
+ * middleware también usa `getClaims()`: ver `sesionDeLectura` en
+ * ./middleware.ts. Las RLS siguen validando el JWT en Postgres igual que antes.
  *
  * Sin `import "server-only"` a propósito: en Turbopack eso rompe la
  * hidratación en silencio si un client component lo importa de rebote. Este
