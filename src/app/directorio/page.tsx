@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { ogPorRuta } from "@/lib/seo/og";
 import { obtenerDirectorio } from "./datos";
 import { DirectorioCliente } from "./directorio-cliente";
@@ -65,9 +64,10 @@ export default async function DirectorioPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemList) }}
       />
-      <Suspense fallback={null}>
-        <DirectorioCliente entidades={entidades} />
-      </Suspense>
+      {/* Sin <Suspense>: la ruta es force-dynamic, así que useSearchParams no
+          suspende, y con el boundary React mandaba el directorio al final del
+          HTML, debajo de ExplorarPorRubro (ver src/app/empresas/page.tsx). */}
+      <DirectorioCliente entidades={entidades} />
       {/* Convierte el hub plano (59 enlaces a fichas y nada más) en uno
           jerárquico, y hace rastreables las 13 landings de rubro desde una
           página que Google ya visita. */}

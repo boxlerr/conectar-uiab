@@ -13,13 +13,13 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "es-AR",
     icons: [
       {
-        src: "/icono-uiab.svg",
-        sizes: "any",
-        type: "image/svg+xml",
+        src: "/icono-uiab-192.png",
+        sizes: "192x192",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icono-uiab.png",
+        src: "/icono-uiab-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",

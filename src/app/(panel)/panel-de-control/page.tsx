@@ -1,5 +1,3 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { BannerSuscripcion, DashboardBlurGate } from '@/components/ui/BannerSuscripcion';
 import { AvisoDatosFaltantes, faltantesDeLaFicha } from '@/components/ui/aviso-datos-faltantes';
@@ -7,7 +5,8 @@ import { AvisoEtiquetasPrecargadas } from '@/components/ui/aviso-etiquetas-preca
 import { AvisoConflictosPadron } from '@/modulos/altas/componentes/aviso-conflictos-padron';
 import { conflictosPendientes, type ConflictoPadron } from '@/modulos/altas/padron';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { resolverEntidadDePerfil } from '@/modulos/autenticacion/entidad-del-perfil';
+import { createClient } from '@/lib/supabase/servidor';
+import { obtenerEntidadSesion, obtenerPerfilSesion, obtenerSesion } from '@/lib/supabase/sesion-servidor';
 import { hrefFichaDeCandidato, slugDeEmpresa, slugDeProveedor } from '@/modulos/compartido/ficha-publica';
 import { textoDeFicha } from '@/modulos/compartido/texto-ficha';
 import { urlPublicaDeLogo } from '@/modulos/oportunidades/solicitante';
@@ -126,24 +125,22 @@ const ESTADO_OP: Record<string, { label: string; style: string }> = {
 // ═══════════════════════════════════════════════════════════
 
 export default async function DashboardPage() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll(); } } },
-  );
+  const supabase = await createClient();
 
   // ── Auth ──
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) redirect('/login');
+  // El acceso lo decidió el middleware con getUser(); acá la sesión es para
+  // leer el id (ver sesion-servidor.ts por qué alcanza con getClaims).
+  const user = await obtenerSesion();
+  if (!user) redirect('/login');
 
-  // `tutoriales_vistos` lo necesita el feed de novedades para saber cuáles ya
-  // cerró: se trae acá para no hacerle un fetch aparte.
-  const { data: profile } = await supabase
-    .from('perfiles')
-    .select('id, nombre_completo, rol_sistema, activo, email, tutoriales_vistos, creado_en')
-    .eq('id', user.id)
-    .single();
+  // Perfil y ficha dependen sólo del id, así que van juntos. Son las mismas
+  // lecturas que hace el layout raíz en este render: `cache()` hace que se
+  // consulten una sola vez. `tutoriales_vistos` lo necesita el feed de
+  // novedades para saber cuáles ya cerró.
+  const [profile, entidad] = await Promise.all([
+    obtenerPerfilSesion(user.id),
+    obtenerEntidadSesion(user.id),
+  ]);
 
   const role = (profile?.rol_sistema as string) || 'guest';
   const isAdmin = role === 'admin';
@@ -154,25 +151,10 @@ export default async function DashboardPage() {
   // panel vacío, porque `isCompany` salía de `rol_sistema` y nunca llegaba a
   // buscar la ficha. Los bloques de admin siguen colgando de `isAdmin`, así
   // que un admin con ficha ve las dos cosas.
-  const entidad = await resolverEntidadDePerfil(supabase, user.id);
   const entityId: string | null = entidad?.id ?? null;
   const isCompany = entidad?.tipo === 'company';
   const isProvider = entidad?.tipo === 'provider';
   const tieneFicha = isCompany || isProvider;
-
-  // ── Diferencias con el padrón que la socia todavía no revisó ──
-  // `altas_socios` es deny-by-default para authenticated, así que va por el
-  // admin client. El filtro por empresa_id acota la lectura a su propia alta.
-  let conflictosPadron: ConflictoPadron[] = [];
-  if (isCompany && entityId) {
-    const { data: altas } = await createAdminClient()
-      .from('altas_socios')
-      .select('conflictos_padron')
-      .eq('empresa_id', entityId)
-      .is('conflictos_revisados_en', null)
-      .limit(1);
-    conflictosPadron = conflictosPendientes(altas?.[0]?.conflictos_padron as ConflictoPadron[] | null);
-  }
 
   // Boletín: aparte del Promise.all de abajo porque lee con service role (ver
   // consultas.ts) y no con el `supabase` de sesión que arma ese bloque. Se
@@ -198,6 +180,9 @@ export default async function DashboardPage() {
     notificacionesRes,
     sinLeerRes,
     visitas,
+    altasRes,
+    latestOpRes,
+    myItemsRes,
   ] = await Promise.all([
     // 1) Contadores globales
     Promise.all([
@@ -282,7 +267,39 @@ export default async function DashboardPage() {
     entityId && tieneFicha
       ? estadisticasDeVisitas(isCompany ? 'company' : 'provider', entityId)
       : Promise.resolve(estadisticasVacias()),
+    // Las tres que siguen iban DESPUÉS de este Promise.all, una detrás de la
+    // otra, aunque sólo dependen de `entityId`: eran tres viajes más en serie.
+    // 18) Diferencias con el padrón que la socia todavía no revisó.
+    //     `altas_socios` es deny-by-default para authenticated, así que va por
+    //     el admin client. El filtro por empresa_id acota la lectura a su alta.
+    isCompany && entityId
+      ? createAdminClient()
+          .from('altas_socios')
+          .select('conflictos_padron')
+          .eq('empresa_id', entityId)
+          .is('conflictos_revisados_en', null)
+          .limit(1)
+      : Promise.resolve({ data: null }),
+    // 19) Última oportunidad abierta propia (de ella cuelgan los matches).
+    isCompany && entityId
+      ? supabase.from('oportunidades').select('id')
+          .eq('empresa_solicitante_id', entityId).eq('estado', 'abierta')
+          .order('creado_en', { ascending: false }).limit(1).maybeSingle()
+      : Promise.resolve({ data: null }),
+    // 20) Productos / Servicios: los 3 más nuevos, para la tira del panel.
+    tieneFicha && entityId
+      ? supabase.from('items')
+          .select('id, nombre, precio, estado, tipo_item, creado_en, imagenes:imagenes_item(bucket, ruta_archivo, orden)')
+          .eq(isCompany ? 'empresa_id' : 'proveedor_id', entityId)
+          .order('creado_en', { ascending: false })
+          .order('orden', { foreignTable: 'imagenes_item', ascending: true })
+          .limit(3)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  const conflictosPadron: ConflictoPadron[] = conflictosPendientes(
+    ((altasRes as any).data as any[] | null)?.[0]?.conflictos_padron as ConflictoPadron[] | null,
+  );
 
   const comunicadosBoletin = await comunicadosBoletinPromise;
 
@@ -329,9 +346,7 @@ export default async function DashboardPage() {
   let dashboardMatches: any[] = [];
   let ultimaOportunidadId: string | null = null;
   if (isCompany && entityId) {
-    const { data: latestOp } = await supabase.from('oportunidades').select('id')
-      .eq('empresa_solicitante_id', entityId).eq('estado', 'abierta')
-      .order('creado_en', { ascending: false }).limit(1).maybeSingle();
+    const latestOp = (latestOpRes as any).data as { id: string } | null;
     if (latestOp) {
       ultimaOportunidadId = latestOp.id;
       const { data } = await supabase.from('oportunidades_matches')
@@ -350,16 +365,7 @@ export default async function DashboardPage() {
     dashboardMatches = data || [];
   }
 
-  // ── Productos / Servicios (los 3 más nuevos, para la tira del panel) ──
-  const { data: myItemsData } = tieneFicha && entityId
-    ? await supabase.from('items')
-        .select('id, nombre, precio, estado, tipo_item, creado_en, imagenes:imagenes_item(bucket, ruta_archivo, orden)')
-        .eq(isCompany ? 'empresa_id' : 'proveedor_id', entityId)
-        .order('creado_en', { ascending: false })
-        .order('orden', { foreignTable: 'imagenes_item', ascending: true })
-        .limit(3)
-    : { data: [] };
-  const myItems = myItemsData || [];
+  const myItems = ((myItemsRes as any).data as any[] | null) || [];
 
   // ── Derivados ──
   const { pct: profilePct } = entityData

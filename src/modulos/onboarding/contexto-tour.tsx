@@ -518,9 +518,19 @@ export function TourProvider({ children }: TourProviderProps) {
     [tourActivo, iniciarTour, terminarTour, tourVisto, tourIncompleto]
   );
 
+  // ── Montaje perezoso de Joyride ───────────────────────────────────
+  // Joyride (~24 KB comprimidos) se montaba en TODAS las páginas, y como es un
+  // `dynamic()`, montarlo es lo que dispara la descarga: lo bajaban también los
+  // visitantes sin cuenta, que nunca ven un tour. Ahora se monta la primera vez
+  // que arranca un tour y desde ahí queda montado para siempre, que es lo que
+  // pide el comentario de abajo. Es el patrón de "ajustar estado durante el
+  // render" (un latch que sólo pasa de false a true), no un efecto.
+  const [joyrideMontado, setJoyrideMontado] = useState(false);
+  if (tourActivo !== null && !joyrideMontado) setJoyrideMontado(true);
+
   // ── Pasos vacíos para cuando no hay tour activo ───────────────────
-  // Mantenemos <Joyride> SIEMPRE montado para que pueda limpiar su
-  // overlay antes de desmontarse. Si lo desmontamos mientras `run=true`
+  // Una vez montado, <Joyride> queda SIEMPRE montado para que pueda limpiar
+  // su overlay antes de desmontarse. Si lo desmontamos mientras `run=true`
   // el overlay gris queda congelado en pantalla.
   const pasosMostrar = pasos.length > 0 ? pasos : [
     { target: "body", content: "", data: { ruta: "/" } } as Step,
@@ -529,7 +539,7 @@ export function TourProvider({ children }: TourProviderProps) {
   return (
     <TourContext.Provider value={valor}>
       {children}
-      <Joyride
+      {joyrideMontado && <Joyride
         steps={pasosMostrar}
         run={corriendo && (tourActivo !== null)}
         stepIndex={stepIndex}
@@ -629,7 +639,7 @@ export function TourProvider({ children }: TourProviderProps) {
             strokeWidth: 1,
           },
         }}
-      />
+      />}
     </TourContext.Provider>
   );
 }

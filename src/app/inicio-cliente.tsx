@@ -345,10 +345,10 @@ export default function Home({ sociasLogos }: { sociasLogos: SociaConLogo[] }) {
                   <div className="flex items-center gap-4">
                     <div className="relative w-11 h-11 flex items-center justify-center bg-white/10 rounded-sm p-1.5">
                        <Image
-                         src="/icono-uiab.svg"
+                         src="/icono-uiab-512.png"
                          alt="Logo UIAB Conecta — Aval institucional Unión Industrial de Almirante Brown"
-                         width={1536}
-                         height={1536}
+                         width={32}
+                         height={32}
                          className="object-contain"
                        />
                     </div>

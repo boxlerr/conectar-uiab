@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, MapPin, Star, User, Mail, Phone } from "lucide-react";
@@ -13,7 +14,15 @@ interface ProfileCardProps {
   colorScheme?: 'blue' | 'emerald' | 'violet' | 'amber' | 'teal';
 }
 
-export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colorScheme = 'blue' }: ProfileCardProps) {
+/**
+ * `memo` porque las listas del directorio se re-renderizan en cada tecla del
+ * buscador: sin esto, tipear "metalurgica" en /directorio volvía a dibujar las
+ * ~60 tarjetas once veces (13.058 renders de componentes en total, medido el
+ * 2026-10-20). Las props son la fila de la entidad —el mismo objeto mientras
+ * no cambien los datos— y tres strings, así que la comparación superficial
+ * alcanza: sólo se dibujan las tarjetas que entran o salen del resultado.
+ */
+export const DirectoryProfileCard = memo(function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colorScheme = 'blue' }: ProfileCardProps) {
   const isParticular = entidad.esSocio === false;
   // En el directorio unificado la lista viene mezclada: el chip de tipo es lo
   // que permite distinguir de un vistazo una financiera de una cooperativa.
@@ -354,4 +363,4 @@ export function DirectoryProfileCard({ entidad, basePath, variant = 'grid', colo
       </div>
     </Link>
   );
-}
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@/tipos";
 import { createClient } from "@/lib/supabase/cliente";
@@ -51,8 +51,21 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
   const currentUserRef = useRef(currentUser);
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
-  const openAuthModal = () => setIsAuthModalOpen(true);
-  const closeAuthModal = () => setIsAuthModalOpen(false);
+  const openAuthModal = useCallback(() => setIsAuthModalOpen(true), []);
+  const closeAuthModal = useCallback(() => setIsAuthModalOpen(false), []);
+
+  /**
+   * Guarda el perfil SÓLO si cambió. Cada `setCurrentUser` con un objeto nuevo
+   * —aunque traiga exactamente los mismos datos— cambia el contexto y
+   * re-renderiza a todos los que usan `useAuth()` (~40 componentes, el header y
+   * la página incluidos). Con el mismo contenido se devuelve el objeto de antes
+   * y React no re-renderiza nada.
+   */
+  const aplicarPerfil = useCallback((perfil: User) => {
+    setCurrentUser((actual) =>
+      actual && JSON.stringify(actual) === JSON.stringify(perfil) ? actual : perfil
+    );
+  }, []);
 
   const fetchProfile = useCallback(async (userId: string, email: string): Promise<User | null> => {
     dbg('fetchProfile:start', userId);
@@ -176,7 +189,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
         if (!currentUserRef.current) setCurrentUser(null);
       } else {
         const profile = await fetchProfile(user.id, user.email!);
-        if (profile) setCurrentUser(profile);
+        if (profile) aplicarPerfil(profile);
         else if (!currentUserRef.current) setCurrentUser(null);
       }
     } catch (err) {
@@ -186,7 +199,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
       setLoading(false);
       dbg('refreshUser:done');
     }
-  }, [supabase, fetchProfile]);
+  }, [supabase, fetchProfile, aplicarPerfil]);
 
   useEffect(() => {
     // Only fetch on mount if we didn't receive initialUser from the server
@@ -219,6 +232,18 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
 
     const manejarCambioDeSesion = async (event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // auth-js re-emite SIGNED_IN en CADA vuelta a la pestaña. Si es el
+        // mismo usuario que ya tenemos no hay nada nuevo que leer: antes esto
+        // disparaba tres queries en serie desde el browser (perfil, membresía,
+        // suscripción) y re-renderizaba la app entera — 191 componentes en el
+        // panel por cada vez que alguien volvía a la pestaña (medido el
+        // 2026-10-20). Los datos se siguen refrescando: con TOKEN_REFRESHED
+        // (~cada 50 min), con `refreshUser()` después de guardar, y en cada
+        // navegación completa (el servidor manda `initialUser` nuevo).
+        if (event === 'SIGNED_IN' && session?.user && currentUserRef.current?.id === session.user.id) {
+          setLoading(false);
+          return;
+        }
         // El try/finally y el guard de abajo son los mismos que ya tenía
         // `refreshUser`. Este handler se quedó afuera del fix de 188623b y era el
         // agujero por donde volvía el bug: TOKEN_REFRESHED llega solo cada ~50
@@ -228,7 +253,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
         try {
           if (session?.user) {
             const profile = await fetchProfile(session.user.id, session.user.email!);
-            if (profile) setCurrentUser(profile);
+            if (profile) aplicarPerfil(profile);
             else if (!currentUserRef.current) setCurrentUser(null);
           }
         } finally {
@@ -303,7 +328,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
       document.removeEventListener('visibilitychange', handleVisibility);
       clearInterval(healthInterval);
     };
-  }, [supabase, fetchProfile, refreshUser]);
+  }, [supabase, fetchProfile, refreshUser, aplicarPerfil]);
 
   const isLoggingOut = useRef(false);
 
@@ -316,7 +341,7 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
   //
   // Fix real: llamar a una route handler que corre server-side y SÍ puede
   // borrar las cookies via el callback `setAll` del supabase server client.
-  const logout = async () => {
+  const logout = useCallback(async () => {
     if (isLoggingOut.current) return;
     isLoggingOut.current = true;
     console.log('[logout] iniciando');
@@ -361,20 +386,26 @@ export function AuthProvider({ children, initialUser = null }: AuthProviderProps
     } else {
       router.push('/');
     }
-  };
+  }, [supabase, router]);
+
+  // Memoizado: un objeto literal nuevo en cada render del provider (por
+  // ejemplo al abrir el modal de login) re-renderizaba a todos los consumidores
+  // aunque ninguno de los valores hubiera cambiado.
+  const valor = useMemo(
+    () => ({
+      currentUser,
+      loading,
+      logout,
+      refreshUser,
+      isAuthModalOpen,
+      openAuthModal,
+      closeAuthModal,
+    }),
+    [currentUser, loading, logout, refreshUser, isAuthModalOpen, openAuthModal, closeAuthModal]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        loading,
-        logout,
-        refreshUser,
-        isAuthModalOpen,
-        openAuthModal,
-        closeAuthModal,
-      }}
-    >
+    <AuthContext.Provider value={valor}>
       {children}
     </AuthContext.Provider>
   );

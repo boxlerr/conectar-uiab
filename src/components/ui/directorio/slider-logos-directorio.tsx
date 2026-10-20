@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -23,7 +23,10 @@ export interface LogoDirectorio {
   basePath?: string;
 }
 
-export function SliderLogosDirectorio({ logos }: { logos: LogoDirectorio[] }) {
+// `memo`: el directorio se re-renderiza en cada tecla del buscador y el track
+// tiene ~230 logos (la lista repetida para el loop). Con la lista memoizada en
+// el padre, tipear ya no vuelve a dibujar ninguno.
+export const SliderLogosDirectorio = memo(function SliderLogosDirectorio({ logos }: { logos: LogoDirectorio[] }) {
   if (logos.length === 0) return null;
 
   // Aseguramos que el track sea más ancho que la pantalla (si son pocos, se
@@ -53,7 +56,7 @@ export function SliderLogosDirectorio({ logos }: { logos: LogoDirectorio[] }) {
       </div>
     </div>
   );
-}
+});
 
 function formatearWordmark(nombre: string): string {
   return nombre
@@ -87,6 +90,11 @@ function LogoItemView({ logo }: { logo: LogoDirectorio }) {
           width={190}
           height={80}
           loading="eager"
+          // Sin esto React 19 emite un <link rel="preload"> por logo (59 en
+          // /directorio) y el navegador bajaba cada logo dos veces: el ancho
+          // que eligió el preload y el que eligió el <img>. Ver
+          // banner-logos-socias.tsx.
+          fetchPriority="low"
           className="object-contain max-h-[80px] max-w-[190px]"
           onError={() => setErrorLogo(true)}
         />

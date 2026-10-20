@@ -86,9 +86,15 @@ export function DirectorioCliente({ entidades }: DirectorioClienteProps) {
   // socias: los prestadores particulares no tienen logo institucional.
   // La UIAB sale del slider por el mismo motivo que en la home: creó la
   // plataforma, no es una socia participante. Su ficha sigue viva igual.
-  const logosSocias: LogoDirectorio[] = entidades
-    .filter((e) => !!e.logoUrl && e.esSocio !== false && !esEmpresaInstitucional(e.id))
-    .map((e) => ({ slug: e.slug, nombre: e.nombre, logoUrl: e.logoUrl as string }));
+  // Memoizado: si se recalcula en cada render, el slider (memo) recibe un array
+  // nuevo en cada tecla del buscador y vuelve a dibujar sus ~230 logos.
+  const logosSocias: LogoDirectorio[] = useMemo(
+    () =>
+      entidades
+        .filter((e) => !!e.logoUrl && e.esSocio !== false && !esEmpresaInstitucional(e.id))
+        .map((e) => ({ slug: e.slug, nombre: e.nombre, logoUrl: e.logoUrl as string })),
+    [entidades]
+  );
 
   // La URL manda sobre el tipo activo: así `/directorio?tipo=financiera` es un
   // link compartible y los viejos `?tab=prestadores` siguen funcionando.

@@ -41,7 +41,7 @@ export function SeccionBeneficios() {
             <motion.div variants={fadeUp} custom={0} className="flex items-center gap-4 mb-4">
               <div className="relative w-6 h-6 flex-shrink-0">
                 <Image
-                  src="/icono-uiab.svg"
+                  src="/icono-uiab-512.png"
                   alt="Ícono UIAB — Unión Industrial de Almirante Brown"
                   width={32}
                   height={32}
@@ -98,10 +98,10 @@ export function SeccionBeneficios() {
               </div>
 
               <Image
-                src="/logo-uiab-original.svg"
+                src="/logo-uiab-original.png"
                 alt="Logo UIAB — Unión Industrial de Almirante Brown, directorio industrial y comercial de Almirante Brown"
                 width={400}
-                height={200}
+                height={182}
                 className="w-3/4 h-auto mx-auto opacity-65 hover:opacity-100 transition-opacity duration-500"
               />
 

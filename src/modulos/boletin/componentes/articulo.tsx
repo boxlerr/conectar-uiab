@@ -93,7 +93,7 @@ export function Articulo({
         <div className="mt-7 flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-slate-100 pt-5">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white">
-              <Image src="/icono-uiab.svg" alt="" width={30} height={30} />
+              <Image src="/icono-uiab-512.png" alt="" width={30} height={30} />
             </span>
             <div className="min-w-0 leading-tight">
               <div className="flex items-center gap-1">

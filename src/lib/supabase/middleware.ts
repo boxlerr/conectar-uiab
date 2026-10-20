@@ -130,7 +130,31 @@ export async function updateSession(request: NextRequest) {
   // salir a /login — un loop de redirección infinito, del que sólo se salía
   // borrando cookies a mano.
   let cuentaDesactivada = false;
+
+  // Lo que el gate de suscripción (regla 3, más abajo) necesita y este bloque
+  // ya leyó. Antes la regla 3 volvía a pedir perfil y membresía: para una socia
+  // en una ruta paga eran seis viajes EN SERIE a Supabase (getUser, perfil,
+  // membresía, perfil, membresía, suscripción) en cada request, prefetches
+  // incluidos. Ahora son tres: getUser, perfil ∥ membresía, suscripción.
+  let perfilLeido = false;
+  let perfilExiste = false;
+  let rolLeido: string | null | undefined;
+  let fichaDelGate: { fk: 'empresa_id' | 'proveedor_id'; id: string | null } | null = null;
+
   if (user && !userError) {
+    // La membresía de empresa sale YA, en paralelo con el perfil: casi todas
+    // las cuentas son socias, y esperar al rol para pedirla era un viaje más en
+    // serie. Si el rol resulta ser otro, la respuesta se descarta. No hay
+    // rechazo sin dueño: postgrest-js devuelve los errores de red en `error`.
+    const membresiaEmpresa = Promise.resolve(
+      supabase
+        .from('miembros_empresa')
+        .select('empresa_id, empresas(estado)')
+        .eq('perfil_id', user.id)
+        .limit(1)
+        .maybeSingle()
+    );
+
     // El perfil se lee con reintento porque de esta query cuelga TODO el gating
     // de abajo, y cuando falla no devuelve "no sos admin": devuelve nada.
     //
@@ -163,6 +187,9 @@ export async function updateSession(request: NextRequest) {
     // No es lo mismo "el perfil dice que no sos admin" que "no pudimos leer el
     // perfil". Lo primero es una decisión; lo segundo, una falla nuestra.
     const perfilIlegible = Boolean(perfilError);
+    perfilLeido = !perfilIlegible;
+    perfilExiste = Boolean(perfil);
+    rolLeido = perfil?.rol_sistema;
 
     // Usuario desactivado (por su empresa o por la UIAB): el ban de Auth le
     // frena el login nuevo, pero si tenía la sesión abierta el access token
@@ -261,23 +288,22 @@ export async function updateSession(request: NextRequest) {
     if (perfilIlegible) {
       // isApproved queda en true.
     } else if (rol === 'company') {
-      const { data: m } = await supabase
-        .from('miembros_empresa')
-        .select('empresas(estado)')
-        .eq('perfil_id', user.id)
-        .limit(1)
-        .maybeSingle();
-      const estado = (m as { empresas?: { estado?: string } } | null)?.empresas?.estado;
+      const { data: m } = await membresiaEmpresa;
+      const fila = m as { empresa_id?: string; empresas?: { estado?: string } } | null;
+      const estado = fila?.empresas?.estado;
       isApproved = estado === 'aprobada' || estado === 'activo';
+      fichaDelGate = { fk: 'empresa_id', id: fila?.empresa_id ?? null };
     } else if (rol === 'provider') {
       const { data: m } = await supabase
         .from('miembros_proveedor')
-        .select('proveedores(estado)')
+        .select('proveedor_id, proveedores(estado)')
         .eq('perfil_id', user.id)
         .limit(1)
         .maybeSingle();
-      const estado = (m as { proveedores?: { estado?: string } } | null)?.proveedores?.estado;
+      const fila = m as { proveedor_id?: string; proveedores?: { estado?: string } } | null;
+      const estado = fila?.proveedores?.estado;
       isApproved = estado === 'aprobado' || estado === 'activo';
+      fichaDelGate = { fk: 'proveedor_id', id: fila?.proveedor_id ?? null };
     }
     // admin / guest / null → pasan sin gating
   }
@@ -332,24 +358,39 @@ export async function updateSession(request: NextRequest) {
   const gatedRoute = Boolean(user) && !userError && rutaExigeSuscripcion(pathname);
 
   if (gatedRoute) {
-    // Obtener rol + entityId
-    const { data: perfil } = await supabase
-      .from('perfiles')
-      .select('rol_sistema')
-      .eq('id', user!.id)
-      .maybeSingle();
+    // Rol y ficha ya los leyó la regla 2. Sólo si el perfil no se pudo leer
+    // ahí (timeout) se vuelve a intentar acá, como se hacía siempre.
+    let rol = rolLeido;
+    let existe = perfilExiste;
+    let ficha = perfilLeido ? fichaDelGate : null;
+    if (!perfilLeido) {
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('rol_sistema')
+        .eq('id', user!.id)
+        .maybeSingle();
+      rol = perfil?.rol_sistema;
+      existe = Boolean(perfil);
+    }
 
-    if (perfil && perfil.rol_sistema !== 'admin' && perfil.rol_sistema !== 'guest') {
-      const tabla = perfil.rol_sistema === 'company' ? 'miembros_empresa' : 'miembros_proveedor';
-      const fk = perfil.rol_sistema === 'company' ? 'empresa_id' : 'proveedor_id';
-      const { data: m } = await supabase.from(tabla).select(fk).eq('perfil_id', user!.id).maybeSingle();
-      const entityId = (m as any)?.[fk];
+    if (existe && rol !== 'admin' && rol !== 'guest') {
+      if (!ficha) {
+        const tabla = rol === 'company' ? 'miembros_empresa' : 'miembros_proveedor';
+        const fk = rol === 'company' ? 'empresa_id' : 'proveedor_id';
+        const { data: m } = await supabase
+          .from(tabla)
+          .select(fk)
+          .eq('perfil_id', user!.id)
+          .limit(1)
+          .maybeSingle();
+        ficha = { fk, id: ((m as Record<string, string> | null)?.[fk]) ?? null };
+      }
 
-      if (entityId) {
+      if (ficha.id) {
         const { data: sus } = await supabase
           .from('suscripciones')
           .select('estado, gracia_hasta')
-          .eq(fk, entityId)
+          .eq(ficha.fk, ficha.id)
           .order('creado_en', { ascending: false })
           .limit(1)
           .maybeSingle();

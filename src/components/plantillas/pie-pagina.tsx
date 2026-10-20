@@ -99,10 +99,10 @@ export function Footer() {
           <div className="sm:col-span-2 lg:col-span-4 space-y-6">
             <div className="space-y-2">
               <Image
-                src="/logo-uiab-conecta-header.svg"
+                src="/logo-uiab-conecta-header.png"
                 alt="UIAB Conecta"
-                width={1112}
-                height={191}
+                width={323}
+                height={56}
                 className="h-12 xl:h-14 w-auto max-w-full object-contain filter brightness-0 invert opacity-95"
               />
               <p className="text-[11px] text-slate-500 tracking-[0.08em] uppercase leading-none">

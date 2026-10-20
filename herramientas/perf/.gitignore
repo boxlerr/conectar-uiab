@@ -1,0 +1,4 @@
+node_modules/
+.sesion.json
+package.json
+package-lock.json

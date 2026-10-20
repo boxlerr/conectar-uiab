@@ -304,7 +304,7 @@ export default async function NosotrosPage() {
                   Una plataforma de
                 </p>
                 <Image
-                  src="/logo-uiab-original.svg"
+                  src="/logo-uiab-original.png"
                   alt="Unión Industrial de Almirante Brown"
                   width={400}
                   height={182}
@@ -409,7 +409,7 @@ export default async function NosotrosPage() {
                 >
                   <div className="flex h-14 items-center">
                     <Image
-                      src="/logo-uiab-original.svg"
+                      src="/logo-uiab-original.png"
                       alt="Unión Industrial de Almirante Brown"
                       width={400}
                       height={182}
@@ -523,7 +523,7 @@ export default async function NosotrosPage() {
                 La institución
               </h2>
               <Image
-                src="/logo-uiab-original.svg"
+                src="/logo-uiab-original.png"
                 alt="Unión Industrial de Almirante Brown"
                 width={400}
                 height={182}
