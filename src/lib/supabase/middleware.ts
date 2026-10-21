@@ -80,14 +80,6 @@ export async function updateSession(request: NextRequest) {
     return res
   }
 
-  // Do not run code between createServerClient and
-  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
-  // IMPORTANT: If you remove getClaims() and you use server-side rendering
-  // with the Supabase client, your users may be randomly logged out.
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-
   const pathname = request.nextUrl.pathname;
 
   const isApiRoute = pathname.startsWith('/api/');
@@ -109,6 +101,64 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/perfil') ||
     pathname.startsWith('/panel-de-control') ||
     pathname.startsWith('/pendiente-aprobacion');
+
+  const esPaginaDeEntrada = pathname === '/' || pathname === '/login' || pathname === '/register';
+
+  // Rutas donde lo ÚNICO que este archivo puede decidir es sacar a una cuenta
+  // desactivada o con clave provisoria (reglas 2 y 2.a). Ni login obligatorio,
+  // ni aprobación, ni suscripción, ni la redirección de la portada.
+  //
+  // Ahí la sesión se lee con `getClaims()` y no con `getUser()`. Los JWT del
+  // proyecto son ES256: `getClaims()` verifica firma y vencimiento acá mismo,
+  // con la JWKS cacheada a nivel de módulo (10 min), sin ir a Supabase Auth.
+  // `getUser()` era un viaje de red en CADA request de una socia logueada,
+  // también en /nosotros, /rubros, las fichas o el Boletín, que ya salen del
+  // CDN: medido el 2026-10-20, 100-1000 ms de TTFB contra 3-7 ms del anónimo.
+  //
+  // El refresh no cambia: `getClaims()` pasa por `getSession()`, que renueva el
+  // token vencido y escribe las cookies por `setAll` igual que antes.
+  //
+  // Lo que `getClaims()` no ve es una sesión revocada antes de vencer (≤ 1 h).
+  // Por eso las dos redirecciones que sí pueden pasar en estas rutas confirman
+  // con `getUser()` antes de salir (`sesionSigueViva`): con la sesión muerta
+  // hoy el usuario se trataba como anónimo y pasaba, y así sigue. Lo único que
+  // cambia es que en una ruta pública esas cookies muertas no se borran en ese
+  // request sino en el próximo a una ruta privada (o cuando el refresh falle).
+  // Las rutas privadas, la portada, el login y las pagas siguen con `getUser()`.
+  const sesionDeLectura = !isProtectedRoute && !esPaginaDeEntrada && !rutaExigeSuscripcion(pathname);
+
+  // Do not run code between createServerClient and the auth call below. A
+  // simple mistake could make it very hard to debug issues with users being
+  // randomly logged out.
+
+  // IMPORTANT: If you remove getUser()/getClaims() and you use server-side
+  // rendering with the Supabase client, your users may be randomly logged out.
+  let user: { id: string } | null = null;
+  let userError: unknown = null;
+  let sesionConfirmada = !sesionDeLectura;
+  if (sesionDeLectura) {
+    const { data, error } = await supabase.auth.getClaims();
+    const sub = data?.claims?.sub;
+    user = !error && typeof sub === 'string' && sub ? { id: sub } : null;
+  } else {
+    const r = await supabase.auth.getUser();
+    user = r.data.user;
+    userError = r.error;
+  }
+
+  /**
+   * ¿La sesión que dio `getClaims()` sigue viva en Supabase Auth? Se pregunta
+   * sólo antes de redirigir en una ruta de lectura, que es rarísimo: el camino
+   * común (pasar) no paga el viaje. Si dice que no, la respuesta es la de hoy
+   * para un anónimo en una ruta pública: pasar. Y `getUser()` ya borró las
+   * cookies muertas por `setAll`, así que salen en `supabaseResponse`.
+   */
+  const sesionSigueViva = async () => {
+    if (sesionConfirmada) return true;
+    sesionConfirmada = true;
+    const { data, error } = await supabase.auth.getUser();
+    return Boolean(data.user) && !error;
+  };
 
   // 1. Authentication Check (Require JWT)
   if (isProtectedRoute && (!user || userError)) {
@@ -146,14 +196,19 @@ export async function updateSession(request: NextRequest) {
     // las cuentas son socias, y esperar al rol para pedirla era un viaje más en
     // serie. Si el rol resulta ser otro, la respuesta se descarta. No hay
     // rechazo sin dueño: postgrest-js devuelve los errores de red en `error`.
-    const membresiaEmpresa = Promise.resolve(
-      supabase
-        .from('miembros_empresa')
-        .select('empresa_id, empresas(estado)')
-        .eq('perfil_id', user.id)
-        .limit(1)
-        .maybeSingle()
-    );
+    //
+    // En una ruta de lectura no se pide: la membresía sólo alimenta el gate de
+    // aprobación y el de suscripción, y ninguno de los dos aplica ahí.
+    const membresiaEmpresa = sesionDeLectura
+      ? null
+      : Promise.resolve(
+          supabase
+            .from('miembros_empresa')
+            .select('empresa_id, empresas(estado)')
+            .eq('perfil_id', user.id)
+            .limit(1)
+            .maybeSingle()
+        );
 
     // El perfil se lee con reintento porque de esta query cuelga TODO el gating
     // de abajo, y cuando falla no devuelve "no sos admin": devuelve nada.
@@ -197,6 +252,9 @@ export async function updateSession(request: NextRequest) {
     // Va acá y no en una consulta aparte porque es la MISMA query que ya se
     // hacía para el gating por aprobación: no agrega latencia.
     if (perfil && perfil.activo === false) {
+      // En una ruta de lectura, antes de echarla se confirma que la sesión
+      // siga viva (ver `sesionSigueViva`).
+      if (!(await sesionSigueViva())) return supabaseResponse;
       cuentaDesactivada = true;
       // /api/auth/* queda afuera: si le cortamos también el logout, el usuario
       // desactivado se queda con la sesión muerta pegada en el browser y sin
@@ -229,6 +287,7 @@ export async function updateSession(request: NextRequest) {
         pathname.startsWith('/api/auth/') ||
         pathname === '/login';
       if (!permitido) {
+        if (!(await sesionSigueViva())) return supabaseResponse;
         if (isApiRoute) {
           return responderJson(
             { error: 'Tenés que terminar de activar tu cuenta.' },
@@ -285,8 +344,9 @@ export async function updateSession(request: NextRequest) {
     // no protege datos ajenos (para eso están las RLS y los guards de los
     // actions), sólo elige a qué pantalla mandarte. Rebotar a una socia al día
     // hasta /pendiente-aprobacion por un timeout es peor que dejarla seguir.
-    if (perfilIlegible) {
-      // isApproved queda en true.
+    if (perfilIlegible || !membresiaEmpresa) {
+      // isApproved queda en true. Sin `membresiaEmpresa` es una ruta de
+      // lectura: nada de acá abajo decide algo en ella.
     } else if (rol === 'company') {
       const { data: m } = await membresiaEmpresa;
       const fila = m as { empresa_id?: string; empresas?: { estado?: string } } | null;
@@ -328,7 +388,7 @@ export async function updateSession(request: NextRequest) {
   //    `!cuentaDesactivada` es lo que corta el loop: a esa cuenta el bloque de
   //    arriba la dejó justamente en /login para que lea el aviso, así que acá no
   //    hay que volver a sacarla.
-  if (user && !userError && !cuentaDesactivada && (pathname === '/' || pathname === '/login' || pathname === '/register')) {
+  if (user && !userError && !cuentaDesactivada && esPaginaDeEntrada) {
     const url = request.nextUrl.clone()
     url.pathname = isApproved ? '/panel-de-control' : '/pendiente-aprobacion'
     return redirigir(url)

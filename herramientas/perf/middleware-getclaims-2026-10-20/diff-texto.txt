@@ -1,0 +1,28 @@
+IGUAL  anon     /                        líneas 151/151
+IGUAL  anon     /empresas                líneas 205/205
+IGUAL  anon     /directorio              líneas 624/624
+IGUAL  anon     /empresas/vaxler         líneas 90/90
+IGUAL  anon     /nosotros                líneas 73/73
+IGUAL  anon     /boletin                 líneas 17/17
+DIFIERE anon     /rubros                  líneas 44/44
+     - main:  13 EMPRESAS
+     - main:  13 EMPRESAS
+     - main:  11 EMPRESAS
+     - main:  7 EMPRESAS
+     - main:  7 EMPRESAS
+     - main:  7 EMPRESAS
+     + rama:  0 EMPRESAS
+     + rama:  0 EMPRESAS
+     + rama:  0 EMPRESAS
+     + rama:  0 EMPRESAS
+     + rama:  0 EMPRESAS
+     + rama:  0 EMPRESAS
+IGUAL  logueado /panel-de-control        líneas 204/204
+IGUAL  logueado /perfil                  líneas 54/54
+IGUAL  logueado /admin                   líneas 91/91
+IGUAL  logueado /admin/empresas          líneas 22/22
+IGUAL  logueado /oportunidades           líneas 40/40
+IGUAL  logueado /directorio              líneas 622/622
+IGUAL  logueado /empresas/vaxler         líneas 92/92
+
+1 rutas con diferencias

@@ -23,10 +23,19 @@ interface Escenario {
   membresiaEmpresa?: Fila;
   membresiaProveedor?: Fila;
   suscripcion?: Fila;
+  /**
+   * El JWT es válido (firma y vencimiento: `getClaims()` lo acepta) pero la
+   * sesión ya no existe en Supabase Auth: `getUser()` la rechaza. Es lo que
+   * pasa con un cierre de sesión global o una sesión revocada, durante lo que
+   * le queda de vida al access token.
+   */
+  sesionRevocada?: boolean;
 }
 
 let escenario: Escenario;
 let consultas: string[];
+/** Llamadas a Supabase Auth: `getUser` es un viaje de red, `getClaims` no. */
+let auth: string[];
 
 /** Query builder mínimo: encadena todo y al final contesta según la tabla. */
 function consulta(tabla: string) {
@@ -55,10 +64,19 @@ function consulta(tabla: string) {
 vi.mock("@supabase/ssr", () => ({
   createServerClient: () => ({
     auth: {
-      getUser: async () =>
-        escenario.usuario
+      getUser: async () => {
+        auth.push("getUser");
+        return escenario.usuario && !escenario.sesionRevocada
           ? { data: { user: escenario.usuario }, error: null }
-          : { data: { user: null }, error: { message: "sin sesión" } },
+          : { data: { user: null }, error: { message: "sin sesión" } };
+      },
+      // Como auth-js: sin sesión en las cookies devuelve data null SIN error.
+      getClaims: async () => {
+        auth.push("getClaims");
+        return escenario.usuario
+          ? { data: { claims: { sub: escenario.usuario.id } }, error: null }
+          : { data: null, error: null };
+      },
     },
     from: (tabla: string) => consulta(tabla),
   }),
@@ -71,10 +89,11 @@ const AL_DIA = { estado: "activa", gracia_hasta: null };
 async function correr(ruta: string, e: Escenario) {
   escenario = e;
   consultas = [];
+  auth = [];
   const { updateSession } = await import("@/lib/supabase/middleware");
   const res = await updateSession(new NextRequest(`https://www.uiabconecta.com${ruta}`));
   const location = res.headers.get("location");
-  return { status: res.status, destino: location ? new URL(location) : null, consultas };
+  return { status: res.status, destino: location ? new URL(location) : null, consultas, auth };
 }
 
 beforeEach(() => {
@@ -91,6 +110,7 @@ describe("middleware: a dónde va cada cuenta", () => {
     });
     expect(r.destino).toBeNull();
     expect(r.status).toBe(200);
+    expect(r.auth).toEqual(["getUser"]);
   });
 
   it("socia aprobada SIN pagar va a /suscripcion/bloqueado", async () => {
@@ -225,6 +245,7 @@ describe("middleware: a dónde va cada cuenta", () => {
       membresiaEmpresa: EMPRESA_APROBADA,
     });
     expect(r.destino?.pathname).toBe("/panel-de-control");
+    expect(r.auth).toEqual(["getUser"]);
   });
 
   it("lo público no se bloquea aunque no haya pagado", async () => {
@@ -254,5 +275,114 @@ describe("middleware: cuántas veces le pregunta a la base", () => {
   it("sin sesión no consulta nada", async () => {
     const r = await correr("/directorio", { usuario: null });
     expect(r.consultas).toHaveLength(0);
+  });
+});
+
+/**
+ * Rutas de lectura: las que no piden login, ni aprobación, ni suscripción, ni
+ * son la portada/login/registro (/nosotros, /rubros, las fichas, el Boletín,
+ * el directorio). Ahí la sesión se lee con `getClaims()` —sin red— y sólo se
+ * confirma con `getUser()` antes de redirigir. Agregado el 2026-10-20: el
+ * `getUser()` de cada request era casi todo el TTFB de una socia logueada en
+ * páginas que salen del CDN.
+ */
+describe("middleware: rutas de lectura sin viaje a Supabase Auth", () => {
+  const SOCIA_AL_DIA: Escenario = {
+    usuario: SOCIA,
+    perfil: { rol_sistema: "company", activo: true, debe_completar_cuenta: false },
+    membresiaEmpresa: EMPRESA_APROBADA,
+    suscripcion: AL_DIA,
+  };
+
+  it.each(["/nosotros", "/rubros", "/empresas/vaxler", "/boletin", "/directorio", "/api/boletin/vista"])(
+    "socia en %s: pasa, sin getUser y sólo con el perfil",
+    async (ruta) => {
+      const r = await correr(ruta, SOCIA_AL_DIA);
+      expect(r.destino).toBeNull();
+      expect(r.status).toBe(200);
+      expect(r.auth).toEqual(["getClaims"]);
+      expect(r.consultas).toEqual(["perfiles"]);
+    }
+  );
+
+  it("sin sesión tampoco va a Auth ni a la base", async () => {
+    const r = await correr("/nosotros", { usuario: null });
+    expect(r.destino).toBeNull();
+    expect(r.auth).toEqual(["getClaims"]);
+    expect(r.consultas).toHaveLength(0);
+  });
+
+  it("cuenta desactivada en una página pública: confirma la sesión y la saca igual que antes", async () => {
+    const r = await correr("/rubros", {
+      usuario: SOCIA,
+      perfil: { rol_sistema: "company", activo: false },
+      membresiaEmpresa: EMPRESA_APROBADA,
+    });
+    expect(r.destino?.pathname).toBe("/login");
+    expect(r.destino?.searchParams.get("cuenta")).toBe("desactivada");
+    expect(r.auth).toEqual(["getClaims", "getUser"]);
+  });
+
+  it("cuenta desactivada en una API pública: 403 como antes", async () => {
+    const r = await correr("/api/boletin/vista", {
+      usuario: SOCIA,
+      perfil: { rol_sistema: "company", activo: false },
+    });
+    expect(r.status).toBe(403);
+    expect(r.auth).toEqual(["getClaims", "getUser"]);
+  });
+
+  it("clave provisoria en una página pública: va a /completar-cuenta, confirmando la sesión", async () => {
+    const r = await correr("/boletin", {
+      usuario: SOCIA,
+      perfil: { rol_sistema: "company", activo: true, debe_completar_cuenta: true },
+    });
+    expect(r.destino?.pathname).toBe("/completar-cuenta");
+    expect(r.auth).toEqual(["getClaims", "getUser"]);
+  });
+
+  it("con la sesión revocada no la echa: pasa como anónima, igual que con getUser", async () => {
+    // Antes `getUser()` la rechazaba de entrada y la ruta pública pasaba sin
+    // mirar el perfil. Ahora el perfil se lee, pero la redirección se confirma
+    // y, al no confirmarse, la decisión es la misma: pasar.
+    for (const perfil of [
+      { rol_sistema: "company", activo: false },
+      { rol_sistema: "company", activo: true, debe_completar_cuenta: true },
+    ]) {
+      const r = await correr("/nosotros", { usuario: SOCIA, sesionRevocada: true, perfil });
+      expect(r.destino).toBeNull();
+      expect(r.status).toBe(200);
+    }
+  });
+
+  it("con la sesión revocada lo privado sigue mandando al login", async () => {
+    const r = await correr("/perfil", { ...SOCIA_AL_DIA, sesionRevocada: true });
+    expect(r.destino?.pathname).toBe("/login");
+    expect(r.auth).toEqual(["getUser"]);
+  });
+
+  it("/oportunidades es pública pero paga: sigue con getUser y bloquea a quien no pagó", async () => {
+    const r = await correr("/oportunidades", {
+      ...SOCIA_AL_DIA,
+      suscripcion: { estado: "pendiente_pago", gracia_hasta: null },
+    });
+    expect(r.destino?.pathname).toBe("/suscripcion/bloqueado");
+    expect(r.auth).toEqual(["getUser"]);
+  });
+
+  it.each(["/login", "/register"])("con sesión, %s sigue llevando al panel con getUser", async (ruta) => {
+    const r = await correr(ruta, SOCIA_AL_DIA);
+    expect(r.destino?.pathname).toBe("/panel-de-control");
+    expect(r.auth).toEqual(["getUser"]);
+  });
+
+  it("prestador en una página pública: no se pide su membresía", async () => {
+    const r = await correr("/nosotros", {
+      usuario: { id: "perfil-prov" },
+      perfil: { rol_sistema: "provider", activo: true },
+      membresiaProveedor: { proveedor_id: "prov-1", proveedores: { estado: "pendiente_revision" } },
+    });
+    expect(r.destino).toBeNull();
+    expect(r.consultas).toEqual(["perfiles"]);
   });
 });
