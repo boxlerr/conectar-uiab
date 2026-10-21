@@ -1,0 +1,217 @@
+/* Tipografías del sitio de UIAB Conecta: Manrope (títulos del registro) e
+   Inter (cuerpo). Los colores son los del logo y de la interfaz. */
+@font-face {
+  font-family: 'Manrope';
+  src: url('../assets/fuentes/Manrope.ttf') format('truetype');
+  font-weight: 200 800;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('../assets/fuentes/Inter.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: block;
+}
+
+:root {
+  --fondo: #04182b;
+  --navy: #00213f;
+  --azul: #0382bf;
+  --celeste: #5fb9e8;
+  --primario: #2563eb;
+  --naranja: #f97316;
+  --claro: #f2f6fa;
+  --gris: #7f93ab;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: #000;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: var(--fondo);
+  transform-origin: 0 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--claro);
+  font-kerning: normal;
+  text-rendering: geometricPrecision;
+}
+
+#mundo, .escena, .capa {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+}
+.escena { overflow: hidden; }
+canvas.capa { display: block; }
+
+.abs { position: absolute; left: 0; top: 0; }
+.titulo { font-family: 'Manrope', 'Inter', sans-serif; }
+/* Los rótulos chicos van en mayúsculas espaciadas, como las etiquetas del
+   sitio ("REGISTRO · PASO 1 DE 6", "PRECIO CLARO, SIN SORPRESAS"). */
+.etiqueta { font-family: 'Inter', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.22em; }
+
+.mascara {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding: 0.14em 0.04em 0.16em;
+  margin: -0.14em -0.04em -0.16em;
+}
+.mascara-in { display: inline-block; will-change: transform; }
+
+/* ── Ventana del sitio ───────────────────────────────────────────────────── */
+.ventana {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 50px 120px rgba(0, 8, 20, 0.55), 0 12px 30px rgba(0, 8, 20, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  will-change: transform, opacity;
+}
+.ventana .barra {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 40px;
+  background: #eef2f7;
+  border-bottom: 1px solid #dde3eb;
+}
+.ventana .barra i {
+  position: absolute;
+  top: 14px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #cfd6e0;
+}
+.ventana .barra span {
+  position: absolute;
+  left: 50%;
+  top: 9px;
+  transform: translateX(-50%);
+  height: 22px;
+  padding: 0 18px;
+  border-radius: 6px;
+  background: #fff;
+  font: 500 13px/22px 'Inter', sans-serif;
+  color: #5d6b80;
+  white-space: nowrap;
+}
+.ventana .vista { position: absolute; left: 0; overflow: hidden; background: #f6f8fb; }
+.ventana .vista img { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: block; }
+
+/* Resaltado sobre una captura: lo demás se apaga y el campo brilla. */
+.resalte {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 12px;
+  border: 3px solid var(--celeste);
+  pointer-events: none;
+}
+
+/* Cursor del sitio, dibujado: en una captura no hay mouse. */
+.cursor { position: absolute; left: 0; top: 0; width: 34px; height: 34px; pointer-events: none; will-change: transform, opacity; }
+.cursor svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 3px 6px rgba(0, 10, 30, 0.35)); }
+.onda { position: absolute; left: 0; top: 0; border-radius: 50%; border: 3px solid var(--celeste); pointer-events: none; }
+
+/* Píldora (el nodo central y las fichas que se van juntando arriba) */
+.pildora {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  border-radius: 999px;
+  font-family: 'Inter', sans-serif;
+  will-change: transform, opacity;
+}
+.pildora.nodo {
+  padding: 26px 48px;
+  font-size: 42px;
+  font-weight: 700;
+  color: #04182b;
+  background: linear-gradient(180deg, #8fd3f5, #5fb9e8);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 0 60px rgba(95, 185, 232, 0.55), 0 18px 40px rgba(0, 10, 30, 0.45);
+}
+.pildora.satelite {
+  padding: 16px 28px 16px 20px;
+  font-size: 30px;
+  font-weight: 600;
+  color: #e9f4fb;
+  background: rgba(10, 44, 74, 0.92);
+  border: 1px solid rgba(95, 185, 232, 0.45);
+  box-shadow: 0 14px 34px rgba(0, 10, 30, 0.45);
+}
+.pildora.satelite b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #5fb9e8;
+  color: #04182b;
+  font-size: 15px;
+  font-weight: 800;
+}
+.pildora.ficha {
+  padding: 8px 16px 8px 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #dcecf7;
+  background: rgba(8, 40, 68, 0.9);
+  border: 1px solid rgba(95, 185, 232, 0.35);
+}
+.pildora.ficha i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5fb9e8;
+  box-shadow: 0 0 10px rgba(95, 185, 232, 0.9);
+}
+
+/* ── Vista previa (no aparece en el render) ─────────────────────────────── */
+#controles {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(4, 24, 43, 0.92);
+  color: #f2f6fa;
+  font: 13px 'Inter', monospace;
+  z-index: 1000;
+}
+#controles input[type='range'] { flex: 1; }
+#controles button {
+  background: #2563eb;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+body.render #controles { display: none; }

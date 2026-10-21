@@ -1,0 +1,395 @@
+{
+ "_leeme": "Fuente de verdad del instructivo de registro para empresas NO socias (pedido de la UIAB, 2026-10-15). Aprobado entero por Julián el 2026-10-15 (render v2). estado:aprobado significa NO TOCAR. Se graba con `node grabar.mjs --pieza registro` (contra producción, todas las escrituras interceptadas) y se monta con `node montar.mjs --pieza registro --planos`.",
+ "render": "~/Desktop/uiab-renders/registro-uiab-2026-10-15-v2.mp4",
+ "whatsapp": "~/Desktop/uiab-renders/registro-uiab-2026-10-15-v2-whatsapp.mp4",
+ "fps": 25,
+ "ancho": 1920,
+ "alto": 1080,
+ "bookends": [
+  {
+   "id": "apertura",
+   "fuente": "higgsfield",
+   "duracion": 3.2,
+   "estado": "aprobado"
+  },
+  {
+   "id": "cierre",
+   "fuente": "higgsfield",
+   "duracion": 4.8,
+   "estado": "aprobado"
+  }
+ ],
+ "placas": [
+  {
+   "id": "placa-apertura",
+   "despuesDe": "apertura",
+   "titulo": "Qué necesitás",
+   "lista": [
+    "El CUIT de la empresa",
+    "Un mail que uses",
+    "Una tarjeta de débito o crédito"
+   ],
+   "duracion": 4.4,
+   "estado": "aprobado"
+  },
+  {
+   "id": "placa-pago",
+   "despuesDe": "mail",
+   "titulo": "El pago",
+   "texto": "Con débito automático, a través de Sipago.",
+   "duracion": 2,
+   "estado": "aprobado"
+  },
+  {
+   "id": "placa-cierre",
+   "despuesDe": "ficha",
+   "titulo": "Ya sos parte de la red",
+   "texto": "Registrate en uiabconecta.com",
+   "duracion": 3,
+   "estado": "aprobado"
+  }
+ ],
+ "planos": [
+  {
+   "id": "inicio",
+   "capitulo": 1,
+   "inicio": 7.48,
+   "duracion": 4.08,
+   "fuente": "captura",
+   "accion": "home scrolleada 260 px; click en Registrate del hero → /register",
+   "encuadre": "general",
+   "zoom": 1,
+   "recorte": [
+    0,
+    0,
+    1920,
+    1080
+   ],
+   "cartel": "abajo",
+   "texto": "uiabconecta.com → Registrate",
+   "rotulo": "Empezá acá",
+   "estado": "aprobado"
+  },
+  {
+   "id": "quien",
+   "capitulo": 1,
+   "inicio": 11.38,
+   "duracion": 5.4,
+   "fuente": "captura",
+   "accion": "paso 1 con Empresa ya marcada; click en Continuar",
+   "encuadre": "medio",
+   "zoom": 1.3,
+   "recorte": [
+    443,
+    249,
+    1477,
+    831
+   ],
+   "cartel": "arriba",
+   "texto": "Empresa, comercio o profesional.",
+   "rotulo": "Paso 1 · Quién sos",
+   "estado": "aprobado"
+  },
+  {
+   "id": "identidad",
+   "capitulo": 1,
+   "inicio": 16.6,
+   "duracion": 3.84,
+   "fuente": "captura",
+   "accion": "elegir Empresa / Industria; tipear la razón social",
+   "encuadre": "medio",
+   "zoom": 1.4,
+   "recorte": [
+    524,
+    172,
+    1371,
+    771
+   ],
+   "cartel": "abajo",
+   "texto": "Tipo de organización y razón social.",
+   "rotulo": "Paso 2 · Identidad",
+   "estado": "aprobado"
+  },
+  {
+   "id": "cuit",
+   "capitulo": 1,
+   "inicio": 20.26,
+   "duracion": 3.76,
+   "fuente": "captura",
+   "accion": "tipear el CUIT (placeholder del propio campo)",
+   "encuadre": "detalle",
+   "zoom": 1.75,
+   "recorte": [
+    661,
+    329,
+    1097,
+    617
+   ],
+   "cartel": "abajo",
+   "texto": "Tenelo a mano: lo vas a usar para pagar.",
+   "rotulo": "El CUIT",
+   "estado": "aprobado"
+  },
+  {
+   "id": "ubicacion",
+   "capitulo": 1,
+   "inicio": 23.84,
+   "duracion": 4,
+   "fuente": "captura",
+   "accion": "provincia fuera de cuadro; elegir Burzaco y tipear la dirección",
+   "encuadre": "medio",
+   "zoom": 1.4,
+   "recorte": [
+    524,
+    149,
+    1371,
+    771
+   ],
+   "cartel": "abajo",
+   "texto": "Dónde está tu empresa.",
+   "rotulo": "Paso 3 · Ubicación",
+   "estado": "aprobado"
+  },
+  {
+   "id": "descripcion",
+   "capitulo": 1,
+   "inicio": 27.66,
+   "duracion": 3.8,
+   "fuente": "captura",
+   "accion": "tipear la descripción (1.5x)",
+   "encuadre": "detalle",
+   "zoom": 1.75,
+   "recorte": [
+    661,
+    312,
+    1097,
+    617
+   ],
+   "cartel": "abajo",
+   "texto": "Qué hace tu empresa, en pocas líneas.",
+   "rotulo": "Tu presentación",
+   "estado": "aprobado"
+  },
+  {
+   "id": "rubro",
+   "capitulo": 1,
+   "inicio": 31.28,
+   "duracion": 4.4,
+   "fuente": "captura",
+   "accion": "abrir categoría, buscar Metal, elegir Corte y Plegado",
+   "encuadre": "medio",
+   "zoom": 1.4,
+   "recorte": [
+    549,
+    221,
+    1371,
+    771
+   ],
+   "cartel": "abajo",
+   "texto": "Así te encuentran en el directorio.",
+   "rotulo": "Paso 4 · Rubro",
+   "estado": "aprobado"
+  },
+  {
+   "id": "acceso",
+   "capitulo": 1,
+   "inicio": 35.5,
+   "duracion": 3.6,
+   "fuente": "captura",
+   "accion": "tipear mail y contraseña (1.3x)",
+   "encuadre": "detalle",
+   "zoom": 1.6,
+   "recorte": [
+    610,
+    254,
+    1200,
+    675
+   ],
+   "cartel": "abajo",
+   "texto": "Un mail que uses y una contraseña.",
+   "rotulo": "Paso 5 · Acceso",
+   "estado": "aprobado"
+  },
+  {
+   "id": "membresia",
+   "capitulo": 1,
+   "inicio": 38.92,
+   "duracion": 3.32,
+   "fuente": "captura",
+   "accion": "tarjeta del plan, sin acción",
+   "encuadre": "medio",
+   "zoom": 1.5,
+   "recorte": [
+    570,
+    108,
+    1280,
+    720
+   ],
+   "cartel": "abajo",
+   "texto": "Una sola, con todo incluido.",
+   "rotulo": "Paso 6 · Membresía",
+   "estado": "aprobado"
+  },
+  {
+   "id": "finalizar",
+   "capitulo": 1,
+   "inicio": 42.06,
+   "duracion": 3.92,
+   "fuente": "captura",
+   "accion": "click en Finalizar (submit interceptado, no crea nada)",
+   "encuadre": "detalle",
+   "zoom": 1.75,
+   "recorte": [
+    661,
+    435,
+    1097,
+    617
+   ],
+   "cartel": "abajo",
+   "texto": "Al confirmar, se crea tu cuenta.",
+   "rotulo": "Finalizar",
+   "estado": "aprobado"
+  },
+  {
+   "id": "revisa-correo",
+   "capitulo": 1,
+   "inicio": 45.8,
+   "duracion": 3.52,
+   "fuente": "captura",
+   "accion": "pantalla de éxito del registro (simulada)",
+   "encuadre": "medio",
+   "zoom": 1.45,
+   "recorte": [
+    298,
+    170,
+    1324,
+    745
+   ],
+   "cartel": "abajo",
+   "texto": "Te llega un mail para confirmar.",
+   "rotulo": "Revisá tu correo",
+   "estado": "aprobado"
+  },
+  {
+   "id": "mail",
+   "capitulo": 1,
+   "inicio": 49.14,
+   "duracion": 3.92,
+   "fuente": "captura",
+   "accion": "plantilla real del mail de confirmación; click en Confirmar",
+   "encuadre": "medio",
+   "zoom": 1.4,
+   "recorte": [
+    274,
+    0,
+    1371,
+    771
+   ],
+   "cartel": "abajo",
+   "texto": "Un click y pasás al pago.",
+   "rotulo": "Confirmá tu mail",
+   "estado": "aprobado"
+  },
+  {
+   "id": "ciclo",
+   "capitulo": 2,
+   "inicio": 54.94,
+   "duracion": 4.24,
+   "fuente": "captura",
+   "accion": "click en Anual y vuelta a Mensual",
+   "encuadre": "medio",
+   "zoom": 1.5,
+   "recorte": [
+    320,
+    175,
+    1280,
+    720
+   ],
+   "cartel": "abajo",
+   "texto": "Mes a mes, o anual con 2 meses bonificados.",
+   "rotulo": "Elegí cómo pagar",
+   "estado": "aprobado"
+  },
+  {
+   "id": "debito",
+   "capitulo": 2,
+   "inicio": 59,
+   "duracion": 3.28,
+   "fuente": "captura",
+   "accion": "click en Continuar (solicitar interceptado); aparece débito automático",
+   "encuadre": "medio",
+   "zoom": 1.3,
+   "recorte": [
+    222,
+    249,
+    1477,
+    831
+   ],
+   "cartel": "abajo",
+   "texto": "Sipago cobra solo, cada mes.",
+   "rotulo": "Débito automático",
+   "estado": "aprobado"
+  },
+  {
+   "id": "sipago",
+   "capitulo": 2,
+   "inicio": 62.1,
+   "duracion": 3.56,
+   "fuente": "captura",
+   "accion": "cursor al CUIT y al botón Ir a Sipago, sin click (Sipago bloquea bots)",
+   "encuadre": "detalle",
+   "zoom": 1.75,
+   "recorte": [
+    411,
+    155,
+    1097,
+    617
+   ],
+   "cartel": "abajo",
+   "texto": "Cargás tu tarjeta y este mismo CUIT.",
+   "rotulo": "En Sipago",
+   "sello": "Importante",
+   "estado": "aprobado"
+  },
+  {
+   "id": "directorio",
+   "capitulo": 2,
+   "inicio": 65.48,
+   "duracion": 4,
+   "fuente": "captura",
+   "accion": "directorio deslogueado",
+   "encuadre": "general",
+   "zoom": 1,
+   "recorte": [
+    0,
+    0,
+    1920,
+    1080
+   ],
+   "cartel": "abajo",
+   "texto": "La UIAB confirma el pago y aprueba tu ficha.",
+   "rotulo": "Y listo",
+   "estado": "aprobado"
+  },
+  {
+   "id": "ficha",
+   "capitulo": 2,
+   "inicio": 69.3,
+   "duracion": 3.6,
+   "fuente": "captura",
+   "accion": "ficha de Vaxler deslogueada (registro de visita bloqueado)",
+   "encuadre": "medio",
+   "zoom": 1.25,
+   "recorte": [
+    192,
+    0,
+    1536,
+    864
+   ],
+   "cartel": "abajo",
+   "texto": "A la vista de toda la red industrial.",
+   "rotulo": "Tu ficha",
+   "estado": "aprobado"
+  }
+ ]
+}

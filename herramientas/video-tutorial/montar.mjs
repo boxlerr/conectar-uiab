@@ -41,10 +41,20 @@ const binario = (paquete, fallback) => {
 const FFMPEG = process.env.FFMPEG || binario("ffmpeg-static", "ffmpeg");
 const FFPROBE = process.env.FFPROBE || binario("@ffprobe-installer/ffprobe", "ffprobe");
 
-const CRUDO = join(process.cwd(), "grabaciones");
+// Qué pieza se monta: `tutorial` (Directorio + Oportunidades) o `registro` (el
+// instructivo de alta para empresas no socias). Cambian el material, las placas
+// y el nombre de salida; la dirección —encuadre, ritmo, tipografía— es la misma.
+const PIEZA = (() => {
+  const i = process.argv.indexOf("--pieza");
+  return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : "tutorial";
+})();
+const ES_REGISTRO = PIEZA === "registro";
+const PREFIJO = ES_REGISTRO ? "registro-uiab" : "tutorial-uiab";
+
+const CRUDO = join(process.cwd(), ES_REGISTRO ? "grabaciones-registro" : "grabaciones");
 const TMP = join(process.cwd(), "tmp-montaje");
 const TMP_TEXTO = join(process.cwd(), "tmp-texto");
-const SALIDA = join(process.cwd(), "tutorial-uiab-conecta.mp4");
+const SALIDA = join(process.cwd(), `${PREFIJO}-conecta.mp4`);
 
 // 25 y no 30. Playwright graba a 25 fps CONSTANTES (medido: 911 intervalos de
 // 0.0400 s exactos en 01-directorio.webm, sin una sola excepción). Forzar 30
@@ -313,13 +323,41 @@ partes.forEach((parte, i) => {
   parte.planos.forEach((m, j) => {
     if (!m.rotulo && !m.texto) return;
     m.__texto = `t-${i}-${j}.png`;
-    piezas.push({ tipo: "cartel", archivo: m.__texto, rotulo: m.rotulo, texto: m.texto, sello: m.sello });
+    piezas.push({
+      tipo: "cartel", archivo: m.__texto, rotulo: m.rotulo, texto: m.texto, sello: m.sello,
+      arriba: m.cartel === "arriba",
+    });
   });
 });
 
 // Placas: la de capítulo 2 y el cierre. La de apertura no va — el plano aéreo
 // con el logo ya abre, y dos pantallas de título seguidas matan el arranque.
-const PLACAS = {
+//
+// El registro es la excepción: su placa de apertura no es un título sino lo
+// que hay que tener a mano antes de empezar, que es justo lo que preguntó la
+// UIAB ("los requisitos"). Sin eso, la persona descubre en el paso 2 que le
+// falta el CUIT y en el checkout que necesita una tarjeta.
+const PLACAS = ES_REGISTRO ? {
+  apertura: {
+    tipo: "placa", archivo: "placa-registro-apertura.png",
+    rotulo: "Cómo sumarte · empresas no socias",
+    titulo: "Qué necesitás",
+    lista: ["El CUIT de la empresa", "Un mail que uses", "Una tarjeta de débito o crédito"],
+    dur: 4.4,
+  },
+  capitulo2: {
+    tipo: "placa", archivo: "placa-registro-pago.png", rotulo: "Último paso",
+    titulo: "El pago",
+    texto: "Con débito automático, a través de Sipago.",
+    dur: 2.0,
+  },
+  cierre: {
+    tipo: "placa", archivo: "placa-registro-cierre.png", rotulo: "UIAB Conecta",
+    titulo: "Ya sos parte de la red",
+    texto: "Registrate en uiabconecta.com",
+    dur: 3.0,
+  },
+} : {
   capitulo2: {
     tipo: "placa", archivo: "placa-cap2.png", rotulo: "Capítulo 2",
     titulo: "Oportunidades",
@@ -363,7 +401,9 @@ function armarPlano(fuente, marca, { desde, bruto, dur, vel = 1 }, salida) {
 
   const salidaTexto = Math.max(0.1, durSalida - TEXTO.sale);
   const p = `clip((t-${TEXTO.entra})/${TEXTO.entrada},0,1)`;
-  const subir = `${TEXTO.sube}*pow(1-${p},3)`;
+  // El cartel de arriba entra bajando y el de abajo subiendo: los dos se
+  // acercan desde el borde del cuadro, no desde el medio de la pantalla.
+  const subir = `${marca.cartel === "arriba" ? "-" : ""}${TEXTO.sube}*pow(1-${p},3)`;
 
   const cadena = [
     `[0:v]${vel !== 1 ? `setpts=PTS/${vel.toFixed(4)},` : ""}fps=${FPS},`
@@ -525,7 +565,7 @@ const brutoUtil = partes.reduce(
 let ritmo = 1;
 if (OBJETIVO) {
   const bookends = SIN_BOOKENDS ? 0 : APERTURA.dur + CIERRE.dur;
-  const placas = PLACAS.capitulo2.dur + PLACAS.cierre.dur;
+  const placas = PLACAS.capitulo2.dur + PLACAS.cierre.dur + (PLACAS.apertura?.dur ?? 0);
   ritmo = Math.max(1, Math.min(1.6, brutoUtil / Math.max(4, OBJETIVO - bookends - placas)));
   console.log(`▸ Objetivo ${OBJETIVO}s · útil ${brutoUtil.toFixed(1)}s → ritmo ${ritmo.toFixed(2)}×`);
 }
@@ -537,14 +577,20 @@ if (!SIN_BOOKENDS && existsSync(APERTURA.archivo)) {
   console.log(`  · apertura → ${d.toFixed(1)}s`);
 }
 
-let n = 0;
+if (PLACAS.apertura && !SOLO) {
+  const dst = join(TMP, "s001-placa-apertura.mp4");
+  armarPlaca(PLACAS.apertura, dst);
+  segmentos.push({ archivo: dst, dur: PLACAS.apertura.dur, cruce: CRUCE.placa, nombre: "placa · apertura" });
+}
+
+let n = PLACAS.apertura ? 1 : 0;
 for (let i = 0; i < partes.length; i++) {
   const parte = partes[i];
 
   if (i === 1) {
     const dst = join(TMP, `s${String(++n).padStart(3, "0")}-placa2.mp4`);
     armarPlaca(PLACAS.capitulo2, dst);
-    segmentos.push({ archivo: dst, dur: PLACAS.capitulo2.dur, cruce: CRUCE.placa, nombre: "placa · Oportunidades" });
+    segmentos.push({ archivo: dst, dur: PLACAS.capitulo2.dur, cruce: CRUCE.placa, nombre: `placa · ${PLACAS.capitulo2.titulo}` });
   }
 
   const fuente = normalizarPasada(parte, i);
@@ -678,12 +724,26 @@ try {
   mkdirSync(escritorio, { recursive: true });
   const hoy = new Date().toISOString().slice(0, 10);
   const previas = readdirSync(escritorio)
-    .filter((n) => n.startsWith(`tutorial-uiab-${hoy}-v`)).length;
-  const copia = join(escritorio, `tutorial-uiab-${hoy}-v${previas + 1}.mp4`);
+    .filter((n) => n.startsWith(`${PREFIJO}-${hoy}-v`)).length;
+  const copia = join(escritorio, `${PREFIJO}-${hoy}-v${previas + 1}.mp4`);
   copyFileSync(SALIDA, copia);
   console.log(`\n▸ Copia para mirar: ${copia}`);
 } catch (e) {
   console.log(`  ⚠ no pude dejar la copia en el Escritorio: ${e.message}`);
+}
+
+// `--planos` deja cada segmento compuesto en renders/<pieza>/planos/, para el
+// loop de verificación por frames: se mira plano por plano antes de dar por
+// buena la pieza (ver la skill del video).
+if (bandera("planos")) {
+  const dir = join(process.cwd(), "renders", PIEZA, "planos");
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  segmentos.forEach((sg, i) => {
+    const nombre = `${String(i).padStart(2, "0")}-${sg.nombre.replace(/[^a-z0-9áéíóúñ-]+/gi, "-")}.mp4`;
+    copyFileSync(sg.archivo, join(dir, nombre));
+  });
+  console.log(`▸ Planos sueltos en ${dir}`);
 }
 
 rmSync(TMP, { recursive: true, force: true });

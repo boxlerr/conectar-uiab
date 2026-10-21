@@ -57,7 +57,7 @@ const escapar = (s) => String(s ?? "")
 // ── Cartel (lower third) ─────────────────────────────────────────────
 // Va por DEBAJO del marco en el montaje: si el degradado se derrama fuera de
 // la pantalla, el marco lo tapa. Por eso no hace falta recortarlo acá.
-const cartelHTML = ({ rotulo, texto, sello, plena = false }) => {
+const cartelHTML = ({ rotulo, texto, sello, plena = false, arriba = false }) => {
 // Un cartel "pleno" va sobre un plano a sangre —el del catálogo, que no es una
 // pantalla— así que se ancla al borde del CUADRO y no al de la pantalla del
 // marco. Todo lo demás (velo, tipografía, ritmo) es idéntico.
@@ -100,7 +100,8 @@ return `
      la parte fuerte del velo. Con 1290 entran en una línea y todavía quedan
      240 px hasta el borde de la pantalla. */
   .bloque{
-    position:fixed; left:${P.x + 68}px; bottom:${MARCO.alto - (P.y + P.h) + 74}px;
+    position:fixed; left:${P.x + 68}px;
+    ${arriba ? `top:${P.y + 66}px;` : `bottom:${MARCO.alto - (P.y + P.h) + 74}px;`}
     width:1290px; font-family:${PILA};
   }
   .fila{display:flex; align-items:center; gap:16px; margin-bottom:18px}
@@ -136,7 +137,10 @@ return `
 };
 
 // ── Placa (tarjeta de capítulo, a cuadro completo) ───────────────────
-const placaHTML = ({ rotulo, titulo, texto, logo }) => `
+// `lista` es para la placa que no es un título sino información que hay que
+// retener (los requisitos del registro): va a 50px porque WhatsApp recomprime a
+// ~480 de alto, y a 27px —el cuerpo del texto de las placas— no se lee.
+const placaHTML = ({ rotulo, titulo, texto, logo, lista }) => `
 <style>
   ${CSS_FUENTES}
   *{margin:0;padding:0;box-sizing:border-box}
@@ -157,6 +161,11 @@ const placaHTML = ({ rotulo, titulo, texto, logo }) => `
     border-radius:2px; margin:34px 0 26px}
   p{font-weight:600; font-size:27px; color:rgba(255,255,255,.74); max-width:900px;
     line-height:1.4}
+  ul{list-style:none; display:flex; flex-direction:column; gap:24px; text-align:left}
+  li{font-weight:800; font-size:50px; line-height:1.1; color:#fff; letter-spacing:-.02em;
+    display:flex; align-items:center; gap:26px}
+  li::before{content:""; flex:none; width:14px; height:14px; border-radius:50%;
+    background:${MARCA.azulClaro}}
 </style>
 <div class="centro">
   ${logo ? `<img class="logo" src="${logo}">` : ""}
@@ -164,6 +173,7 @@ const placaHTML = ({ rotulo, titulo, texto, logo }) => `
   <h1>${escapar(titulo)}</h1>
   <div class="regla"></div>
   ${texto ? `<p>${escapar(texto)}</p>` : ""}
+  ${lista ? `<ul>${lista.map((i) => `<li>${escapar(i)}</li>`).join("")}</ul>` : ""}
 </div>`;
 
 /**
@@ -208,15 +218,18 @@ export async function rasterizar(piezas, { destino = join(AQUI, "tmp-texto") } =
     // el velo tapa lo que hay que tapar, sean uno o dos renglones, y ni un
     // píxel más.
     if (pieza.tipo !== "placa") {
-      const renglones = await page.evaluate(({ abajo, minimo }) => {
+      const renglones = await page.evaluate(({ abajo, minimo, deArriba }) => {
         const bloque = document.querySelector(".bloque");
         const velo = document.querySelector(".velo");
         if (!bloque || !velo) return 0;
         const caja = bloque.getBoundingClientRect();
-        const arriba = Math.max(minimo, Math.round(caja.top) - 170);
+        // El cartel de arriba es el espejo del de abajo: el velo arranca en el
+        // borde superior de la pantalla y se apaga 170 px debajo del texto.
+        const arriba = deArriba ? minimo : Math.max(minimo, Math.round(caja.top) - 170);
+        const fondo = deArriba ? Math.min(abajo, Math.round(caja.bottom) + 170) : abajo;
         velo.style.top = `${arriba}px`;
-        velo.style.height = `${abajo - arriba}px`;
-        velo.style.background = "linear-gradient(to bottom,"
+        velo.style.height = `${fondo - arriba}px`;
+        velo.style.background = `linear-gradient(${deArriba ? "to top" : "to bottom"},`
           + " rgba(9,20,35,0) 0%, rgba(9,20,35,.52) 38%,"
           + " rgba(9,20,35,.88) 68%, rgba(9,20,35,.94) 100%)";
         // Cuántos renglones ocupa el titular, medido de verdad.
@@ -224,8 +237,8 @@ export async function rasterizar(piezas, { destino = join(AQUI, "tmp-texto") } =
         const cs = getComputedStyle(t);
         return Math.round(t.getBoundingClientRect().height / parseFloat(cs.lineHeight));
       }, pieza.plena
-        ? { abajo: MARCO.alto, minimo: 0 }
-        : { abajo: P.y + P.h, minimo: P.y });
+        ? { abajo: MARCO.alto, minimo: 0, deArriba: Boolean(pieza.arriba) }
+        : { abajo: P.y + P.h, minimo: P.y, deArriba: Boolean(pieza.arriba) });
 
       // Un titular de dos renglones no es un error, pero conviene saberlo: se
       // lee peor y empuja el bloque hacia arriba. El techo real depende de qué
