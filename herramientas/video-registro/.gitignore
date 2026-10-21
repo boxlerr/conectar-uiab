@@ -1,0 +1,15 @@
+node_modules/
+renders/
+# Las capturas pesan ~50 MB y se regeneran con herramientas/capturar.mjs.
+assets/capturas/
+# Mezcla, música y la voz pegada se regeneran (tiempos.mjs + musica.mjs). Las
+# líneas de audio/voz/ sí van: tardan ~40 minutos en sintetizarse.
+audio/mezcla.wav
+audio/musica.wav
+audio/voz.wav
+audio/voz-prov/
+audio/voz/*.tmp.wav
+*.mp4
+# La muestra de voz de la que Chatterbox toma el timbre no va al repo (es
+# público): las líneas de audio/voz/ ya están sintetizadas.
+audio/ref-voz-masculina.wav

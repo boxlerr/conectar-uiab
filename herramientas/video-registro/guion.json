@@ -1,0 +1,206 @@
+{
+  "pieza": "UIAB Conecta — Cómo sumar tu empresa (no socias)",
+  "fuente": "Pedido de la UIAB (Evelyn, 15-oct-2026): material para las empresas no socias que quieren sumarse. Todo lo que se dice está contrastado con el código de /register, /suscripcion/checkout y el alta en /admin/empresas.",
+  "voz": {
+    "motor": "chatterbox",
+    "referencia": "audio/ref-voz-masculina.wav",
+    "exageracion": 0.5,
+    "cfg": 0.5,
+    "idioma": "es"
+  },
+  "escenas": [
+    {
+      "id": "apertura",
+      "antes": 2.6,
+      "lineas": [
+        {
+          "id": "a1",
+          "texto": "Sumar tu empresa a la red de la Unión Industrial es simple.",
+          "voz": "Sumar tu empresa a la red de la Unión Industrial es simple."
+        },
+        {
+          "id": "a2",
+          "texto": "Necesitás tres cosas: el CUIT, un mail que uses y una tarjeta.",
+          "voz": "Necesitás tres cosas: el cuit, un mail que uses, y una tarjeta.",
+          "cortes": [
+            "el cuit",
+            "un mail",
+            "y una tarjeta"
+          ]
+        },
+        {
+          "id": "a3",
+          "texto": "Vamos paso a paso.",
+          "voz": "Vamos paso a paso.",
+          "despues": 0.3
+        }
+      ]
+    },
+    {
+      "id": "registro",
+      "antes": 0.3,
+      "lineas": [
+        {
+          "id": "r1",
+          "texto": "Entrás a la web de Conecta y tocás Registrate.",
+          "voz": "Entrás a la web de Conecta, y tocás Registrate.",
+          "cortes": [
+            "y tocás"
+          ]
+        },
+        {
+          "id": "r2",
+          "texto": "Elegís quién se registra: una empresa u organización, o un profesional.",
+          "voz": "Elegís quién se registra: una empresa u organización, o un profesional.",
+          "cortes": [
+            "una empresa",
+            "o un profesional"
+          ]
+        },
+        {
+          "id": "r3",
+          "texto": "Cargás la identidad: tipo de organización y razón social.",
+          "voz": "Cargás la identidad: tipo de organización, y razón social.",
+          "cortes": [
+            "y razón social"
+          ]
+        },
+        {
+          "id": "r4",
+          "texto": "Y el CUIT. Tenelo a mano: lo vas a usar también para pagar.",
+          "voz": "Y el cuit. Tenelo a mano: lo vas a usar también para pagar.",
+          "cortes": [
+            "Tenelo a mano"
+          ]
+        },
+        {
+          "id": "r5",
+          "texto": "Después, dónde está la empresa y qué hace, en pocas líneas.",
+          "voz": "Después, dónde está la empresa, y qué hace, en pocas líneas.",
+          "cortes": [
+            "y qué hace"
+          ]
+        },
+        {
+          "id": "r6",
+          "texto": "Elegís tu rubro: así te encuentran en el directorio.",
+          "voz": "Elegís tu rubro: así te encuentran en el directorio.",
+          "cortes": [
+            "así te encuentran"
+          ]
+        },
+        {
+          "id": "r7",
+          "texto": "Un mail que uses y una contraseña.",
+          "voz": "Un mail que uses, y una contraseña.",
+          "cortes": [
+            "y una contraseña"
+          ]
+        },
+        {
+          "id": "r8",
+          "texto": "Y la membresía: una sola, con todo incluido.",
+          "voz": "Y la membresía: una sola, con todo incluido."
+        },
+        {
+          "id": "r9",
+          "texto": "$50.000 por mes, o $500.000 por año.",
+          "voz": "Cincuenta mil pesos por mes, o quinientos mil por año.",
+          "cortes": [
+            "o quinientos mil"
+          ]
+        },
+        {
+          "id": "r10",
+          "texto": "Tocás Finalizar, y tu cuenta queda creada.",
+          "voz": "Tocás Finalizar, y tu cuenta queda creada.",
+          "cortes": [
+            "y tu cuenta"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mail",
+      "antes": 0.5,
+      "lineas": [
+        {
+          "id": "m1",
+          "texto": "Te llega un mail para confirmar tu correo.",
+          "voz": "Te llega un mail para confirmar tu correo."
+        },
+        {
+          "id": "m2",
+          "texto": "Un click, y pasás al pago.",
+          "voz": "Un click, y pasás al pago.",
+          "cortes": [
+            "y pasás al pago"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pago",
+      "antes": 0.6,
+      "lineas": [
+        {
+          "id": "p1",
+          "texto": "Elegís pagar mes a mes, o el año completo con dos meses bonificados.",
+          "voz": "Elegís pagar mes a mes, o el año completo, con dos meses bonificados.",
+          "cortes": [
+            "o el año completo"
+          ]
+        },
+        {
+          "id": "p2",
+          "texto": "Es con débito automático, por Sipago: dejás la tarjeta una vez y se cobra solo.",
+          "voz": "Es con débito automático, por Sipago: dejás la tarjeta una vez, y se cobra solo.",
+          "cortes": [
+            "dejás la tarjeta"
+          ]
+        },
+        {
+          "id": "p3",
+          "texto": "Un detalle importante: en Sipago, cargá este mismo CUIT.",
+          "voz": "Un detalle importante: en Sipago, cargá este mismo cuit.",
+          "cortes": [
+            "en Sipago"
+          ]
+        },
+        {
+          "id": "p4",
+          "texto": "Así se reconoce tu pago.",
+          "voz": "Así se reconoce tu pago."
+        }
+      ]
+    },
+    {
+      "id": "cierre",
+      "antes": 0.6,
+      "lineas": [
+        {
+          "id": "c1",
+          "texto": "Con el pago confirmado, la Unión Industrial aprueba tu ficha.",
+          "voz": "Con el pago confirmado, la Unión Industrial aprueba tu ficha.",
+          "cortes": [
+            "la Unión Industrial aprueba"
+          ]
+        },
+        {
+          "id": "c2",
+          "texto": "Y tu empresa aparece en el directorio, a la vista de toda la red industrial.",
+          "voz": "Y tu empresa aparece en el directorio, a la vista de toda la red industrial.",
+          "cortes": [
+            "a la vista"
+          ]
+        },
+        {
+          "id": "c3",
+          "texto": "Registrate hoy, y sumate a la red.",
+          "voz": "Registrate hoy y sumate a la red.",
+          "despues": 2.6
+        }
+      ]
+    }
+  ]
+}

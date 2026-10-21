@@ -1,0 +1,16 @@
+{
+  "name": "uiab-video-registro",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "capturas": "node herramientas/capturar.mjs",
+    "tiempos": "node herramientas/tiempos.mjs",
+    "musica": "node audio/musica.mjs",
+    "preview": "node servidor.mjs",
+    "stills": "node render.mjs --stills",
+    "entregar": "node render.mjs --entregar"
+  },
+  "dependencies": {
+    "playwright": "1.62.1"
+  }
+}

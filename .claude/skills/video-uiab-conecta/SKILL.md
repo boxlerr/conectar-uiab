@@ -115,16 +115,28 @@ Datos verificados de uiabconecta.com — usalos y no los inventes:
 - **Verificación UIAB**: el CUIT se contrasta contra el padrón de socias antes de
   publicar. Es el diferencial institucional y merece su propio plano.
 
-## Segunda pieza: instructivo de registro (no socias)
+## Segunda pieza: instructivo de registro (no socias) — OTRA ESTÉTICA
 
-Existe desde el 2026-10-15: `guion-registro.json`, `escenas/registro.mjs`,
-`node grabar.mjs --pieza registro` / `node montar.mjs --pieza registro --planos`
-(ver el README de la herramienta). Va **contra producción con todas las
-escrituras interceptadas** —nunca dejes pasar un POST— y no filma Sipago (tiene
-anti-bots). Los datos de ejemplo son "Tu Empresa S.A." con el CUIT que el sitio
-usa de placeholder: no se registra a ninguna empresa real. Lo que se dice del
-final del circuito tiene que coincidir con el código: después del pago la ficha
-la **aprueba un admin**, no se publica sola.
+El 2026-10-15 Julián rechazó entera la versión hecha con este pipeline (pantalla
+en un marco + carteles grandes abajo): *"no me gustó nada, mirá el que hizo Tate
+o el que hice yo para la etapa 2 de Don Joaquín"*. La pieza se rehízo en
+`herramientas/video-registro/` con el lenguaje de los videos de Vaxler
+(`~/Documents/GitHub/vaxler-video-dj-etapa2`, mismo motor):
+
+- Capturas reales **flotando como tarjetas** sobre navy con trama de puntos —
+  sin marco de pantalla—, cámara que se acerca a lo que nombra la voz, el resto
+  se apaga y el campo brilla.
+- Barra de pasos arriba al centro y **fichas** que se van juntando con lo que ya
+  está hecho.
+- **Locución** (Chatterbox, verificada con whisper) y **subtítulos** centrados
+  abajo que se encienden palabra por palabra.
+- Logo de UIAB Conecta chico arriba a la izquierda; **Vaxler chico en la
+  esquina** de abajo a la derecha ("no tan grande").
+
+Para cualquier video nuevo de UIAB, arrancar desde ese proyecto y no desde el
+marco de `video-tutorial`. Va contra producción con todo POST interceptado y no
+filma Sipago (anti-bots). Lo que dice la voz tiene que coincidir con el código:
+después del pago la ficha la aprueba un admin. "UIAB" se deletrea en la voz.
 
 ## guion.json
 
